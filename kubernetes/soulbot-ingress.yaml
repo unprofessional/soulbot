@@ -1,0 +1,29 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: soulbot-ingress
+spec:
+  rules:
+  - host: your.domain.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: soulbot-http-service # HTTP service defined earlier
+            port:
+              number: 80
+  tls:
+  - hosts:
+    - your.domain.com
+    secretName: your-tls-secret # Create a secret with your SSL/TLS certificate
+
+# Create a separate service for HTTPS traffic. To handle HTTPS, you can use
+# Kubernetes ingress controllers, which can terminate SSL/TLS and forward
+# decrypted traffic to your service. Here's an example of an ingress resource:
+
+# By creating separate services for HTTP and configuring Ingress for HTTPS,
+# you can effectively handle both HTTP and HTTPS traffic for your Node.js
+# application in Kubernetes. Adjust the configurations according to your
+# specific requirements and infrastructure.

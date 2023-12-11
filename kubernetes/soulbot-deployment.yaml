@@ -1,0 +1,35 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: soulbot
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: soulbot
+  template:
+    metadata:
+      labels:
+        app: soulbot
+    spec:
+      containers:
+      - name: soulbot
+        image: unprofessional/soulbot:rc-0.0.1
+        ports:
+        - containerPort: 80  # HTTP
+        # - containerPort: 443 # HTTPS
+        # only uncomment above if using soulbot-ingress.yaml service as a
+        # Kubernetes ingress controller
+        env:
+        - name: DISCORD_BOT_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: discord-bot-secret
+              key: DISCORD_BOT_TOKEN
+        volumeMounts:
+        - name: data-volume
+          mountPath: /data
+      volumes:
+      - name: data-volume
+        persistentVolumeClaim:
+          claimName: soulbot-pvc

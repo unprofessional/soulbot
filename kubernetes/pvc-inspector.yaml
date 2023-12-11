@@ -1,0 +1,18 @@
+# https://frank.sauerburger.io/2021/12/01/inspect-k8s-pvc.html
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pvc-inspector
+spec:
+  containers:
+  - image: busybox
+    name: pvc-inspector
+    command: ["tail"]
+    args: ["-f", "/dev/null"]
+    volumeMounts:
+    - mountPath: /data
+      name: pvc-mount
+  volumes:
+  - name: pvc-mount
+    persistentVolumeClaim:
+      claimName: soulbot-pvc

@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: soulbot-pod
+spec:
+  containers:
+    - name: soulbot
+      image: unprofessional/soulbot:rc-0.0.1
+      env:
+        - name: DB_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: my-secret
+              key: username
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: my-secret
+              key: password
