@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
       - name: soulbot
-        image: unprofessional/soulbot:latest
+        image: unprofessional/soulbot:rc-0.0.1
         imagePullPolicy: Never
         ports:
         - containerPort: 80  # HTTP
