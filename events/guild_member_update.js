@@ -30,7 +30,7 @@ const initializeEvents = (client) => {
     if(guildIsSupported(oldMember.guild.id)) {
 
       // Detect username change
-      if(oldMember.user.username !== newMember.user.username) {
+      if(oldMember.nickname !== newMember.nickname) {
         channel.send(`\`${oldMember.user.username}\` has changed their nickname from ${oldMember.nickname} to ${newMember.nickname}!`);
         /**
          * This will include some gating-logic since the bot's namechange will trigger this
