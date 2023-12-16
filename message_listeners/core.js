@@ -66,7 +66,7 @@ const initializeListeners = (client) => {
       }
 
       if (message.content === '!ping') {
-        message.channel.send('Pong!!!');
+        message.channel.send('Pong!!!!!');
       }
 
       /**
