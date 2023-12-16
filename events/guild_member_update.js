@@ -29,6 +29,8 @@ const initializeEvents = (client) => {
     // Guild MUST be part of a white list
     if(guildIsSupported(oldMember.guild.id)) {
 
+      console.log('>>>>> GuildMemberUpdate event detected...');
+
       // Detect username change
       if(oldMember.nickname != newMember.nickname) {
         channel.send(`\`${oldMember.user.username}\` has changed their nickname from ${oldMember.nickname} to ${newMember.nickname}!`);
