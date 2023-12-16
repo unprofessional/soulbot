@@ -26,10 +26,12 @@ const initializeEvents = (client) => {
     // FIXME: Hard-coded for now... "personal dev server" #general
     const channel = client.channels.cache.get("1170400835763707946");
 
+    console.log('>>>>> GuildMemberUpdate event detected...');
+
     // Guild MUST be part of a white list
     if(guildIsSupported(oldMember.guild.id)) {
 
-      console.log('>>>>> GuildMemberUpdate event detected...');
+      console.log('>>>>> GUILD SUPPORTED! GuildMemberUpdate event detected...');
 
       // Detect username change
       if(oldMember.nickname != newMember.nickname) {
