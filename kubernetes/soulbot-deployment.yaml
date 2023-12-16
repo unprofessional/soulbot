@@ -27,6 +27,12 @@ spec:
             secretKeyRef:
               name: discord-bot-secret
               key: DISCORD_BOT_TOKEN
+        - name: GUILD_STORE_FILE
+          value: "guild.store.json"
+        - name: CHANNEL_STORE_FILE
+          value: "channel.store.json"
+        - name: MEMBER_STORE_FILE
+          value: "member.store.json"
         volumeMounts:
         - name: data-volume
           mountPath: /data
