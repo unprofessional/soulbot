@@ -28,6 +28,7 @@ const initializeEvents = (client) => {
 
     // FIXME: Hard-coded for now... "personal dev server" #general
     const channel = client.channels.cache.get("1170400835763707946");
+    console.log('>>>>> channel: ', channel);
 
     // Guild MUST be part of a white list
     if(guildIsSupported(oldMember.guild.id)) {
