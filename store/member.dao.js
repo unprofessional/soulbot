@@ -10,27 +10,27 @@ const { readFile, writeFile } = require('node:fs').promises;
 const PATH = process.env.DATA_STORE_PATH;
 
 const findAll = async () => {
-  const data = await readFile(PATH, content, err => {
-    if (err) {
-      console.error(err);
-      return err;
-    }
-    return data;
-  });
+    const data = await readFile(PATH, err => {
+        if (err) {
+            console.error(err);
+            return err;
+        }
+        return data;
+    });
 };
 
 const save = async (replacementContent) => {
-  await writeFile(PATH, replacementContent, err => {
-    if (err) {
-      console.error(err);
-      return err;
-    }
-    // file written successfully
-    return true;
-  });
+    await writeFile(PATH, replacementContent, err => {
+        if (err) {
+            console.error(err);
+            return err;
+        }
+        // file written successfully
+        return true;
+    });
 };
 
 module.exports = {
-  findAll,
-  save,
+    findAll,
+    save,
 };

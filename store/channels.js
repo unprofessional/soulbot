@@ -8,5 +8,5 @@ const channels = channelDAO.initializeLocalStore().channels || [];
 console.log('>>>>> channels: ', channels)
 
 module.exports = { 
-  channels,
+    channels,
 };

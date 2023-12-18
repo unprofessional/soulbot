@@ -17,76 +17,76 @@ const runMode = process.env.RUN_MODE || 'development';
 
 // CI/Build/Function test
 if (runMode === 'test') {
-  console.log("Syntax check passed.");
-  process.exit(0);
+    console.log("Syntax check passed.");
+    process.exit(0);
 }
 
 [
-  guildFile,
-  channelFile,
-  memberFIle,
+    guildFile,
+    channelFile,
+    memberFIle,
 ].forEach((file) => {
-  console.log('>>>>> file: ', file);
-  const filePath = `${path}/${file}`;
-  console.log('>>>>> filePath: ', filePath);
-  initializeDataStore(filePath);
+    console.log('>>>>> file: ', file);
+    const filePath = `${path}/${file}`;
+    console.log('>>>>> filePath: ', filePath);
+    initializeDataStore(filePath);
 });
 
 // Client
 client.on(Events.ClientReady, () => {
-  console.log(`----- Events: Logged in as ${client.user.tag}`);
+    console.log(`----- Events: Logged in as ${client.user.tag}`);
 });
 client.on(Events.Error, (error) => {
-  console.error('----- Events: Error:', error);
+    console.error('----- Events: Error:', error);
 });
 client.on(Events.Warn, (warning) => {
-  console.error('----- Events: Warn:', warning);
+    console.error('----- Events: Warn:', warning);
 });
 client.on(Events.Debug, (debug) => {
-  console.error('----- Events: Debug:', debug);
+    console.error('----- Events: Debug:', debug);
 });
 
 // ShardEvents
 client.on(ShardEvents.Disconnect, () => {
-  console.log('----- ShardEvents: Disconnect');
+    console.log('----- ShardEvents: Disconnect');
 });
 client.on(ShardEvents.Reconnecting, () => {
-  console.log('----- ShardEvents: Reconnecting');
+    console.log('----- ShardEvents: Reconnecting');
 });
 client.on(ShardEvents.Error, (error) => {
-  console.error('----- ShardEvents: Error:', error);
+    console.error('----- ShardEvents: Error:', error);
 });
 client.on(ShardEvents.Death, () => {
-  console.log('----- ShardEvents: Death');
+    console.log('----- ShardEvents: Death');
 });
 client.on(ShardEvents.Message, () => {
-  console.log('----- ShardEvents: Message');
+    console.log('----- ShardEvents: Message');
 });
 client.on(ShardEvents.Resume, () => {
-  console.error('----- ShardEvents: Resume');
+    console.error('----- ShardEvents: Resume');
 });
 client.on(ShardEvents.Spawn, () => {
-  console.error('----- ShardEvents: Spawn');
+    console.error('----- ShardEvents: Spawn');
 });
 
 // Websockets
 client.on(WebSocketShardEvents.Ready, () => {
-  console.log('----- WebSocketShardEvents: Ready');
+    console.log('----- WebSocketShardEvents: Ready');
 });
 client.on(WebSocketShardEvents.AllReady, () => {
-  console.log('----- WebSocketShardEvents: AllReady');
+    console.log('----- WebSocketShardEvents: AllReady');
 });
 client.on(WebSocketShardEvents.Resumed, () => {
-  console.log('----- WebSocketShardEvents: Resumed');
+    console.log('----- WebSocketShardEvents: Resumed');
 });
 client.on(WebSocketShardEvents.Close, () => {
-  console.error('----- WebSocketShardEvents: Closed');
+    console.error('----- WebSocketShardEvents: Closed');
 });
 client.on(WebSocketShardEvents.Destroyed, () => {
-  console.error('----- WebSocketShardEvents: Destroyed');
+    console.error('----- WebSocketShardEvents: Destroyed');
 });
 client.on(WebSocketShardEvents.InvalidSession, () => {
-  console.error('----- WebSocketShardEvents: InvalidSession');
+    console.error('----- WebSocketShardEvents: InvalidSession');
 });
 
 initializeListeners(client);

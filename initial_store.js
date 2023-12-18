@@ -1,7 +1,7 @@
 const {
-  accessSync,
-  constants,
-  writeFileSync,
+    accessSync,
+    constants,
+    writeFileSync,
 } = require('node:fs');
 
 /**
@@ -12,22 +12,22 @@ const {
  */
 const initializeDataStore = (filePath) => {
 
-  console.log('>>>>> initializeDataStore reached!');
+    console.log('>>>>> initializeDataStore reached!');
 
-  try {
-    accessSync(filePath, constants.F_OK);
-    console.log(`>>>>> ${filePath} exists! No need to initialize...`);
-  } catch (err) {
-    console.error('>>>>> Some error occurred!: ', err);
-    if(err.code === 'ENOENT') {
-      // the `w` flag means create if not exists
-      writeFileSync(filePath, '{}', { flag: 'w', encoding: 'utf8' });
-      console.log(`>>>>> File ${filePath} created.`);
+    try {
+        accessSync(filePath, constants.F_OK);
+        console.log(`>>>>> ${filePath} exists! No need to initialize...`);
+    } catch (err) {
+        console.error('>>>>> Some error occurred!: ', err);
+        if(err.code === 'ENOENT') {
+            // the `w` flag means create if not exists
+            writeFileSync(filePath, '{}', { flag: 'w', encoding: 'utf8' });
+            console.log(`>>>>> File ${filePath} created.`);
+        }
     }
-  }
 
 };
 
 module.exports = {
-  initializeDataStore,
+    initializeDataStore,
 };
