@@ -13,6 +13,13 @@ const path = process.env.STORE_PATH;
 const guildFile = process.env.GUILD_STORE_FILE;
 const channelFile = process.env.CHANNEL_STORE_FILE;
 const memberFIle = process.env.MEMBER_STORE_FILE;
+const runMode = process.env.RUN_MODE || 'development';
+
+// CI/Build/Function test
+if (runMode === 'test') {
+  console.log("Syntax check passed.");
+  process.exit(0);
+}
 
 [
   guildFile,
