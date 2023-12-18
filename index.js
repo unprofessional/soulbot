@@ -2,6 +2,7 @@ const { Events, ShardEvents, WebSocketShardEvents } = require('discord.js');
 const { client } = require('./initial_client.js');
 const { initializeDataStore } = require('./initial_store.js');
 const { initializeListeners } = require('./message_listeners/core.js');
+const { initializeCommands } = require('./commands/initial_commands.js');
 const { initializeGuildMemberUpdate } = require('./events/guild_member_update.js');
 const { initializeGuildMemberAdd } = require('./events/guild_member_add.js');
 const { initializeGuildMemberRemove } = require('./events/guild_member_remove.js');
@@ -84,6 +85,7 @@ client.on(WebSocketShardEvents.InvalidSession, () => {
 initializeListeners(client);
 initializeGuildMemberUpdate(client);
 initializeGuildMemberAdd(client);
+initializeGuildMemberRemove(client);
 initializeGuildMemberRemove(client);
 
 client.login(token);
