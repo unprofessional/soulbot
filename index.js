@@ -4,6 +4,7 @@ const { initializeDataStore } = require('./initial_store.js');
 const { initializeListeners } = require('./message_listeners/core.js');
 const { initializeGuildMemberUpdate } = require('./events/guild_member_update.js');
 const { initializeGuildMemberAdd } = require('./events/guild_member_add.js');
+const { initializeGuildMemberRemove } = require('./events/guild_member_remove.js');
 require('dotenv').config();
 const token = process.env.DISCORD_BOT_TOKEN;
 
@@ -83,5 +84,6 @@ client.on(WebSocketShardEvents.InvalidSession, () => {
 initializeListeners(client);
 initializeGuildMemberUpdate(client);
 initializeGuildMemberAdd(client);
+initializeGuildMemberRemove(client);
 
 client.login(token);
