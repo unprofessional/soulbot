@@ -9,7 +9,7 @@ const {
 } = require("../store/members.js");
 const { guildIsSupported } = require('../store/guilds.js');
 
-const initializeEvents = (client) => {
+const initializeGuildMemberUpdate = (client) => {
   /**
    * Exclusive to ANY server member updates (i.e. nickname change, role change, etc)
    * 
@@ -28,7 +28,7 @@ const initializeEvents = (client) => {
 
     // FIXME: Hard-coded for now... "personal dev server" #general
     const channel = client.channels.cache.get("1170400835763707946");
-    console.log('>>>>> channel: ', channel);
+    // console.log('>>>>> channel: ', channel);
 
     // Guild MUST be part of a white list
     if(guildIsSupported(oldMember.guild.id)) {
@@ -70,6 +70,9 @@ const initializeEvents = (client) => {
           channel.send('Member not in the controlled list! ignoring...');
         }
       } // else event wasn't a nickname change, do nothing
+
+      // TODO: Member role updated?
+
     }
     else {
       console.log('>>>>> Server IS NOT in the supported list! Ignoring...');
@@ -80,4 +83,4 @@ const initializeEvents = (client) => {
   return client;
 };
 
-module.exports = { initializeEvents };
+module.exports = { initializeGuildMemberUpdate };
