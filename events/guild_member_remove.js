@@ -1,6 +1,6 @@
 const { Events } = require('discord.js');
 
-const GuildMemberRemove = (client) => {
+const initializeGuildMemberRemove = (client) => {
   // "guildMemberAdd"
   client.on(Events.GuildMemberAdd, (guildMember) => {
     const channel = client.channels.cache.get("1170400835763707946");
@@ -10,4 +10,4 @@ const GuildMemberRemove = (client) => {
   return client;
 };
 
-module.exports = { GuildMemberRemove };
+module.exports = { initializeGuildMemberRemove };
