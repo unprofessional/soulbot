@@ -72,6 +72,15 @@ const initializeGuildMemberUpdate = (client) => {
       } // else event wasn't a nickname change, do nothing
 
       // TODO: Member role updated?
+      /**
+       * Do a compare of oldMember vs newMemmber roles...
+       * ... maybe includes? some? every?
+       */
+      // if role added/removed
+      if(oldMember.roles.length !== newMember.roles.length) {
+        console.log('>>>>> member role added or removed!');
+        channel.send(`\`${newMember.user.username}\` has had a role added or removed!`);
+      }
 
     }
     else {
