@@ -83,9 +83,9 @@ client.on(WebSocketShardEvents.InvalidSession, () => {
 });
 
 initializeListeners(client);
+initializeCommands(client);
 initializeGuildMemberUpdate(client);
 initializeGuildMemberAdd(client);
-initializeGuildMemberRemove(client);
 initializeGuildMemberRemove(client);
 
 client.login(token);
