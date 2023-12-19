@@ -61,15 +61,8 @@ const initializeTwitterListeners = (client) => {
              */
             if(containsTwitterUrl) {
                 const wholeTwitterUrlPattern = /https?:\/\/twitter\.com\/[a-zA-Z0-9_]+\/status\/\d+/g;
-                const twitterUrlParts = message.content.split(wholeTwitterUrlPattern);
-                console.log('>>>>> twitterUrlParts: ', twitterUrlParts);
-                // find any instance of a valid twitter url
-                const twitterUrls = twitterUrlParts.filter((part) => {
-                    console.log('!!!!! part: ', part);
-                    return twitterUrlPattern.test(part);
-                });
+                const twitterUrls = message.content.match(wholeTwitterUrlPattern);
                 console.log('>>>>> twitterUrls: ', twitterUrls);
-
                 message.channel.send('Twitter URL(s) found! twitterUrls: ', twitterUrls);
                 // renderTwitterPost(message, url);
             }
