@@ -156,7 +156,7 @@ const initializeListeners = (client) => {
                 message.channel.send(`Twitter URL(s) found! twitterUrls: ${twitterUrls}`);
 
                 const firstUrl = twitterUrls[0];
-                fetchMetadata(firstUrl);
+                fetchMetadata(firstUrl, message);
 
                 // TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO 
                 // TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO 
