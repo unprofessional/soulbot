@@ -60,7 +60,8 @@ const initializeTwitterListeners = (client) => {
              * This is where the actual Twitter URL listener logic begins
              */
             if(containsTwitterUrl) {
-                const twitterUrlParts = message.content.split(twitterUrlPattern)
+                const wholeTwitterUrlPattern = /https?:\/\/twitter\.com\/[a-zA-Z0-9_]+\/status\/\d+/g;
+                const twitterUrlParts = message.content.split(wholeTwitterUrlPattern);
                 console.log('>>>>> twitterUrlParts: ', twitterUrlParts);
                 // find any instance of a valid twitter url
                 const twitterUrls = twitterUrlParts.filter((part) => {
