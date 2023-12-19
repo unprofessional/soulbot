@@ -63,7 +63,7 @@ const initializeTwitterListeners = (client) => {
                 const wholeTwitterUrlPattern = /https?:\/\/twitter\.com\/[a-zA-Z0-9_]+\/status\/\d+/g;
                 const twitterUrls = message.content.match(wholeTwitterUrlPattern);
                 console.log('>>>>> twitterUrls: ', twitterUrls);
-                message.channel.send('Twitter URL(s) found! twitterUrls: ', twitterUrls);
+                message.channel.send(`Twitter URL(s) found! twitterUrls: ${twitterUrls}`);
                 // renderTwitterPost(message, url);
             }
 
