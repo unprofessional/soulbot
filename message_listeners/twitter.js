@@ -52,7 +52,8 @@ const initializeTwitterListeners = (client) => {
              */
 
             // const twitterUrlPattern = 'https://twitter.com/';
-            const twitterUrlPattern = /^(https?:\/\/)?(www\.)?twitter\.com\/([a-zA-Z0-9_]+)(\/status\/[0-9]+)?\/?$/gm;
+            // const twitterUrlPattern = /^(https?:\/\/)?(www\.)?twitter\.com\/([a-zA-Z0-9_]+)(\/status\/[0-9]+)?\/?$/gm;
+            const twitterUrlPattern = /https?:\/\/twitter\.com\/[a-zA-Z0-9_]+\/status\/\d+/g;
             const containsTwitterUrl = twitterUrlPattern.test(message.content);
             console.log('>>>>> containsTwitterUrl: ', containsTwitterUrl);
 
@@ -60,8 +61,7 @@ const initializeTwitterListeners = (client) => {
              * This is where the actual Twitter URL listener logic begins
              */
             if(containsTwitterUrl) {
-                const wholeTwitterUrlPattern = /https?:\/\/twitter\.com\/[a-zA-Z0-9_]+\/status\/\d+/g;
-                const twitterUrls = message.content.match(wholeTwitterUrlPattern);
+                const twitterUrls = message.content.match(twitterUrlPattern);
                 console.log('>>>>> twitterUrls: ', twitterUrls);
                 message.channel.send(`Twitter URL(s) found! twitterUrls: ${twitterUrls}`);
                 // renderTwitterPost(message, url);
