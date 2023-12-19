@@ -1,5 +1,6 @@
 const { Events } = require('discord.js');
-const { renderTwitterPost } = require('../features/twitter.js');
+// const { renderTwitterPost } = require('../features/twitter.js');
+const { fetchMetadata } = require('../features/fetch_metadata.js');
 const {
     guilds,
 } = require("../store/guilds.js");
@@ -64,6 +65,16 @@ const initializeTwitterListeners = (client) => {
                 const twitterUrls = message.content.match(twitterUrlPattern);
                 console.log('>>>>> twitterUrls: ', twitterUrls);
                 message.channel.send(`Twitter URL(s) found! twitterUrls: ${twitterUrls}`);
+
+                const firstUrl = twitterUrls[0];
+                fetchMetadata(firstUrl);
+
+                // TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO 
+                // TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO 
+                // TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO 
+                // TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO 
+                // TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO 
+                
                 // renderTwitterPost(message, url);
             }
 
