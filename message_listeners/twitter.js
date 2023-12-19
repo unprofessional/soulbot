@@ -61,9 +61,11 @@ const initializeTwitterListeners = (client) => {
              */
             if(containsTwitterUrl) {
                 const twitterUrlParts = message.content.split(twitterUrlPattern)
+                console.log('>>>>> twitterUrlParts: ', twitterUrlParts);
                 // find any instance of a valid twitter url
                 const twitterUrls = twitterUrlParts.filter((part) => {
-                    return twitterUrlPattern.test(twitterUrlPattern);
+                    console.log('!!!!! part: ', part);
+                    return twitterUrlPattern.test(part);
                 });
                 console.log('>>>>> twitterUrls: ', twitterUrls);
 
