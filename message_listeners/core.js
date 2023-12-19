@@ -12,6 +12,7 @@ const {
     // removeMember,
     nickNameIsAlreadySet,
 } = require("../store/members.js");
+const { fetchMetadata } = require('../features/fetch_metadata.js');
 
 // TODO: Move to "Message Validation"?
 const validationChecksHook = (message) => {
@@ -142,6 +143,30 @@ const initializeListeners = (client) => {
                     message.channel.send('List is empty for now...');
                 }
             }
+
+            /**
+             * This is where the actual Twitter URL listener logic begins
+             */
+            const twitterUrlPattern = /https?:\/\/twitter\.com\/[a-zA-Z0-9_]+\/status\/\d+/g;
+            const containsTwitterUrl = twitterUrlPattern.test(message.content);
+            console.log('>>>>> containsTwitterUrl: ', containsTwitterUrl);
+            if(containsTwitterUrl) {
+                const twitterUrls = message.content.match(twitterUrlPattern);
+                console.log('>>>>> twitterUrls: ', twitterUrls);
+                message.channel.send(`Twitter URL(s) found! twitterUrls: ${twitterUrls}`);
+
+                const firstUrl = twitterUrls[0];
+                fetchMetadata(firstUrl);
+
+                // TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO 
+                // TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO 
+                // TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO 
+                // TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO 
+                // TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO 
+                
+                // renderTwitterPost(message, url);
+            }
+
 
         }
         else {
