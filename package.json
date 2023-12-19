@@ -20,7 +20,8 @@
   "author": "unprofessionalmadman@gmail.com",
   "dependencies": {
     "discord.js": "^14.14.1",
-    "dotenv": "^16.3.1"
+    "dotenv": "^16.3.1",
+    "puppeteer": "^21.6.1"
   },
   "devDependencies": {
     "eslint": "^8.56.0"
