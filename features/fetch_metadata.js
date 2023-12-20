@@ -10,24 +10,54 @@ const fetchMetadata = async (url, message) => {
 };
 
 // Text wrapping function
-function getWrappedText(ctx, text, maxWidth) {
-  const words = text.split(' ');
-  const lines = [];
-  let currentLine = words[0];
+// function getWrappedText(ctx, text, maxWidth) {
+//   const words = text.split(' ');
+//   const lines = [];
+//   let currentLine = words[0];
 
-  for (let i = 1; i < words.length; i++) {
-      const word = words[i];
-      const width = ctx.measureText(currentLine + " " + word).width;
-      if (width < maxWidth) {
-          currentLine += " " + word;
+//   for (let i = 1; i < words.length; i++) {
+//       const word = words[i];
+//       const width = ctx.measureText(currentLine + " " + word).width;
+//       if (width < maxWidth) {
+//           currentLine += " " + word;
+//       } else {
+//           lines.push(currentLine);
+//           currentLine = word;
+//       }
+//   }
+//   lines.push(currentLine);
+//   return lines;
+// }
+
+function getWrappedText(ctx, text, maxWidth) {
+  const lines = [];
+  const paragraphs = text.split('\n'); // Split the text into paragraphs
+
+  paragraphs.forEach(paragraph => {
+      if (paragraph === '') {
+          lines.push(''); // Handle blank lines (paragraph breaks)
       } else {
-          lines.push(currentLine);
-          currentLine = word;
+          const words = paragraph.split(' ');
+          let currentLine = words[0];
+
+          for (let i = 1; i < words.length; i++) {
+              const word = words[i];
+              const width = ctx.measureText(currentLine + " " + word).width;
+              if (width < maxWidth) {
+                  currentLine += " " + word;
+              } else {
+                  lines.push(currentLine);
+                  currentLine = word;
+              }
+          }
+
+          lines.push(currentLine); // Push the last line of the paragraph
       }
-  }
-  lines.push(currentLine);
+  });
+
   return lines;
 }
+
 
 const renderTwitterPost = async (metadataJson, message) => {
     const canvas = createCanvas(600, 400);
