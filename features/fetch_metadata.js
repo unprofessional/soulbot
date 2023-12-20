@@ -9,6 +9,26 @@ const fetchMetadata = async (url, message) => {
     return metadata;
 };
 
+// Text wrapping function
+function getWrappedText(ctx, text, maxWidth) {
+  const words = text.split(' ');
+  const lines = [];
+  let currentLine = words[0];
+
+  for (let i = 1; i < words.length; i++) {
+      const word = words[i];
+      const width = ctx.measureText(currentLine + " " + word).width;
+      if (width < maxWidth) {
+          currentLine += " " + word;
+      } else {
+          lines.push(currentLine);
+          currentLine = word;
+      }
+  }
+  lines.push(currentLine);
+  return lines;
+}
+
 const renderTwitterPost = async (metadataJson, message) => {
     const canvas = createCanvas(600, 400);
     const ctx = canvas.getContext('2d');
@@ -25,18 +45,31 @@ const renderTwitterPost = async (metadataJson, message) => {
     // Draw text elements
     ctx.fillStyle = 'white'; // Text color
     ctx.font = 'bold 16px Arial';
-    ctx.fillText(metadataJson?.open_graph?.site_name, 50, 30); // Positioning example
+    ctx.fillText(metadataJson?.open_graph?.title, 50, 30); // Positioning example
 
-    // Continue drawing other elements...
+    // Draw description with text wrapping
+    ctx.fillStyle = 'white'; // Text color for description
+    ctx.font = '14px Arial';
+    const maxWidth = 500; // Maximum width for text
+    const lineHeight = 20; // Line height
+    const lines = getWrappedText(ctx, jsonData.open_graph.description, maxWidth);
+    let yPosition = 350; // Starting Y position for description text
+    lines.forEach(line => {
+        ctx.fillText(line, 50, yPosition);
+        yPosition += lineHeight;
+    });
 
     // Draw main image
     const mainImageUrl = metadataJson?.open_graph?.images[0]?.url;
     // console.log('>>>>> mainImageUrl: ', mainImageUrl);
-    const mainImage = await loadImage(mainImageUrl);
-    ctx.drawImage(mainImage, 50, 100, 500, 250); // Example position and size
+    // const mainImage = await loadImage(mainImageUrl);
+    // ctx.drawImage(mainImage, 50, 100, 500, 250); // Example position and size
 
     // Convert the canvas to a Buffer
     const buffer = canvas.toBuffer();
+
+    // TODO: Pull image and add it as a separate image/file
+    
 
     // Create a MessageAttachment and send it
     message.channel.send({
