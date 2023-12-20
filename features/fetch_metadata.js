@@ -27,7 +27,7 @@ const renderTwitterPost = async (metadataJson, message) => {
 
     // Create a MessageAttachment and send it
     // const attachment = new Discord.MessageAttachment(buffer, 'image.png');
-    message.channel.reply({
+    message.channel.send({
         files: [{
             attachment: buffer,
             name: 'image.png'
