@@ -12,13 +12,6 @@ const fetchMetadata = async (url, message) => {
 const renderTwitterPost = async (metadataJson, message) => {
     const canvas = createCanvas(600, 400);
     const ctx = canvas.getContext('2d');
-  
-    // Draw something on the canvas
-    // ctx.fillStyle = '#8E7A76';
-    // ctx.fillRect(0, 0, 400, 200);
-    // ctx.fillStyle = 'white';
-    // ctx.font = '30px Arial';
-    // ctx.fillText('Hello, Discord!', 50, 100);
 
     // Set background color
     ctx.fillStyle = metadataJson?.theme_color;
@@ -26,8 +19,8 @@ const renderTwitterPost = async (metadataJson, message) => {
     ctx.fillRect(0, 0, 600, 400);
 
     // Load and draw favicon
-    // const favicon = await loadImage(metadataJson.favicon);
-    // ctx.drawImage(favicon, 10, 10, 32, 32); // Example position and size
+    const favicon = await loadImage(metadataJson.favicon);
+    ctx.drawImage(favicon, 10, 10, 32, 32); // Example position and size
 
     // Draw text elements
     ctx.fillStyle = 'white'; // Text color
@@ -38,7 +31,7 @@ const renderTwitterPost = async (metadataJson, message) => {
 
     // Draw main image
     const mainImageUrl = metadataJson?.open_graph?.images[0]?.url;
-    console.log('>>>>> mainImageUrl: ', mainImageUrl);
+    // console.log('>>>>> mainImageUrl: ', mainImageUrl);
     const mainImage = await loadImage(mainImageUrl);
     ctx.drawImage(mainImage, 50, 100, 500, 250); // Example position and size
 
