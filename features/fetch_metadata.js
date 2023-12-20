@@ -22,8 +22,13 @@ const renderTwitterPost = async (metadataJson, message) => {
   const buffer = canvas.toBuffer();
 
   // Create a MessageAttachment and send it
-  const attachment = new MessageAttachment(buffer, 'image.png');
-  message.channel.send(attachment);
+  // const attachment = new Discord.MessageAttachment(buffer, 'image.png');
+  message.channel.send({
+    files: [{
+        attachment: buffer,
+        name: 'image.png'
+      }]
+    });
 };
 
 module.exports = {
