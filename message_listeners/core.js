@@ -12,7 +12,10 @@ const {
     // removeMember,
     nickNameIsAlreadySet,
 } = require("../store/members.js");
-const { fetchMetadata } = require('../features/fetch_metadata.js');
+const {
+    fetchMetadata,
+    renderTwitterPost,
+} = require('../features/fetch_metadata.js');
 
 // TODO: Move to "Message Validation"?
 const validationChecksHook = (message) => {
