@@ -102,7 +102,7 @@ const renderTwitterPost = async (metadataJson, message) => {
     ctx.fillRect(0, 0, 600, canvasHeight);
     
     // Pre-process description with text wrapping
-    const maxCharLength = 250; // Maximum width for text
+    const maxCharLength = 220; // Maximum width for text
     const descLines = getWrappedText(ctx, metadataJson.open_graph.description, maxCharLength);
     console.log('>>>>> descLines.length: ', descLines.length);
     let yPosition = 110; // Starting Y position for description text
