@@ -3,7 +3,11 @@ const { createCanvas } = require('canvas');
 
 const fetchMetadata = async (url, message) => {
     const metadata = await unfurl(url);
-    message.channel.send(JSON.stringify(metadata, null, 2));
+    message.channel.send(`
+        \`\`\`
+            ${JSON.stringify(metadata, null, 2)}
+        \`\`\`
+    `);
     return metadata;
 };
 
