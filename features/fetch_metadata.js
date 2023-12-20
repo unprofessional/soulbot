@@ -53,7 +53,7 @@ const renderTwitterPost = async (metadataJson, message) => {
     const maxWidth = 500; // Maximum width for text
     const lineHeight = 20; // Line height
     const lines = getWrappedText(ctx, metadataJson.open_graph.description, maxWidth);
-    let yPosition = 350; // Starting Y position for description text
+    let yPosition = 50; // Starting Y position for description text
     lines.forEach(line => {
         ctx.fillText(line, 50, yPosition);
         yPosition += lineHeight;
