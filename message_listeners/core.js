@@ -159,7 +159,7 @@ const initializeListeners = (client) => {
                 message.channel.send(`Twitter URL(s) found! twitterUrls: ${twitterUrls}`);
 
                 const firstUrl = twitterUrls[0];
-                const metadata = fetchMetadata(firstUrl, message);
+                const metadata = await fetchMetadata(firstUrl, message);
                 console.log('>>>>> fetchMetadata > metadata: ', JSON.stringify(metadata, null, 2));
 
                 renderTwitterPost(metadata, message);

@@ -37,7 +37,7 @@ const renderTwitterPost = async (metadataJson, message) => {
     // Continue drawing other elements...
 
     // Draw main image
-    const mainImageUrl = metadataJson?.open_graph.images[0]?.url;
+    const mainImageUrl = metadataJson?.open_graph?.images[0]?.url;
     console.log('>>>>> mainImageUrl: ', mainImageUrl);
     const mainImage = await loadImage(mainImageUrl);
     ctx.drawImage(mainImage, 50, 100, 500, 250); // Example position and size
