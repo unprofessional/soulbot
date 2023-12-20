@@ -1,9 +1,32 @@
 const { unfurl } = require('unfurl.js');
+const { createCanvas } = require('canvas');
 
 const fetchMetadata = async (url, message) => {
   const metadata = await unfurl(url);
-  console.log('>>>>> fetchMetadata > metadata: ', JSON.stringify(metadata, null, 2));
   message.channel.send(JSON.stringify(metadata, null, 2));
+  return metadata;
 };
 
-module.exports = { fetchMetadata };
+const renderTwitterPost = async (metadataJson, message) => {
+  const canvas = createCanvas(200, 200);
+  const ctx = canvas.getContext('2d');
+  
+  // Draw something on the canvas
+  ctx.fillStyle = 'blue';
+  ctx.fillRect(0, 0, 200, 200);
+  ctx.fillStyle = 'white';
+  ctx.font = '30px Arial';
+  ctx.fillText('Hello, Discord!', 50, 100);
+
+  // Convert the canvas to a Buffer
+  const buffer = canvas.toBuffer();
+
+  // Create a MessageAttachment and send it
+  const attachment = new MessageAttachment(buffer, 'image.png');
+  message.channel.send(attachment);
+};
+
+module.exports = {
+  fetchMetadata,
+  renderTwitterPost,
+};
