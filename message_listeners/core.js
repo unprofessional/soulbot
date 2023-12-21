@@ -158,8 +158,8 @@ const initializeListeners = (client) => {
             console.log('>>>>> containsTwitterUrl: ', containsTwitterUrl);
             if(containsTwitterUrl) {
                 const twitterUrls = message.content.match(twitterUrlPattern);
-                console.log('>>>>> twitterUrls: ', twitterUrls);
-                message.channel.send(`Twitter URL(s) found! twitterUrls: ${twitterUrls}`);
+                // console.log('>>>>> twitterUrls: ', twitterUrls);
+                // message.channel.send(`Twitter URL(s) found! twitterUrls: ${twitterUrls}`);
 
                 const firstUrl = twitterUrls[0];
                 const metadata = await fetchMetadata(firstUrl, message);

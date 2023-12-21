@@ -8,7 +8,8 @@ const fetchMetadata = async (url, message) => {
     // \`\`\``);
 
     const result = await fetch(url);
-    console.log('>>>>> result: ', result);
+    const resultJson = await result.json();
+    console.log('>>>>> resultJson: ', resultJson);
 
     return metadata;
 };
