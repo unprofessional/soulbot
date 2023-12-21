@@ -103,12 +103,12 @@ const createTwitterCanvas = async (metadataJson) => {
     // Draw text elements
     ctx.fillStyle = 'white'; // Text color
     ctx.font = 'bold 18px Arial';
-    ctx.fillText(metadata.authorNick, 100, 40);
+    ctx.fillText(metadata.authorUsername, 100, 40);
 
     // Draw username elements
     ctx.fillStyle = 'gray'; // Text color
     ctx.font = '18px Arial';
-    ctx.fillText(`@${metadata.authorUsername}`, 100, 60);
+    ctx.fillText(`@${metadata.authorNick}`, 100, 60);
   
     // Pre-process description with text wrapping
     ctx.fillStyle = 'white'; // Text color for description
