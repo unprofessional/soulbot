@@ -69,13 +69,8 @@ const createTwitterCanvas = async (metadataJson) => {
     const canvas = createCanvas(maxCanvasWidth, canvasHeight);
     const ctx = canvas.getContext('2d');
 
+    // Fill background color
     ctx.fillStyle = '#000';
-    ctx.fillRect(0, 0, maxCanvasWidth, canvasHeight);
-
-    // // Load and draw favicon
-    const favIconUrl = 'https://abs.twimg.com/favicons/twitter.3.ico';
-    const favicon = await loadImage(favIconUrl);
-    ctx.drawImage(favicon, 520, 20, 32, 32); // Example position and size
   
     // Pre-process description with text wrapping
     const maxCharLength = 220; // Maximum width for text
@@ -92,7 +87,12 @@ const createTwitterCanvas = async (metadataJson) => {
   
     // Re-calc canvas
     ctx.canvas.height = calculatedCanvasHeightFromDescLines;
-    ctx.fillRect(0, 0, 600, calculatedCanvasHeightFromDescLines);
+    ctx.fillRect(0, 0, maxCanvasWidth, calculatedCanvasHeightFromDescLines);
+
+    // Load and draw favicon
+    const favIconUrl = 'https://abs.twimg.com/favicons/twitter.3.ico';
+    const favicon = await loadImage(favIconUrl);
+    ctx.drawImage(favicon, 520, 20, 32, 32); // Example position and size
   
     // Draw text elements
     ctx.fillStyle = 'white'; // Text color
