@@ -8,7 +8,7 @@ const renderTwitterPost = async (metadataJson, message) => {
      * Pull image and add it as a separate image/file
      */
     console.log('>>>>> renderTwitterPost > metadataJson: ', metadataJson);
-    const mediaUrls = metadataJson.mediaUrls;
+    const mediaUrls = metadataJson.mediaURLs;
     console.log('>>>>> renderTwitterPost > mediaUrls: ', mediaUrls);
     let mediaUrlsFormatted = "";
     mediaUrls.forEach((mediaUrl) => {
