@@ -165,12 +165,11 @@ const initializeListeners = (client) => {
                 const metadata = await fetchMetadata(firstUrl, message);
 
                 if (metadata.error) {
-                    message.reply(metadata.error);
+                    message.reply(metadata);
+                } else {
+                    // console.log('>>>>> fetchMetadata > metadata: ', JSON.stringify(metadata, null, 2));
+                    renderTwitterPost(metadata, message);
                 }
-
-                // console.log('>>>>> fetchMetadata > metadata: ', JSON.stringify(metadata, null, 2));
-
-                // renderTwitterPost(metadata, message);
             }
 
 
