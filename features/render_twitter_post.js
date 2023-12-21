@@ -10,7 +10,7 @@ const renderTwitterPost = async (metadataJson, message) => {
    */
 
     // Create a MessageAttachment and send it
-    message.channel.send(
+    message.reply(
         {
             files: [{
                 attachment: buffer,
