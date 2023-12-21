@@ -165,7 +165,7 @@ const initializeListeners = (client) => {
                 const metadata = await fetchMetadata(firstUrl, message);
 
                 if (metadata.error) {
-                    message.reply(metadata.errorMsg);
+                    message.reply(`Server 500: Failed to extract tweet (Processing error) ${metadata.errorMsg}`);
                 } else {
                     // console.log('>>>>> fetchMetadata > metadata: ', JSON.stringify(metadata, null, 2));
                     renderTwitterPost(metadata, message);
