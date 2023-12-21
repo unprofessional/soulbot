@@ -15,7 +15,8 @@ const fetchMetadata = async (url, message) => {
     if(result.status === 500) {
         console.log('>>>>> ERROR 500 > result: ', result);
         result.error = true;
-        return await result.text();
+        result.errorMsg = result.text();
+        return result;
     }
 
     let resultJson = {};
