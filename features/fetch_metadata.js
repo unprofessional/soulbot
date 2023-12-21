@@ -7,7 +7,7 @@ const fetchMetadata = async (url, message) => {
     // ${JSON.stringify(metadata, null, 2)}
     // \`\`\``);
 
-    const result = await fetch(url).json();
+    const result = await fetch(url);
     console.log('>>>>> result: ', result);
 
     return metadata;
