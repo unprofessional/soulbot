@@ -26,13 +26,38 @@ function getWrappedText(ctx, text, maxWidth) {
     return lines;
 }
 
+const formatTwitterDate = (twitterDate) => {
+ // Parse the date string and create a Date object
+  const date = new Date(twitterDate);
+  
+  // Format hours for AM/PM
+  const hours = date.getHours();
+  const formattedHours = hours % 12 || 12; // Converts 0 (midnight) to 12
+  const amPm = hours < 12 ? 'AM' : 'PM';
+  
+  // Format minutes
+  const minutes = date.getMinutes();
+  const formattedMinutes = minutes < 10 ? '0' + minutes : minutes;
+  
+  // Format day and year
+  const day = date.getDate();
+  const year = date.getFullYear();
+  
+  // Format month
+  const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const month = monthNames[date.getMonth()];
+  
+  // Construct the new date string
+  return `${formattedHours}:${formattedMinutes} ${amPm} · ${month} ${day}, ${year}`;  
+};
+
 const createTwitterCanvas = async (metadataJson) => {
 
     const metadata = {
       authorNick: metadataJson.user_screen_name,
       authorUsername: metadataJson.user_name,
       pfpUrl: metadataJson.user_profile_image_url,
-      date: metadataJson.createdAt, // TODO: date formatting...
+      date: metadataJson.date, // TODO: date formatting...
       description: metadataJson.text,
       mediaURLs: metadataJson.mediaURLs,
     };
@@ -94,7 +119,7 @@ const createTwitterCanvas = async (metadataJson) => {
     // Draw date elements
     ctx.fillStyle = 'gray'; // Text color
     ctx.font = '18px Arial';
-    ctx.fillText(metadata.date, 30, calculatedCanvasHeightFromDescLines - 20);
+    ctx.fillText(formatTwitterDate(metadata.date), 30, calculatedCanvasHeightFromDescLines - 20);
   
     // Draw pfp image
     const pfpUrl = metadata.pfpUrl;
