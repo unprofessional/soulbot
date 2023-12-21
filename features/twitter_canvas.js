@@ -1,6 +1,7 @@
 const { createCanvas, loadImage } = require('canvas');
 
 function getWrappedText(ctx, text, maxWidth) {
+    console.log('>>>>> getWrappedText > text: ', text);
     const lines = [];
     const paragraphs = text.split('\n'); // Split the text into paragraphs
     paragraphs.forEach(paragraph => {
@@ -61,7 +62,7 @@ const createTwitterCanvas = async (metadataJson) => {
     // New height calcs
     const descLinesLength = descLines.length;
     // console.log('>>>>> descLines: ', descLines);
-    const calculatedCanvasHeightFromDescLines = (descLinesLength * 30) + yPosition + 20;
+    const calculatedCanvasHeightFromDescLines = (descLinesLength * 30) + yPosition + 40;
     // console.log('>>>>> calculatedCanvasHeightFromDescLines: ', calculatedCanvasHeightFromDescLines);
   
     // Re-calc canvas
