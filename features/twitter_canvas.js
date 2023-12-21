@@ -37,6 +37,8 @@ const createTwitterCanvas = async (metadataJson) => {
       mediaURLs: metadataJson.mediaURLs,
     };
 
+    console.log('>>>>> createTwitterCanvas > metadata: ', metadata);
+
     const maxCanvasWidth = 600;
     let canvasHeight = 650;
     const canvas = createCanvas(maxCanvasWidth, canvasHeight);
@@ -55,6 +57,7 @@ const createTwitterCanvas = async (metadataJson) => {
   
     // Pre-process description with text wrapping
     const maxCharLength = 220; // Maximum width for text
+    console.log('>>>>> createTwitterCanvas > metadata.description: ', metadata.description);
     const descLines = getWrappedText(ctx, metadata.description, maxCharLength);
     // console.log('>>>>> descLines.length: ', descLines.length);
     let yPosition = 110; // Starting Y position for description text
