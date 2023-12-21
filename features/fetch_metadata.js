@@ -7,7 +7,10 @@ const fetchMetadata = async (url, message) => {
     // ${JSON.stringify(metadata, null, 2)}
     // \`\`\``);
 
-    const result = await fetch(url);
+    const parts = url.split("https://twitter.com/");
+    const extractedPart = parts[1];
+    const vxApiUrl = `https://api.vxtwitter.com/${extractedPart}`;
+    const result = await fetch(vxApiUrl);
     try {
         const resultJson = await result.json();
         console.log('>>>>> fetch > resultJson: ', resultJson);
