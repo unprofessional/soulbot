@@ -11,7 +11,10 @@ const renderTwitterPost = async (metadataJson, message) => {
     const mediaUrls = metadataJson.mediaURLs;
     console.log('>>>>> renderTwitterPost > mediaUrls: ', mediaUrls);
     let mediaUrlsFormatted = "";
-    let files = [];
+    let files = [{
+      attachment: buffer,
+      name: 'image.png',
+    }];
     mediaUrls.forEach((mediaUrl) => {
       mediaUrlsFormatted += `${mediaUrl}\n` // TODO: fix singular dangling comma
       files.push({
@@ -23,7 +26,7 @@ const renderTwitterPost = async (metadataJson, message) => {
     // Create a MessageAttachment and send it
     message.reply(
         {
-            content: `Media URLs found: ${mediaUrlsFormatted}`,
+            // content: `Media URLs found: ${mediaUrlsFormatted}`,
             files,
         }
     );
