@@ -1,5 +1,10 @@
 const { createCanvas, loadImage } = require('canvas');
 
+const TimeAgo = require('javascript-time-ago');
+const en = require('javascript-time-ago/locale/en');
+TimeAgo.addDefaultLocale(en);
+const timeAgo = new TimeAgo('en-US');
+
 function getWrappedText(ctx, text, maxWidth) {
     console.log('>>>>> getWrappedText > text: ', text);
     const lines = [];
@@ -29,26 +34,27 @@ function getWrappedText(ctx, text, maxWidth) {
 const formatTwitterDate = (twitterDate) => {
  // Parse the date string and create a Date object
   const date = new Date(twitterDate);
+  return timeAgo.format(date);
   
   // Format hours for AM/PM
-  const hours = date.getHours();
-  const formattedHours = hours % 12 || 12; // Converts 0 (midnight) to 12
-  const amPm = hours < 12 ? 'AM' : 'PM';
+  // const hours = date.getHours();
+  // const formattedHours = hours % 12 || 12; // Converts 0 (midnight) to 12
+  // const amPm = hours < 12 ? 'AM' : 'PM';
   
-  // Format minutes
-  const minutes = date.getMinutes();
-  const formattedMinutes = minutes < 10 ? '0' + minutes : minutes;
+  // // Format minutes
+  // const minutes = date.getMinutes();
+  // const formattedMinutes = minutes < 10 ? '0' + minutes : minutes;
   
-  // Format day and year
-  const day = date.getDate();
-  const year = date.getFullYear();
+  // // Format day and year
+  // const day = date.getDate();
+  // const year = date.getFullYear();
   
-  // Format month
-  const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-  const month = monthNames[date.getMonth()];
+  // // Format month
+  // const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  // const month = monthNames[date.getMonth()];
   
-  // Construct the new date string
-  return `${formattedHours}:${formattedMinutes} ${amPm} · ${month} ${day}, ${year}`;  
+  // // Construct the new date string
+  // return `${formattedHours}:${formattedMinutes} ${amPm} · ${month} ${day}, ${year}`;  
 };
 
 const createTwitterCanvas = async (metadataJson) => {
@@ -116,7 +122,7 @@ const createTwitterCanvas = async (metadataJson) => {
     // Draw date elements
     ctx.fillStyle = 'gray'; // Text color
     ctx.font = '18px Arial';
-    ctx.fillText(`${formatTwitterDate(metadata.date)} (GMT/UTC)`, 30, calculatedCanvasHeightFromDescLines - 20);
+    ctx.fillText(`${formatTwitterDate(metadata.date)} from this posting`, 30, calculatedCanvasHeightFromDescLines - 20);
   
     // Draw pfp image
     const pfpUrl = metadata.pfpUrl;
