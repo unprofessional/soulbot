@@ -12,7 +12,7 @@ const renderTwitterPost = async (metadataJson, message) => {
     console.log('>>>>> renderTwitterPost > mediaUrls: ', mediaUrls);
     let mediaUrlsFormatted = "";
     mediaUrls.forEach((mediaUrl) => {
-      mediaUrlsFormatted += `\`${mediaUrl}\`, ` // TODO: fix singular dangling comma
+      mediaUrlsFormatted += `${mediaUrl}\n` // TODO: fix singular dangling comma
     });
 
     // Create a MessageAttachment and send it
