@@ -167,7 +167,7 @@ const initializeListeners = (client) => {
                 if (metadata.error) {
                     message.reply(`Server 500!
 \`\`\`HTML
-${metadata.errorMsg}`
+${metadata.errorMsg}
 \`\`\``
                     );
                 } else {
