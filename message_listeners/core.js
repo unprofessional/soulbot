@@ -14,8 +14,11 @@ const {
 } = require("../store/members.js");
 const {
     fetchMetadata,
-    renderTwitterPost,
 } = require('../features/fetch_metadata.js');
+
+const {
+    renderTwitterPost,
+} = require('../features/render_twitter_post.js');
 
 // TODO: Move to "Message Validation"?
 const validationChecksHook = (message) => {
