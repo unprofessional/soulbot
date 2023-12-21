@@ -64,13 +64,13 @@ const createTwitterCanvas = async (metadataJson) => {
       authorUsername: metadataJson.user_name,
       pfpUrl: metadataJson.user_profile_image_url,
       date: metadataJson.date, // TODO: date formatting...
-      description: metadataJson.text,
+      description: metadataJson.text || "",
       mediaURLs: metadataJson.mediaURLs,
     };
   
     // Some descriptions have an undesireable shortened URL at the end
     const shortTwitterUrlPattern = /(.*?)(?:\s+https:\/\/t\.co\/\S+)?$/;
-    const matchResult = description.match(shortTwitterUrlPattern);
+    const matchResult = metadata.description.match(shortTwitterUrlPattern);
     const cleanedDescription = matchResult ? matchResult[1] : description;
     // Replace the old with the cleaned up version
     metadata.description = cleanedDescription;
