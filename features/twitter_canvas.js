@@ -119,7 +119,7 @@ const createTwitterCanvas = async (metadataJson) => {
     // Draw date elements
     ctx.fillStyle = 'gray'; // Text color
     ctx.font = '18px Arial';
-    ctx.fillText(formatTwitterDate(metadata.date), 30, calculatedCanvasHeightFromDescLines - 20);
+    ctx.fillText(`${formatTwitterDate(metadata.date)} GMT/UTC`, 30, calculatedCanvasHeightFromDescLines - 20);
   
     // Draw pfp image
     const pfpUrl = metadata.pfpUrl;
