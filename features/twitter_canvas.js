@@ -77,9 +77,6 @@ const createTwitterCanvas = async (metadataJson) => {
     const favicon = await loadImage(favIconUrl);
     ctx.drawImage(favicon, 520, 20, 32, 32); // Example position and size
   
-    ctx.canvas.height = canvasHeight;
-    ctx.fillRect(0, 0, 600, canvasHeight);
-  
     // Pre-process description with text wrapping
     const maxCharLength = 220; // Maximum width for text
     console.log('>>>>> createTwitterCanvas > metadata.description: ', metadata.description);
