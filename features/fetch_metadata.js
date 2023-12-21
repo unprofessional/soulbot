@@ -11,6 +11,14 @@ const fetchMetadata = async (url, message) => {
     const extractedPart = parts[1];
     const vxApiUrl = `https://api.vxtwitter.com/${extractedPart}`;
     const result = await fetch(vxApiUrl);
+
+    if(result.status === 500) {
+        console.log('>>>>> ERROR 500 > result: ', result);
+        return {
+            error: result.body,
+        };
+    }
+
     let resultJson = {};
     try {
         resultJson = await result.json();
