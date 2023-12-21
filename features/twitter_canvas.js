@@ -98,7 +98,7 @@ const createTwitterCanvas = async (metadataJson) => {
     // Load and draw favicon
     const favIconUrl = 'https://abs.twimg.com/favicons/twitter.3.ico';
     const favicon = await loadImage(favIconUrl);
-    ctx.drawImage(favicon, 520, 20, 32, 32); // Example position and size
+    ctx.drawImage(favicon, 550, 20, 32, 32); // Example position and size
   
     // Draw text elements
     ctx.fillStyle = 'white'; // Text color
