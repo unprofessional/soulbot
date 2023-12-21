@@ -73,9 +73,9 @@ const createTwitterCanvas = async (metadataJson) => {
     ctx.fillRect(0, 0, maxCanvasWidth, canvasHeight);
 
     // // Load and draw favicon
-    const faveIconUrl = 'https://abs.twimg.com/favicons/twitter.3.ico';
-    const favicon = await loadImage(faveIconUrl);
-    ctx.drawImage(favicon, 550, 10, 32, 32); // Example position and size
+    const favIconUrl = 'https://abs.twimg.com/favicons/twitter.3.ico';
+    const favicon = await loadImage(favIconUrl);
+    ctx.drawImage(favicon, 520, 20, 32, 32); // Example position and size
   
     ctx.canvas.height = canvasHeight;
     ctx.fillRect(0, 0, 600, canvasHeight);
@@ -119,7 +119,7 @@ const createTwitterCanvas = async (metadataJson) => {
     // Draw date elements
     ctx.fillStyle = 'gray'; // Text color
     ctx.font = '18px Arial';
-    ctx.fillText(`${formatTwitterDate(metadata.date)} GMT/UTC`, 30, calculatedCanvasHeightFromDescLines - 20);
+    ctx.fillText(`${formatTwitterDate(metadata.date)} (GMT/UTC)`, 30, calculatedCanvasHeightFromDescLines - 20);
   
     // Draw pfp image
     const pfpUrl = metadata.pfpUrl;
