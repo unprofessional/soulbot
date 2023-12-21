@@ -26,25 +26,35 @@ function getWrappedText(ctx, text, maxWidth) {
 }
 
 const createTwitterCanvas = async (metadataJson) => {
+
+    const metadata = {
+      authorNick: metadataJson.user_screen_name,
+      authorUsername: metadataJson.user_name,
+      pfpUrl: metadataJson.user_profile_image_url,
+      date: metadataJson.createdAt, // TODO: date formatting...
+      description: metadataJson.text,
+      mediaURLs: metadataJson.mediaURLs,
+    };
+
     const maxCanvasWidth = 600;
-    const canvas = createCanvas(maxCanvasWidth, 400);
+    let canvasHeight = 650;
+    const canvas = createCanvas(maxCanvasWidth, canvasHeight);
     const ctx = canvas.getContext('2d');
 
-    ctx.fillStyle = metadataJson.theme_color;
-    ctx.fillRect(0, 0, 600, 400);
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, maxCanvasWidth, canvasHeight);
 
     // // Load and draw favicon
-    const favicon = await loadImage(metadataJson.favicon);
+    const faveIconUrl = 'https://abs.twimg.com/favicons/twitter.3.ico';
+    const favicon = await loadImage(faveIconUrl);
     ctx.drawImage(favicon, 550, 10, 32, 32); // Example position and size
-  
-    let canvasHeight = 650;
   
     ctx.canvas.height = canvasHeight;
     ctx.fillRect(0, 0, 600, canvasHeight);
   
     // Pre-process description with text wrapping
     const maxCharLength = 220; // Maximum width for text
-    const descLines = getWrappedText(ctx, metadataJson.open_graph.description, maxCharLength);
+    const descLines = getWrappedText(ctx, metadata.description, maxCharLength);
     // console.log('>>>>> descLines.length: ', descLines.length);
     let yPosition = 110; // Starting Y position for description text
   
@@ -61,7 +71,12 @@ const createTwitterCanvas = async (metadataJson) => {
     // Draw text elements
     ctx.fillStyle = 'white'; // Text color
     ctx.font = 'bold 18px Arial';
-    ctx.fillText(metadataJson?.open_graph?.title, 100, 40);
+    ctx.fillText(metadata.authorNick, 100, 40);
+
+    // Draw username elements
+    ctx.fillStyle = 'gray'; // Text color
+    ctx.font = '18px Arial';
+    ctx.fillText(`@${metadata.authorUsername}`, 100, 60);
   
     // Pre-process description with text wrapping
     ctx.fillStyle = 'white'; // Text color for description
@@ -71,10 +86,16 @@ const createTwitterCanvas = async (metadataJson) => {
         ctx.fillText(line, 30, yPosition);
         yPosition += lineHeight;
     });
+
+    // Draw date elements
+    ctx.fillStyle = 'gray'; // Text color
+    ctx.font = '18px Arial';
+    ctx.fillText(metadata.date, 30, calculatedCanvasHeightFromDescLines - 20);
   
-    // Draw main image
-    const mainImage = await loadImage("https://abs.twimg.com/favicons/twitter.3.ico");
-    ctx.drawImage(mainImage, 20, 20, 50, 50); // Example position and size
+    // Draw pfp image
+    const pfpUrl = metadata.pfpUrl;
+    const pfp = await loadImage(pfpUrl);
+    ctx.drawImage(pfp, 20, 20, 50, 50); // Example position and size
 
     // Convert the canvas to a Buffer and return it
     return canvas.toBuffer();

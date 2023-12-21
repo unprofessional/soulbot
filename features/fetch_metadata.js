@@ -1,7 +1,7 @@
-const { unfurl } = require('unfurl.js');
+// const { unfurl } = require('unfurl.js');
 
 const fetchMetadata = async (url, message) => {
-    const metadata = await unfurl(url);
+    // const metadata = await unfurl(url);
     //     message.channel.send(`
     // \`\`\`JSON
     // ${JSON.stringify(metadata, null, 2)}
@@ -16,9 +16,10 @@ const fetchMetadata = async (url, message) => {
         console.log('>>>>> fetch > resultJson: ', resultJson);
     } catch (err) {
         console.log('>>>>> fetch > err: ', err);
+        message.reply(`${err}`);
     }
 
-    return metadata;
+    return result;
 };
 
 module.exports = {
