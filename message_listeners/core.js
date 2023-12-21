@@ -165,7 +165,7 @@ const initializeListeners = (client) => {
                 const metadata = await fetchMetadata(firstUrl, message);
 
                 if (metadata.error) {
-                    // message.reply(metadata);
+                    message.reply(metadata.error);
                 }
 
                 // console.log('>>>>> fetchMetadata > metadata: ', JSON.stringify(metadata, null, 2));
