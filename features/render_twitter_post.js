@@ -10,12 +10,19 @@ const renderTwitterPost = async (metadataJson, message) => {
    */
 
     // Create a MessageAttachment and send it
-    message.channel.send({
-        files: [{
-            attachment: buffer,
-            name: 'image.png'
-        }]
-    });
+    message.channel.send(
+        {
+            files: [{
+                attachment: buffer,
+                name: 'image.png'
+            }],
+            message_reference: {
+                message_id: message.id,
+                // channel_id: message.channel.id,
+                // guild_id: message.guild.id
+            }
+        }
+    );
 };
 
 module.exports = {

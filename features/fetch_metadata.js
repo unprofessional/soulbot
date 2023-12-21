@@ -6,6 +6,10 @@ const fetchMetadata = async (url, message) => {
     // \`\`\`JSON
     // ${JSON.stringify(metadata, null, 2)}
     // \`\`\``);
+
+    const result = await fetch(url).json();
+    console.log('>>>>> result: ', result);
+
     return metadata;
 };
 
