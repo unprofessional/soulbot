@@ -67,6 +67,13 @@ const createTwitterCanvas = async (metadataJson) => {
       description: metadataJson.text,
       mediaURLs: metadataJson.mediaURLs,
     };
+  
+    // Some descriptions have an undesireable shortened URL at the end
+    const shortTwitterUrlPattern = /(.*?)(?:\s+https:\/\/t\.co\/\S+)?$/;
+    const matchResult = description.match(shortTwitterUrlPattern);
+    const cleanedDescription = matchResult ? matchResult[1] : description;
+    // Replace the old with the cleaned up version
+    metadata.description = cleanedDescription;
 
     console.log('>>>>> createTwitterCanvas > metadata: ', metadata);
 
