@@ -25,6 +25,14 @@ function getWrappedText(ctx, text, maxWidth) {
                     currentLine = word;
                 }
             }
+            console.log(`curentLine: ${currentLine}`);
+            const shortTwitterUrlPattern = /(.*?)(?:\s+https:\/\/t\.co\/\S+)?$/;
+            const matches = currentLine.match(shortTwitterUrlPattern);
+            console.log('matches: ', matches);
+          
+            if(matches[0] !== matches[1]) {
+              currentLine = matches[1];
+            }
             lines.push(currentLine); // Push the last line of the paragraph
         }
     });
@@ -34,27 +42,7 @@ function getWrappedText(ctx, text, maxWidth) {
 const formatTwitterDate = (twitterDate) => {
  // Parse the date string and create a Date object
   const date = new Date(twitterDate);
-  return timeAgo.format(date);
-  
-  // Format hours for AM/PM
-  // const hours = date.getHours();
-  // const formattedHours = hours % 12 || 12; // Converts 0 (midnight) to 12
-  // const amPm = hours < 12 ? 'AM' : 'PM';
-  
-  // // Format minutes
-  // const minutes = date.getMinutes();
-  // const formattedMinutes = minutes < 10 ? '0' + minutes : minutes;
-  
-  // // Format day and year
-  // const day = date.getDate();
-  // const year = date.getFullYear();
-  
-  // // Format month
-  // const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-  // const month = monthNames[date.getMonth()];
-  
-  // // Construct the new date string
-  // return `${formattedHours}:${formattedMinutes} ${amPm} · ${month} ${day}, ${year}`;  
+  return timeAgo.format(date); 
 };
 
 const createTwitterCanvas = async (metadataJson) => {
@@ -67,24 +55,6 @@ const createTwitterCanvas = async (metadataJson) => {
       description: metadataJson.text || "",
       mediaURLs: metadataJson.mediaURLs,
     };
-
-    const originalDescription =  metadataJson.text;
-    console.log('>>>>> originalDescription: ', originalDescription);
-  
-    // FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME 
-    // FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME 
-    // FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME 
-    // FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME 
-    // FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME 
-    // FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME 
-
-    // Some descriptions have an undesireable shortened URL at the end
-    const shortTwitterUrlPattern = /(.*?)(?:\s+https:\/\/t\.co\/\S+)?$/;
-    const matchResult = originalDescription.match(shortTwitterUrlPattern);
-    console.log('>>>>> matchResult: ', matchResult);
-    const cleanedDescription = matchResult ? matchResult[0] : originalDescription;
-    // Replace the old with the cleaned up version
-    metadata.description = cleanedDescription;
 
     console.log('>>>>> createTwitterCanvas > metadata: ', metadata);
 
