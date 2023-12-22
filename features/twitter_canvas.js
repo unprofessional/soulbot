@@ -10,7 +10,6 @@ function getWrappedText(ctx, text, maxWidth) {
     const lines = [];
     const paragraphs = text.split('\n'); // Split the text into paragraphs
     paragraphs.forEach(paragraph => {
-
         console.log(`!!! 1-paragraph: ${paragraph}`);
         const shortTwitterUrlPattern = /https:\/\/t\.co\/\S+/;
         // if the URL is found anywhere in this string
@@ -19,10 +18,9 @@ function getWrappedText(ctx, text, maxWidth) {
         const matches = paragraph.split(shortTwitterUrlPattern);
         console.log('!!! 3-matches: ', matches);
         if(containsUrl && matches[0]) {
-          paragraph = matches[0];
+            paragraph = matches[0];
         }
         console.log('================================');
-
         if (paragraph === '') {
             lines.push(''); // Handle blank lines (paragraph breaks)
         } else {
@@ -45,20 +43,20 @@ function getWrappedText(ctx, text, maxWidth) {
 }
 
 const formatTwitterDate = (twitterDate) => {
- // Parse the date string and create a Date object
-  const date = new Date(twitterDate);
-  return timeAgo.format(date); 
+    // Parse the date string and create a Date object
+    const date = new Date(twitterDate);
+    return timeAgo.format(date); 
 };
 
 const createTwitterCanvas = async (metadataJson) => {
 
     const metadata = {
-      authorNick: metadataJson.user_screen_name,
-      authorUsername: metadataJson.user_name,
-      pfpUrl: metadataJson.user_profile_image_url,
-      date: metadataJson.date, // TODO: date formatting...
-      description: metadataJson.text || "",
-      mediaURLs: metadataJson.mediaURLs,
+        authorNick: metadataJson.user_screen_name,
+        authorUsername: metadataJson.user_name,
+        pfpUrl: metadataJson.user_profile_image_url,
+        date: metadataJson.date, // TODO: date formatting...
+        description: metadataJson.text || "",
+        mediaURLs: metadataJson.mediaURLs,
     };
 
     console.log('>>>>> createTwitterCanvas > metadata: ', metadata);
@@ -77,23 +75,53 @@ const createTwitterCanvas = async (metadataJson) => {
     const descLines = getWrappedText(ctx, metadata.description, maxCharLength);
     // console.log('>>>>> descLines.length: ', descLines.length);
     let yPosition = 110; // Starting Y position for description text
+
+    // Find number of associated media
+    const filteredMediaUrls = metadata.mediaUrls.filter((mediaUrl) => {
+        const mediaUrlParts = mediaUrl.split('.');
+        console.log('!!!!! mediaUrlParts: ', mediaUrlParts);
+        console.log('!!!!! mediaUrlParts.length: ', mediaUrlParts.length);
+        const fileExtension = mediaUrlParts[mediaUrlParts.length - 1];
+        console.log('!!!!! fileExtension: ', fileExtension);
+        return mediaUrl === 'jpg' || mediaUrl === 'jpeg' || mediaUrl === 'png';
+    });
+    const numOfImgs = metadata.mediaUrls.length;
+    console.log('numOfImgs', numOfImgs);
+
+    let mediaHeight = 0;
+    let mediaWidth = 0;
+    const hasImgs = numOfImgs > 0;
+    if(hasImgs) {
+        console.log('>>>>> has images!');
+        mediaHeight = 400;
+        mediaWidth = 560;
+    }
   
     // New height calcs
     const descLinesLength = descLines.length;
     // console.log('>>>>> descLines: ', descLines);
-    const calculatedCanvasHeightFromDescLines = (descLinesLength * 30) + yPosition + 40;
+    const calculatedCanvasHeightFromDescLines = (descLinesLength * 30) + yPosition + 40 + mediaHeight;
     // console.log('>>>>> calculatedCanvasHeightFromDescLines: ', calculatedCanvasHeightFromDescLines);
   
     // Re-calc canvas
     ctx.canvas.height = calculatedCanvasHeightFromDescLines;
     ctx.fillRect(0, 0, maxCanvasWidth, calculatedCanvasHeightFromDescLines);
 
+    if(hasImgs) {
+        // New media rectangle
+        ctx.fillStyle = 'blue';
+        ctx.fillRect(20, calculatedCanvasHeightFromDescLines - 450, mediaWidth, mediaHeight);
+        const mediaUrl1 = metadata.mediaUrl[0];
+        const mainMedia1 = await loadImage(mediaUrl1);
+        ctx.drawImage(mainMedia1, 20, calculatedCanvasHeightFromDescLines - 450, mediaWidth, mediaHeight); // Example position and size
+    }
+
     // Load and draw favicon
     const favIconUrl = 'https://abs.twimg.com/favicons/twitter.3.ico';
     const favicon = await loadImage(favIconUrl);
     ctx.drawImage(favicon, 550, 20, 32, 32); // Example position and size
   
-    // Draw text elements
+    // Draw nickname elements
     ctx.fillStyle = 'white'; // Text color
     ctx.font = 'bold 18px Arial';
     ctx.fillText(metadata.authorUsername, 100, 40);
