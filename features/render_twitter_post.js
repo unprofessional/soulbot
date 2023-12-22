@@ -15,13 +15,13 @@ const renderTwitterPost = async (metadataJson, message) => {
         attachment: buffer,
         name: 'image.png',
     }];
-    mediaUrls.forEach((mediaUrl) => {
-        mediaUrlsFormatted += `${mediaUrl}\n` // TODO: fix singular dangling comma
-        files.push({
-            attachment: mediaUrl,
-            name: 'image.png', // FIXME: Use the actual file hash + extension etc
-        });
-    });
+    // mediaUrls.forEach((mediaUrl) => {
+    //     mediaUrlsFormatted += `${mediaUrl}\n` // TODO: fix singular dangling comma
+    //     files.push({
+    //         attachment: mediaUrl,
+    //         name: 'image.png', // FIXME: Use the actual file hash + extension etc
+    //     });
+    // });
 
     // Create a MessageAttachment and send it
     message.reply(
