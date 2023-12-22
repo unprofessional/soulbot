@@ -36,7 +36,7 @@ function getWrappedText(ctx, text, maxWidth) {
             if(matches[0] !== matches[1] && !matches[0].test(shortTwitterUrlPattern)) {
               currentLine = matches[1];
             }
-            onsole.log('================================');
+            console.log('================================');
             lines.push(currentLine); // Push the last line of the paragraph
         }
     });
