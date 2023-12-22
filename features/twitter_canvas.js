@@ -25,14 +25,14 @@ function getWrappedText(ctx, text, maxWidth) {
                     currentLine = word;
                 }
             }
-            console.log(`1-curentLine: ${currentLine}`);
+            console.log(`!!! 1-curentLine: ${currentLine}`);
             const shortTwitterUrlPattern = /(.*?)(?:\s+https:\/\/t\.co\/\S+)?$/;
-            const testResult = currentLine.test(shortTwitterUrlPattern);
-            console.log('2-testResult: ', testResult);
+            const testResult = shortTwitterUrlPattern.test(currentLine);
+            console.log('!!! 2-testResult: ', testResult);
             currentLine = testResult ? "" : currentLine;
-            console.log('3-currentLine: ', currentLine);
+            console.log('!!! 3-currentLine: ', currentLine);
             const matches = currentLine.match(shortTwitterUrlPattern);
-            console.log('4-matches: ', matches);
+            console.log('!!! 4-matches: ', matches);
             if(matches[0] !== matches[1] && !matches[0].test(shortTwitterUrlPattern)) {
               currentLine = matches[1];
             }
