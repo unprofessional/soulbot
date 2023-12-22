@@ -10,19 +10,19 @@ function getWrappedText(ctx, text, maxWidth) {
     const lines = [];
     const paragraphs = text.split('\n'); // Split the text into paragraphs
     paragraphs.forEach(paragraph => {
+
         console.log(`!!! 1-paragraph: ${paragraph}`);
-        const shortTwitterUrlPattern = /(.*?)(?:\s+https:\/\/t\.co\/\S+)?$/;
+        const shortTwitterUrlPattern = /https:\/\/t\.co\/\S+/;
         // if the URL is found anywhere in this string
         const containsUrl = shortTwitterUrlPattern.test(paragraph);
         console.log('!!! 2-containsUrl: ', containsUrl);
-        paragraph = containsUrl ? "" : paragraph;
-        console.log('!!! 3-paragraph: ', paragraph);
-        const matches = paragraph.match(shortTwitterUrlPattern);
-        console.log('!!! 4-matches: ', matches);
+        const matches = paragraph.split(shortTwitterUrlPattern);
+        console.log('!!! 3-matches: ', matches);
         if(containsUrl && matches[0]) {
-          paragraph = matches[1];
+          paragraph = matches[0];
         }
         console.log('================================');
+
         if (paragraph === '') {
             lines.push(''); // Handle blank lines (paragraph breaks)
         } else {
