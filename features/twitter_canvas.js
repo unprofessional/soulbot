@@ -111,7 +111,7 @@ const createTwitterCanvas = async (metadataJson) => {
         // New media rectangle
         ctx.fillStyle = 'blue';
         ctx.fillRect(20, calculatedCanvasHeightFromDescLines - 450, mediaWidth, mediaHeight);
-        const mediaUrl1 = metadata.mediaUrl[0];
+        const mediaUrl1 = metadata.mediaUrls[0];
         const mainMedia1 = await loadImage(mediaUrl1);
         ctx.drawImage(mainMedia1, 20, calculatedCanvasHeightFromDescLines - 450, mediaWidth, mediaHeight); // Example position and size
     }
