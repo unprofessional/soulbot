@@ -56,7 +56,7 @@ const createTwitterCanvas = async (metadataJson) => {
         pfpUrl: metadataJson.user_profile_image_url,
         date: metadataJson.date, // TODO: date formatting...
         description: metadataJson.text || "",
-        mediaURLs: metadataJson.mediaURLs,
+        mediaUrls: metadataJson.mediaURLs,
     };
 
     console.log('>>>>> createTwitterCanvas > metadata: ', metadata);
