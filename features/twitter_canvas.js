@@ -30,7 +30,7 @@ function getWrappedText(ctx, text, maxWidth) {
             const matches = currentLine.match(shortTwitterUrlPattern);
             console.log('matches: ', matches);
           
-            if(matches[0] !== matches[1]) {
+            if(matches[0] !== matches[1] && !matches[0].test(shortTwitterUrlPattern)) {
               currentLine = matches[1];
             }
             lines.push(currentLine); // Push the last line of the paragraph
