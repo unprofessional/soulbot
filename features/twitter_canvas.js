@@ -79,7 +79,7 @@ const createTwitterCanvas = async (metadataJson) => {
     const shortTwitterUrlPattern = /(.*?)(?:\s+https:\/\/t\.co\/\S+)?$/;
     const matchResult = metadata.description.match(shortTwitterUrlPattern);
     console.log('>>>>> matchResult: ', matchResult);
-    const cleanedDescription = matchResult ? matchResult[1] : metadata.description;
+    const cleanedDescription = matchResult ? matchResult[0] : metadata.description;
     // Replace the old with the cleaned up version
     metadata.description = cleanedDescription;
 
