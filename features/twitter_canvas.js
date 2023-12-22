@@ -20,7 +20,7 @@ function getWrappedText(ctx, text, maxWidth) {
         const matches = paragraph.match(shortTwitterUrlPattern);
         console.log('!!! 4-matches: ', matches);
         if(containsUrl && matches[0]) {
-          currentLine = matches[1];
+          paragraph = matches[1];
         }
         console.log('================================');
         if (paragraph === '') {
