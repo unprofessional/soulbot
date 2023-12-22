@@ -68,9 +68,17 @@ const createTwitterCanvas = async (metadataJson) => {
       mediaURLs: metadataJson.mediaURLs,
     };
   
+    // FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME 
+    // FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME 
+    // FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME 
+    // FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME 
+    // FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME 
+    // FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME 
+
     // Some descriptions have an undesireable shortened URL at the end
     const shortTwitterUrlPattern = /(.*?)(?:\s+https:\/\/t\.co\/\S+)?$/;
     const matchResult = metadata.description.match(shortTwitterUrlPattern);
+    console.log('>>>>> matchResult: ', matchResult);
     const cleanedDescription = matchResult ? matchResult[1] : metadata.description;
     // Replace the old with the cleaned up version
     metadata.description = cleanedDescription;
