@@ -80,7 +80,7 @@ const createTwitterCanvas = async (metadataJson) => {
         date: metadataJson.date, // TODO: date formatting...
         description: metadataJson.text || "",
         mediaUrls: metadataJson.mediaURLs,
-        mediaExtended: metadataJson.mediaUrlsExtended,
+        mediaExtended: metadataJson.media_extended,
     };
 
     console.log('>>>>> createTwitterCanvas > metadata: ', metadata);
@@ -115,7 +115,7 @@ const createTwitterCanvas = async (metadataJson) => {
     const mediaMaxHeight = 600;
     const mediaMaxWidth = 560;
     const hasImgs = numOfImgs > 0;
-    
+
     // Default media embed dimensions
     let mediaObject = {
         height: 400,
