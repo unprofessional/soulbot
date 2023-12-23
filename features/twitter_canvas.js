@@ -118,8 +118,8 @@ const createTwitterCanvas = async (metadataJson) => {
 
     // Default media embed dimensions
     let mediaObject = {
-        height: 400,
-        width: 560,
+        height: 0,
+        width: 0,
     };
 
     if(hasImgs) {
