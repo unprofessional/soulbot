@@ -112,7 +112,7 @@ const createTwitterCanvas = async (metadataJson) => {
     const numOfImgs = metadata.mediaUrls.length;
     console.log('numOfImgs', numOfImgs);
 
-    const mediaMaxHeight = 600;
+    const mediaMaxHeight = 1200;
     const mediaMaxWidth = 560;
     const hasImgs = numOfImgs > 0;
 
