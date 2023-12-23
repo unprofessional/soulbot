@@ -42,6 +42,29 @@ function getWrappedText(ctx, text, maxWidth) {
     return lines;
 }
 
+const scaleDownByHalf = (
+    { height, width },
+    mediaMaxHeight,
+    mediaMaxWidth,
+) => {
+    console.log('scaleDownByHalf > height: ', height);
+    console.log('scaleDownByHalf > width: ', width);
+    if(height < mediaMaxHeight && width < mediaMaxWidth) {
+        return {
+            height,
+            width,
+        };
+    }
+    return scaleDownByHalf(
+        {
+            height: Math.floor(height/2),
+            width: Math.floor(width/2),
+        },
+        mediaMaxHeight,
+        mediaMaxWidth,
+    );
+};
+
 const formatTwitterDate = (twitterDate) => {
     // Parse the date string and create a Date object
     const date = new Date(twitterDate);
@@ -57,6 +80,7 @@ const createTwitterCanvas = async (metadataJson) => {
         date: metadataJson.date, // TODO: date formatting...
         description: metadataJson.text || "",
         mediaUrls: metadataJson.mediaURLs,
+        mediaExtended: metadataJson.mediaUrlsExtended,
     };
 
     console.log('>>>>> createTwitterCanvas > metadata: ', metadata);
@@ -88,19 +112,36 @@ const createTwitterCanvas = async (metadataJson) => {
     const numOfImgs = metadata.mediaUrls.length;
     console.log('numOfImgs', numOfImgs);
 
-    let mediaHeight = 0;
-    let mediaWidth = 0;
+    const mediaMaxHeight = 600;
+    const mediaMaxWidth = 560;
     const hasImgs = numOfImgs > 0;
+    
+    // Default media embed dimensions
+    let mediaObject = {
+        height: 400,
+        width: 560,
+    };
+
     if(hasImgs) {
-        console.log('>>>>> has images!');
-        mediaHeight = 400;
-        mediaWidth = 560;
+        // console.log('>>>>> has images!');
+        mediaObject = {
+            height: metadata.mediaExtended[0].size.height,
+            width: metadata.mediaExtended[0].size.width,
+        };
+        console.log('>>>>> mediaObject.height: ', mediaObject.height);
+        console.log('>>>>> mediaObject.width: ', mediaObject.width);
+        if(mediaObject.height === mediaObject.height) {
+        // do nothing???? let the Rectangle remain a square!!!
+        }
+        // Recusively scale down by half if larger than allowed
+        mediaObject = scaleDownByHalf(mediaObject, mediaMaxHeight, mediaMaxWidth);
+        console.log('>>>>> hasImgs > mediaObject: ', mediaObject);
     }
   
     // New height calcs
     const descLinesLength = descLines.length;
     // console.log('>>>>> descLines: ', descLines);
-    const calculatedCanvasHeightFromDescLines = (descLinesLength * 30) + yPosition + 40 + mediaHeight;
+    const calculatedCanvasHeightFromDescLines = (descLinesLength * 30) + yPosition + 40 + mediaObject.height;
     // console.log('>>>>> calculatedCanvasHeightFromDescLines: ', calculatedCanvasHeightFromDescLines);
   
     // Re-calc canvas
@@ -109,11 +150,11 @@ const createTwitterCanvas = async (metadataJson) => {
 
     if(hasImgs) {
         // New media rectangle
-        ctx.fillStyle = 'blue';
-        ctx.fillRect(20, calculatedCanvasHeightFromDescLines - 450, mediaWidth, mediaHeight);
+        // ctx.fillStyle = 'blue';
+        // ctx.fillRect(20, calculatedCanvasHeightFromDescLines - mediaObject.height - 50, mediaObject.width, mediaObject.height);
         const mediaUrl1 = metadata.mediaUrls[0];
         const mainMedia1 = await loadImage(mediaUrl1);
-        ctx.drawImage(mainMedia1, 20, calculatedCanvasHeightFromDescLines - 450, mediaWidth, mediaHeight); // Example position and size
+        ctx.drawImage(mainMedia1, 20, calculatedCanvasHeightFromDescLines - mediaObject.height - 50, mediaObject.width, mediaObject.height);
     }
 
     // Load and draw favicon
