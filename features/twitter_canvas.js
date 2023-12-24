@@ -146,40 +146,6 @@ const createTwitterCanvas = async (metadataJson) => {
     ctx.canvas.height = calculatedCanvasHeightFromDescLines;
     ctx.fillRect(0, 0, maxCanvasWidth, calculatedCanvasHeightFromDescLines);
 
-    if (hasImgs) {
-        const mainMedia1Url = metadata.mediaUrls[0];
-        const mainMedia1 = await loadImage(mainMedia1Url);
-        mainMedia1.onload = function() {
-            // Calculate the aspect ratio of the destination size
-            const destAspectRatio = mediaMaxWidth / mediaMaxHeight;
-  
-            // Determine the cropping size (maintaining the destination aspect ratio)
-            let cropWidth, cropHeight;
-            if (mainMedia1.width / mainMedia1.height > destAspectRatio) {
-                // Image is wider than destination aspect ratio
-                cropHeight = mainMedia1.height;
-                cropWidth = mainMedia1.height * destAspectRatio;
-            } else {
-                // Image is taller than destination aspect ratio
-                cropWidth = mainMedia1.width;
-                cropHeight = mainMedia1.width / destAspectRatio;
-            }
-  
-            // Calculate starting point (top left corner) for cropping
-            const sx = (mainMedia1.width - cropWidth) / 2;
-            const sy = (mainMedia1.height - cropHeight) / 2;
-  
-            const position = calculatedCanvasHeightFromDescLines - mediaMaxHeight - 50;
-  
-            // Draw the cropped image on the canvas
-            ctx.drawImage(
-                mainMedia1,
-                sx, sy, cropWidth, cropHeight, // Source rectangle
-                20, position, mediaMaxWidth, mediaMaxHeight // Destination rectangle
-            );
-        };
-    }
-
     // Load and draw favicon
     const favIconUrl = 'https://abs.twimg.com/favicons/twitter.3.ico';
     const favicon = await loadImage(favIconUrl);
@@ -213,6 +179,42 @@ const createTwitterCanvas = async (metadataJson) => {
     const pfpUrl = metadata.pfpUrl;
     const pfp = await loadImage(pfpUrl);
     ctx.drawImage(pfp, 20, 20, 50, 50); // Example position and size
+
+    // Draw the image, if one exists...
+    if (hasImgs) {
+      const mainMedia1Url = metadata.mediaUrls[0];
+      const mainMedia1 = await loadImage(mainMedia1Url);
+      mainMedia1.onload = function() {
+          // Calculate the aspect ratio of the destination size
+          const destAspectRatio = mediaMaxWidth / mediaMaxHeight;
+
+          // Determine the cropping size (maintaining the destination aspect ratio)
+          let cropWidth, cropHeight;
+          if (mainMedia1.width / mainMedia1.height > destAspectRatio) {
+              // Image is wider than destination aspect ratio
+              cropHeight = mainMedia1.height;
+              cropWidth = mainMedia1.height * destAspectRatio;
+          } else {
+              // Image is taller than destination aspect ratio
+              cropWidth = mainMedia1.width;
+              cropHeight = mainMedia1.width / destAspectRatio;
+          }
+
+          // Calculate starting point (top left corner) for cropping
+          const sx = (mainMedia1.width - cropWidth) / 2;
+          const sy = (mainMedia1.height - cropHeight) / 2;
+
+          const position = calculatedCanvasHeightFromDescLines - mediaMaxHeight - 50;
+
+          console.log('>>>>> hasImgs! drawing image...');
+          // Draw the cropped image on the canvas
+          ctx.drawImage(
+              mainMedia1,
+              sx, sy, cropWidth, cropHeight, // Source rectangle
+              20, position, mediaMaxWidth, mediaMaxHeight // Destination rectangle
+          );
+      };
+  }
 
     // Convert the canvas to a Buffer and return it
     return canvas.toBuffer();
