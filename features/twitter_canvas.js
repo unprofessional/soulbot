@@ -147,9 +147,8 @@ const createTwitterCanvas = async (metadataJson) => {
     ctx.fillRect(0, 0, maxCanvasWidth, calculatedCanvasHeightFromDescLines);
 
     if (hasImgs) {
-        const mainMedia1 = new Image();
-        mainMedia1.src = metadata.mediaUrls[0];
-  
+        const mainMedia1Url = metadata.mediaUrls[0];
+        const mainMedia1 = await loadImage(mainMedia1Url);
         mainMedia1.onload = function() {
             // Calculate the aspect ratio of the destination size
             const destAspectRatio = mediaMaxWidth / mediaMaxHeight;
