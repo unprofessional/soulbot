@@ -125,22 +125,28 @@ const createTwitterCanvas = async (metadataJson) => {
     let heightShim = 0;
 
     if(hasImgs) {
-        // console.log('>>>>> has images!');
-        mediaObject = {
-            height: metadata.mediaExtended[0].size.height,
-            width: metadata.mediaExtended[0].size.width,
-        };
-        // Recusively scale down by half if larger than allowed
-        // mediaObject = scaleDownByHalf(mediaObject, mediaMaxHeight, mediaMaxWidth);
-        console.log('>>>>> hasImgs > mediaObject: ', mediaObject);
+      // console.log('>>>>> has images!');
+      mediaObject = {
+        height: metadata.mediaExtended[0].size.height,
+        width: metadata.mediaExtended[0].size.width,
+      };
+      // Recusively scale down by half if larger than allowed
+      // mediaObject = scaleDownByHalf(mediaObject, mediaMaxHeight, mediaMaxWidth);
+      console.log('>>>>> hasImgs > mediaObject: ', mediaObject);
+      if(mediaObject.width > mediaObject.height) {
+        const newWidthRatio = mediaMaxWidth / mediaObject.width;
+        // console.log('>>>>> newWidthRatio: ', newWidthRatio);
+        const adjustedHeight = mediaObject.height * newWidthRatio;
+        // console.log('>>>>> adjustedHeight: ', adjustedHeight);
+        heightShim = adjustedHeight;    
+      } else {
         heightShim = mediaMaxHeight;
+      }
     }
   
     // New height calcs
     const descLinesLength = descLines.length;
-    // console.log('>>>>> descLines: ', descLines);
     const calculatedCanvasHeightFromDescLines = (descLinesLength * 30) + yPosition + 40 + heightShim;
-    // console.log('>>>>> calculatedCanvasHeightFromDescLines: ', calculatedCanvasHeightFromDescLines);
   
     // Re-calc canvas
     ctx.canvas.height = calculatedCanvasHeightFromDescLines;
@@ -182,36 +188,44 @@ const createTwitterCanvas = async (metadataJson) => {
 
     // Draw the image, if one exists...
     if (hasImgs) {
-        const mainMedia1Url = metadata.mediaUrls[0];
-        const mainMedia1 = await loadImage(mainMedia1Url);
-        // Calculate the aspect ratio of the destination size
-        const destAspectRatio = mediaMaxWidth / mediaMaxHeight;
-
-        // Determine the cropping size (maintaining the destination aspect ratio)
-        let cropWidth, cropHeight;
-        if (mainMedia1.width / mainMedia1.height > destAspectRatio) {
-            // Image is wider than destination aspect ratio
-            cropHeight = mainMedia1.height;
-            cropWidth = mainMedia1.height * destAspectRatio;
+        /** CROPPING LOGIC */
+        const position = calculatedCanvasHeightFromDescLines - heightShim - 50;
+        if (mainMedia1.width > mainMedia1.height) {
+          // scale to fit width and draw like normal
+          const newWidthRatio = mediaMaxWidth / mainMedia1.width;
+          console.log('>>>>> newWidthRatio: ', newWidthRatio);
+          const adjustedHeight = mainMedia1.height * newWidthRatio;
+          console.log('>>>>> adjustedHeight: ', adjustedHeight);
+          ctx.drawImage(
+            mainMedia1,
+            // sx, sy, cropWidth, cropHeight, // Source rectangle
+            20, position, mediaMaxWidth, adjustedHeight // Destination rectangle
+          );
         } else {
-            // Image is taller than destination aspect ratio
-            cropWidth = mainMedia1.width;
-            cropHeight = mainMedia1.width / destAspectRatio;
-        }
-
-        // Calculate starting point (top left corner) for cropping
-        const sx = (mainMedia1.width - cropWidth) / 2;
-        const sy = (mainMedia1.height - cropHeight) / 2;
-
-        const position = calculatedCanvasHeightFromDescLines - mediaMaxHeight - 50;
-
-        console.log('>>>>> hasImgs! drawing image...');
-        // Draw the cropped image on the canvas
-        ctx.drawImage(
+          // crop from the center of the image
+          // Calculate the aspect ratio of the destination size
+          const destAspectRatio = mediaMaxWidth / mediaMaxHeight;
+          // Determine the cropping size (maintaining the destination aspect ratio)
+          let cropWidth, cropHeight;
+          if (mainMedia1.width / mainMedia1.height > destAspectRatio) {
+              // Image is wider than destination aspect ratio
+              cropHeight = mainMedia1.height;
+              cropWidth = mainMedia1.height * destAspectRatio;
+          } else {
+              // Image is taller than destination aspect ratio
+              cropWidth = mainMedia1.width;
+              cropHeight = mainMedia1.width / destAspectRatio;
+          }
+          // Calculate starting point (top left corner) for cropping
+          const sx = (mainMedia1.width - cropWidth) / 2;
+          const sy = (mainMedia1.height - cropHeight) / 2;
+          // Draw the cropped image on the canvas
+          ctx.drawImage(
             mainMedia1,
             sx, sy, cropWidth, cropHeight, // Source rectangle
             20, position, mediaMaxWidth, mediaMaxHeight // Destination rectangle
-        );
+          );
+        }
     }
 
     // Convert the canvas to a Buffer and return it
