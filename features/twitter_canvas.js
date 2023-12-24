@@ -112,7 +112,7 @@ const createTwitterCanvas = async (metadataJson) => {
     const numOfImgs = metadata.mediaUrls.length;
     console.log('numOfImgs', numOfImgs);
 
-    const mediaMaxHeight = 1200;
+    const mediaMaxHeight = 600;
     const mediaMaxWidth = 560;
     const hasImgs = numOfImgs > 0;
 
@@ -122,39 +122,63 @@ const createTwitterCanvas = async (metadataJson) => {
         width: 0,
     };
 
+    let heightShim = 0;
+
     if(hasImgs) {
         // console.log('>>>>> has images!');
         mediaObject = {
             height: metadata.mediaExtended[0].size.height,
             width: metadata.mediaExtended[0].size.width,
         };
-        console.log('>>>>> mediaObject.height: ', mediaObject.height);
-        console.log('>>>>> mediaObject.width: ', mediaObject.width);
-        if(mediaObject.height === mediaObject.height) {
-        // do nothing???? let the Rectangle remain a square!!!
-        }
         // Recusively scale down by half if larger than allowed
-        mediaObject = scaleDownByHalf(mediaObject, mediaMaxHeight, mediaMaxWidth);
+        // mediaObject = scaleDownByHalf(mediaObject, mediaMaxHeight, mediaMaxWidth);
         console.log('>>>>> hasImgs > mediaObject: ', mediaObject);
+        heightShim = mediaMaxHeight;
     }
   
     // New height calcs
     const descLinesLength = descLines.length;
     // console.log('>>>>> descLines: ', descLines);
-    const calculatedCanvasHeightFromDescLines = (descLinesLength * 30) + yPosition + 40 + mediaObject.height;
+    const calculatedCanvasHeightFromDescLines = (descLinesLength * 30) + yPosition + 40 + heightShim;
     // console.log('>>>>> calculatedCanvasHeightFromDescLines: ', calculatedCanvasHeightFromDescLines);
   
     // Re-calc canvas
     ctx.canvas.height = calculatedCanvasHeightFromDescLines;
     ctx.fillRect(0, 0, maxCanvasWidth, calculatedCanvasHeightFromDescLines);
 
-    if(hasImgs) {
-        // New media rectangle
-        // ctx.fillStyle = 'blue';
-        // ctx.fillRect(20, calculatedCanvasHeightFromDescLines - mediaObject.height - 50, mediaObject.width, mediaObject.height);
-        const mediaUrl1 = metadata.mediaUrls[0];
-        const mainMedia1 = await loadImage(mediaUrl1);
-        ctx.drawImage(mainMedia1, 20, calculatedCanvasHeightFromDescLines - mediaObject.height - 50, mediaObject.width, mediaObject.height);
+    if (hasImgs) {
+        const mainMedia1 = new Image();
+        mainMedia1.src = metadata.mediaUrls[0];
+  
+        mainMedia1.onload = function() {
+            // Calculate the aspect ratio of the destination size
+            const destAspectRatio = mediaMaxWidth / mediaMaxHeight;
+  
+            // Determine the cropping size (maintaining the destination aspect ratio)
+            let cropWidth, cropHeight;
+            if (mainMedia1.width / mainMedia1.height > destAspectRatio) {
+                // Image is wider than destination aspect ratio
+                cropHeight = mainMedia1.height;
+                cropWidth = mainMedia1.height * destAspectRatio;
+            } else {
+                // Image is taller than destination aspect ratio
+                cropWidth = mainMedia1.width;
+                cropHeight = mainMedia1.width / destAspectRatio;
+            }
+  
+            // Calculate starting point (top left corner) for cropping
+            const sx = (mainMedia1.width - cropWidth) / 2;
+            const sy = (mainMedia1.height - cropHeight) / 2;
+  
+            const position = calculatedCanvasHeightFromDescLines - mediaMaxHeight - 50;
+  
+            // Draw the cropped image on the canvas
+            ctx.drawImage(
+                mainMedia1,
+                sx, sy, cropWidth, cropHeight, // Source rectangle
+                20, position, mediaMaxWidth, mediaMaxHeight // Destination rectangle
+            );
+        };
     }
 
     // Load and draw favicon
