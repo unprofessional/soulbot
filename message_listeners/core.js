@@ -58,6 +58,34 @@ const initializeListeners = (client) => {
         // Logger
         console.log(`${message.guildId}: ${message.author.globalName}: ${message.content}`);
 
+        if(!isSelf(message)) { // not self, but can be anyone else
+            /**
+             * This is where the actual Twitter URL listener logic begins
+             */
+            const twitterUrlPattern = /https?:\/\/twitter\.com\/[a-zA-Z0-9_]+\/status\/\d+/g;
+            const containsTwitterUrl = twitterUrlPattern.test(message.content);
+            console.log('>>>>> containsTwitterUrl: ', containsTwitterUrl);
+            if(containsTwitterUrl) {
+                const twitterUrls = message.content.match(twitterUrlPattern);
+                // console.log('>>>>> twitterUrls: ', twitterUrls);
+                // message.channel.send(`Twitter URL(s) found! twitterUrls: ${twitterUrls}`);
+
+                const firstUrl = twitterUrls[0];
+                const metadata = await fetchMetadata(firstUrl, message);
+
+                if (metadata.error) {
+                    message.reply(`Server 500!
+\`\`\`HTML
+${metadata.errorMsg}
+\`\`\``
+                    );
+                } else {
+                    // console.log('>>>>> fetchMetadata > metadata: ', JSON.stringify(metadata, null, 2));
+                    renderTwitterPost(metadata, message);
+                }
+            }
+        }
+
         if(!isSelf(message) && isOwner(message)) {
 
             console.log('>>>>> NOT self!!! Reading message!!');
@@ -149,33 +177,6 @@ const initializeListeners = (client) => {
                     message.channel.send('List is empty for now...');
                 }
             }
-
-            /**
-             * This is where the actual Twitter URL listener logic begins
-             */
-            const twitterUrlPattern = /https?:\/\/twitter\.com\/[a-zA-Z0-9_]+\/status\/\d+/g;
-            const containsTwitterUrl = twitterUrlPattern.test(message.content);
-            console.log('>>>>> containsTwitterUrl: ', containsTwitterUrl);
-            if(containsTwitterUrl) {
-                const twitterUrls = message.content.match(twitterUrlPattern);
-                // console.log('>>>>> twitterUrls: ', twitterUrls);
-                // message.channel.send(`Twitter URL(s) found! twitterUrls: ${twitterUrls}`);
-
-                const firstUrl = twitterUrls[0];
-                const metadata = await fetchMetadata(firstUrl, message);
-
-                if (metadata.error) {
-                    message.reply(`Server 500!
-\`\`\`HTML
-${metadata.errorMsg}
-\`\`\``
-                    );
-                } else {
-                    // console.log('>>>>> fetchMetadata > metadata: ', JSON.stringify(metadata, null, 2));
-                    renderTwitterPost(metadata, message);
-                }
-            }
-
 
         }
         else {
