@@ -12,6 +12,7 @@ const fetchMetadata = async (url, message, isXDotCom) => {
         parts = url.split("https://x.com/");
     }
     parts = url.split("https://twitter.com/");
+    console.log('>>>>> fetchMetadata > parts: ', parts);
     const extractedPart = parts[1];
     const vxApiUrl = `https://api.vxtwitter.com/${extractedPart}`;
     const result = await fetch(vxApiUrl);
