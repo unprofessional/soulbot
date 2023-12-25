@@ -193,10 +193,19 @@ const createTwitterCanvas = async (metadataJson) => {
         const mainMedia1 = await loadImage(mainMedia1Url);
         /** Single Image */
         if(metadata.mediaUrls.length === 1) {
-            ctx = cropToMaxDimensions(
+            const {
+                mainMedia1,
+                sx, sy, cropWidth, cropHeight, // Source rectangle
+                topCorner, position, mediaMaxWidth, mediaMaxHeight // Destination rectangle
+            } = cropToMaxDimensions(
                 metadata.mediaUrls,
                 calculatedCanvasHeightFromDescLines,
                 heightShim, mediaMaxWidth, mediaMaxHeight, ctx,
+            );
+            ctx.drawImage(
+                mainMedia1,
+                sx, sy, cropWidth, cropHeight, // Source rectangle
+                topCorner, position, mediaMaxWidth, mediaMaxHeight // Destination rectangle
             );
         }
         // /** Two Images */
