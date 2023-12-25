@@ -50,6 +50,6 @@ const cropToMaxDimensions = async (
     }
 }
 
-exports.module = {
+module.exports = {
     cropToMaxDimensions,
 };
