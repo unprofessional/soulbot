@@ -6,12 +6,8 @@ const fetchMetadata = async (url, message, isXDotCom) => {
     // \`\`\`JSON
     // ${JSON.stringify(metadata, null, 2)}
     // \`\`\``);
-
-    let parts = url.split("https://twitter.com/");
-    if(isXDotCom) {
-        parts = url.split("https://x.com/");
-    }
-    parts = url.split("https://twitter.com/");
+    const urlPattern = isXDotCom ? "https://x.com/" : https://twitter.com/
+    parts = url.split(urlPattern);
     console.log('>>>>> fetchMetadata > parts: ', parts);
     const extractedPart = parts[1];
     const vxApiUrl = `https://api.vxtwitter.com/${extractedPart}`;
