@@ -89,7 +89,7 @@ const createTwitterCanvas = async (metadataJson) => {
     const maxCanvasWidth = 600;
     let canvasHeight = 650;
     const canvas = createCanvas(maxCanvasWidth, canvasHeight);
-    const ctx = canvas.getContext('2d');
+    let ctx = canvas.getContext('2d');
 
     // Fill background color
     ctx.fillStyle = '#000';
