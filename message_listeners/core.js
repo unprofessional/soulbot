@@ -67,7 +67,8 @@ const initializeListeners = (client) => {
             const xDotComUrlPattern = /https?:\/\/x\.com\/[a-zA-Z0-9_]+\/status\/\d+/g;
             const containsXDotComUrl = xDotComUrlPattern.test(message.content);
             console.log('>>>>> containsTwitterUrl: ', containsTwitterUrl);
-            if(containsTwitterUrl) {
+            console.log('>>>>> containsXDotComUrl: ', containsXDotComUrl);
+            if(containsTwitterUrl || containsXDotComUrl) {
                 const urls = containsXDotComUrl
                     ? message.content.match(xDotComUrlPattern)
                     : message.content.match(twitterUrlPattern);;
