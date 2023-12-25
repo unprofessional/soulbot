@@ -71,7 +71,7 @@ const initializeListeners = (client) => {
             if(containsTwitterUrl || containsXDotComUrl) {
                 const urls = containsXDotComUrl
                     ? message.content.match(xDotComUrlPattern)
-                    : message.content.match(twitterUrlPattern);;
+                    : message.content.match(twitterUrlPattern);
                 // console.log('>>>>> urls: ', urls);
                 // message.channel.send(`Twitter/X URL(s) found! urls: ${urls}`);
 
