@@ -47,6 +47,8 @@ const cropToMaxDimensions = async (
             sx, sy, cropWidth, cropHeight, // Source rectangle
             20, position, mediaMaxWidth, mediaMaxHeight // Destination rectangle
         );
+        
+        return ctx;
     }
 }
 
