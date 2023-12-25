@@ -199,18 +199,18 @@ const createTwitterCanvas = async (metadataJson) => {
                 heightShim, mediaMaxWidth, mediaMaxHeight, ctx,
             );
         }
-        /** Two Images */
-        if(metadata.mediaUrls.lengthj === 2) {
+        // /** Two Images */
+        // if(metadata.mediaUrls.lengthj === 2) {
 
-        }
-        /** Three Images */
-        if(metadata.mediaUrls.lengthj === 3) {
+        // }
+        // /** Three Images */
+        // if(metadata.mediaUrls.lengthj === 3) {
 
-        }
-        /** Four Images */
-        if(metadata.mediaUrls.lengthj === 4) {
+        // }
+        // /** Four Images */
+        // if(metadata.mediaUrls.lengthj === 4) {
 
-        }
+        // }
     }
 
     // Convert the canvas to a Buffer and return it
