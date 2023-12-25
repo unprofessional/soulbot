@@ -1,5 +1,4 @@
 const { createCanvas, loadImage } = require('canvas');
-const { cropToMaxDimensions } = require('./crop_to_max_dimensions.js');
 
 const TimeAgo = require('javascript-time-ago');
 const en = require('javascript-time-ago/locale/en');
@@ -89,7 +88,7 @@ const createTwitterCanvas = async (metadataJson) => {
     const maxCanvasWidth = 600;
     let canvasHeight = 650;
     const canvas = createCanvas(maxCanvasWidth, canvasHeight);
-    let ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext('2d');
 
     // Fill background color
     ctx.fillStyle = '#000';
@@ -192,7 +191,9 @@ const createTwitterCanvas = async (metadataJson) => {
         const mainMedia1Url = metadata.mediaUrls[0];
         const mainMedia1 = await loadImage(mainMedia1Url);
         /** Single Image */
+        // Setup for accessing
         if(metadata.mediaUrls.length === 1) {
+            /** CROPPING LOGIC */
             const position = calculatedCanvasHeightFromDescLines - heightShim - 50;
             if (mainMedia1.width > mainMedia1.height) {
                 // scale to fit width and draw like normal
@@ -231,18 +232,18 @@ const createTwitterCanvas = async (metadataJson) => {
                 );
             }
         }
-        // /** Two Images */
-        // if(metadata.mediaUrls.lengthj === 2) {
-
-        // }
-        // /** Three Images */
-        // if(metadata.mediaUrls.lengthj === 3) {
-
-        // }
-        // /** Four Images */
-        // if(metadata.mediaUrls.lengthj === 4) {
-
-        // }
+        /** Two Images */
+        if(metadata.mediaUrls.lengthj === 2) {
+            console.log('Post has 2 images!');
+        }
+        /** Three Images */
+        if(metadata.mediaUrls.lengthj === 3) {
+            console.log('Post has 3 images!');
+        }
+        /** Four Images */
+        if(metadata.mediaUrls.lengthj === 2) {
+            console.log('Post has 4 images!');
+        }
     }
 
     // Convert the canvas to a Buffer and return it
