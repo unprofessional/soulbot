@@ -64,14 +64,18 @@ const initializeListeners = (client) => {
              */
             const twitterUrlPattern = /https?:\/\/twitter\.com\/[a-zA-Z0-9_]+\/status\/\d+/g;
             const containsTwitterUrl = twitterUrlPattern.test(message.content);
+            const xDotComUrlPattern = /https?:\/\/x\.com\/[a-zA-Z0-9_]+\/status\/\d+/g;
+            const containsXDotComUrl = xDotComUrlPattern.test(message.content);
             console.log('>>>>> containsTwitterUrl: ', containsTwitterUrl);
             if(containsTwitterUrl) {
-                const twitterUrls = message.content.match(twitterUrlPattern);
-                // console.log('>>>>> twitterUrls: ', twitterUrls);
-                // message.channel.send(`Twitter URL(s) found! twitterUrls: ${twitterUrls}`);
+                const urls = containsXDotComUrl
+                    ? message.content.match(xDotComUrlPattern)
+                    : message.content.match(twitterUrlPattern);;
+                // console.log('>>>>> urls: ', urls);
+                // message.channel.send(`Twitter/X URL(s) found! urls: ${urls}`);
 
-                const firstUrl = twitterUrls[0];
-                const metadata = await fetchMetadata(firstUrl, message);
+                const firstUrl = urls[0];
+                const metadata = await fetchMetadata(firstUrl, message, containsXDotComUrl);
 
                 if (metadata.error) {
                     message.reply(`Server 500!
