@@ -105,13 +105,28 @@ const createTwitterCanvas = async (metadataJson) => {
         const mediaUrlParts = mediaUrl.split('.');
         console.log('!!!!! mediaUrlParts: ', mediaUrlParts);
         console.log('!!!!! mediaUrlParts.length: ', mediaUrlParts.length);
-        const fileExtension = mediaUrlParts[mediaUrlParts.length - 1];
+        const fileExtensionWithQueryParams = mediaUrlParts[mediaUrlParts.length - 1];
+        console.log('!!!!! fileExtensionWithQueryParams: ', fileExtensionWithQueryParams);
+        const fileExtension = fileExtensionWithQueryParams.split('?')[0];
         console.log('!!!!! fileExtension: ', fileExtension);
         return fileExtension === 'jpg' || fileExtension === 'jpeg' || fileExtension === 'png';
     });
     console.log('>>>>> createTwitterCanvas > filteredMediaUrls: ', filteredMediaUrls);
     const numOfImgs = filteredMediaUrls.length;
     console.log('>>>>> createTwitterCanvas > numOfImgs', numOfImgs);
+
+    const filteredVideoUrls = metadata.mediaUrls.filter((mediaUrl) => {
+        const mediaUrlParts = mediaUrl.split('.');
+        console.log('!!!!! mediaUrlParts: ', mediaUrlParts);
+        console.log('!!!!! mediaUrlParts.length: ', mediaUrlParts.length);
+        const fileExtensionWithQueryParams = mediaUrlParts[mediaUrlParts.length - 1];
+        console.log('!!!!! fileExtensionWithQueryParams: ', fileExtensionWithQueryParams);
+        const fileExtension = fileExtensionWithQueryParams.split('?')[0];
+        console.log('!!!!! fileExtension: ', fileExtension);
+        return fileExtension === 'mp4'});
+    console.log('>>>>> createTwitterCanvas > filteredVideoUrls: ', filteredVideoUrls);
+    const numOfVideos = filteredVideoUrls.length;
+    console.log('>>>>> createTwitterCanvas > numOfVideos', numOfVideos);
 
     const mediaMaxHeight = 600;
     const mediaMaxWidth = 560;
