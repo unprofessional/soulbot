@@ -107,10 +107,11 @@ const createTwitterCanvas = async (metadataJson) => {
         console.log('!!!!! mediaUrlParts.length: ', mediaUrlParts.length);
         const fileExtension = mediaUrlParts[mediaUrlParts.length - 1];
         console.log('!!!!! fileExtension: ', fileExtension);
-        return mediaUrl === 'jpg' || mediaUrl === 'jpeg' || mediaUrl === 'png';
+        return fileExtension === 'jpg' || fileExtension === 'jpeg' || fileExtension === 'png';
     });
-    const numOfImgs = metadata.mediaUrls.length;
-    console.log('numOfImgs', numOfImgs);
+    console.log('>>>>> createTwitterCanvas > filteredMediaUrls: ', filteredMediaUrls);
+    const numOfImgs = filteredMediaUrls.length;
+    console.log('>>>>> createTwitterCanvas > numOfImgs', numOfImgs);
 
     const mediaMaxHeight = 600;
     const mediaMaxWidth = 560;
