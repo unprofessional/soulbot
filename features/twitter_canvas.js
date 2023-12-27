@@ -196,7 +196,7 @@ const createTwitterCanvas = async (metadataJson) => {
   
     // Draw description (post text wrap handling)
     ctx.fillStyle = 'white'; // Text color for description
-    ctx.font = !hasImgs && hasVids ? '36px Arial' : '24px Arial';
+    ctx.font = !hasImgs && hasVids ? '32px Arial' : '24px Arial';
     const lineHeight = !hasImgs && hasVids ? 50 : 30; // Line height
     descLines.forEach(line => {
         ctx.fillText(line, 30, yPosition);
@@ -214,7 +214,7 @@ const createTwitterCanvas = async (metadataJson) => {
     ctx.drawImage(pfp, 20, 20, 50, 50); // Example position and size
 
     // Draw the image, if one exists...
-    if (hasImgs) {
+    if (hasImgs && !hasVids) {
         const mainMedia1Url = metadata.mediaUrls[0];
         const mainMedia1 = await loadImage(mainMedia1Url);
         /** Single Image */
