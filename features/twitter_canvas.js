@@ -108,9 +108,6 @@ const createTwitterCanvas = async (metadataJson) => {
         // console.log('!!!!! fileExtension: ', fileExtension);
         return fileExtension === 'jpg' || fileExtension === 'jpeg' || fileExtension === 'png';
     });
-    // console.log('>>>>> createTwitterCanvas > filteredMediaUrls: ', filteredMediaUrls);
-    const numOfImgs = filteredMediaUrls.length;
-    // console.log('>>>>> createTwitterCanvas > numOfImgs', numOfImgs);
 
     const filteredVideoUrls = metadata.mediaUrls.filter((mediaUrl) => {
         const mediaUrlParts = mediaUrl.split('.');
@@ -122,18 +119,15 @@ const createTwitterCanvas = async (metadataJson) => {
         // console.log('!!!!! fileExtension: ', fileExtension);
         return fileExtension === 'mp4'
     });
-    // console.log('>>>>> createTwitterCanvas > filteredVideoUrls: ', filteredVideoUrls);
+
+    const numOfImgs = filteredMediaUrls.length;
+    console.log('>>>>> createTwitterCanvas > numOfImgs', numOfImgs);
     const numOfVideos = filteredVideoUrls.length;
-    // console.log('>>>>> createTwitterCanvas > numOfVideos', numOfVideos);
-
-    const mediaMaxHeight = 600;
-    const mediaMaxWidth = 560;
+    console.log('>>>>> createTwitterCanvas > numOfVideos', numOfVideos);
+    let mediaMaxHeight = numOfImgs > 1 ? 530 : 600;
+    let mediaMaxWidth = 560;
     const hasImgs = numOfImgs > 0;
-
     const hasVids = numOfVideos > 0;
-
-    console.log('>>>>> hasImgs: ', hasImgs);
-    console.log('>>>>> hasVids: ', hasVids);
 
     // Default media embed dimensions
     let mediaObject = {
@@ -211,65 +205,108 @@ const createTwitterCanvas = async (metadataJson) => {
     // Draw pfp image
     const pfpUrl = metadata.pfpUrl;
     const pfp = await loadImage(pfpUrl);
-    ctx.drawImage(pfp, 20, 20, 50, 50); // Example position and size
+    ctx.drawImage(pfp, 20, 20, 50, 50);
+
+    /**
+     * REFACTOR ATTEMPT - REFACTOR ATTEMPT - REFACTOR ATTEMPT
+     * REFACTOR ATTEMPT - REFACTOR ATTEMPT - REFACTOR ATTEMPT
+     * REFACTOR ATTEMPT - REFACTOR ATTEMPT - REFACTOR ATTEMPT
+     */
+    const scaleToFitWiderThanHeight = (mainMedia1, position) => {
+        const newWidthRatio = mediaMaxWidth / mainMedia1.width;
+        console.log('>>>>> newWidthRatio: ', newWidthRatio);
+        const adjustedHeight = mainMedia1.height * newWidthRatio;
+        console.log('>>>>> adjustedHeight: ', adjustedHeight);
+        ctx.drawImage(
+            mainMedia1,
+            // sx, sy, cropWidth, cropHeight, // Source rectangle
+            20, position, mediaMaxWidth, adjustedHeight // Destination rectangle
+        );
+    };
+
+    const cropSingleImage = (mainMedia1, maxHeight, maxWidth, xPosition, yPosition) => {
+        /** CROPPING LOGIC */
+        // crop from the center of the image
+        // Calculate the aspect ratio of the destination size
+        const destAspectRatio = maxWidth / maxHeight;
+        // Determine the cropping size (maintaining the destination aspect ratio)
+        let cropWidth, cropHeight;
+        if (mainMedia1.width / mainMedia1.height > destAspectRatio) {
+            // Image is wider than destination aspect ratio
+            cropHeight = mainMedia1.height;
+            cropWidth = mainMedia1.height * destAspectRatio;
+        } else {
+            // Image is taller than destination aspect ratio
+            cropWidth = mainMedia1.width;
+            cropHeight = mainMedia1.width / destAspectRatio;
+        }
+        // Calculate starting point (top left corner) for cropping
+        const sx = (mainMedia1.width - cropWidth) / 2;
+        const sy = (mainMedia1.height - cropHeight) / 2;
+        // Draw the cropped image on the canvas
+        ctx.drawImage(
+            mainMedia1,
+            sx, sy, cropWidth, cropHeight, // Source rectangle
+            xPosition, yPosition, maxWidth, maxHeight // Destination rectangle
+        );
+    };
 
     // Draw the image, if one exists...
     if (hasImgs && !hasVids) {
-        const mainMedia1Url = metadata.mediaUrls[0];
-        const mainMedia1 = await loadImage(mainMedia1Url);
         /** Single Image */
-        // Setup for accessing
         if(metadata.mediaUrls.length === 1) {
-            /** CROPPING LOGIC */
-            const position = calculatedCanvasHeightFromDescLines - heightShim - 50;
+            const mainMedia1Url = metadata.mediaUrls[0];
+            const mainMedia1 = await loadImage(mainMedia1Url);
             if (mainMedia1.width > mainMedia1.height) {
-                // scale to fit width and draw like normal
-                const newWidthRatio = mediaMaxWidth / mainMedia1.width;
-                console.log('>>>>> newWidthRatio: ', newWidthRatio);
-                const adjustedHeight = mainMedia1.height * newWidthRatio;
-                console.log('>>>>> adjustedHeight: ', adjustedHeight);
-                ctx.drawImage(
-                    mainMedia1,
-                    // sx, sy, cropWidth, cropHeight, // Source rectangle
-                    20, position, mediaMaxWidth, adjustedHeight // Destination rectangle
-                );
+                const position = calculatedCanvasHeightFromDescLines - heightShim - 50;
+                scaleToFitWiderThanHeight(mainMedia1, position);
             } else {
-                // crop from the center of the image
-                // Calculate the aspect ratio of the destination size
-                const destAspectRatio = mediaMaxWidth / mediaMaxHeight;
-                // Determine the cropping size (maintaining the destination aspect ratio)
-                let cropWidth, cropHeight;
-                if (mainMedia1.width / mainMedia1.height > destAspectRatio) {
-                    // Image is wider than destination aspect ratio
-                    cropHeight = mainMedia1.height;
-                    cropWidth = mainMedia1.height * destAspectRatio;
-                } else {
-                    // Image is taller than destination aspect ratio
-                    cropWidth = mainMedia1.width;
-                    cropHeight = mainMedia1.width / destAspectRatio;
-                }
-                // Calculate starting point (top left corner) for cropping
-                const sx = (mainMedia1.width - cropWidth) / 2;
-                const sy = (mainMedia1.height - cropHeight) / 2;
-                // Draw the cropped image on the canvas
-                ctx.drawImage(
-                    mainMedia1,
-                    sx, sy, cropWidth, cropHeight, // Source rectangle
-                    20, position, mediaMaxWidth, mediaMaxHeight // Destination rectangle
-                );
+                const position = calculatedCanvasHeightFromDescLines - heightShim - 50;
+                cropSingleImage(mainMedia1, mediaMaxHeight, mediaMaxWidth, position);
             }
         }
-        /** Two Images */
-        if(metadata.mediaUrls.lengthj === 2) {
-            console.log('Post has 2 images!');
+        /** Two images */
+        if(metadata.mediaUrls.length === 2) {
+            const mainMedia1Url = metadata.mediaUrls[0];
+            const mainMedia1 = await loadImage(mainMedia1Url);
+            // TODO: Evenly split... maybe maxWidth / 2 ????
+            const position = calculatedCanvasHeightFromDescLines - heightShim - 50;
+            cropSingleImage(mainMedia1, mediaMaxHeight, mediaMaxWidth, position);
         }
-        /** Three Images */
-        if(metadata.mediaUrls.lengthj === 3) {
-            console.log('Post has 3 images!');
+        /** Three images */
+        if(metadata.mediaUrls.length === 3) {
+            const mainMedia1Url = metadata.mediaUrls[0];
+            const mainMedia1 = await loadImage(mainMedia1Url);
+            // TODO: Evenly split... maybe maxWidth / 2 ????
+            const position = calculatedCanvasHeightFromDescLines - heightShim - 50;
+            cropSingleImage(mainMedia1, mediaMaxHeight, mediaMaxWidth, position);
         }
-        /** Four Images */
-        if(metadata.mediaUrls.lengthj === 2) {
-            console.log('Post has 4 images!');
+        /** Four images */
+        if(metadata.mediaUrls.length === 4) {
+            const mainMedia1Url = metadata.mediaUrls[0];
+            const mainMedia1 = await loadImage(mainMedia1Url);
+            const firstXPosition = 20;
+            const firstYPosition = calculatedCanvasHeightFromDescLines - heightShim - 50;
+            cropSingleImage(mainMedia1, mediaMaxHeight / 2, mediaMaxWidth / 2, firstXPosition, firstYPosition);
+
+            const mainMedia2Url = metadata.mediaUrls[0];
+            const mainMedia2 = await loadImage(mainMedia2Url);
+            const secondXPosition = mediaMaxWidth / 2 + 25;
+            const secondYPosition = calculatedCanvasHeightFromDescLines - heightShim - 50;
+            cropSingleImage(mainMedia2, mediaMaxHeight / 2, mediaMaxWidth / 2, secondXPosition, secondYPosition);
+
+            const mainMedia3Url = metadata.mediaUrls[0];
+            const mainMedia3 = await loadImage(mainMedia3Url);
+            const thirdXPosition = 20;
+            const thirdYPosition = mediaMaxHeight / 2 + 135;
+            cropSingleImage(mainMedia3, mediaMaxHeight / 2, mediaMaxWidth / 2, thirdXPosition, thirdYPosition);
+
+            const mainMedia4Url = metadata.mediaUrls[0];
+            const mainMedia4 = await loadImage(mainMedia4Url);
+            const fourthXPosition = mediaMaxWidth / 2 + 25;
+            const fourthYPosition = mediaMaxHeight / 2 + 135;
+            cropSingleImage(mainMedia4, mediaMaxHeight / 2, mediaMaxWidth / 2, fourthXPosition, fourthYPosition);
+
         }
     }
 
