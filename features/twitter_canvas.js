@@ -196,8 +196,8 @@ const createTwitterCanvas = async (metadataJson) => {
   
     // Draw description (post text wrap handling)
     ctx.fillStyle = 'white'; // Text color for description
-    ctx.font = !hasImgs && hasVids ? '32px Arial' : '24px Arial';
-    const lineHeight = !hasImgs && hasVids ? 50 : 30; // Line height
+    ctx.font = !hasImgs && hasVids ? '36px Arial' : '24px Arial';
+    const lineHeight = !hasImgs && hasVids ? 40 : 30; // Line height
     descLines.forEach(line => {
         ctx.fillText(line, 30, yPosition);
         yPosition += lineHeight;
