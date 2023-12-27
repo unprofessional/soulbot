@@ -212,7 +212,7 @@ const createTwitterCanvas = async (metadataJson) => {
      * REFACTOR ATTEMPT - REFACTOR ATTEMPT - REFACTOR ATTEMPT
      * REFACTOR ATTEMPT - REFACTOR ATTEMPT - REFACTOR ATTEMPT
      */
-    const scaleToFitWiderThanHeight = (mainMedia1, position) => {
+    const scaleToFitWiderThanHeight = (mainMedia1, xPosition) => {
         const newWidthRatio = mediaMaxWidth / mainMedia1.width;
         console.log('>>>>> newWidthRatio: ', newWidthRatio);
         const adjustedHeight = mainMedia1.height * newWidthRatio;
@@ -220,7 +220,7 @@ const createTwitterCanvas = async (metadataJson) => {
         ctx.drawImage(
             mainMedia1,
             // sx, sy, cropWidth, cropHeight, // Source rectangle
-            20, position, mediaMaxWidth, adjustedHeight // Destination rectangle
+            20, xPosition, mediaMaxWidth, adjustedHeight // Destination rectangle
         );
     };
 
@@ -258,8 +258,8 @@ const createTwitterCanvas = async (metadataJson) => {
             const mainMedia1Url = metadata.mediaUrls[0];
             const mainMedia1 = await loadImage(mainMedia1Url);
             if (mainMedia1.width > mainMedia1.height) {
-                const position = calculatedCanvasHeightFromDescLines - heightShim - 50;
-                scaleToFitWiderThanHeight(mainMedia1, position);
+                const xPosition = 20;
+                scaleToFitWiderThanHeight(mainMedia1, xPosition);
             } else {
                 const position = calculatedCanvasHeightFromDescLines - heightShim - 50;
                 cropSingleImage(mainMedia1, mediaMaxHeight, mediaMaxWidth, position);
