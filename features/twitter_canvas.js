@@ -5,30 +5,33 @@ const en = require('javascript-time-ago/locale/en');
 TimeAgo.addDefaultLocale(en);
 const timeAgo = new TimeAgo('en-US');
 
-function getWrappedText(ctx, text, maxWidth) {
-    console.log('>>>>> getWrappedText > text: ', text);
+function getWrappedText(ctx, text, maxWidth, hasVids) {
     const lines = [];
-    const paragraphs = text.split('\n'); // Split the text into paragraphs
+    const paragraphs = hasVids
+        ? [text.replace(/\n/g, ' ')]
+        : text.split('\n'); // Conditionally handle newlines
+
     paragraphs.forEach(paragraph => {
-        console.log(`!!! 1-paragraph: ${paragraph}`);
         const shortTwitterUrlPattern = /https:\/\/t\.co\/\S+/;
-        // if the URL is found anywhere in this string
         const containsUrl = shortTwitterUrlPattern.test(paragraph);
-        console.log('!!! 2-containsUrl: ', containsUrl);
         const matches = paragraph.split(shortTwitterUrlPattern);
-        console.log('!!! 3-matches: ', matches);
+
         if(containsUrl && matches[0]) {
             paragraph = matches[0];
         }
-        console.log('================================');
+
         if (paragraph === '') {
             lines.push(''); // Handle blank lines (paragraph breaks)
         } else {
             const words = paragraph.split(' ');
             let currentLine = words[0];
+
             for (let i = 1; i < words.length; i++) {
                 const word = words[i];
                 const width = ctx.measureText(currentLine + " " + word).width;
+                console.log('!!!!! getWrappedText > width: ', width);
+                console.log('!!!!! getWrappedText > maxWidth: ', maxWidth);
+              
                 if (width < maxWidth) {
                     currentLine += " " + word;
                 } else {
@@ -39,6 +42,7 @@ function getWrappedText(ctx, text, maxWidth) {
             lines.push(currentLine); // Push the last line of the paragraph
         }
     });
+
     return lines;
 }
 
@@ -47,8 +51,8 @@ const scaleDownByHalf = (
     mediaMaxHeight,
     mediaMaxWidth,
 ) => {
-    console.log('scaleDownByHalf > height: ', height);
-    console.log('scaleDownByHalf > width: ', width);
+    // console.log('>>>>> scaleDownByHalf > height: ', height);
+    // console.log('>>>>> scaleDownByHalf > width: ', width);
     if(height < mediaMaxHeight && width < mediaMaxWidth) {
         return {
             height,
@@ -92,45 +96,43 @@ const createTwitterCanvas = async (metadataJson) => {
 
     // Fill background color
     ctx.fillStyle = '#000';
-  
-    // Pre-process description with text wrapping
-    const maxCharLength = 220; // Maximum width for text
-    console.log('>>>>> createTwitterCanvas > metadata.description: ', metadata.description);
-    const descLines = getWrappedText(ctx, metadata.description, maxCharLength);
-    // console.log('>>>>> descLines.length: ', descLines.length);
-    let yPosition = 110; // Starting Y position for description text
 
     // Find number of associated media
     const filteredMediaUrls = metadata.mediaUrls.filter((mediaUrl) => {
         const mediaUrlParts = mediaUrl.split('.');
-        console.log('!!!!! mediaUrlParts: ', mediaUrlParts);
-        console.log('!!!!! mediaUrlParts.length: ', mediaUrlParts.length);
+        // console.log('!!!!! mediaUrlParts: ', mediaUrlParts);
+        // console.log('!!!!! mediaUrlParts.length: ', mediaUrlParts.length);
         const fileExtensionWithQueryParams = mediaUrlParts[mediaUrlParts.length - 1];
-        console.log('!!!!! fileExtensionWithQueryParams: ', fileExtensionWithQueryParams);
+        // console.log('!!!!! fileExtensionWithQueryParams: ', fileExtensionWithQueryParams);
         const fileExtension = fileExtensionWithQueryParams.split('?')[0];
-        console.log('!!!!! fileExtension: ', fileExtension);
+        // console.log('!!!!! fileExtension: ', fileExtension);
         return fileExtension === 'jpg' || fileExtension === 'jpeg' || fileExtension === 'png';
     });
-    console.log('>>>>> createTwitterCanvas > filteredMediaUrls: ', filteredMediaUrls);
+    // console.log('>>>>> createTwitterCanvas > filteredMediaUrls: ', filteredMediaUrls);
     const numOfImgs = filteredMediaUrls.length;
-    console.log('>>>>> createTwitterCanvas > numOfImgs', numOfImgs);
+    // console.log('>>>>> createTwitterCanvas > numOfImgs', numOfImgs);
 
     const filteredVideoUrls = metadata.mediaUrls.filter((mediaUrl) => {
         const mediaUrlParts = mediaUrl.split('.');
-        console.log('!!!!! mediaUrlParts: ', mediaUrlParts);
-        console.log('!!!!! mediaUrlParts.length: ', mediaUrlParts.length);
+        // console.log('!!!!! mediaUrlParts: ', mediaUrlParts);
+        // console.log('!!!!! mediaUrlParts.length: ', mediaUrlParts.length);
         const fileExtensionWithQueryParams = mediaUrlParts[mediaUrlParts.length - 1];
-        console.log('!!!!! fileExtensionWithQueryParams: ', fileExtensionWithQueryParams);
+        // console.log('!!!!! fileExtensionWithQueryParams: ', fileExtensionWithQueryParams);
         const fileExtension = fileExtensionWithQueryParams.split('?')[0];
-        console.log('!!!!! fileExtension: ', fileExtension);
+        // console.log('!!!!! fileExtension: ', fileExtension);
         return fileExtension === 'mp4'});
-    console.log('>>>>> createTwitterCanvas > filteredVideoUrls: ', filteredVideoUrls);
+    // console.log('>>>>> createTwitterCanvas > filteredVideoUrls: ', filteredVideoUrls);
     const numOfVideos = filteredVideoUrls.length;
-    console.log('>>>>> createTwitterCanvas > numOfVideos', numOfVideos);
+    // console.log('>>>>> createTwitterCanvas > numOfVideos', numOfVideos);
 
     const mediaMaxHeight = 600;
     const mediaMaxWidth = 560;
     const hasImgs = numOfImgs > 0;
+
+    const hasVids = numOfVideos > 0;
+
+    console.log('>>>>> hasImgs: ', hasImgs);
+    console.log('>>>>> hasVids: ', hasVids);
 
     // Default media embed dimensions
     let mediaObject = {
@@ -148,7 +150,7 @@ const createTwitterCanvas = async (metadataJson) => {
         };
         // Recusively scale down by half if larger than allowed
         // mediaObject = scaleDownByHalf(mediaObject, mediaMaxHeight, mediaMaxWidth);
-        console.log('>>>>> hasImgs > mediaObject: ', mediaObject);
+        // console.log('>>>>> hasImgs > mediaObject: ', mediaObject);
         if(mediaObject.width > mediaObject.height) {
             const newWidthRatio = mediaMaxWidth / mediaObject.width;
             // console.log('>>>>> newWidthRatio: ', newWidthRatio);
@@ -160,9 +162,17 @@ const createTwitterCanvas = async (metadataJson) => {
         }
     }
   
+    // Pre-process description with text wrapping
+    const maxCharLength = !hasImgs && hasVids ? 160 : 220; // Maximum width for text
+    const descLines = getWrappedText(ctx, metadata.description, maxCharLength, hasVids);
+    let yPosition = 110; // Starting Y position for description text
+
     // New height calcs
     const descLinesLength = descLines.length;
-    const calculatedCanvasHeightFromDescLines = (descLinesLength * 30) + yPosition + 40 + heightShim;
+    const calculatedCanvasHeightFromDescLines = hasVids && !hasImgs
+        ? maxCanvasWidth // Has vids, make square
+        : (descLinesLength * 30) + yPosition + 40 + heightShim;
+
   
     // Re-calc canvas
     ctx.canvas.height = calculatedCanvasHeightFromDescLines;
@@ -191,6 +201,7 @@ const createTwitterCanvas = async (metadataJson) => {
         ctx.fillText(line, 30, yPosition);
         yPosition += lineHeight;
     });
+    
 
     // Draw date elements
     ctx.fillStyle = 'gray'; // Text color
