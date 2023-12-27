@@ -193,15 +193,14 @@ const createTwitterCanvas = async (metadataJson) => {
     ctx.font = '18px Arial';
     ctx.fillText(`@${metadata.authorNick}`, 100, 60);
   
-    // Pre-process description with text wrapping
+    // Draw description (post text wrap handling)
     ctx.fillStyle = 'white'; // Text color for description
-    ctx.font = '24px Arial';
-    const lineHeight = 30; // Line height
+    ctx.font = !hasImgs && hasVids ? '36px Arial' : '24px Arial';
+    const lineHeight = !hasImgs && hasVids ? 50 : 30; // Line height
     descLines.forEach(line => {
-        ctx.fillText(line, 30, yPosition);
-        yPosition += lineHeight;
+    ctx.fillText(line, 30, yPosition);
+    yPosition += lineHeight;
     });
-    
 
     // Draw date elements
     ctx.fillStyle = 'gray'; // Text color
