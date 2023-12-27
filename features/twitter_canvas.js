@@ -212,7 +212,7 @@ const createTwitterCanvas = async (metadataJson) => {
      * REFACTOR ATTEMPT - REFACTOR ATTEMPT - REFACTOR ATTEMPT
      * REFACTOR ATTEMPT - REFACTOR ATTEMPT - REFACTOR ATTEMPT
      */
-    const scaleToFitWiderThanHeight = (mainMedia1, xPosition) => {
+    const scaleToFitWiderThanHeight = (mainMedia1, yPosition) => {
         const newWidthRatio = mediaMaxWidth / mainMedia1.width;
         console.log('>>>>> newWidthRatio: ', newWidthRatio);
         const adjustedHeight = mainMedia1.height * newWidthRatio;
@@ -220,7 +220,7 @@ const createTwitterCanvas = async (metadataJson) => {
         ctx.drawImage(
             mainMedia1,
             // sx, sy, cropWidth, cropHeight, // Source rectangle
-            20, xPosition, mediaMaxWidth, adjustedHeight // Destination rectangle
+            20, yPosition, mediaMaxWidth, adjustedHeight // Destination rectangle
         );
     };
 
@@ -257,12 +257,12 @@ const createTwitterCanvas = async (metadataJson) => {
         if(metadata.mediaUrls.length === 1) {
             const mainMedia1Url = metadata.mediaUrls[0];
             const mainMedia1 = await loadImage(mainMedia1Url);
+            const xPosition = 20;
+            const yPosition = calculatedCanvasHeightFromDescLines - heightShim - 50;
             if (mainMedia1.width > mainMedia1.height) {
-                const xPosition = 20;
-                scaleToFitWiderThanHeight(mainMedia1, xPosition);
+                scaleToFitWiderThanHeight(mainMedia1, yPosition);
             } else {
-                const position = calculatedCanvasHeightFromDescLines - heightShim - 50;
-                cropSingleImage(mainMedia1, mediaMaxHeight, mediaMaxWidth, position);
+                cropSingleImage(mainMedia1, mediaMaxHeight, mediaMaxWidth, xPosition, yPosition);
             }
         }
         /** Two images */
