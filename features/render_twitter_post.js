@@ -16,7 +16,7 @@ const renderTwitterPost = async (metadataJson, message) => {
         name: 'image.png',
     }];
 
-    const filteredVideoUrls = metadata.mediaUrls.filter((mediaUrl) => {
+    const filteredVideoUrls = metadataJson.mediaURLs.filter((mediaUrl) => {
         const mediaUrlParts = mediaUrl.split('.');
         // console.log('!!!!! mediaUrlParts: ', mediaUrlParts);
         // console.log('!!!!! mediaUrlParts.length: ', mediaUrlParts.length);
@@ -26,23 +26,26 @@ const renderTwitterPost = async (metadataJson, message) => {
         // console.log('!!!!! fileExtension: ', fileExtension);
         return fileExtension === 'mp4'
     });
+    const numOfVideos = filteredVideoUrls.length;
+    const hasVids = numOfVideos > 0;
 
-
-    // mediaUrls.forEach((mediaUrl) => {
-    //     mediaUrlsFormatted += `${mediaUrl}\n` // TODO: fix singular dangling comma
-    //     files.push({
-    //         attachment: mediaUrl,
-    //         name: 'image.png', // FIXME: Use the actual file hash + extension etc
-    //     });
-    // });
-
-    // Create a MessageAttachment and send it
-    message.reply(
-        {
-            // content: `Media URLs found: ${mediaUrlsFormatted}`,
-            files,
-        }
-    );
+    if(hasVids) {
+        mediaUrls.forEach((mediaUrl) => {
+            mediaUrlsFormatted += `${mediaUrl}\n` // TODO: fix singular dangling comma
+            files.push({
+                attachment: mediaUrl,
+                name: 'image.png', // FIXME: Use the actual file hash + extension etc
+            });
+        });
+    } else {
+        // Create a MessageAttachment and send it
+        message.reply(
+            {
+                // content: `Media URLs found: ${mediaUrlsFormatted}`,
+                files,
+            }
+        );
+    }
 };
 
 module.exports = {
