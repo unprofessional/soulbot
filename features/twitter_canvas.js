@@ -120,7 +120,8 @@ const createTwitterCanvas = async (metadataJson) => {
         // console.log('!!!!! fileExtensionWithQueryParams: ', fileExtensionWithQueryParams);
         const fileExtension = fileExtensionWithQueryParams.split('?')[0];
         // console.log('!!!!! fileExtension: ', fileExtension);
-        return fileExtension === 'mp4'});
+        return fileExtension === 'mp4'
+    });
     // console.log('>>>>> createTwitterCanvas > filteredVideoUrls: ', filteredVideoUrls);
     const numOfVideos = filteredVideoUrls.length;
     // console.log('>>>>> createTwitterCanvas > numOfVideos', numOfVideos);

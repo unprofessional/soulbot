@@ -15,6 +15,19 @@ const renderTwitterPost = async (metadataJson, message) => {
         attachment: buffer,
         name: 'image.png',
     }];
+
+    const filteredVideoUrls = metadata.mediaUrls.filter((mediaUrl) => {
+        const mediaUrlParts = mediaUrl.split('.');
+        // console.log('!!!!! mediaUrlParts: ', mediaUrlParts);
+        // console.log('!!!!! mediaUrlParts.length: ', mediaUrlParts.length);
+        const fileExtensionWithQueryParams = mediaUrlParts[mediaUrlParts.length - 1];
+        // console.log('!!!!! fileExtensionWithQueryParams: ', fileExtensionWithQueryParams);
+        const fileExtension = fileExtensionWithQueryParams.split('?')[0];
+        // console.log('!!!!! fileExtension: ', fileExtension);
+        return fileExtension === 'mp4'
+    });
+
+
     // mediaUrls.forEach((mediaUrl) => {
     //     mediaUrlsFormatted += `${mediaUrl}\n` // TODO: fix singular dangling comma
     //     files.push({
