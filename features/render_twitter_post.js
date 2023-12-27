@@ -37,15 +37,15 @@ const renderTwitterPost = async (metadataJson, message) => {
                 name: 'video.mp4', // FIXME: Use the actual file hash + extension etc
             });
         });
-    } else {
-        // Create a MessageAttachment and send it
-        message.reply(
-            {
-                // content: `Media URLs found: ${mediaUrlsFormatted}`,
-                files,
-            }
-        );
     }
+    
+    // Create a MessageAttachment and send it
+    message.reply(
+        {
+            // content: `Media URLs found: ${mediaUrlsFormatted}`,
+            files,
+        }
+    );
 };
 
 module.exports = {
