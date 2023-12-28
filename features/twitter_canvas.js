@@ -120,11 +120,22 @@ const createTwitterCanvas = async (metadataJson) => {
         return fileExtension === 'mp4'
     });
 
+    // Height adjustment for images
+    const getMaxHeight = (numImgs) => {
+        switch(numImgs) {
+            case 1: return 600;
+            case 2: return 600;
+            case 3: return 530;
+            case 4: return 530;
+            default: return 600;
+        }
+    };
+
     const numOfImgs = filteredMediaUrls.length;
     console.log('>>>>> createTwitterCanvas > numOfImgs', numOfImgs);
     const numOfVideos = filteredVideoUrls.length;
     console.log('>>>>> createTwitterCanvas > numOfVideos', numOfVideos);
-    let mediaMaxHeight = numOfImgs > 1 ? 530 : 600;
+    let mediaMaxHeight = getMaxHeight(numOfImgs);
     let mediaMaxWidth = 560;
     const hasImgs = numOfImgs > 0;
     const hasVids = numOfVideos > 0;
@@ -167,7 +178,6 @@ const createTwitterCanvas = async (metadataJson) => {
     const calculatedCanvasHeightFromDescLines = hasVids && !hasImgs
         ? maxCanvasWidth // Has vids, make square
         : (descLinesLength * 30) + yPosition + 40 + heightShim;
-
   
     // Re-calc canvas
     ctx.canvas.height = calculatedCanvasHeightFromDescLines;
@@ -296,7 +306,7 @@ const createTwitterCanvas = async (metadataJson) => {
             const mainMedia3Url = metadata.mediaUrls[2];
             const mainMedia3 = await loadImage(mainMedia3Url);
             const thirdXPosition = 20;
-            const thirdYPosition = mediaMaxHeight / 2 + 135;
+            const thirdYPosition = mediaMaxHeight / 2 + yPosition - 5;
             cropSingleImage(mainMedia3, mediaMaxHeight / 2, mediaMaxWidth / 2, thirdXPosition, thirdYPosition);
         }
         /** Four images */
@@ -316,13 +326,13 @@ const createTwitterCanvas = async (metadataJson) => {
             const mainMedia3Url = metadata.mediaUrls[2];
             const mainMedia3 = await loadImage(mainMedia3Url);
             const thirdXPosition = 20;
-            const thirdYPosition = mediaMaxHeight / 2 + 135;
+            const thirdYPosition = mediaMaxHeight / 2 + yPosition - 5;
             cropSingleImage(mainMedia3, mediaMaxHeight / 2, mediaMaxWidth / 2, thirdXPosition, thirdYPosition);
 
             const mainMedia4Url = metadata.mediaUrls[3];
             const mainMedia4 = await loadImage(mainMedia4Url);
             const fourthXPosition = mediaMaxWidth / 2 + 25;
-            const fourthYPosition = mediaMaxHeight / 2 + 135;
+            const fourthYPosition = mediaMaxHeight / 2 + yPosition - 5;
             cropSingleImage(mainMedia4, mediaMaxHeight / 2, mediaMaxWidth / 2, fourthXPosition, fourthYPosition);
 
         }
