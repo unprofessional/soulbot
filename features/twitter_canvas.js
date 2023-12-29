@@ -201,7 +201,7 @@ const createTwitterCanvas = async (metadataJson) => {
     ctx.canvas.height = calculatedCanvasHeightFromDescLines + qtCalculatedCanvasHeightFromDescLines;
     ctx.fillRect(0, 0, maxCanvasWidth, calculatedCanvasHeightFromDescLines + qtCalculatedCanvasHeightFromDescLines);
 
-    const drawBasicElements = async (metadata) => {
+    const drawBasicElements = async (ctx, metadata) => {
         // Load and draw favicon
         const favIconUrl = 'https://abs.twimg.com/favicons/twitter.3.ico';
         const favicon = await loadImage(favIconUrl);
@@ -320,7 +320,7 @@ const createTwitterCanvas = async (metadataJson) => {
       
       */
       
-    drawBasicElements(metadata);
+    drawBasicElements(ctx, metadata);
     // console.log('>>>>> qtMetadata: ', qtMetadata);
     // if(qtMetadata) {
     //     console.log('>>>>> qtMetadata EXISTS!!!');
