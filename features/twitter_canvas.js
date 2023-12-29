@@ -294,7 +294,7 @@ const createTwitterCanvas = async (metadataJson) => {
                       WE NEED TO REFACTOR THIS !!!!!
       
       */
-    const drawQtBasicElements = (qtMeta, pfp, mainMedia1) => {
+    const drawQtBasicElements = (qtMeta, pfp, mainMedia1, qtVidThumbnail) => {
         console.log('>>>>> drawQtBasicElements > qtMeta: ', qtMeta);
         
         // Pre-process media
@@ -342,11 +342,14 @@ const createTwitterCanvas = async (metadataJson) => {
         // Draw pfp image
         ctx.drawImage(pfp, 40, calculatedCanvasHeightFromDescLines + 20, 50, 50);
         
-        if(qtMeta.mediaUrls.length > 0 && numOfQtVideos < 1) {
+        // or if (mainMedia1 !== undefined)
+        if(numOfQtImgs > 0 && numOfQtVideos === 0) {
             cropSingleImage(mainMedia1, 175, 175, qtXPosition + 20, qtYPosition + 30);
         }
 
-        // TODO: Handle situation where the quoted tweet has a video
+        if(numOfQtVideos > 0) { // or if (qtVidThumbnail)
+            cropSingleImage(qtVidThumbnail, 175, 175, qtXPosition + 20, qtYPosition + 30);
+        }
         
     };
       
@@ -371,14 +374,25 @@ const createTwitterCanvas = async (metadataJson) => {
     console.log('>>>>> qtMetadata: ', qtMetadata);
     if(qtMetadata) {
         console.log('>>>>> qtMetadata EXISTS!!!');
+        // Pre-process media
+        const numOfQtImgs = filterMediaUrls(qtMetadata, ['jpg', 'jpeg', 'png']).length;
+        console.log('>>>>> qtMeta > createTwitterCanvas > numOfQtImgs', numOfQtImgs);
+        const numOfQtVideos = filterMediaUrls(qtMetadata, ['mp4']).length;
+        console.log('>>>>> qtMeta > createTwitterCanvas > numOfQtVideos', numOfQtVideos);
+        const hasMedia = numOfQtImgs > 0 || numOfQtVideos > 0;
+
+        // load media
         const qtPfpUrl = qtMetadata.pfpUrl;
         const qtPfp = await loadImage(qtPfpUrl);
-        if(qtMetadata.mediaUrls.length > 0) {
+        if(numOfQtImgs > 0 && numOfQtVideos === 0) {
             const qtMainMedia1Url = qtMetadata.mediaUrls[0];
             const qtMainMedia1 = await loadImage(qtMainMedia1Url);
             drawQtBasicElements(qtMetadata, qtPfp, qtMainMedia1); 
-        } else {
-            drawQtBasicElements(qtMetadata, qtPfp); 
+        }
+        if (numOfQtVideos > 0 && numOfQtImgs === 0) {
+            const qtVidThumbnailUrl = qtMetadata.mediaExtended[0].thumbnail_url;
+            const qtVidThumbnail = await loadImage(qtVidThumbnailUrl);
+            drawQtBasicElements(qtMetadata, qtPfp, undefined, qtVidThumbnail); 
         }
     }
 
