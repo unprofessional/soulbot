@@ -372,9 +372,13 @@ const createTwitterCanvas = async (metadataJson) => {
         console.log('>>>>> qtMetadata EXISTS!!!');
         const qtPfpUrl = qtMetadata.pfpUrl;
         const qtPfp = await loadImage(qtPfpUrl);
-        const qtMainMedia1Url = qtMetadata.mediaUrls[0];
-        const qtMainMedia1 = await loadImage(qtMainMedia1Url);
-        drawQtBasicElements(qtMetadata, qtPfp, qtMainMedia1); 
+        if(qtMetadata.mediaUrls.length > 0) {
+            const qtMainMedia1Url = qtMetadata.mediaUrls[0];
+            const qtMainMedia1 = await loadImage(qtMainMedia1Url);
+            drawQtBasicElements(qtMetadata, qtPfp, qtMainMedia1); 
+        } else {
+            drawQtBasicElements(qtMetadata, qtPfp); 
+        }
     }
 
     // Draw the image, if one exists...
