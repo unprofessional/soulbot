@@ -41,14 +41,14 @@ const renderTwitterPost = async (metadataJson, message) => {
 
     // Create a MessageAttachment and send it
     try {
-        message.reply(
+        await essage.reply(
             {
                 // content: `Media URLs found: ${mediaUrlsFormatted}`,
                 files,
             }
         );
     } catch (err) {
-        message.reply(
+        await message.reply(
             {
                 content: `Video was too large to attach! err: ${err}`,
             }
