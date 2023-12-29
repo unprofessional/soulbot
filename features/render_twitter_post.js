@@ -38,14 +38,22 @@ const renderTwitterPost = async (metadataJson, message) => {
             });
         });
     }
-    
+
     // Create a MessageAttachment and send it
-    message.reply(
-        {
-            // content: `Media URLs found: ${mediaUrlsFormatted}`,
-            files,
-        }
-    );
+    try {
+        message.reply(
+            {
+                // content: `Media URLs found: ${mediaUrlsFormatted}`,
+                files,
+            }
+        );
+    } catch (err) {
+        message.reply(
+            {
+                content: `Video was too large to attach! err: ${err}`,
+            }
+        );
+    }
 };
 
 module.exports = {
