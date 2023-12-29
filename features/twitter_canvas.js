@@ -110,11 +110,6 @@ const createTwitterCanvas = async (metadataJson) => {
     // Fill background color
     ctx.fillStyle = '#000';
 
-    // Load and draw favicon
-    const favIconUrl = 'https://abs.twimg.com/favicons/twitter.3.ico';
-    const favicon = await loadImage(favIconUrl);
-    ctx.drawImage(favicon, 550, 20, 32, 32);
-
     // Find number of associated media
     const filterMediaUrls = (extensions) => {
         return metadata.mediaUrls.filter((mediaUrl) => {
@@ -207,6 +202,11 @@ const createTwitterCanvas = async (metadataJson) => {
     ctx.fillRect(0, 0, maxCanvasWidth, calculatedCanvasHeightFromDescLines + qtCalculatedCanvasHeightFromDescLines);
 
     const drawBasicElements = async (metadata) => {
+        // Load and draw favicon
+        const favIconUrl = 'https://abs.twimg.com/favicons/twitter.3.ico';
+        const favicon = await loadImage(favIconUrl);
+        ctx.drawImage(favicon, 550, 20, 32, 32);
+
         // Draw nickname elements
         ctx.fillStyle = 'white'; // Text color
         ctx.font = 'bold 18px Arial';
@@ -251,8 +251,6 @@ const createTwitterCanvas = async (metadataJson) => {
       */
     const drawQtBasicElements = async (qtMeta) => {
         console.log('>>>>> drawQtBasicElements > qtMeta: ', qtMeta);
-        const qtCalculatedCanvasHeightFromDescLines = calcQtHeight(qtMeta);
-        const maxQtCanvasWidth = maxCanvasWidth;
         
         // Pre-process media
         const numOfQtImgs = filterMediaUrls(qtMeta, ['jpg', 'jpeg', 'png']).length;

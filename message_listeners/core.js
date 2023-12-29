@@ -79,7 +79,7 @@ const initializeListeners = (client) => {
                 const firstUrl = urls[0];
                 let metadata = await fetchMetadata(firstUrl, message, containsXDotComUrl);
                 if(metadata.qrtURL) {
-                    const qtMetadata = await fetchQTMetadata(firstUrl, message, containsXDotComUrl);
+                    const qtMetadata = await fetchQTMetadata(metadata.qrtURL, message, containsXDotComUrl);
                     metadata.qtMetadata = qtMetadata;
                 }
 
