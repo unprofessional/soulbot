@@ -112,14 +112,10 @@ const createTwitterCanvas = async (metadataJson) => {
 
     // Find number of associated media
     const filterMediaUrls = (metadata, extensions) => {
-        console.log('>>>>> filterMediaUrls > extensions: ', extensions);
         return metadata.mediaUrls.filter((mediaUrl) => {
             const mediaUrlParts = mediaUrl.split('.');
-            console.log('>>>>> filterMediaUrls > mediaUrlParts: ', mediaUrlParts);
             const fileExtensionWithQueryParams = mediaUrlParts[mediaUrlParts.length - 1];
-            console.log('>>>>> filterMediaUrls > fileExtensionWithQueryParams: ', fileExtensionWithQueryParams);
             const fileExtension = fileExtensionWithQueryParams.split('?')[0];
-            console.log('>>>>> filterMediaUrls > fileExtension: ', fileExtension);
             return extensions.includes(fileExtension);
         });
     };
@@ -346,9 +342,11 @@ const createTwitterCanvas = async (metadataJson) => {
         // Draw pfp image
         ctx.drawImage(pfp, 40, calculatedCanvasHeightFromDescLines + 20, 50, 50);
         
-        if(qtMeta.mediaUrls.length > 0) {
+        if(qtMeta.mediaUrls.length > 0 && numOfQtVideos < 1) {
             cropSingleImage(mainMedia1, 175, 175, qtXPosition + 20, qtYPosition + 30);
         }
+
+        // TODO: Handle situation where the quoted tweet has a video
         
     };
       
