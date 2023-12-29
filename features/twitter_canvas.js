@@ -201,10 +201,10 @@ const createTwitterCanvas = async (metadataJson) => {
     ctx.canvas.height = calculatedCanvasHeightFromDescLines + qtCalculatedCanvasHeightFromDescLines;
     ctx.fillRect(0, 0, maxCanvasWidth, calculatedCanvasHeightFromDescLines + qtCalculatedCanvasHeightFromDescLines);
 
-    const drawBasicElements = async (ctx, metadata) => {
+    const drawBasicElements = (metadata, favicon, pfp) => {
         // Load and draw favicon
-        const favIconUrl = 'https://abs.twimg.com/favicons/twitter.3.ico';
-        const favicon = await loadImage(favIconUrl);
+        // const favIconUrl = 'https://abs.twimg.com/favicons/twitter.3.ico';
+        // const favicon = await loadImage(favIconUrl);
         ctx.drawImage(favicon, 550, 20, 32, 32);
 
         // Draw nickname elements
@@ -232,8 +232,8 @@ const createTwitterCanvas = async (metadataJson) => {
         ctx.fillText(`${formatTwitterDate(metadata.date)} from this posting`, 30, calculatedCanvasHeightFromDescLines - 20);
     
         // Draw pfp image
-        const pfpUrl = metadata.pfpUrl;
-        const pfp = await loadImage(pfpUrl);
+        // const pfpUrl = metadata.pfpUrl;
+        // const pfp = await loadImage(pfpUrl);
         ctx.drawImage(pfp, 20, 20, 50, 50);
     };
       
@@ -295,8 +295,6 @@ const createTwitterCanvas = async (metadataJson) => {
         });
 
         // Draw pfp image
-        const pfpUrl = metadata.pfpUrl;
-        const pfp = await loadImage(pfpUrl);
         ctx.drawImage(pfp, 40, calculatedCanvasHeightFromDescLines + 20, 50, 50);
         
         if(qtMeta.mediaUrls.length === 1) {
@@ -319,47 +317,51 @@ const createTwitterCanvas = async (metadataJson) => {
                       WE NEED TO REFACTOR THIS !!!!!
       
       */
-      
-    // drawBasicElements(ctx, metadata);
+    
+    const favIconUrl = 'https://abs.twimg.com/favicons/twitter.3.ico';
+    const favicon = await loadImage(favIconUrl);
+    const pfpUrl = metadata.pfpUrl;
+    const pfp = await loadImage(pfpUrl);
+    drawBasicElements(metadata, favicon, pfp);
     // console.log('>>>>> qtMetadata: ', qtMetadata);
     // if(qtMetadata) {
     //     console.log('>>>>> qtMetadata EXISTS!!!');
     //     drawQtBasicElements(qtMetadata); 
     // }
 
-    // Load and draw favicon
-    const favIconUrl = 'https://abs.twimg.com/favicons/twitter.3.ico';
-    const favicon = await loadImage(favIconUrl);
-    ctx.drawImage(favicon, 550, 20, 32, 32);
+    // // Load and draw favicon
+    // const favIconUrl = 'https://abs.twimg.com/favicons/twitter.3.ico';
+    // const favicon = await loadImage(favIconUrl);
+    // ctx.drawImage(favicon, 550, 20, 32, 32);
 
-    // Draw nickname elements
-    ctx.fillStyle = 'white'; // Text color
-    ctx.font = 'bold 18px Arial';
-    ctx.fillText(metadata.authorUsername, 100, 40);
+    // // Draw nickname elements
+    // ctx.fillStyle = 'white'; // Text color
+    // ctx.font = 'bold 18px Arial';
+    // ctx.fillText(metadata.authorUsername, 100, 40);
 
-    // Draw username elements
-    ctx.fillStyle = 'gray'; // Text color
-    ctx.font = '18px Arial';
-    ctx.fillText(`@${metadata.authorNick}`, 100, 60);
+    // // Draw username elements
+    // ctx.fillStyle = 'gray'; // Text color
+    // ctx.font = '18px Arial';
+    // ctx.fillText(`@${metadata.authorNick}`, 100, 60);
 
-    // Draw description (post text wrap handling)
-    ctx.fillStyle = 'white'; // Text color for description
-    ctx.font = !hasImgs && hasVids ? '36px Arial' : '24px Arial';
-    const lineHeight = !hasImgs && hasVids ? 40 : 30; // Line height
-    descLines.forEach(line => {
-        ctx.fillText(line, 30, yPosition);
-        yPosition += lineHeight;
-    });
+    // // Draw description (post text wrap handling)
+    // ctx.fillStyle = 'white'; // Text color for description
+    // ctx.font = !hasImgs && hasVids ? '36px Arial' : '24px Arial';
+    // const lineHeight = !hasImgs && hasVids ? 40 : 30; // Line height
+    // descLines.forEach(line => {
+    //     ctx.fillText(line, 30, yPosition);
+    //     yPosition += lineHeight;
+    // });
 
-    // Draw date elements
-    ctx.fillStyle = 'gray'; // Text color
-    ctx.font = '18px Arial';
-    ctx.fillText(`${formatTwitterDate(metadata.date)} from this posting`, 30, calculatedCanvasHeightFromDescLines - 20);
+    // // Draw date elements
+    // ctx.fillStyle = 'gray'; // Text color
+    // ctx.font = '18px Arial';
+    // ctx.fillText(`${formatTwitterDate(metadata.date)} from this posting`, 30, calculatedCanvasHeightFromDescLines - 20);
 
-    // Draw pfp image
-    const pfpUrl = metadata.pfpUrl;
-    const pfp = await loadImage(pfpUrl);
-    ctx.drawImage(pfp, 20, 20, 50, 50);
+    // // Draw pfp image
+    // const pfpUrl = metadata.pfpUrl;
+    // const pfp = await loadImage(pfpUrl);
+    // ctx.drawImage(pfp, 20, 20, 50, 50);
 
     /**
      * REFACTOR TO SEPARATE FILES!!!!
