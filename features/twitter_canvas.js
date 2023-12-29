@@ -373,17 +373,17 @@ const createTwitterCanvas = async (metadataJson) => {
     drawBasicElements(metadata, favicon, pfp);
     console.log('>>>>> qtMetadata: ', qtMetadata);
     if(qtMetadata) {
-        console.log('>>>>> qtMetadata EXISTS!!!');
+        console.log('>>>>> if(qtMetadata) > qtMetadata EXISTS!!!');
         // Pre-process media
         const numOfQtImgs = filterMediaUrls(qtMetadata, ['jpg', 'jpeg', 'png']).length;
-        console.log('>>>>> qtMeta > createTwitterCanvas > numOfQtImgs', numOfQtImgs);
+        console.log('>>>>> if(qtMetadata) > numOfQtImgs', numOfQtImgs);
         const numOfQtVideos = filterMediaUrls(qtMetadata, ['mp4']).length;
-        console.log('>>>>> qtMeta > createTwitterCanvas > numOfQtVideos', numOfQtVideos);
-        const hasMedia = numOfQtImgs > 0 || numOfQtVideos > 0;
+        console.log('>>>>> if(qtMetadata) > numOfQtVideos', numOfQtVideos);
 
         // load media
         const qtPfpUrl = qtMetadata.pfpUrl;
         const qtPfp = await loadImage(qtPfpUrl);
+
         if(numOfQtImgs > 0 && numOfQtVideos === 0) {
             const qtMainMedia1Url = qtMetadata.mediaUrls[0];
             const qtMainMedia1 = await loadImage(qtMainMedia1Url);
