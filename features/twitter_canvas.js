@@ -111,7 +111,7 @@ const createTwitterCanvas = async (metadataJson) => {
     ctx.fillStyle = '#000';
 
     // Find number of associated media
-    const filterMediaUrls = (extensions) => {
+    const filterMediaUrls = (metadata, extensions) => {
         console.log('>>>>> filterMediaUrls > extensions: ', extensions);
         return metadata.mediaUrls.filter((mediaUrl) => {
             const mediaUrlParts = mediaUrl.split('.');
@@ -135,9 +135,9 @@ const createTwitterCanvas = async (metadataJson) => {
         }
     };
 
-    const numOfImgs = filterMediaUrls(['jpg', 'jpeg', 'png']).length;
+    const numOfImgs = filterMediaUrls(metadata, ['jpg', 'jpeg', 'png']).length;
     console.log('>>>>> createTwitterCanvas > numOfImgs', numOfImgs);
-    const numOfVideos = filterMediaUrls(['mp4']).length;
+    const numOfVideos = filterMediaUrls(metadata, ['mp4']).length;
     console.log('>>>>> createTwitterCanvas > numOfVideos', numOfVideos);
     let mediaMaxHeight = getMaxHeight(numOfImgs);
     let mediaMaxWidth = 560;
@@ -253,9 +253,9 @@ const createTwitterCanvas = async (metadataJson) => {
         console.log('>>>>> drawQtBasicElements > qtMeta: ', qtMeta);
         
         // Pre-process media
-        const numOfQtImgs = filterMediaUrls(['jpg', 'jpeg', 'png']).length;
+        const numOfQtImgs = filterMediaUrls(qtMeta, ['jpg', 'jpeg', 'png']).length;
         console.log('>>>>> qtMeta > createTwitterCanvas > numOfQtImgs', numOfQtImgs);
-        const numOfQtVideos = filterMediaUrls(['mp4']).length;
+        const numOfQtVideos = filterMediaUrls(qtMeta, ['mp4']).length;
         console.log('>>>>> qtMeta > createTwitterCanvas > numOfQtVideos', numOfQtVideos);
         const hasMedia = numOfQtImgs > 0 || numOfQtVideos > 0;
         
