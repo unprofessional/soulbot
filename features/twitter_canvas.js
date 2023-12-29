@@ -394,6 +394,9 @@ const createTwitterCanvas = async (metadataJson) => {
             const qtVidThumbnail = await loadImage(qtVidThumbnailUrl);
             drawQtBasicElements(qtMetadata, qtPfp, undefined, qtVidThumbnail); 
         }
+        if (numOfQtVideos === 0 && numOfQtImgs === 0) {
+            drawQtBasicElements(qtMetadata, qtPfp); 
+        }
     }
 
     // Draw the image, if one exists...
