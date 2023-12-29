@@ -178,9 +178,13 @@ const createTwitterCanvas = async (metadataJson) => {
         const descQtLines = getWrappedText(ctx, qtMetadata.description, maxCharLength);
         // New height calcs
         const descQtLinesLength = descQtLines.length;
-        const qtCalculatedCanvasHeightFromDescLines = (descQtLinesLength * 30) + 40;
+        let mediaHeight = 0;
+        if(qtMetadata.mediaUrls.length > 0) {
+          mediaHeight = 200;
+        }
+        const qtCalculatedCanvasHeightFromDescLines = (descQtLinesLength * 30) + mediaHeight;
         return qtCalculatedCanvasHeightFromDescLines;
-    };
+      };
   
     // Pre-process description with text wrapping
     const maxCharLength = !hasImgs && hasVids ? 160 : 220; // Maximum width for text
@@ -340,7 +344,7 @@ const createTwitterCanvas = async (metadataJson) => {
         ctx.drawImage(pfp, 40, calculatedCanvasHeightFromDescLines + 20, 50, 50);
         
         if(qtMeta.mediaUrls.length === 1) {
-            cropSingleImage(mainMedia1, 175, 175, qtXPosition + 20, qtYPosition - 30);
+            cropSingleImage(mainMedia1, 175, 175, qtXPosition + 20, qtYPosition + 30);
         }
         
     };
