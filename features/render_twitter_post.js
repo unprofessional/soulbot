@@ -41,7 +41,7 @@ const renderTwitterPost = async (metadataJson, message) => {
 
     // Create a MessageAttachment and send it
     try {
-        await essage.reply(
+        await message.reply(
             {
                 // content: `Media URLs found: ${mediaUrlsFormatted}`,
                 files,
