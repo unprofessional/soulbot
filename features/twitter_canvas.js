@@ -172,6 +172,16 @@ const createTwitterCanvas = async (metadataJson) => {
             heightShim = mediaMaxHeight;
         }
     }
+
+    const calcQtHeight = (qtMetadata) => {
+        // Pre-process description with text wrapping
+        const maxCharLength = 150; // Maximum width for text
+        const descQtLines = getWrappedText(ctx, qtMetadata.description, maxCharLength);
+        // New height calcs
+        const descQtLinesLength = descQtLines.length;
+        const qtCalculatedCanvasHeightFromDescLines = (descQtLinesLength * 30) + 40;
+        return qtCalculatedCanvasHeightFromDescLines;
+    };
   
     // Pre-process description with text wrapping
     const maxCharLength = !hasImgs && hasVids ? 160 : 220; // Maximum width for text
@@ -359,16 +369,6 @@ const createTwitterCanvas = async (metadataJson) => {
             sx, sy, cropWidth, cropHeight, // Source rectangle
             xPosition, yPosition, maxWidth, maxHeight // Destination rectangle
         );
-    };
-
-    const calcQtHeight = (qtMetadata) => {
-        // Pre-process description with text wrapping
-        const maxCharLength = 150; // Maximum width for text
-        const descQtLines = getWrappedText(ctx, qtMetadata.description, maxCharLength);
-        // New height calcs
-        const descQtLinesLength = descQtLines.length;
-        const qtCalculatedCanvasHeightFromDescLines = (descQtLinesLength * 30) + 40;
-        return qtCalculatedCanvasHeightFromDescLines;
     };
 
     // Draw the image, if one exists...
