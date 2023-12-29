@@ -169,20 +169,13 @@ const createTwitterCanvas = async (metadataJson) => {
     }
 
     const calcQtHeight = (qtMetadata) => {
-        const minHeight = 100;
-        // Pre-process description with text wrapping
-        const maxCharLength = 150; // Maximum width for text
-        const descQtLines = getWrappedText(ctx, qtMetadata.description, maxCharLength);
-        // New height calcs
-        const descQtLinesLength = descQtLines.length;
+        const minHeight = 110;
         let mediaHeight = 0;
         if(qtMetadata.mediaUrls.length > 0) {
+            console.log('>>>>> calcQtHeight has media!');
             mediaHeight = 200;
         }
-        const qtHeightShim = mediaHeight > minHeight ? mediaHeight : minHeight;
-        const qtCalculatedCanvasHeightFromDescLines = (descQtLinesLength * 30) + qtHeightShim;
-        console.log('>>>>> calcAtHeight > qtCalculatedCanvasHeightFromDescLines: ', qtCalculatedCanvasHeightFromDescLines);
-        return qtCalculatedCanvasHeightFromDescLines;
+        return minHeight + mediaHeight;
     };
   
     // Pre-process description with text wrapping
@@ -304,8 +297,8 @@ const createTwitterCanvas = async (metadataJson) => {
         console.log('>>>>> qtMeta > createTwitterCanvas > numOfQtVideos', numOfQtVideos);
         const hasMedia = numOfQtImgs > 0 || numOfQtVideos > 0;
         
-        // We might not need to do this...
-        let mediaQtMaxHeight = getMaxHeight(numOfQtImgs);
+        const minHeight = 100;
+        let mediaQtMaxHeight = hasMedia ? 300 : minHeight;
         let mediaQtMaxWidth = 560;
         
         // Pre-process description with text wrapping
@@ -342,13 +335,17 @@ const createTwitterCanvas = async (metadataJson) => {
         // Draw pfp image
         ctx.drawImage(pfp, 40, calculatedCanvasHeightFromDescLines + 20, 50, 50);
         
+        const qtMediaYPos = calculatedCanvasHeightFromDescLines + 80;
+        console.log('>>>>> qtMediaYPos: ', qtMediaYPos);
+
         // or if (mainMedia1 !== undefined)
         if(numOfQtImgs > 0 && numOfQtVideos === 0) {
-            cropSingleImage(mainMedia1, 175, 175, qtXPosition + 20, qtYPosition + 30);
+            cropSingleImage(mainMedia1, 175, 175, qtXPosition + 20, qtMediaYPos);
         }
 
-        if(numOfQtVideos > 0) { // or if (qtVidThumbnail)
-            cropSingleImage(qtVidThumbnail, 175, 175, qtXPosition + 20, qtYPosition + 30);
+        // or if (qtVidThumbnail)
+        if(numOfQtVideos > 0) {
+            cropSingleImage(qtVidThumbnail, 175, 175, qtXPosition + 20, qtMediaYPos);
         }
         
     };
