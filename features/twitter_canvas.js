@@ -321,11 +321,11 @@ const createTwitterCanvas = async (metadataJson) => {
       */
       
     drawBasicElements(metadata);
-    console.log('>>>>> qtMetadata: ', qtMetadata);
-    if(qtMetadata) {
-        console.log('>>>>> qtMetadata EXISTS!!!');
-        drawQtBasicElements(qtMetadata); 
-    }
+    // console.log('>>>>> qtMetadata: ', qtMetadata);
+    // if(qtMetadata) {
+    //     console.log('>>>>> qtMetadata EXISTS!!!');
+    //     drawQtBasicElements(qtMetadata); 
+    // }
 
     /**
      * REFACTOR TO SEPARATE FILES!!!!
