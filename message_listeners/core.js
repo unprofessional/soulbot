@@ -14,6 +14,7 @@ const {
 } = require("../store/members.js");
 const {
     fetchMetadata,
+    fetchQTMetadata,
 } = require('../features/fetch_metadata.js');
 
 const {
@@ -76,7 +77,11 @@ const initializeListeners = (client) => {
                 // message.channel.send(`Twitter/X URL(s) found! urls: ${urls}`);
 
                 const firstUrl = urls[0];
-                const metadata = await fetchMetadata(firstUrl, message, containsXDotComUrl);
+                let metadata = await fetchMetadata(firstUrl, message, containsXDotComUrl);
+                if(metadata.qrtURL) {
+                    const qtMetadata = await fetchQTMetadata(firstUrl, message, containsXDotComUrl);
+                    metadata.qtMetadata = qtMetadata;
+                }
 
                 if (metadata.error) {
                     message.reply(`Server 500!

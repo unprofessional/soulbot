@@ -81,11 +81,24 @@ const createTwitterCanvas = async (metadataJson) => {
         authorNick: metadataJson.user_screen_name,
         authorUsername: metadataJson.user_name,
         pfpUrl: metadataJson.user_profile_image_url,
-        date: metadataJson.date, // TODO: date formatting...
+        date: metadataJson.date,
         description: metadataJson.text || "",
         mediaUrls: metadataJson.mediaURLs,
         mediaExtended: metadataJson.media_extended,
     };
+
+    let qtMetadata = null;
+    if(metadataJson.qtMetadata) {
+        qtMetadata = {
+            authorNick: metadataJson.qtMetadata.user_screen_name,
+            authorUsername: metadataJson.qtMetadata.user_name,
+            pfpUrl: metadataJson.qtMetadata.user_profile_image_url,
+            date: metadataJson.qtMetadata.date,
+            description: metadataJson.qtMetadata.text || "", // TODO: truncate
+            mediaUrls: metadataJson.qtMetadata.mediaURLs,
+            mediaExtended: metadataJson.qtMetadata.media_extended,
+        };
+    }
 
     console.log('>>>>> createTwitterCanvas > metadata: ', metadata);
 
@@ -97,43 +110,35 @@ const createTwitterCanvas = async (metadataJson) => {
     // Fill background color
     ctx.fillStyle = '#000';
 
-    // Find number of associated media
-    const filteredMediaUrls = metadata.mediaUrls.filter((mediaUrl) => {
-        const mediaUrlParts = mediaUrl.split('.');
-        // console.log('!!!!! mediaUrlParts: ', mediaUrlParts);
-        // console.log('!!!!! mediaUrlParts.length: ', mediaUrlParts.length);
-        const fileExtensionWithQueryParams = mediaUrlParts[mediaUrlParts.length - 1];
-        // console.log('!!!!! fileExtensionWithQueryParams: ', fileExtensionWithQueryParams);
-        const fileExtension = fileExtensionWithQueryParams.split('?')[0];
-        // console.log('!!!!! fileExtension: ', fileExtension);
-        return fileExtension === 'jpg' || fileExtension === 'jpeg' || fileExtension === 'png';
-    });
+    // Load and draw favicon
+    const favIconUrl = 'https://abs.twimg.com/favicons/twitter.3.ico';
+    const favicon = await loadImage(favIconUrl);
+    ctx.drawImage(favicon, 550, 20, 32, 32);
 
-    const filteredVideoUrls = metadata.mediaUrls.filter((mediaUrl) => {
-        const mediaUrlParts = mediaUrl.split('.');
-        // console.log('!!!!! mediaUrlParts: ', mediaUrlParts);
-        // console.log('!!!!! mediaUrlParts.length: ', mediaUrlParts.length);
-        const fileExtensionWithQueryParams = mediaUrlParts[mediaUrlParts.length - 1];
-        // console.log('!!!!! fileExtensionWithQueryParams: ', fileExtensionWithQueryParams);
-        const fileExtension = fileExtensionWithQueryParams.split('?')[0];
-        // console.log('!!!!! fileExtension: ', fileExtension);
-        return fileExtension === 'mp4'
-    });
+    // Find number of associated media
+    const filterMediaUrls = (extensions) => {
+        return metadata.mediaUrls.filter((mediaUrl) => {
+            const mediaUrlParts = mediaUrl.split('.');
+            const fileExtensionWithQueryParams = mediaUrlParts[mediaUrlParts.length - 1];
+            const fileExtension = fileExtensionWithQueryParams.split('?')[0];
+            return extensions.includes(fileExtension);
+        });
+    };
 
     // Height adjustment for images
     const getMaxHeight = (numImgs) => {
         switch(numImgs) {
-            case 1: return 600;
-            case 2: return 600;
-            case 3: return 530;
-            case 4: return 530;
-            default: return 600;
+        case 1: return 600;
+        case 2: return 600;
+        case 3: return 530;
+        case 4: return 530;
+        default: return 600;
         }
     };
 
-    const numOfImgs = filteredMediaUrls.length;
+    const numOfImgs = filterMediaUrls(['jpg', 'jpeg', 'png']).length;
     console.log('>>>>> createTwitterCanvas > numOfImgs', numOfImgs);
-    const numOfVideos = filteredVideoUrls.length;
+    const numOfVideos = filterMediaUrls(['mp4']).length;
     console.log('>>>>> createTwitterCanvas > numOfVideos', numOfVideos);
     let mediaMaxHeight = getMaxHeight(numOfImgs);
     let mediaMaxWidth = 560;
@@ -178,49 +183,144 @@ const createTwitterCanvas = async (metadataJson) => {
     const calculatedCanvasHeightFromDescLines = hasVids && !hasImgs
         ? maxCanvasWidth // Has vids, make square
         : (descLinesLength * 30) + yPosition + 40 + heightShim;
+
+    let qtCalculatedCanvasHeightFromDescLines = 0;
+    if(qtMetadata) {
+        qtCalculatedCanvasHeightFromDescLines = calcQtHeight(qtMetadata); 
+    }
+
+    console.log('>>>>> calculatedCanvasHeightFromDescLines: ', calculatedCanvasHeightFromDescLines);
+    console.log('>>>>> qtCalculatedCanvasHeightFromDescLines: ', qtCalculatedCanvasHeightFromDescLines);
   
     // Re-calc canvas
-    ctx.canvas.height = calculatedCanvasHeightFromDescLines;
-    ctx.fillRect(0, 0, maxCanvasWidth, calculatedCanvasHeightFromDescLines);
+    ctx.canvas.height = calculatedCanvasHeightFromDescLines + qtCalculatedCanvasHeightFromDescLines;
+    ctx.fillRect(0, 0, maxCanvasWidth, calculatedCanvasHeightFromDescLines + qtCalculatedCanvasHeightFromDescLines);
 
-    // Load and draw favicon
-    const favIconUrl = 'https://abs.twimg.com/favicons/twitter.3.ico';
-    const favicon = await loadImage(favIconUrl);
-    ctx.drawImage(favicon, 550, 20, 32, 32); // Example position and size
-  
-    // Draw nickname elements
-    ctx.fillStyle = 'white'; // Text color
-    ctx.font = 'bold 18px Arial';
-    ctx.fillText(metadata.authorUsername, 100, 40);
+    const drawBasicElements = async (metadata) => {
+        // Draw nickname elements
+        ctx.fillStyle = 'white'; // Text color
+        ctx.font = 'bold 18px Arial';
+        ctx.fillText(metadata.authorUsername, 100, 40);
 
-    // Draw username elements
-    ctx.fillStyle = 'gray'; // Text color
-    ctx.font = '18px Arial';
-    ctx.fillText(`@${metadata.authorNick}`, 100, 60);
-  
-    // Draw description (post text wrap handling)
-    ctx.fillStyle = 'white'; // Text color for description
-    ctx.font = !hasImgs && hasVids ? '36px Arial' : '24px Arial';
-    const lineHeight = !hasImgs && hasVids ? 40 : 30; // Line height
-    descLines.forEach(line => {
-        ctx.fillText(line, 30, yPosition);
-        yPosition += lineHeight;
-    });
+        // Draw username elements
+        ctx.fillStyle = 'gray'; // Text color
+        ctx.font = '18px Arial';
+        ctx.fillText(`@${metadata.authorNick}`, 100, 60);
+    
+        // Draw description (post text wrap handling)
+        ctx.fillStyle = 'white'; // Text color for description
+        ctx.font = !hasImgs && hasVids ? '36px Arial' : '24px Arial';
+        const lineHeight = !hasImgs && hasVids ? 40 : 30; // Line height
+        descLines.forEach(line => {
+            ctx.fillText(line, 30, yPosition);
+            yPosition += lineHeight;
+        });
 
-    // Draw date elements
-    ctx.fillStyle = 'gray'; // Text color
-    ctx.font = '18px Arial';
-    ctx.fillText(`${formatTwitterDate(metadata.date)} from this posting`, 30, calculatedCanvasHeightFromDescLines - 20);
-  
-    // Draw pfp image
-    const pfpUrl = metadata.pfpUrl;
-    const pfp = await loadImage(pfpUrl);
-    ctx.drawImage(pfp, 20, 20, 50, 50);
+        // Draw date elements
+        ctx.fillStyle = 'gray'; // Text color
+        ctx.font = '18px Arial';
+        ctx.fillText(`${formatTwitterDate(metadata.date)} from this posting`, 30, calculatedCanvasHeightFromDescLines - 20);
+    
+        // Draw pfp image
+        const pfpUrl = metadata.pfpUrl;
+        const pfp = await loadImage(pfpUrl);
+        ctx.drawImage(pfp, 20, 20, 50, 50);
+    };
+      
+    /**
+      
+        WE NEED TO REFACTOR THIS !!!!!
+          WE NEED TO REFACTOR THIS !!!!!
+            WE NEED TO REFACTOR THIS !!!!!
+              WE NEED TO REFACTOR THIS !!!!!
+                WE NEED TO REFACTOR THIS !!!!!
+                  WE NEED TO REFACTOR THIS !!!!!
+                    WE NEED TO REFACTOR THIS !!!!!
+                      WE NEED TO REFACTOR THIS !!!!!
+      
+      */
+    const drawQtBasicElements = async (qtMeta) => {
+        console.log('>>>>> drawQtBasicElements > qtMeta: ', qtMeta);
+        const qtCalculatedCanvasHeightFromDescLines = calcQtHeight(qtMeta);
+        const maxQtCanvasWidth = maxCanvasWidth;
+        
+        // Pre-process media
+        const numOfQtImgs = filterMediaUrls(qtMeta, ['jpg', 'jpeg', 'png']).length;
+        console.log('>>>>> qtMeta > createTwitterCanvas > numOfQtImgs', numOfQtImgs);
+        const numOfQtVideos = filterMediaUrls(qtMeta, ['mp4']).length;
+        console.log('>>>>> qtMeta > createTwitterCanvas > numOfQtVideos', numOfQtVideos);
+        const hasMedia = numOfQtImgs > 0 || numOfQtVideos > 0;
+        
+        // We might not need to do this...
+        let mediaQtMaxHeight = getMaxHeight(numOfQtImgs);
+        let mediaQtMaxWidth = 560;
+        
+        // Pre-process description with text wrapping
+        const qtMaxCharLength = hasMedia ? 350 : 450; // Maximum width for text
+        const qtDescLines = getWrappedText(ctx, qtMeta.description, qtMaxCharLength, true);
+        
+        const qtXPosition = 20;
+        let qtYPosition = calculatedCanvasHeightFromDescLines;
+        
+        // New QT Canvas height
+        ctx.strokeStyle = "gray";
+        ctx.strokeRect(qtXPosition, qtYPosition, mediaQtMaxWidth, mediaQtMaxHeight);
+        
+        // Draw nickname elements
+        ctx.fillStyle = 'white'; // Text color
+        ctx.font = 'bold 18px Arial';
+        ctx.fillText(qtMeta.authorUsername, 100, qtYPosition + 40);
+      
+        // Draw username elements
+        ctx.fillStyle = 'gray'; // Text color
+        ctx.font = '18px Arial';
+        ctx.fillText(`@${qtMeta.authorNick}`, 100, qtYPosition + 60);
+      
+        // Draw description (post text wrap handling)
+        ctx.fillStyle = 'white'; // Text color for description
+        ctx.font = '16px Arial';
+        const lineHeight = 20;
+        const qtTextXAxisStart = hasMedia ? 230 : 100;
+        qtDescLines.forEach(line => {
+            ctx.fillText(line, qtTextXAxisStart, qtYPosition + 110);
+            qtYPosition += lineHeight;
+        });
+
+        // Draw pfp image
+        const pfpUrl = metadata.pfpUrl;
+        const pfp = await loadImage(pfpUrl);
+        ctx.drawImage(pfp, 40, calculatedCanvasHeightFromDescLines + 20, 50, 50);
+        
+        if(qtMeta.mediaUrls.length === 1) {
+            const mainMedia1Url = metadata.mediaUrls[0];
+            const mainMedia1 = await loadImage(mainMedia1Url);
+            cropSingleImage(mainMedia1, 175, 175, qtXPosition + 20, qtYPosition - 30);
+        }
+        
+    };
+      
+    /**
+      
+        WE NEED TO REFACTOR THIS !!!!!
+          WE NEED TO REFACTOR THIS !!!!!
+            WE NEED TO REFACTOR THIS !!!!!
+              WE NEED TO REFACTOR THIS !!!!!
+                WE NEED TO REFACTOR THIS !!!!!
+                  WE NEED TO REFACTOR THIS !!!!!
+                    WE NEED TO REFACTOR THIS !!!!!
+                      WE NEED TO REFACTOR THIS !!!!!
+      
+      */
+      
+    drawBasicElements(metadata);
+    console.log('>>>>> qtMetadata: ', qtMetadata);
+    if(qtMetadata) {
+        console.log('>>>>> qtMetadata EXISTS!!!');
+        drawQtBasicElements(qtMetadata); 
+    }
 
     /**
-     * REFACTOR ATTEMPT - REFACTOR ATTEMPT - REFACTOR ATTEMPT
-     * REFACTOR ATTEMPT - REFACTOR ATTEMPT - REFACTOR ATTEMPT
-     * REFACTOR ATTEMPT - REFACTOR ATTEMPT - REFACTOR ATTEMPT
+     * REFACTOR TO SEPARATE FILES!!!!
      */
     const scaleToFitWiderThanHeight = (mainMedia1, yPosition) => {
         const newWidthRatio = mediaMaxWidth / mainMedia1.width;
@@ -259,6 +359,16 @@ const createTwitterCanvas = async (metadataJson) => {
             sx, sy, cropWidth, cropHeight, // Source rectangle
             xPosition, yPosition, maxWidth, maxHeight // Destination rectangle
         );
+    };
+
+    const calcQtHeight = (qtMetadata) => {
+        // Pre-process description with text wrapping
+        const maxCharLength = 150; // Maximum width for text
+        const descQtLines = getWrappedText(ctx, qtMetadata.description, maxCharLength);
+        // New height calcs
+        const descQtLinesLength = descQtLines.length;
+        const qtCalculatedCanvasHeightFromDescLines = (descQtLinesLength * 30) + 40;
+        return qtCalculatedCanvasHeightFromDescLines;
     };
 
     // Draw the image, if one exists...
