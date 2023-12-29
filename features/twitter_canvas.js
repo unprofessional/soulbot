@@ -343,7 +343,7 @@ const createTwitterCanvas = async (metadataJson) => {
         // Draw pfp image
         ctx.drawImage(pfp, 40, calculatedCanvasHeightFromDescLines + 20, 50, 50);
         
-        if(qtMeta.mediaUrls.length === 1) {
+        if(qtMeta.mediaUrls.length > 0) {
             cropSingleImage(mainMedia1, 175, 175, qtXPosition + 20, qtYPosition + 30);
         }
         
