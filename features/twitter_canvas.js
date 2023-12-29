@@ -253,9 +253,9 @@ const createTwitterCanvas = async (metadataJson) => {
         console.log('>>>>> drawQtBasicElements > qtMeta: ', qtMeta);
         
         // Pre-process media
-        const numOfQtImgs = filterMediaUrls(qtMeta, ['jpg', 'jpeg', 'png']).length;
+        const numOfQtImgs = filterMediaUrls(['jpg', 'jpeg', 'png']).length;
         console.log('>>>>> qtMeta > createTwitterCanvas > numOfQtImgs', numOfQtImgs);
-        const numOfQtVideos = filterMediaUrls(qtMeta, ['mp4']).length;
+        const numOfQtVideos = filterMediaUrls(['mp4']).length;
         console.log('>>>>> qtMeta > createTwitterCanvas > numOfQtVideos', numOfQtVideos);
         const hasMedia = numOfQtImgs > 0 || numOfQtVideos > 0;
         
