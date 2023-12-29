@@ -170,12 +170,11 @@ const createTwitterCanvas = async (metadataJson) => {
 
     const calcQtHeight = (qtMetadata) => {
         const minHeight = 180;
-        let mediaHeight = 0;
         if(qtMetadata.mediaUrls.length > 0) {
             console.log('>>>>> calcQtHeight has media!');
-            mediaHeight = 200;
+            return 330;
         }
-        return minHeight + mediaHeight;
+        return minHeight;
     };
   
     // Pre-process description with text wrapping
