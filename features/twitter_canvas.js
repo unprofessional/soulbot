@@ -112,7 +112,7 @@ const createTwitterCanvas = async (metadataJson) => {
 
     // Find number of associated media
     const filterMediaUrls = (extensions) => {
-        console.log('>>>>> filterMediaUrls > extensions: ', filterMediaUrls);
+        console.log('>>>>> filterMediaUrls > extensions: ', extensions);
         return metadata.mediaUrls.filter((mediaUrl) => {
             const mediaUrlParts = mediaUrl.split('.');
             console.log('>>>>> filterMediaUrls > mediaUrlParts: ', mediaUrlParts);
