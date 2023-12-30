@@ -401,11 +401,18 @@ const createTwitterCanvas = async (metadataJson) => {
     // Draw the image, if one exists...
     if (hasImgs && !hasVids) {
 
+        /**
+         * FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME 
+         * FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME 
+         * FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME 
+         * FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME 
+         * FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME
+         */
          // Media Canvas Stroke
-        ctx.strokeStyle = "gray";
-        const zxPosition = 20;
-        const zyPosition = calculatedCanvasHeightFromDescLines - heightShim - 50;
-        ctx.strokeRect(zxPosition, zyPosition, mediaMaxWidth, mediaMaxHeight);
+        // ctx.strokeStyle = "gray";
+        // const zxPosition = 20;
+        // const zyPosition = calculatedCanvasHeightFromDescLines - heightShim - 50;
+        // ctx.strokeRect(zxPosition, zyPosition, mediaMaxWidth, mediaMaxHeight);
 
         /** Single Image */
         if(metadata.mediaUrls.length === 1) {
