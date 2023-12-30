@@ -102,7 +102,7 @@ const createTwitterCanvas = async (metadataJson) => {
 
     console.log('>>>>> createTwitterCanvas > metadata: ', metadata);
 
-    registerFont('/usr/share/fonts/truetype/noto/NotoColorEmoji.ttf', { family: 'Noto Color Emoji' });
+    // registerFont('/usr/share/fonts/truetype/noto/NotoColorEmoji.ttf', { family: 'Noto Color Emoji' });
 
     const maxCanvasWidth = 600;
     let canvasHeight = 650;
