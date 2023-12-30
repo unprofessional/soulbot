@@ -103,6 +103,7 @@ const createTwitterCanvas = async (metadataJson) => {
     console.log('>>>>> createTwitterCanvas > metadata: ', metadata);
 
     // registerFont('/usr/share/fonts/truetype/noto/NotoColorEmoji.ttf', { family: 'Noto Color Emoji' });
+    const globalFont = 'Arial';
 
     const maxCanvasWidth = 600;
     let canvasHeight = 650;
@@ -250,17 +251,17 @@ const createTwitterCanvas = async (metadataJson) => {
 
         // Draw nickname elements
         ctx.fillStyle = 'white'; // Text color
-        ctx.font = 'bold 18px Arial, "Noto Color Emoji"'
+        ctx.font = 'bold 18px ' + globalFont;
         ctx.fillText(metadata.authorUsername, 100, 40);
 
         // Draw username elements
         ctx.fillStyle = 'gray'; // Text color
-        ctx.font = '18px Arial, "Noto Color Emoji"';
+        ctx.font = '18px ' + globalFont;
         ctx.fillText(`@${metadata.authorNick}`, 100, 60);
     
         // Draw description (post text wrap handling)
         ctx.fillStyle = 'white'; // Text color for description
-        ctx.font = !hasImgs && hasVids ? '36px Arial, "Noto Color Emoji"' : '24px Arial, "Noto Color Emoji"';
+        ctx.font = !hasImgs && hasVids ? '36px ' + globalFont : '24px ' + globalFont;
         const lineHeight = !hasImgs && hasVids ? 40 : 30; // Line height
         descLines.forEach(line => {
             ctx.fillText(line, 30, yPosition);
@@ -269,7 +270,7 @@ const createTwitterCanvas = async (metadataJson) => {
 
         // Draw date elements
         ctx.fillStyle = 'gray'; // Text color
-        ctx.font = '18px Arial, "Noto Color Emoji"';
+        ctx.font = '18px ' + globalFont;
         ctx.fillText(`${formatTwitterDate(metadata.date)} from this posting`, 30, calculatedCanvasHeightFromDescLines - 20);
     
         // Draw pfp image
@@ -315,17 +316,17 @@ const createTwitterCanvas = async (metadataJson) => {
         
         // Draw nickname elements
         ctx.fillStyle = 'white'; // Text color
-        ctx.font = 'bold 18px Arial, "Noto Color Emoji"';
+        ctx.font = 'bold 18px ' + globalFont;
         ctx.fillText(qtMeta.authorUsername, 100, qtYPosition + 40);
       
         // Draw username elements
         ctx.fillStyle = 'gray'; // Text color
-        ctx.font = '18px Arial, "Noto Color Emoji"';
+        ctx.font = '18px ' + globalFont;
         ctx.fillText(`@${qtMeta.authorNick}`, 100, qtYPosition + 60);
       
         // Draw description (post text wrap handling)
         ctx.fillStyle = 'white'; // Text color for description
-        ctx.font = '16px Arial, "Noto Color Emoji"';
+        ctx.font = '16px ' + globalFont;
         const lineHeight = 20;
         const qtTextXAxisStart = hasMedia ? 230 : 100;
         qtDescLines.forEach(line => {
