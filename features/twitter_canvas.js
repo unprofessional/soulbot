@@ -174,8 +174,8 @@ const createTwitterCanvas = async (metadataJson) => {
     const calcQtHeight = (qtMetadata) => {
         const minHeight = 180;
         if(qtMetadata.mediaUrls.length > 0) {
-            console.log('>>>>> calcQtHeight has media!');
-            return 330;
+          console.log('>>>>> calcQtHeight has media!');
+          return 330;
         }
         return minHeight;
     };
@@ -330,7 +330,7 @@ const createTwitterCanvas = async (metadataJson) => {
         const lineHeight = 20;
         const qtTextXAxisStart = hasMedia ? 230 : 100;
         qtDescLines.forEach(line => {
-            ctx.fillText(line, qtTextXAxisStart, qtYPosition + 110);
+            ctx.fillText(line, qtTextXAxisStart, qtYPosition + 100);
             qtYPosition += lineHeight;
         });
 
