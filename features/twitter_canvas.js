@@ -1,4 +1,4 @@
-const { createCanvas, loadImage } = require('canvas');
+const { registerFont, createCanvas, loadImage } = require('canvas');
 
 const TimeAgo = require('javascript-time-ago');
 const en = require('javascript-time-ago/locale/en');
@@ -101,6 +101,8 @@ const createTwitterCanvas = async (metadataJson) => {
     }
 
     console.log('>>>>> createTwitterCanvas > metadata: ', metadata);
+
+    registerFont('/usr/share/fonts/truetype/noto/NotoColorEmoji.ttf', { family: 'Noto Color Emoji' });
 
     const maxCanvasWidth = 600;
     let canvasHeight = 650;
