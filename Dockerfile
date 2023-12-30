@@ -1,5 +1,8 @@
 FROM node:18.18-bullseye
 
+# Copy the Noto Color Emoji font into the image
+COPY fonts/NotoColorEmoji.ttf /usr/share/fonts/truetype/noto/NotoColorEmoji.ttf
+
 # set /app directory as default working directory
 WORKDIR /app/
 COPY . /app/
