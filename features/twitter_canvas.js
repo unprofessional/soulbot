@@ -400,6 +400,13 @@ const createTwitterCanvas = async (metadataJson) => {
 
     // Draw the image, if one exists...
     if (hasImgs && !hasVids) {
+
+         // Media Canvas Stroke
+        ctx.strokeStyle = "gray";
+        const zxPosition = 20;
+        const zyPosition = calculatedCanvasHeightFromDescLines - heightShim - 50;
+        ctx.strokeRect(zxPosition, zyPosition, mediaMaxWidth, mediaMaxHeight);
+
         /** Single Image */
         if(metadata.mediaUrls.length === 1) {
             const mainMedia1Url = metadata.mediaUrls[0];
