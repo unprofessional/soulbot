@@ -429,7 +429,7 @@ const createTwitterCanvas = async (metadataJson) => {
             const mainMedia1 = await loadImage(mainMedia1Url);
             const firstXPosition = 20;
             const firstYPosition = calculatedCanvasHeightFromDescLines - heightShim - 50;
-            cropSingleImage(mainMedia1, mediaMaxHeight / 2, mediaMaxWidth / 2, firstXPosition, firstYPosition);
+            cropSingleImage(mainMedia1, mediaMaxHeight, mediaMaxWidth / 2, firstXPosition, firstYPosition);
 
             const mainMedia2Url = metadata.mediaUrls[1];
             const mainMedia2 = await loadImage(mainMedia2Url);
@@ -439,7 +439,7 @@ const createTwitterCanvas = async (metadataJson) => {
 
             const mainMedia3Url = metadata.mediaUrls[2];
             const mainMedia3 = await loadImage(mainMedia3Url);
-            const thirdXPosition = 20;
+            const thirdXPosition = mediaMaxWidth / 2 + 25;
             const thirdYPosition = mediaMaxHeight / 2 + yPosition - 5;
             cropSingleImage(mainMedia3, mediaMaxHeight / 2, mediaMaxWidth / 2, thirdXPosition, thirdYPosition);
         }
