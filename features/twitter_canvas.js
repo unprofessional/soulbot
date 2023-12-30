@@ -248,17 +248,17 @@ const createTwitterCanvas = async (metadataJson) => {
 
         // Draw nickname elements
         ctx.fillStyle = 'white'; // Text color
-        ctx.font = 'bold 18px Arial';
+        ctx.font = 'bold 18px Arial, "Noto Color Emoji"'
         ctx.fillText(metadata.authorUsername, 100, 40);
 
         // Draw username elements
         ctx.fillStyle = 'gray'; // Text color
-        ctx.font = '18px Arial';
+        ctx.font = '18px Arial, "Noto Color Emoji"';
         ctx.fillText(`@${metadata.authorNick}`, 100, 60);
     
         // Draw description (post text wrap handling)
         ctx.fillStyle = 'white'; // Text color for description
-        ctx.font = !hasImgs && hasVids ? '36px Arial' : '24px Arial';
+        ctx.font = !hasImgs && hasVids ? '36px Arial, "Noto Color Emoji"' : '24px Arial, "Noto Color Emoji"';
         const lineHeight = !hasImgs && hasVids ? 40 : 30; // Line height
         descLines.forEach(line => {
             ctx.fillText(line, 30, yPosition);
@@ -267,7 +267,7 @@ const createTwitterCanvas = async (metadataJson) => {
 
         // Draw date elements
         ctx.fillStyle = 'gray'; // Text color
-        ctx.font = '18px Arial';
+        ctx.font = '18px Arial, "Noto Color Emoji"';
         ctx.fillText(`${formatTwitterDate(metadata.date)} from this posting`, 30, calculatedCanvasHeightFromDescLines - 20);
     
         // Draw pfp image
@@ -313,17 +313,17 @@ const createTwitterCanvas = async (metadataJson) => {
         
         // Draw nickname elements
         ctx.fillStyle = 'white'; // Text color
-        ctx.font = 'bold 18px Arial';
+        ctx.font = 'bold 18px Arial, "Noto Color Emoji"';
         ctx.fillText(qtMeta.authorUsername, 100, qtYPosition + 40);
       
         // Draw username elements
         ctx.fillStyle = 'gray'; // Text color
-        ctx.font = '18px Arial';
+        ctx.font = '18px Arial, "Noto Color Emoji"';
         ctx.fillText(`@${qtMeta.authorNick}`, 100, qtYPosition + 60);
       
         // Draw description (post text wrap handling)
         ctx.fillStyle = 'white'; // Text color for description
-        ctx.font = '16px Arial';
+        ctx.font = '16px Arial, "Noto Color Emoji"';
         const lineHeight = 20;
         const qtTextXAxisStart = hasMedia ? 230 : 100;
         qtDescLines.forEach(line => {
