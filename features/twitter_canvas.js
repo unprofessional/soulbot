@@ -175,8 +175,8 @@ const createTwitterCanvas = async (metadataJson) => {
     const calcQtHeight = (qtMetadata) => {
         const minHeight = 180;
         if(qtMetadata.mediaUrls.length > 0) {
-          console.log('>>>>> calcQtHeight has media!');
-          return 330;
+            console.log('>>>>> calcQtHeight has media!');
+            return 330;
         }
         return minHeight;
     };
@@ -414,7 +414,7 @@ const createTwitterCanvas = async (metadataJson) => {
          * FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME 
          * FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME
          */
-         // Media Canvas Stroke
+        // Media Canvas Stroke
         // ctx.strokeStyle = "gray";
         // const zxPosition = 20;
         // const zyPosition = calculatedCanvasHeightFromDescLines - heightShim - 50;
