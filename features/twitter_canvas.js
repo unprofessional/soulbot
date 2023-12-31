@@ -42,10 +42,10 @@ function getWrappedText(ctx, text, maxWidth, hasVids) {
             lines.push(currentLine); // Push the last line of the paragraph
         }
     });
-
     return lines;
 }
 
+// recursive utility function
 const scaleDownByHalf = (
     { height, width },
     mediaMaxHeight,
@@ -142,6 +142,7 @@ const createTwitterCanvas = async (metadataJson) => {
     let mediaMaxWidth = 560;
     const hasImgs = numOfImgs > 0;
     const hasVids = numOfVideos > 0;
+    const hasOnlyVideos = numOfVideos > 0 && !hasImgs;
 
     // Default media embed dimensions
     let mediaObject = {
@@ -181,8 +182,8 @@ const createTwitterCanvas = async (metadataJson) => {
     };
   
     // Pre-process description with text wrapping
-    const maxCharLength = !hasImgs && hasVids ? 160 : 220; // Maximum width for text
-    const descLines = getWrappedText(ctx, metadata.description, maxCharLength, hasVids);
+    const maxCharLength = hasOnlyVideos ? 120 : 220; // Maximum width for text
+    const descLines = getWrappedText(ctx, metadata.description, maxCharLength, hasOnlyVideos);
     let yPosition = 110; // Starting Y position for description text
 
     // New height calcs
@@ -250,26 +251,27 @@ const createTwitterCanvas = async (metadataJson) => {
         ctx.drawImage(favicon, 550, 20, 32, 32);
 
         // Draw nickname elements
-        ctx.fillStyle = 'white'; // Text color
+        ctx.fillStyle = 'white';
         ctx.font = 'bold 18px ' + globalFont;
         ctx.fillText(metadata.authorUsername, 100, 40);
 
         // Draw username elements
-        ctx.fillStyle = 'gray'; // Text color
+        ctx.fillStyle = 'gray';
         ctx.font = '18px ' + globalFont;
         ctx.fillText(`@${metadata.authorNick}`, 100, 60);
     
         // Draw description (post text wrap handling)
-        ctx.fillStyle = 'white'; // Text color for description
+        ctx.fillStyle = 'white';
         ctx.font = !hasImgs && hasVids ? '36px ' + globalFont : '24px ' + globalFont;
-        const lineHeight = !hasImgs && hasVids ? 40 : 30; // Line height
+        const lineHeight = hasOnlyVideos ? 50 : 30;
+        const descXPosition = !hasImgs && hasVids ? 80 : 30;
         descLines.forEach(line => {
-            ctx.fillText(line, 30, yPosition);
+            ctx.fillText(line, descXPosition, yPosition);
             yPosition += lineHeight;
         });
 
         // Draw date elements
-        ctx.fillStyle = 'gray'; // Text color
+        ctx.fillStyle = 'gray';
         ctx.font = '18px ' + globalFont;
         ctx.fillText(`${formatTwitterDate(metadata.date)} from this posting`, 30, calculatedCanvasHeightFromDescLines - 20);
     
@@ -371,6 +373,7 @@ const createTwitterCanvas = async (metadataJson) => {
     const pfp = await loadImage(pfpUrl);
     drawBasicElements(metadata, favicon, pfp);
     console.log('>>>>> qtMetadata: ', qtMetadata);
+    // if has quote tweet reference
     if(qtMetadata) {
         console.log('>>>>> if(qtMetadata) > qtMetadata EXISTS!!!');
         // Pre-process media
@@ -383,16 +386,19 @@ const createTwitterCanvas = async (metadataJson) => {
         const qtPfpUrl = qtMetadata.pfpUrl;
         const qtPfp = await loadImage(qtPfpUrl);
 
+        // has images, but no videos
         if(numOfQtImgs > 0 && numOfQtVideos === 0) {
             const qtMainMedia1Url = qtMetadata.mediaUrls[0];
             const qtMainMedia1 = await loadImage(qtMainMedia1Url);
             drawQtBasicElements(qtMetadata, qtPfp, qtMainMedia1); 
         }
+        // has videos, but no images
         if (numOfQtVideos > 0 && numOfQtImgs === 0) {
             const qtVidThumbnailUrl = qtMetadata.mediaExtended[0].thumbnail_url;
             const qtVidThumbnail = await loadImage(qtVidThumbnailUrl);
             drawQtBasicElements(qtMetadata, qtPfp, undefined, qtVidThumbnail); 
         }
+        // is text only
         if (numOfQtVideos === 0 && numOfQtImgs === 0) {
             drawQtBasicElements(qtMetadata, qtPfp); 
         }
