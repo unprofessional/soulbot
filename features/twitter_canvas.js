@@ -102,6 +102,8 @@ const createTwitterCanvas = async (metadataJson) => {
 
     console.log('>>>>> createTwitterCanvas > metadata: ', metadata);
 
+    // Unnecessary if the font is loaded in the local OS
+    // TODO: Investigate if `fonts/` is even necessary...
     // registerFont('/usr/share/fonts/truetype/noto/NotoColorEmoji.ttf', { family: 'Noto Color Emoji' });
     const globalFont = 'Arial';
 
@@ -161,7 +163,7 @@ const createTwitterCanvas = async (metadataJson) => {
         // Recusively scale down by half if larger than allowed
         // mediaObject = scaleDownByHalf(mediaObject, mediaMaxHeight, mediaMaxWidth);
         // console.log('>>>>> hasImgs > mediaObject: ', mediaObject);
-        if(mediaObject.width > mediaObject.height) {
+        if(metadata.mediaExtended.length < 2 && mediaObject.width > mediaObject.height) {
             const newWidthRatio = mediaMaxWidth / mediaObject.width;
             // console.log('>>>>> newWidthRatio: ', newWidthRatio);
             const adjustedHeight = mediaObject.height * newWidthRatio;
