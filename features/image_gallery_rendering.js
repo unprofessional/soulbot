@@ -36,7 +36,7 @@ const renderImageGallery = async (
         const xPosition = 20;
         const yPosition = calculatedCanvasHeightFromDescLines - heightShim - 50;
         if (mainMedia1.width > mainMedia1.height) {
-            scaleToFitWiderThanHeight(mainMedia1, yPosition);
+            scaleToFitWiderThanHeight(ctx, mainMedia1, yPosition, mediaMaxWidth);
         } else {
             cropSingleImage(ctx, mainMedia1, mediaMaxHeight, mediaMaxWidth, xPosition, yPosition);
         }
