@@ -13,11 +13,7 @@ const scaleToFitWiderThanHeight = (
     console.log('>>>>> newWidthRatio: ', newWidthRatio);
     const adjustedHeight = mainMedia1.height * newWidthRatio;
     console.log('>>>>> adjustedHeight: ', adjustedHeight);
-    ctx.drawImage(
-        mainMedia1,
-        // sx, sy, cropWidth, cropHeight, // Source rectangle
-        20, yPosition, mediaMaxWidth, adjustedHeight // Destination rectangle
-    );
+    ctx.drawImage(mainMedia1, 20, yPosition, mediaMaxWidth, adjustedHeight);
 };
 
 const renderImageGallery = async (
@@ -27,7 +23,7 @@ const renderImageGallery = async (
     heightShim,
     mediaMaxHeight,
     mediaMaxWidth,
-    defaultYPosition, // FIXME: rename this from the caller and here
+    defaultYPosition,
 ) => {
     /** Single Image */
     if(metadata.mediaUrls.length === 1) {

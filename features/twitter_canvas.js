@@ -227,6 +227,11 @@ const createTwitterCanvas = async (metadataJson) => {
         );
     };
 
+    /** TODO TODO TODOTODO TODO TODOTODO TODO TODOTODO TODO TODOTODO TODO TODOTODO TODO
+     * REFACTOR CONSIDERATIONS: Rather than separate by PRIMARY TWEET Draw vs QT Draw,
+     * — let's instead break out each of these "Draw ______ element" into their own functions
+     * — so we can parameterize them
+     */
     const drawBasicElements = (metadata, favicon, pfp) => {
         // Load and draw favicon
         ctx.drawImage(favicon, 550, 20, 32, 32);
@@ -259,19 +264,7 @@ const createTwitterCanvas = async (metadataJson) => {
         // Draw pfp image
         ctx.drawImage(pfp, 20, 20, 50, 50);
     };
-      
-    /**
-      
-        WE NEED TO REFACTOR THIS !!!!!
-          WE NEED TO REFACTOR THIS !!!!!
-            WE NEED TO REFACTOR THIS !!!!!
-              WE NEED TO REFACTOR THIS !!!!!
-                WE NEED TO REFACTOR THIS !!!!!
-                  WE NEED TO REFACTOR THIS !!!!!
-                    WE NEED TO REFACTOR THIS !!!!!
-                      WE NEED TO REFACTOR THIS !!!!!
-      
-      */
+
     const drawQtBasicElements = (qtMeta, pfp, mainMedia1, qtVidThumbnail) => {
         console.log('>>>>> drawQtBasicElements > qtMeta: ', qtMeta);
         
@@ -334,19 +327,6 @@ const createTwitterCanvas = async (metadataJson) => {
         }
         
     };
-      
-    /**
-      
-        WE NEED TO REFACTOR THIS !!!!!
-          WE NEED TO REFACTOR THIS !!!!!
-            WE NEED TO REFACTOR THIS !!!!!
-              WE NEED TO REFACTOR THIS !!!!!
-                WE NEED TO REFACTOR THIS !!!!!
-                  WE NEED TO REFACTOR THIS !!!!!
-                    WE NEED TO REFACTOR THIS !!!!!
-                      WE NEED TO REFACTOR THIS !!!!!
-      
-      */
     
     const favIconUrl = 'https://abs.twimg.com/favicons/twitter.3.ico';
     const favicon = await loadImage(favIconUrl);
@@ -390,89 +370,12 @@ const createTwitterCanvas = async (metadataJson) => {
 
         /**
          * FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME 
-         * FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME 
-         * FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME 
-         * FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME 
-         * FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME
          */
         // Media Canvas Stroke
         // ctx.strokeStyle = "gray";
         // const zxPosition = 20;
         // const zyPosition = calculatedCanvasHeightFromDescLines - heightShim - 50;
         // ctx.strokeRect(zxPosition, zyPosition, mediaMaxWidth, mediaMaxHeight);
-
-        /** Single Image */
-        // if(metadata.mediaUrls.length === 1) {
-        //     const mainMedia1Url = metadata.mediaUrls[0];
-        //     const mainMedia1 = await loadImage(mainMedia1Url);
-        //     const xPosition = 20;
-        //     const yPosition = calculatedCanvasHeightFromDescLines - heightShim - 50;
-        //     if (mainMedia1.width > mainMedia1.height) {
-        //         scaleToFitWiderThanHeight(mainMedia1, yPosition);
-        //     } else {
-        //         cropSingleImage(ctx, mainMedia1, mediaMaxHeight, mediaMaxWidth, xPosition, yPosition);
-        //     }
-        // }
-        // /** Two images */
-        // if(metadata.mediaUrls.length === 2) {
-        //     const mainMedia1Url = metadata.mediaUrls[0];
-        //     const mainMedia1 = await loadImage(mainMedia1Url);
-        //     const firstXPosition = 20;
-        //     const firstYPosition = calculatedCanvasHeightFromDescLines - heightShim - 50;
-        //     cropSingleImage(ctx, mainMedia1, mediaMaxHeight, mediaMaxWidth / 2, firstXPosition, firstYPosition);
-
-        //     const mainMedia2Url = metadata.mediaUrls[1];
-        //     const mainMedia2 = await loadImage(mainMedia2Url);
-        //     const secondXPosition = mediaMaxWidth / 2 + 25;
-        //     const secondYPosition = calculatedCanvasHeightFromDescLines - heightShim - 50;
-        //     cropSingleImage(ctx, mainMedia2, mediaMaxHeight, mediaMaxWidth / 2, secondXPosition, secondYPosition);
-        // }
-        // /** Three images */
-        // if(metadata.mediaUrls.length === 3) {
-        //     const mainMedia1Url = metadata.mediaUrls[0];
-        //     const mainMedia1 = await loadImage(mainMedia1Url);
-        //     const firstXPosition = 20;
-        //     const firstYPosition = calculatedCanvasHeightFromDescLines - heightShim - 50;
-        //     cropSingleImage(ctx, mainMedia1, mediaMaxHeight, mediaMaxWidth / 2, firstXPosition, firstYPosition);
-
-        //     const mainMedia2Url = metadata.mediaUrls[1];
-        //     const mainMedia2 = await loadImage(mainMedia2Url);
-        //     const secondXPosition = mediaMaxWidth / 2 + 25;
-        //     const secondYPosition = calculatedCanvasHeightFromDescLines - heightShim - 50;
-        //     cropSingleImage(ctx, mainMedia2, mediaMaxHeight / 2, mediaMaxWidth / 2, secondXPosition, secondYPosition);
-
-        //     const mainMedia3Url = metadata.mediaUrls[2];
-        //     const mainMedia3 = await loadImage(mainMedia3Url);
-        //     const thirdXPosition = mediaMaxWidth / 2 + 25;
-        //     const thirdYPosition = mediaMaxHeight / 2 + yPosition - 5;
-        //     cropSingleImage(ctx, mainMedia3, mediaMaxHeight / 2, mediaMaxWidth / 2, thirdXPosition, thirdYPosition);
-        // }
-        // /** Four images */
-        // if(metadata.mediaUrls.length === 4) {
-        //     const mainMedia1Url = metadata.mediaUrls[0];
-        //     const mainMedia1 = await loadImage(mainMedia1Url);
-        //     const firstXPosition = 20;
-        //     const firstYPosition = calculatedCanvasHeightFromDescLines - heightShim - 50;
-        //     cropSingleImage(ctx, mainMedia1, mediaMaxHeight / 2, mediaMaxWidth / 2, firstXPosition, firstYPosition);
-
-        //     const mainMedia2Url = metadata.mediaUrls[1];
-        //     const mainMedia2 = await loadImage(mainMedia2Url);
-        //     const secondXPosition = mediaMaxWidth / 2 + 25;
-        //     const secondYPosition = calculatedCanvasHeightFromDescLines - heightShim - 50;
-        //     cropSingleImage(ctx, mainMedia2, mediaMaxHeight / 2, mediaMaxWidth / 2, secondXPosition, secondYPosition);
-
-        //     const mainMedia3Url = metadata.mediaUrls[2];
-        //     const mainMedia3 = await loadImage(mainMedia3Url);
-        //     const thirdXPosition = 20;
-        //     const thirdYPosition = mediaMaxHeight / 2 + yPosition - 5;
-        //     cropSingleImage(ctx, mainMedia3, mediaMaxHeight / 2, mediaMaxWidth / 2, thirdXPosition, thirdYPosition);
-
-        //     const mainMedia4Url = metadata.mediaUrls[3];
-        //     const mainMedia4 = await loadImage(mainMedia4Url);
-        //     const fourthXPosition = mediaMaxWidth / 2 + 25;
-        //     const fourthYPosition = mediaMaxHeight / 2 + yPosition - 5;
-        //     cropSingleImage(ctx, mainMedia4, mediaMaxHeight / 2, mediaMaxWidth / 2, fourthXPosition, fourthYPosition);
-        // }
 
         await renderImageGallery(
             ctx,
@@ -481,7 +384,7 @@ const createTwitterCanvas = async (metadataJson) => {
             heightShim,
             mediaMaxHeight,
             mediaMaxWidth,
-            defaultYPosition, // FIXME: rename this here and within the function
+            defaultYPosition,
         );
     }
 
