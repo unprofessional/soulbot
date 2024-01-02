@@ -4,6 +4,7 @@ const {
     loadImage,
 } = require('canvas');
 const { cropSingleImage } = require('./crop_single_image.js');
+const { renderImageGallery } = require('./image_gallery_rendering.js');
 
 const TimeAgo = require('javascript-time-ago');
 const en = require('javascript-time-ago/locale/en');
@@ -191,13 +192,13 @@ const createTwitterCanvas = async (metadataJson) => {
     // Pre-process description with text wrapping
     const maxCharLength = hasOnlyVideos ? 120 : 220; // Maximum width for text
     const descLines = getWrappedText(ctx, metadata.description, maxCharLength, hasOnlyVideos);
-    let yPosition = 110; // Starting Y position for description text
+    let defaultYPosition = 110; // Starting Y position for description text
 
     // New height calcs
     const descLinesLength = descLines.length;
     const calculatedCanvasHeightFromDescLines = hasVids && !hasImgs
         ? maxCanvasWidth // Has vids, make square
-        : (descLinesLength * 30) + yPosition + 40 + heightShim;
+        : (descLinesLength * 30) + defaultYPosition + 40 + heightShim;
 
     let qtCalculatedCanvasHeightFromDescLines = 0;
     if(qtMetadata) {
@@ -226,33 +227,6 @@ const createTwitterCanvas = async (metadataJson) => {
         );
     };
 
-    // const cropSingleImage = (mainMedia1, maxHeight, maxWidth, xPosition, yPosition) => {
-    //     /** CROPPING LOGIC */
-    //     // crop from the center of the image
-    //     // Calculate the aspect ratio of the destination size
-    //     const destAspectRatio = maxWidth / maxHeight;
-    //     // Determine the cropping size (maintaining the destination aspect ratio)
-    //     let cropWidth, cropHeight;
-    //     if (mainMedia1.width / mainMedia1.height > destAspectRatio) {
-    //         // Image is wider than destination aspect ratio
-    //         cropHeight = mainMedia1.height;
-    //         cropWidth = mainMedia1.height * destAspectRatio;
-    //     } else {
-    //         // Image is taller than destination aspect ratio
-    //         cropWidth = mainMedia1.width;
-    //         cropHeight = mainMedia1.width / destAspectRatio;
-    //     }
-    //     // Calculate starting point (top left corner) for cropping
-    //     const sx = (mainMedia1.width - cropWidth) / 2;
-    //     const sy = (mainMedia1.height - cropHeight) / 2;
-    //     // Draw the cropped image on the canvas
-    //     ctx.drawImage(
-    //         mainMedia1,
-    //         sx, sy, cropWidth, cropHeight, // Source rectangle
-    //         xPosition, yPosition, maxWidth, maxHeight // Destination rectangle
-    //     );
-    // };
-
     const drawBasicElements = (metadata, favicon, pfp) => {
         // Load and draw favicon
         ctx.drawImage(favicon, 550, 20, 32, 32);
@@ -273,8 +247,8 @@ const createTwitterCanvas = async (metadataJson) => {
         const lineHeight = hasOnlyVideos ? 50 : 30;
         const descXPosition = !hasImgs && hasVids ? 80 : 30;
         descLines.forEach(line => {
-            ctx.fillText(line, descXPosition, yPosition);
-            yPosition += lineHeight;
+            ctx.fillText(line, descXPosition, defaultYPosition);
+            defaultYPosition += lineHeight;
         });
 
         // Draw date elements
@@ -428,78 +402,87 @@ const createTwitterCanvas = async (metadataJson) => {
         // ctx.strokeRect(zxPosition, zyPosition, mediaMaxWidth, mediaMaxHeight);
 
         /** Single Image */
-        if(metadata.mediaUrls.length === 1) {
-            const mainMedia1Url = metadata.mediaUrls[0];
-            const mainMedia1 = await loadImage(mainMedia1Url);
-            const xPosition = 20;
-            const yPosition = calculatedCanvasHeightFromDescLines - heightShim - 50;
-            if (mainMedia1.width > mainMedia1.height) {
-                scaleToFitWiderThanHeight(mainMedia1, yPosition);
-            } else {
-                cropSingleImage(ctx, mainMedia1, mediaMaxHeight, mediaMaxWidth, xPosition, yPosition);
-            }
-        }
-        /** Two images */
-        if(metadata.mediaUrls.length === 2) {
-            const mainMedia1Url = metadata.mediaUrls[0];
-            const mainMedia1 = await loadImage(mainMedia1Url);
-            const firstXPosition = 20;
-            const firstYPosition = calculatedCanvasHeightFromDescLines - heightShim - 50;
-            cropSingleImage(ctx, mainMedia1, mediaMaxHeight, mediaMaxWidth / 2, firstXPosition, firstYPosition);
+        // if(metadata.mediaUrls.length === 1) {
+        //     const mainMedia1Url = metadata.mediaUrls[0];
+        //     const mainMedia1 = await loadImage(mainMedia1Url);
+        //     const xPosition = 20;
+        //     const yPosition = calculatedCanvasHeightFromDescLines - heightShim - 50;
+        //     if (mainMedia1.width > mainMedia1.height) {
+        //         scaleToFitWiderThanHeight(mainMedia1, yPosition);
+        //     } else {
+        //         cropSingleImage(ctx, mainMedia1, mediaMaxHeight, mediaMaxWidth, xPosition, yPosition);
+        //     }
+        // }
+        // /** Two images */
+        // if(metadata.mediaUrls.length === 2) {
+        //     const mainMedia1Url = metadata.mediaUrls[0];
+        //     const mainMedia1 = await loadImage(mainMedia1Url);
+        //     const firstXPosition = 20;
+        //     const firstYPosition = calculatedCanvasHeightFromDescLines - heightShim - 50;
+        //     cropSingleImage(ctx, mainMedia1, mediaMaxHeight, mediaMaxWidth / 2, firstXPosition, firstYPosition);
 
-            const mainMedia2Url = metadata.mediaUrls[1];
-            const mainMedia2 = await loadImage(mainMedia2Url);
-            const secondXPosition = mediaMaxWidth / 2 + 25;
-            const secondYPosition = calculatedCanvasHeightFromDescLines - heightShim - 50;
-            cropSingleImage(ctx, mainMedia2, mediaMaxHeight, mediaMaxWidth / 2, secondXPosition, secondYPosition);
-        }
-        /** Three images */
-        if(metadata.mediaUrls.length === 3) {
-            const mainMedia1Url = metadata.mediaUrls[0];
-            const mainMedia1 = await loadImage(mainMedia1Url);
-            const firstXPosition = 20;
-            const firstYPosition = calculatedCanvasHeightFromDescLines - heightShim - 50;
-            cropSingleImage(ctx, mainMedia1, mediaMaxHeight, mediaMaxWidth / 2, firstXPosition, firstYPosition);
+        //     const mainMedia2Url = metadata.mediaUrls[1];
+        //     const mainMedia2 = await loadImage(mainMedia2Url);
+        //     const secondXPosition = mediaMaxWidth / 2 + 25;
+        //     const secondYPosition = calculatedCanvasHeightFromDescLines - heightShim - 50;
+        //     cropSingleImage(ctx, mainMedia2, mediaMaxHeight, mediaMaxWidth / 2, secondXPosition, secondYPosition);
+        // }
+        // /** Three images */
+        // if(metadata.mediaUrls.length === 3) {
+        //     const mainMedia1Url = metadata.mediaUrls[0];
+        //     const mainMedia1 = await loadImage(mainMedia1Url);
+        //     const firstXPosition = 20;
+        //     const firstYPosition = calculatedCanvasHeightFromDescLines - heightShim - 50;
+        //     cropSingleImage(ctx, mainMedia1, mediaMaxHeight, mediaMaxWidth / 2, firstXPosition, firstYPosition);
 
-            const mainMedia2Url = metadata.mediaUrls[1];
-            const mainMedia2 = await loadImage(mainMedia2Url);
-            const secondXPosition = mediaMaxWidth / 2 + 25;
-            const secondYPosition = calculatedCanvasHeightFromDescLines - heightShim - 50;
-            cropSingleImage(ctx, mainMedia2, mediaMaxHeight / 2, mediaMaxWidth / 2, secondXPosition, secondYPosition);
+        //     const mainMedia2Url = metadata.mediaUrls[1];
+        //     const mainMedia2 = await loadImage(mainMedia2Url);
+        //     const secondXPosition = mediaMaxWidth / 2 + 25;
+        //     const secondYPosition = calculatedCanvasHeightFromDescLines - heightShim - 50;
+        //     cropSingleImage(ctx, mainMedia2, mediaMaxHeight / 2, mediaMaxWidth / 2, secondXPosition, secondYPosition);
 
-            const mainMedia3Url = metadata.mediaUrls[2];
-            const mainMedia3 = await loadImage(mainMedia3Url);
-            const thirdXPosition = mediaMaxWidth / 2 + 25;
-            const thirdYPosition = mediaMaxHeight / 2 + yPosition - 5;
-            cropSingleImage(ctx, mainMedia3, mediaMaxHeight / 2, mediaMaxWidth / 2, thirdXPosition, thirdYPosition);
-        }
-        /** Four images */
-        if(metadata.mediaUrls.length === 4) {
-            const mainMedia1Url = metadata.mediaUrls[0];
-            const mainMedia1 = await loadImage(mainMedia1Url);
-            const firstXPosition = 20;
-            const firstYPosition = calculatedCanvasHeightFromDescLines - heightShim - 50;
-            cropSingleImage(ctx, mainMedia1, mediaMaxHeight / 2, mediaMaxWidth / 2, firstXPosition, firstYPosition);
+        //     const mainMedia3Url = metadata.mediaUrls[2];
+        //     const mainMedia3 = await loadImage(mainMedia3Url);
+        //     const thirdXPosition = mediaMaxWidth / 2 + 25;
+        //     const thirdYPosition = mediaMaxHeight / 2 + yPosition - 5;
+        //     cropSingleImage(ctx, mainMedia3, mediaMaxHeight / 2, mediaMaxWidth / 2, thirdXPosition, thirdYPosition);
+        // }
+        // /** Four images */
+        // if(metadata.mediaUrls.length === 4) {
+        //     const mainMedia1Url = metadata.mediaUrls[0];
+        //     const mainMedia1 = await loadImage(mainMedia1Url);
+        //     const firstXPosition = 20;
+        //     const firstYPosition = calculatedCanvasHeightFromDescLines - heightShim - 50;
+        //     cropSingleImage(ctx, mainMedia1, mediaMaxHeight / 2, mediaMaxWidth / 2, firstXPosition, firstYPosition);
 
-            const mainMedia2Url = metadata.mediaUrls[1];
-            const mainMedia2 = await loadImage(mainMedia2Url);
-            const secondXPosition = mediaMaxWidth / 2 + 25;
-            const secondYPosition = calculatedCanvasHeightFromDescLines - heightShim - 50;
-            cropSingleImage(ctx, mainMedia2, mediaMaxHeight / 2, mediaMaxWidth / 2, secondXPosition, secondYPosition);
+        //     const mainMedia2Url = metadata.mediaUrls[1];
+        //     const mainMedia2 = await loadImage(mainMedia2Url);
+        //     const secondXPosition = mediaMaxWidth / 2 + 25;
+        //     const secondYPosition = calculatedCanvasHeightFromDescLines - heightShim - 50;
+        //     cropSingleImage(ctx, mainMedia2, mediaMaxHeight / 2, mediaMaxWidth / 2, secondXPosition, secondYPosition);
 
-            const mainMedia3Url = metadata.mediaUrls[2];
-            const mainMedia3 = await loadImage(mainMedia3Url);
-            const thirdXPosition = 20;
-            const thirdYPosition = mediaMaxHeight / 2 + yPosition - 5;
-            cropSingleImage(ctx, mainMedia3, mediaMaxHeight / 2, mediaMaxWidth / 2, thirdXPosition, thirdYPosition);
+        //     const mainMedia3Url = metadata.mediaUrls[2];
+        //     const mainMedia3 = await loadImage(mainMedia3Url);
+        //     const thirdXPosition = 20;
+        //     const thirdYPosition = mediaMaxHeight / 2 + yPosition - 5;
+        //     cropSingleImage(ctx, mainMedia3, mediaMaxHeight / 2, mediaMaxWidth / 2, thirdXPosition, thirdYPosition);
 
-            const mainMedia4Url = metadata.mediaUrls[3];
-            const mainMedia4 = await loadImage(mainMedia4Url);
-            const fourthXPosition = mediaMaxWidth / 2 + 25;
-            const fourthYPosition = mediaMaxHeight / 2 + yPosition - 5;
-            cropSingleImage(ctx, mainMedia4, mediaMaxHeight / 2, mediaMaxWidth / 2, fourthXPosition, fourthYPosition);
+        //     const mainMedia4Url = metadata.mediaUrls[3];
+        //     const mainMedia4 = await loadImage(mainMedia4Url);
+        //     const fourthXPosition = mediaMaxWidth / 2 + 25;
+        //     const fourthYPosition = mediaMaxHeight / 2 + yPosition - 5;
+        //     cropSingleImage(ctx, mainMedia4, mediaMaxHeight / 2, mediaMaxWidth / 2, fourthXPosition, fourthYPosition);
+        // }
 
-        }
+        await renderImageGallery(
+            ctx,
+            metadata,
+            calculatedCanvasHeightFromDescLines,
+            heightShim,
+            mediaMaxHeight,
+            mediaMaxWidth,
+            defaultYPosition, // FIXME: rename this here and within the function
+        );
     }
 
     // Convert the canvas to a Buffer and return it
