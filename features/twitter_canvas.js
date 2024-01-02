@@ -1,4 +1,9 @@
-const { registerFont, createCanvas, loadImage } = require('canvas');
+const {
+    // registerFont,
+    createCanvas,
+    loadImage,
+} = require('canvas');
+const { cropSingleImage } = require('./crop_single_image.js');
 
 const TimeAgo = require('javascript-time-ago');
 const en = require('javascript-time-ago/locale/en');
@@ -29,8 +34,8 @@ function getWrappedText(ctx, text, maxWidth, hasVids) {
             for (let i = 1; i < words.length; i++) {
                 const word = words[i];
                 const width = ctx.measureText(currentLine + " " + word).width;
-                console.log('!!!!! getWrappedText > width: ', width);
-                console.log('!!!!! getWrappedText > maxWidth: ', maxWidth);
+                // console.log('!!!!! getWrappedText > width: ', width);
+                // console.log('!!!!! getWrappedText > maxWidth: ', maxWidth);
               
                 if (width < maxWidth) {
                     currentLine += " " + word;
@@ -221,32 +226,32 @@ const createTwitterCanvas = async (metadataJson) => {
         );
     };
 
-    const cropSingleImage = (mainMedia1, maxHeight, maxWidth, xPosition, yPosition) => {
-        /** CROPPING LOGIC */
-        // crop from the center of the image
-        // Calculate the aspect ratio of the destination size
-        const destAspectRatio = maxWidth / maxHeight;
-        // Determine the cropping size (maintaining the destination aspect ratio)
-        let cropWidth, cropHeight;
-        if (mainMedia1.width / mainMedia1.height > destAspectRatio) {
-            // Image is wider than destination aspect ratio
-            cropHeight = mainMedia1.height;
-            cropWidth = mainMedia1.height * destAspectRatio;
-        } else {
-            // Image is taller than destination aspect ratio
-            cropWidth = mainMedia1.width;
-            cropHeight = mainMedia1.width / destAspectRatio;
-        }
-        // Calculate starting point (top left corner) for cropping
-        const sx = (mainMedia1.width - cropWidth) / 2;
-        const sy = (mainMedia1.height - cropHeight) / 2;
-        // Draw the cropped image on the canvas
-        ctx.drawImage(
-            mainMedia1,
-            sx, sy, cropWidth, cropHeight, // Source rectangle
-            xPosition, yPosition, maxWidth, maxHeight // Destination rectangle
-        );
-    };
+    // const cropSingleImage = (mainMedia1, maxHeight, maxWidth, xPosition, yPosition) => {
+    //     /** CROPPING LOGIC */
+    //     // crop from the center of the image
+    //     // Calculate the aspect ratio of the destination size
+    //     const destAspectRatio = maxWidth / maxHeight;
+    //     // Determine the cropping size (maintaining the destination aspect ratio)
+    //     let cropWidth, cropHeight;
+    //     if (mainMedia1.width / mainMedia1.height > destAspectRatio) {
+    //         // Image is wider than destination aspect ratio
+    //         cropHeight = mainMedia1.height;
+    //         cropWidth = mainMedia1.height * destAspectRatio;
+    //     } else {
+    //         // Image is taller than destination aspect ratio
+    //         cropWidth = mainMedia1.width;
+    //         cropHeight = mainMedia1.width / destAspectRatio;
+    //     }
+    //     // Calculate starting point (top left corner) for cropping
+    //     const sx = (mainMedia1.width - cropWidth) / 2;
+    //     const sy = (mainMedia1.height - cropHeight) / 2;
+    //     // Draw the cropped image on the canvas
+    //     ctx.drawImage(
+    //         mainMedia1,
+    //         sx, sy, cropWidth, cropHeight, // Source rectangle
+    //         xPosition, yPosition, maxWidth, maxHeight // Destination rectangle
+    //     );
+    // };
 
     const drawBasicElements = (metadata, favicon, pfp) => {
         // Load and draw favicon
@@ -346,12 +351,12 @@ const createTwitterCanvas = async (metadataJson) => {
 
         // or if (mainMedia1 !== undefined)
         if(numOfQtImgs > 0 && numOfQtVideos === 0) {
-            cropSingleImage(mainMedia1, 175, 175, qtXPosition + 20, qtMediaYPos);
+            cropSingleImage(ctx, mainMedia1, 175, 175, qtXPosition + 20, qtMediaYPos);
         }
 
         // or if (qtVidThumbnail)
         if(numOfQtVideos > 0) {
-            cropSingleImage(qtVidThumbnail, 175, 175, qtXPosition + 20, qtMediaYPos);
+            cropSingleImage(ctx, qtVidThumbnail, 175, 175, qtXPosition + 20, qtMediaYPos);
         }
         
     };
@@ -431,7 +436,7 @@ const createTwitterCanvas = async (metadataJson) => {
             if (mainMedia1.width > mainMedia1.height) {
                 scaleToFitWiderThanHeight(mainMedia1, yPosition);
             } else {
-                cropSingleImage(mainMedia1, mediaMaxHeight, mediaMaxWidth, xPosition, yPosition);
+                cropSingleImage(ctx, mainMedia1, mediaMaxHeight, mediaMaxWidth, xPosition, yPosition);
             }
         }
         /** Two images */
@@ -440,13 +445,13 @@ const createTwitterCanvas = async (metadataJson) => {
             const mainMedia1 = await loadImage(mainMedia1Url);
             const firstXPosition = 20;
             const firstYPosition = calculatedCanvasHeightFromDescLines - heightShim - 50;
-            cropSingleImage(mainMedia1, mediaMaxHeight, mediaMaxWidth / 2, firstXPosition, firstYPosition);
+            cropSingleImage(ctx, mainMedia1, mediaMaxHeight, mediaMaxWidth / 2, firstXPosition, firstYPosition);
 
             const mainMedia2Url = metadata.mediaUrls[1];
             const mainMedia2 = await loadImage(mainMedia2Url);
             const secondXPosition = mediaMaxWidth / 2 + 25;
             const secondYPosition = calculatedCanvasHeightFromDescLines - heightShim - 50;
-            cropSingleImage(mainMedia2, mediaMaxHeight, mediaMaxWidth / 2, secondXPosition, secondYPosition);
+            cropSingleImage(ctx, mainMedia2, mediaMaxHeight, mediaMaxWidth / 2, secondXPosition, secondYPosition);
         }
         /** Three images */
         if(metadata.mediaUrls.length === 3) {
@@ -454,19 +459,19 @@ const createTwitterCanvas = async (metadataJson) => {
             const mainMedia1 = await loadImage(mainMedia1Url);
             const firstXPosition = 20;
             const firstYPosition = calculatedCanvasHeightFromDescLines - heightShim - 50;
-            cropSingleImage(mainMedia1, mediaMaxHeight, mediaMaxWidth / 2, firstXPosition, firstYPosition);
+            cropSingleImage(ctx, mainMedia1, mediaMaxHeight, mediaMaxWidth / 2, firstXPosition, firstYPosition);
 
             const mainMedia2Url = metadata.mediaUrls[1];
             const mainMedia2 = await loadImage(mainMedia2Url);
             const secondXPosition = mediaMaxWidth / 2 + 25;
             const secondYPosition = calculatedCanvasHeightFromDescLines - heightShim - 50;
-            cropSingleImage(mainMedia2, mediaMaxHeight / 2, mediaMaxWidth / 2, secondXPosition, secondYPosition);
+            cropSingleImage(ctx, mainMedia2, mediaMaxHeight / 2, mediaMaxWidth / 2, secondXPosition, secondYPosition);
 
             const mainMedia3Url = metadata.mediaUrls[2];
             const mainMedia3 = await loadImage(mainMedia3Url);
             const thirdXPosition = mediaMaxWidth / 2 + 25;
             const thirdYPosition = mediaMaxHeight / 2 + yPosition - 5;
-            cropSingleImage(mainMedia3, mediaMaxHeight / 2, mediaMaxWidth / 2, thirdXPosition, thirdYPosition);
+            cropSingleImage(ctx, mainMedia3, mediaMaxHeight / 2, mediaMaxWidth / 2, thirdXPosition, thirdYPosition);
         }
         /** Four images */
         if(metadata.mediaUrls.length === 4) {
@@ -474,25 +479,25 @@ const createTwitterCanvas = async (metadataJson) => {
             const mainMedia1 = await loadImage(mainMedia1Url);
             const firstXPosition = 20;
             const firstYPosition = calculatedCanvasHeightFromDescLines - heightShim - 50;
-            cropSingleImage(mainMedia1, mediaMaxHeight / 2, mediaMaxWidth / 2, firstXPosition, firstYPosition);
+            cropSingleImage(ctx, mainMedia1, mediaMaxHeight / 2, mediaMaxWidth / 2, firstXPosition, firstYPosition);
 
             const mainMedia2Url = metadata.mediaUrls[1];
             const mainMedia2 = await loadImage(mainMedia2Url);
             const secondXPosition = mediaMaxWidth / 2 + 25;
             const secondYPosition = calculatedCanvasHeightFromDescLines - heightShim - 50;
-            cropSingleImage(mainMedia2, mediaMaxHeight / 2, mediaMaxWidth / 2, secondXPosition, secondYPosition);
+            cropSingleImage(ctx, mainMedia2, mediaMaxHeight / 2, mediaMaxWidth / 2, secondXPosition, secondYPosition);
 
             const mainMedia3Url = metadata.mediaUrls[2];
             const mainMedia3 = await loadImage(mainMedia3Url);
             const thirdXPosition = 20;
             const thirdYPosition = mediaMaxHeight / 2 + yPosition - 5;
-            cropSingleImage(mainMedia3, mediaMaxHeight / 2, mediaMaxWidth / 2, thirdXPosition, thirdYPosition);
+            cropSingleImage(ctx, mainMedia3, mediaMaxHeight / 2, mediaMaxWidth / 2, thirdXPosition, thirdYPosition);
 
             const mainMedia4Url = metadata.mediaUrls[3];
             const mainMedia4 = await loadImage(mainMedia4Url);
             const fourthXPosition = mediaMaxWidth / 2 + 25;
             const fourthYPosition = mediaMaxHeight / 2 + yPosition - 5;
-            cropSingleImage(mainMedia4, mediaMaxHeight / 2, mediaMaxWidth / 2, fourthXPosition, fourthYPosition);
+            cropSingleImage(ctx, mainMedia4, mediaMaxHeight / 2, mediaMaxWidth / 2, fourthXPosition, fourthYPosition);
 
         }
     }
