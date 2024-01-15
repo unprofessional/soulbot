@@ -212,21 +212,6 @@ const createTwitterCanvas = async (metadataJson) => {
     ctx.canvas.height = calculatedCanvasHeightFromDescLines + qtCalculatedCanvasHeightFromDescLines;
     ctx.fillRect(0, 0, maxCanvasWidth, calculatedCanvasHeightFromDescLines + qtCalculatedCanvasHeightFromDescLines);
 
-    /**
-     * REFACTOR TO SEPARATE FILES!!!!
-     */
-    const scaleToFitWiderThanHeight = (mainMedia1, yPosition) => {
-        const newWidthRatio = mediaMaxWidth / mainMedia1.width;
-        console.log('>>>>> newWidthRatio: ', newWidthRatio);
-        const adjustedHeight = mainMedia1.height * newWidthRatio;
-        console.log('>>>>> adjustedHeight: ', adjustedHeight);
-        ctx.drawImage(
-            mainMedia1,
-            // sx, sy, cropWidth, cropHeight, // Source rectangle
-            20, yPosition, mediaMaxWidth, adjustedHeight // Destination rectangle
-        );
-    };
-
     /** TODO TODO TODOTODO TODO TODOTODO TODO TODOTODO TODO TODOTODO TODO TODOTODO TODO
      * REFACTOR CONSIDERATIONS: Rather than separate by PRIMARY TWEET Draw vs QT Draw,
      * — let's instead break out each of these "Draw ______ element" into their own functions

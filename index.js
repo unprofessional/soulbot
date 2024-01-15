@@ -8,8 +8,14 @@ const { initializeGuildMemberUpdate } = require('./events/guild_member_update.js
 const { initializeGuildMemberAdd } = require('./events/guild_member_add.js');
 const { initializeGuildMemberRemove } = require('./events/guild_member_remove.js');
 require('dotenv').config();
-const token = process.env.DISCORD_BOT_TOKEN;
 
+const express = require('express');
+const app = express();
+// const { initializeRoutes } = require('./api/routes.js');
+
+const expressPort = process.env.EXPRESS_PORT || 3000;
+
+const token = process.env.DISCORD_BOT_TOKEN;
 const path = process.env.STORE_PATH;
 const guildFile = process.env.GUILD_STORE_FILE;
 const channelFile = process.env.CHANNEL_STORE_FILE;
@@ -96,5 +102,18 @@ initializeCommands(client);
 initializeGuildMemberUpdate(client);
 initializeGuildMemberAdd(client);
 initializeGuildMemberRemove(client);
+
+/**
+ * BEGIN EXPRESS JS API
+ */
+// initializeRoutes(app);
+// app.listen(expressPort, (err) => {
+//     if(err) {
+//         console.error('ERROR: ', err);
+//     }
+//     console.log(`
+// EXPRESS: Server is listening on Port ${expressPort}!
+// `);
+// })
 
 client.login(token);
