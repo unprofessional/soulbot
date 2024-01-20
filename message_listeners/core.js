@@ -21,6 +21,9 @@ const {
     renderTwitterPost,
 } = require('../features/render_twitter_post.js');
 
+// TODO: Migrate to store instead of local state
+let twitterOn = true;
+
 // TODO: Move to "Message Validation"?
 const validationChecksHook = (message) => {
 
@@ -60,38 +63,41 @@ const initializeListeners = (client) => {
         console.log(`${message.guildId}: ${message.author.globalName}: ${message.content}`);
 
         if(!isSelf(message)) { // not self, but can be anyone else
+
             /**
              * This is where the actual Twitter URL listener logic begins
              */
-            const twitterUrlPattern = /https?:\/\/twitter\.com\/[a-zA-Z0-9_]+\/status\/\d+/g;
-            const containsTwitterUrl = twitterUrlPattern.test(message.content);
-            const xDotComUrlPattern = /https?:\/\/x\.com\/[a-zA-Z0-9_]+\/status\/\d+/g;
-            const containsXDotComUrl = xDotComUrlPattern.test(message.content);
-            console.log('>>>>> containsTwitterUrl: ', containsTwitterUrl);
-            console.log('>>>>> containsXDotComUrl: ', containsXDotComUrl);
-            if(containsTwitterUrl || containsXDotComUrl) {
-                const urls = containsXDotComUrl
-                    ? message.content.match(xDotComUrlPattern)
-                    : message.content.match(twitterUrlPattern);
-                // console.log('>>>>> urls: ', urls);
-                // message.channel.send(`Twitter/X URL(s) found! urls: ${urls}`);
-
-                const firstUrl = urls[0];
-                let metadata = await fetchMetadata(firstUrl, message, containsXDotComUrl);
-                if(metadata.qrtURL) {
-                    const qtMetadata = await fetchQTMetadata(metadata.qrtURL, message, containsXDotComUrl);
-                    metadata.qtMetadata = qtMetadata;
-                }
-
-                if (metadata.error) {
-                    message.reply(`Server 500!
-\`\`\`HTML
-${metadata.errorMsg}
-\`\`\``
-                    );
-                } else {
-                    // console.log('>>>>> fetchMetadata > metadata: ', JSON.stringify(metadata, null, 2));
-                    renderTwitterPost(metadata, message);
+            if(twitterOn) {
+                const twitterUrlPattern = /https?:\/\/twitter\.com\/[a-zA-Z0-9_]+\/status\/\d+/g;
+                const containsTwitterUrl = twitterUrlPattern.test(message.content);
+                const xDotComUrlPattern = /https?:\/\/x\.com\/[a-zA-Z0-9_]+\/status\/\d+/g;
+                const containsXDotComUrl = xDotComUrlPattern.test(message.content);
+                console.log('>>>>> containsTwitterUrl: ', containsTwitterUrl);
+                console.log('>>>>> containsXDotComUrl: ', containsXDotComUrl);
+                if(containsTwitterUrl || containsXDotComUrl) {
+                    const urls = containsXDotComUrl
+                        ? message.content.match(xDotComUrlPattern)
+                        : message.content.match(twitterUrlPattern);
+                    // console.log('>>>>> urls: ', urls);
+                    // message.channel.send(`Twitter/X URL(s) found! urls: ${urls}`);
+    
+                    const firstUrl = urls[0];
+                    let metadata = await fetchMetadata(firstUrl, message, containsXDotComUrl);
+                    if(metadata.qrtURL) {
+                        const qtMetadata = await fetchQTMetadata(metadata.qrtURL, message, containsXDotComUrl);
+                        metadata.qtMetadata = qtMetadata;
+                    }
+    
+                    if (metadata.error) {
+                        message.reply(`Server 500!
+    \`\`\`HTML
+    ${metadata.errorMsg}
+    \`\`\``
+                        );
+                    } else {
+                        // console.log('>>>>> fetchMetadata > metadata: ', JSON.stringify(metadata, null, 2));
+                        renderTwitterPost(metadata, message);
+                    }
                 }
             }
         }
@@ -103,8 +109,8 @@ ${metadata.errorMsg}
             const guildId = message.guildId;
 
             /**
-       * Unvalidated
-       */
+             * Unvalidated
+             */
             // Add server to supported list
             if (message.content === '!!! serverinit') {
                 addGuild(message.guildId, message);
@@ -114,9 +120,14 @@ ${metadata.errorMsg}
                 message.reply('Pong!!!');
             }
 
+            if (message.content === '!!! toggleTwitter') {
+                twitterOn = !twitterOn;
+                message.reply(`Twitter functionality toggled to \`${twitterOn}\``);
+            }
+
             /**
-       * Only allow if they validate successfully
-       */
+             * Only allow if they validate successfully
+             */
             if (message.content === '!!! serverdel' && validationChecksHook(message)) {
                 message.channel.send('Removing server from supported list...');
                 removeGuild(message.guildId);
@@ -132,10 +143,10 @@ ${metadata.errorMsg}
             }
 
             /**
-       * Exclusive to manual first adds to the "controlled user" list
-       * 
-       * For subsequent user-initiated nickname updates, see `guild_member_updates.js`
-       */
+             * Exclusive to manual first adds to the "controlled user" list
+             * 
+             * For subsequent user-initiated nickname updates, see `guild_member_updates.js`
+             */
             if(message.content.includes('!!! nickadd') && validationChecksHook(message)) {
                 // Allow only one mention
                 // TODO: Reject any with multiple mentions
