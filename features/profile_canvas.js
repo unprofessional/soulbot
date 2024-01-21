@@ -33,24 +33,27 @@ const createProfileCanvas = async (guildMember) => {
 
     const drawBasicElements = (guildMember) => {
 
-        const { user } = guildMember;
-        const { bot, username, globalName, avatar } = user;
+        const { user, joinedTimestamp } = guildMember;
+        const { id, bot, username, globalName, avatar } = user;
 
-        // Load and draw favicon
-        // ctx.drawImage(favicon, 550, 20, 32, 32);
+        const avatarUrl = `https://cdn.discordapp.com/avatars/{id}/{avatar}.png`;
 
-        // Draw nickname elements
+        // Draw global name elements
         ctx.fillStyle = 'white';
         ctx.font = 'bold 18px ' + globalFont;
-        // ctx.fillText(metadata.authorUsername, 100, 40);
+        ctx.fillText(globalName, 100, 40);
 
-        // Draw username elements
+        // Draw joined date elements
         ctx.fillStyle = 'gray';
         ctx.font = '18px ' + globalFont;
-        // ctx.fillText(`@${metadata.authorNick}`, 100, 60);
+        ctx.fillText(`${joinedTimestamp}`, 100, 60);
   
         // Draw pfp image
-        // ctx.drawImage(pfp, 20, 20, 50, 50);
+        try {
+          ctx.drawImage(avatarUrl, 20, 20, 50, 50);
+        } catch (err) {
+          console.log('>>> Avatar could not load! err: ', err);
+        }
     };
     drawBasicElements(guildMember);
 

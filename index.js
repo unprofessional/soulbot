@@ -2,7 +2,6 @@ const { Events, ShardEvents, WebSocketShardEvents } = require('discord.js');
 const { client } = require('./initial_client.js');
 const { initializeDataStore } = require('./initial_store.js');
 const { initializeListeners } = require('./message_listeners/core.js');
-// const { initializeTwitterListeners } = require('./message_listeners/twitter.js');
 const { initializeCommands } = require('./initial_commands.js');
 const { initializeGuildMemberUpdate } = require('./events/guild_member_update.js');
 const { initializeGuildMemberAdd } = require('./events/guild_member_add.js');
