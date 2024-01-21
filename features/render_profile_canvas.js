@@ -23,5 +23,5 @@ const renderProfileCanvas = async (guildMember, channel) => {
 };
 
 module.exports = {
-  renderProfileCanvas,
+    renderProfileCanvas,
 };

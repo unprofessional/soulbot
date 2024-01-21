@@ -23,13 +23,14 @@ const createProfileCanvas = async (guildMember) => {
     // registerFont('/usr/share/fonts/truetype/noto/NotoColorEmoji.ttf', { family: 'Noto Color Emoji' });
     const globalFont = 'Arial';
 
-    const maxCanvasWidth = 300;
-    let canvasHeight = 300;
-    const canvas = createCanvas(maxCanvasWidth, canvasHeight);
+    const canvasWidth = 300;
+    const canvasHeight = 300;
+    const canvas = createCanvas(canvasWidth, canvasHeight);
     const ctx = canvas.getContext('2d');
 
     // Fill background color
     ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, canvasWidth, canvasHeight);
 
     const drawBasicElements = (guildMember) => {
 
@@ -50,9 +51,9 @@ const createProfileCanvas = async (guildMember) => {
   
         // Draw pfp image
         try {
-          ctx.drawImage(avatarUrl, 20, 20, 50, 50);
+            ctx.drawImage(avatarUrl, 20, 20, 50, 50);
         } catch (err) {
-          console.log('>>> Avatar could not load! err: ', err);
+            console.log('>>> Avatar could not load! err: ', err);
         }
     };
     drawBasicElements(guildMember);
