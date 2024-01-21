@@ -32,12 +32,12 @@ const createProfileCanvas = async (guildMember) => {
     ctx.fillStyle = '#000';
     ctx.fillRect(0, 0, canvasWidth, canvasHeight);
 
-    const drawBasicElements = (guildMember) => {
+    const drawBasicElements = async (guildMember) => {
 
         const { user, joinedTimestamp } = guildMember;
         const { id, bot, username, globalName, avatar } = user;
 
-        const avatarUrl = `https://cdn.discordapp.com/avatars/{id}/{avatar}.png`;
+        const avatarUrl = `https://cdn.discordapp.com/avatars/${id}/${avatar}.png`;
 
         // Draw global name elements
         ctx.fillStyle = 'white';
@@ -51,12 +51,13 @@ const createProfileCanvas = async (guildMember) => {
   
         // Draw pfp image
         try {
-            ctx.drawImage(avatarUrl, 20, 20, 50, 50);
+            const avatar = await loadImage(avatarUrl);
+            ctx.drawImage(avatar, 20, 20, 50, 50);
         } catch (err) {
             console.log('>>> Avatar could not load! err: ', err);
         }
     };
-    drawBasicElements(guildMember);
+    await drawBasicElements(guildMember);
 
     // Convert the canvas to a Buffer and return it
     return canvas.toBuffer();
