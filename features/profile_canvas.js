@@ -39,20 +39,25 @@ const createProfileCanvas = async (guildMember) => {
 
         const avatarUrl = `https://cdn.discordapp.com/avatars/${id}/${avatar}.png`;
 
-        // Draw global name elements
+        // Draw global nickname elements
         ctx.fillStyle = 'white';
-        ctx.font = 'bold 18px ' + globalFont;
-        ctx.fillText(globalName, 100, 40);
+        ctx.font = 'bold 24px ' + globalFont;
+        ctx.fillText(`${globalName}`, 20, 30);
+        
+        // Draw username elements
+        ctx.fillStyle = 'white';
+        ctx.font = 'bold 16px ' + globalFont;
+        ctx.fillText(`@${username}`, 20, 50);
 
         // Draw joined date elements
         ctx.fillStyle = 'gray';
         ctx.font = '18px ' + globalFont;
-        ctx.fillText(`${joinedTimestamp}`, 100, 60);
+        ctx.fillText(`joined ${joinedTimestamp}`, 20, 280);
   
         // Draw pfp image
         try {
             const avatar = await loadImage(avatarUrl);
-            ctx.drawImage(avatar, 20, 20, 50, 50);
+            ctx.drawImage(avatar, 60, 60, 180, 180);
         } catch (err) {
             console.log('>>> Avatar could not load! err: ', err);
         }
