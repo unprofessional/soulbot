@@ -8,7 +8,7 @@ const initializeGuildMemberAdd = (client) => {
     // "guildMemberAdd"
     client.on(Events.GuildMemberAdd, async (guildMember) => {
 
-        const unprofessionals = client.guild.cache.get('818606858780147712');
+        const unprofessionals = client.guilds.cache.get('818606858780147712');
 
         console.log('>>>> guildMemberAdd > unprofessionals: ', unprofessionals);
 
