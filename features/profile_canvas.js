@@ -37,6 +37,9 @@ const createProfileCanvas = async (guildMember) => {
         const { user, joinedTimestamp } = guildMember;
         const { id, bot, username, globalName, avatar } = user;
 
+        const date = new Date(joinedTimestamp);
+        const formattedTimeAgo = timeAgo.format(date); 
+
         const avatarUrl = `https://cdn.discordapp.com/avatars/${id}/${avatar}.png`;
 
         // Draw global nickname elements
@@ -52,7 +55,7 @@ const createProfileCanvas = async (guildMember) => {
         // Draw joined date elements
         ctx.fillStyle = 'gray';
         ctx.font = '18px ' + globalFont;
-        ctx.fillText(`joined ${joinedTimestamp}`, 20, 280);
+        ctx.fillText(`joined ${formattedTimeAgo}`, 20, 280);
   
         // Draw pfp image
         try {
