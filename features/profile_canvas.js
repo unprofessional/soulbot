@@ -55,7 +55,8 @@ const createProfileCanvas = async (guildMember) => {
         // Draw joined date elements
         ctx.fillStyle = 'gray';
         ctx.font = '18px ' + globalFont;
-        ctx.fillText(`joined ${formattedTimeAgo}`, 20, 280);
+        // ctx.fillText(`joined ${formattedTimeAgo}`, 20, 280);
+        ctx.fillText('has joined', 20, 280);
   
         // Draw pfp image
         try {
@@ -64,6 +65,12 @@ const createProfileCanvas = async (guildMember) => {
         } catch (err) {
             console.log('>>> Avatar could not load! err: ', err);
         }
+
+        /**
+         * TODO — stateless data
+         * 1) numTimesEntered
+         * 2) 
+         */
     };
     await drawBasicElements(guildMember);
 

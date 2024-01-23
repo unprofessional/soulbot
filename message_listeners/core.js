@@ -21,10 +21,6 @@ const {
     renderTwitterPost,
 } = require('../features/render_twitter_post.js');
 
-const {
-    renderProfileCanvas,
-} = require('../features/render_profile_canvas.js');
-
 // TODO: Migrate to store instead of local state
 let twitterOn = true;
 
