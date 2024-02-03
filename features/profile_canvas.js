@@ -56,7 +56,7 @@ const createProfileCanvas = async (guildMember) => {
         ctx.fillStyle = 'gray';
         ctx.font = '18px ' + globalFont;
         // ctx.fillText(`joined ${formattedTimeAgo}`, 20, 280);
-        ctx.fillText('has joined', 20, 280);
+        ctx.fillText('has joined', 200, 280);
   
         // Draw pfp image
         try {

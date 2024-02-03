@@ -13,6 +13,11 @@ const {
     nickNameIsAlreadySet,
 } = require("../store/members.js");
 const {
+    features,
+    toggleTwitter,
+} = require("../store/features.js");
+const twitterOn = features.find(feature => feature.type === 'twitter');
+const {
     fetchMetadata,
     fetchQTMetadata,
 } = require('../features/fetch_metadata.js');
@@ -20,9 +25,6 @@ const {
 const {
     renderTwitterPost,
 } = require('../features/render_twitter_post.js');
-
-// TODO: Migrate to store instead of local state
-let twitterOn = true;
 
 // TODO: Move to "Message Validation"?
 const validationChecksHook = (message) => {
@@ -121,8 +123,7 @@ const initializeListeners = (client) => {
             }
 
             if (message.content === '!!! toggleTwitter') {
-                twitterOn = !twitterOn;
-                message.reply(`Twitter functionality toggled to \`${twitterOn}\``);
+                toggleTwitter(message);
             }
 
             /**

@@ -11,3 +11,5 @@ Required Environment Variables:
   - default: "channel.store.json"
 - MEMBER_STORE_FILE
   - default: "member.store.json"
+- FEATURE_STORE_FILE
+  - default: "feature.store.json"

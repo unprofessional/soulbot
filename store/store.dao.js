@@ -9,6 +9,7 @@ class DAO {
 
     initializeLocalStore() {
         try {
+            console.log('>>>>> initializeLocalStore >  this.filePath: ',  this.filePath);
             const data = JSON.parse(readFileSync(this.filePath));
             console.log('>>>>> initialize > readFileSync > data: ', data);
             return data;

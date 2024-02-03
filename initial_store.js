@@ -21,7 +21,24 @@ const initializeDataStore = (filePath) => {
         console.error('>>>>> Some error occurred!: ', err);
         if(err.code === 'ENOENT') {
             // the `w` flag means create if not exists
-            writeFileSync(filePath, '{}', { flag: 'w', encoding: 'utf8' });
+            let content = '{}';
+            const path = process.env.STORE_PATH;
+            const featureFile = process.env.FEATURE_STORE_FILE;
+            const featureFilePath = `${path}/${featureFile}`;
+            console.log('>>>>> initializeDataStore > featureFilePath: ', featureFilePath);
+            if(filePath === featureFilePath) {
+                console.log('>>>>> initializeDataStore is featureFilePath!!!');
+                content = JSON.stringify({
+                    features: [
+                        {
+                            type: "twitter",
+                            on: true,
+                        },
+                    ],
+                }); // TODO: asbtract away to separate Constants file
+            }
+
+            writeFileSync(filePath, content, { flag: 'w', encoding: 'utf8' });
             console.log(`>>>>> File ${filePath} created.`);
         }
     }

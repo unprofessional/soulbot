@@ -8,8 +8,8 @@ const { initializeGuildMemberAdd } = require('./events/guild_member_add.js');
 const { initializeGuildMemberRemove } = require('./events/guild_member_remove.js');
 require('dotenv').config();
 
-const express = require('express');
-const app = express();
+// const express = require('express');
+// const app = express();
 // const { initializeRoutes } = require('./api/routes.js');
 
 const expressPort = process.env.EXPRESS_PORT || 3000;
@@ -18,7 +18,8 @@ const token = process.env.DISCORD_BOT_TOKEN;
 const path = process.env.STORE_PATH;
 const guildFile = process.env.GUILD_STORE_FILE;
 const channelFile = process.env.CHANNEL_STORE_FILE;
-const memberFIle = process.env.MEMBER_STORE_FILE;
+const memberFile = process.env.MEMBER_STORE_FILE;
+const featureFile = process.env.FEATURE_STORE_FILE;
 const runMode = process.env.RUN_MODE || 'development';
 
 // CI/Build/Function test
@@ -30,7 +31,8 @@ if (runMode === 'test') {
 [
     guildFile,
     channelFile,
-    memberFIle,
+    memberFile,
+    featureFile,
 ].forEach((file) => {
     console.log('>>>>> file: ', file);
     const filePath = `${path}/${file}`;

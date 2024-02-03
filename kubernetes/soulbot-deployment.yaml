@@ -35,6 +35,15 @@ spec:
           value: "channel.store.json"
         - name: MEMBER_STORE_FILE
           value: "member.store.json"
+        - name: FEATURE_STORE_FILE
+          value: "feature.store.json"
+        - name: HOST
+          value: "localhost"
+        - name: PORT
+          value: "5432"
+        - name: PG_USER
+          value: "postgres"
+        # PG_PASS should be a secret
         volumeMounts:
         - name: data-volume
           mountPath: /data
