@@ -16,7 +16,9 @@ const {
     features,
     toggleTwitter,
 } = require("../store/features.js");
-const twitterOn = features.find(feature => feature.type === 'twitter');
+
+const twitterFeature = features.find(feature => feature.type === 'twitter');
+
 const {
     fetchMetadata,
     fetchQTMetadata,
@@ -69,7 +71,7 @@ const initializeListeners = (client) => {
             /**
              * This is where the actual Twitter URL listener logic begins
              */
-            if(twitterOn) {
+            if(twitterFeature.on) {
                 const twitterUrlPattern = /https?:\/\/twitter\.com\/[a-zA-Z0-9_]+\/status\/\d+/g;
                 const containsTwitterUrl = twitterUrlPattern.test(message.content);
                 const xDotComUrlPattern = /https?:\/\/x\.com\/[a-zA-Z0-9_]+\/status\/\d+/g;
