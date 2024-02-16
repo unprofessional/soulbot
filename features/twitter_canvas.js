@@ -273,7 +273,7 @@ const createTwitterCanvas = async (metadataJson) => {
         let mediaQtMaxWidth = 560;
         
         // Pre-process description with text wrapping
-        const qtMaxCharLength = hasMedia ? 120 : 320;
+        const qtMaxCharLength = hasMedia ? 250 : 320; // Maximum width for text
         const qtDescLines = getWrappedText(ctx, qtMeta.description, qtMaxCharLength, true);
         
         const qtXPosition = 20;

@@ -59,8 +59,8 @@ const isOwner = (message) => {
 const initializeListeners = (client) => {
 
     /**
-   * Listen to every message...
-   */
+     * Listen to every message...
+     */
     client.on(Events.MessageCreate, async (message) => {
 
         // Logger
