@@ -296,7 +296,7 @@ const createTwitterCanvas = async (metadataJson) => {
         // Draw description (post text wrap handling)
         ctx.fillStyle = 'white'; // Text color for description
         ctx.font = '24px ' + globalFont;
-        const lineHeight = 20;
+        const lineHeight = 30;
         const qtTextXAxisStart = hasMedia ? 230 : 100;
         qtDescLines.forEach(line => {
             ctx.fillText(line, qtTextXAxisStart, qtYPosition + 100);
