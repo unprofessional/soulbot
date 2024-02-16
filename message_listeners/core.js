@@ -79,7 +79,7 @@ const initializeListeners = (client) => {
                 console.log('>>>>> containsTwitterUrl: ', containsTwitterUrl);
                 console.log('>>>>> containsXDotComUrl: ', containsXDotComUrl);
                 if(containsTwitterUrl || containsXDotComUrl) {
-                    await message.suppressEmbeds(true);
+                    // await message.suppressEmbeds(true);
                     const urls = containsXDotComUrl
                         ? message.content.match(xDotComUrlPattern)
                         : message.content.match(twitterUrlPattern);
@@ -101,7 +101,8 @@ const initializeListeners = (client) => {
                         );
                     } else {
                         // console.log('>>>>> fetchMetadata > metadata: ', JSON.stringify(metadata, null, 2));
-                        renderTwitterPost(metadata, message);
+                        await renderTwitterPost(metadata, message);
+                        // await message.suppressEmbeds(true);
                     }
                 }
             }

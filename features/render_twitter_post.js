@@ -3,6 +3,7 @@ const { createTwitterCanvas } = require('./twitter_canvas.js');
 const renderTwitterPost = async (metadataJson, message) => {
     // Convert the canvas to a Buffer
     const buffer = await createTwitterCanvas(metadataJson);
+    await message.suppressEmbeds(true);
 
     /**
      * Pull image and add it as a separate image/file
