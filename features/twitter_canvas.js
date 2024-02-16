@@ -188,12 +188,14 @@ const createTwitterCanvas = async (metadataJson) => {
         const descLinesLength = qtDescLines.length;
         console.log('>>> qtDescLines: ', qtDescLines);
         
+        // If Media exists
         if(qtMetadata.mediaUrls.length > 0) {
-            console.log('>>>>> calcQtHeight has media!');
-            return 330;
+          console.log('>>>>> calcQtHeight has media!');
+          return 330;
         }
-        return descLinesLength * 30;
-    };
+        const totalDescLinesHeight = descLinesLength * 30;
+        return minHeight > totalDescLinesHeight ? minHeight : totalDescLinesHeight;
+      };
   
     // Pre-process description with text wrapping
     const maxCharLength = hasOnlyVideos ? 120 : 220; // Maximum width for text
