@@ -281,7 +281,7 @@ const createTwitterCanvas = async (metadataJson) => {
         
         // QT Canvas Stroke
         ctx.strokeStyle = "gray";
-        ctx.strokeRect(qtXPosition, qtYPosition, mediaQtMaxWidth, hasMedia ? mediaQtMaxHeight : mediaQtMaxHeight + 50);
+        ctx.strokeRect(qtXPosition, qtYPosition, mediaQtMaxWidth, hasMedia ? mediaQtMaxHeight : mediaQtMaxHeight + calcQtHeight(qtMetadata));
         
         // Draw nickname elements
         ctx.fillStyle = 'white'; // Text color
