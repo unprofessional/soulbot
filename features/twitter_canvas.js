@@ -182,11 +182,17 @@ const createTwitterCanvas = async (metadataJson) => {
 
     const calcQtHeight = (qtMetadata) => {
         const minHeight = 180;
+        
+        // TODO: Calculate new descLines here
+        const qtDescLines = getWrappedText(ctx, qtMetadata.description, 120, hasOnlyVideos);
+        const descLinesLength = qtDescLines.length;
+        console.log('>>> qtDescLines: ', qtDescLines);
+        
         if(qtMetadata.mediaUrls.length > 0) {
             console.log('>>>>> calcQtHeight has media!');
             return 330;
         }
-        return minHeight;
+        return descLinesLength * 30;
     };
   
     // Pre-process description with text wrapping
@@ -265,7 +271,7 @@ const createTwitterCanvas = async (metadataJson) => {
         let mediaQtMaxWidth = 560;
         
         // Pre-process description with text wrapping
-        const qtMaxCharLength = hasMedia ? 350 : 450; // Maximum width for text
+        const qtMaxCharLength = hasMedia ? 120 : 320;
         const qtDescLines = getWrappedText(ctx, qtMeta.description, qtMaxCharLength, true);
         
         const qtXPosition = 20;
@@ -287,7 +293,7 @@ const createTwitterCanvas = async (metadataJson) => {
       
         // Draw description (post text wrap handling)
         ctx.fillStyle = 'white'; // Text color for description
-        ctx.font = '16px ' + globalFont;
+        ctx.font = '24px ' + globalFont;
         const lineHeight = 20;
         const qtTextXAxisStart = hasMedia ? 230 : 100;
         qtDescLines.forEach(line => {

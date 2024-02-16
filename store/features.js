@@ -18,7 +18,7 @@ const toggleTwitter = (message) => {
 
     if(twitterFeatureIndex === -1) {
         message.reply(`Twitter feature not found!`);
-    };
+    }
 
     if(twitterFeatureIndex !== -1) {
         features[twitterFeatureIndex].on = !twitterFeature.on;
