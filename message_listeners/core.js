@@ -79,7 +79,7 @@ const initializeListeners = (client) => {
                 console.log('>>>>> containsTwitterUrl: ', containsTwitterUrl);
                 console.log('>>>>> containsXDotComUrl: ', containsXDotComUrl);
                 if(containsTwitterUrl || containsXDotComUrl) {
-                    // await message.suppressEmbeds(true);
+                    await message.suppressEmbeds(true);
                     const urls = containsXDotComUrl
                         ? message.content.match(xDotComUrlPattern)
                         : message.content.match(twitterUrlPattern);
