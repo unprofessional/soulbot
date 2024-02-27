@@ -72,11 +72,26 @@ const renderTwitterPost = async (metadataJson, message) => {
         console.log('>>>>> renderTwitterPost > metadataJson: ', metadataJson);
         const mediaUrls = metadataJson.mediaURLs;
         console.log('>>>>> renderTwitterPost > mediaUrls: ', mediaUrls);
-        // let mediaUrlsFormatted = "";
+        
         let files = [{
             attachment: buffer,
             name: 'image.png',
         }];
+
+        // Create a MessageAttachment and send it
+        try {
+            await message.reply(
+                {
+                    files,
+                }
+            );
+        } catch (err) {
+            await message.reply(
+                {
+                    content: `File(s) too large to attach! err: ${err}`,
+                }
+            );
+        }
     }
 };
 
