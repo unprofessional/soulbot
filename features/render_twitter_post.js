@@ -26,9 +26,17 @@ const renderTwitterPost = async (metadataJson, message) => {
         /**
          * UNDER CONSTRUCTION
          */
+        // await message.reply(
+        //     {
+        //         content: 'Video generation is under construction!',
+        //     }
+        // );
+
+        const mediaUrl = metadataJson.mediaURLs[0];
+
         await message.reply(
             {
-                content: 'Video generation is under construction!',
+                content: mediaUrl,
             }
         );
 
