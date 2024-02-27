@@ -5,31 +5,34 @@ const { cleanup } = require('./video-twitter/cleanup.js');
 
 const renderTwitterPost = async (metadataJson, message) => {
 
-    const mediaUrl = metadataJson.mediaURLs[0];
-    const mediaUrlParts = mediaUrl.split('/');
-    const filenameWithQueryParams = mediaUrlParts[mediaUrlParts.length - 1];
-    const filenameWithQueryParamsParts = filenameWithQueryParams.split('?');
-    const originalVideoFilename = filenameWithQueryParamsParts[0];
-    console.log('>>>>> renderTwitterPost > originalVideoFilename: ', originalVideoFilename);
-    const finalVideoFilename = `recombined-av-${originalVideoFilename}`;
-    console.log('>>>>> renderTwitterPost > finalVideoFilename: ', finalVideoFilename);
-    const finalVideoFilePath = `ffmpeg/${finalVideoFilename}`;
-    
     // Calculate media
     const filteredVideoUrls = metadataJson.mediaURLs.filter((mediaUrl) => {
         const mediaUrlParts = mediaUrl.split('.');
-        // console.log('!!!!! mediaUrlParts: ', mediaUrlParts);
-        // console.log('!!!!! mediaUrlParts.length: ', mediaUrlParts.length);
+        console.log('!!!!! mediaUrlParts: ', mediaUrlParts);
+        console.log('!!!!! mediaUrlParts.length: ', mediaUrlParts.length);
         const fileExtensionWithQueryParams = mediaUrlParts[mediaUrlParts.length - 1];
-        // console.log('!!!!! fileExtensionWithQueryParams: ', fileExtensionWithQueryParams);
+        console.log('!!!!! fileExtensionWithQueryParams: ', fileExtensionWithQueryParams);
         const fileExtension = fileExtensionWithQueryParams.split('?')[0];
-        // console.log('!!!!! fileExtension: ', fileExtension);
+        console.log('!!!!! fileExtension: ', fileExtension);
         return fileExtension === 'mp4';
     });
     const numOfVideos = filteredVideoUrls.length;
+    console.log('>>>>> renderTwitterPost > numOfVideos: ', numOfVideos);
     const hasVids = numOfVideos > 0;
+    console.log('>>>>> renderTwitterPost > hasVids: ', hasVids);
 
     if(hasVids) {
+        console.log('>>>>> renderTwitterPost > HAS videos!!!');
+        const mediaUrl = metadataJson.mediaURLs[0];
+        const mediaUrlParts = mediaUrl.split('/');
+        const filenameWithQueryParams = mediaUrlParts[mediaUrlParts.length - 1];
+        const filenameWithQueryParamsParts = filenameWithQueryParams.split('?');
+        const originalVideoFilename = filenameWithQueryParamsParts[0];
+        console.log('>>>>> renderTwitterPost > originalVideoFilename: ', originalVideoFilename);
+        const finalVideoFilename = `recombined-av-${originalVideoFilename}`;
+        console.log('>>>>> renderTwitterPost > finalVideoFilename: ', finalVideoFilename);
+        const finalVideoFilePath = `ffmpeg/${finalVideoFilename}`;
+
         await createTwitterVideoCanvas(metadataJson);
 
         // Create a MessageAttachment and send it
@@ -58,6 +61,7 @@ const renderTwitterPost = async (metadataJson, message) => {
         await cleanup([finalVideoFilePath], ['ffmpeg', 'ffmpeg/canvassed']);
     }
     else {
+        console.log('>>>>> renderTwitterPost > DOES NOT have videos!!!');
         // Convert the canvas to a Buffer
         const buffer = await createTwitterCanvas(metadataJson);
         await message.suppressEmbeds(true);
