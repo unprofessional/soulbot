@@ -1,5 +1,5 @@
 const { existsSync } = require('node:fs');
-const { stat } = require('node:fs').promises;
+// const { stat } = require('node:fs').promises;
 const { cleanup } = require('../features/video-twitter/cleanup.js');
 const { createTwitterVideoCanvas } = require('../features/twitter_video_canvas.js');
 

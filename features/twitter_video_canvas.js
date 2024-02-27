@@ -299,7 +299,12 @@ const createTwitterVideoCanvas = async (metadataJson) => {
     // console.log('>>>>> twitter_video_canvas > localAudioPath: ', localAudioPath);
     // console.log('>>>>> twitter_video_canvas > recombinedFilePath: ', recombinedFilePath);
     console.log('>>>>> twitter_video_canvas > recombining audio with new video...');
-    await combineAudioWithVideo(localCompiledVideoOutputPath, localAudioPath, recombinedFilePath);
+
+    const localAudioFileExists = async path => !!(await stat(localAudioPath).catch(e => false));
+    await finalVideoFileExists();
+    if (localAudioFileExists) {
+        await combineAudioWithVideo(localCompiledVideoOutputPath, localAudioPath, recombinedFilePath);   
+    }
 
     return new Promise((resolve, reject) => {
         try {
