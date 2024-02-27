@@ -155,6 +155,7 @@ function recombineFramesToVideo(framesPattern, outputVideoPath, frameRate = 5) {
             .inputFPS(frameRate)
             .output(outputVideoPath)
             .videoCodec('libx264')
+            .outputOptions('-pix_fmt yuv420p') // Specify the pixel format here
             .on('end', function() {
                 console.log('Video creation completed.');
                 resolve(); // Resolve the promise when extraction is completed

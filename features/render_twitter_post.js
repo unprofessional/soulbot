@@ -23,22 +23,10 @@ const renderTwitterPost = async (metadataJson, message) => {
     console.log('>>>>> renderTwitterPost > hasVids: ', hasVids);
 
     if(hasVids) {
-
-        // /**
-        //  * UNDER CONSTRUCTION
-        //  */
-        // const mediaUrl = metadataJson.mediaURLs[0];
-        // await message.reply(
-        //     {
-        //         content: `Video generation is under construction! ${mediaUrl}`,
-        //     }
-        // );
-        // return;
         
         console.log('>>>>> renderTwitterPost > HAS videos!!!');
 
         const processingDir = 'ffmpeg';
-        // const workingDir = 'canvassed';
 
         const mediaUrl = metadataJson.mediaURLs[0];
         const mediaUrlParts = mediaUrl.split('/');
@@ -53,9 +41,9 @@ const renderTwitterPost = async (metadataJson, message) => {
         const filenameParts = originalVideoFilename.split('.');
         const filename = filenameParts[0]; // grab filename/fileID without extension
         const localWorkingPath = `${processingDir}/${filename}`; // filename is the directory here for uniqueness
-        const localVideoOutputPath = `${localWorkingPath}/${originalVideoFilename}`;
+        // const localVideoOutputPath = `${localWorkingPath}/${originalVideoFilename}`;
         // const localCompiledVideoOutputPath = `${localWorkingPath}/finished-${originalVideoFilename}`;
-        const recombinedFilePath = `${localWorkingPath}/recombined-av-${originalVideoFilename}`;
+        // const recombinedFilePath = `${localWorkingPath}/recombined-av-${originalVideoFilename}`;
 
         await message.reply(
             {
