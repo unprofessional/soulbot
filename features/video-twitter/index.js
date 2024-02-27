@@ -51,11 +51,21 @@ const downloadVideo = async (remoteFileUrl, outputPath) => {
     }
     fileStream.end(); // we MUST close the stream
     console.log('>>>>> fileStream write complete');
+    
     return new Promise((resolve, reject) => {
-        // console.log('...promise handler...');
-        fileStream.on('finish', () => {
+        console.log('...promise handler...');
+
+        fileStream.on('finish', async () => {
             console.log('fileStream finished! resolving!');
-            return resolve(true);
+            console.log('>>>>> trying to read videoDuration...');
+            const videoDuration = await getVideoDuration(outputPath); // try/catch?
+            console.log('>>>>> videoDuration: ', videoDuration);
+            if(videoDuration > 60) {
+                console.log('video longer than 60 secs!');
+                return resolve(false);
+            } else {
+                return resolve(true);
+            }
         });
         fileStream.on('error', (err) => {
             console.log('fileStream error! rejecting! err: ', err);
@@ -183,10 +193,25 @@ function combineAudioWithVideo(videoPath, audioPath, outputPath) {
     });
 }
 
+// Function to get video duration
+function getVideoDuration(filePath) {
+    return new Promise((resolve, reject) => {
+        ffmpeg.ffprobe(filePath, (err, metadata) => {
+            if (err) {
+                reject(err);
+            } else {
+                const duration = metadata.format.duration;
+                resolve(duration);
+            }
+        });
+    });
+}
+
 module.exports = {
     downloadVideo,
     extractFrames,
     recombineFramesToVideo,
     extractAudioFromVideo,
     combineAudioWithVideo,
+    getVideoDuration,
 };

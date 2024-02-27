@@ -11,7 +11,7 @@ const {
     loadImage,
 } = require('canvas');
 // const { cropSingleImage } = require('./crop_single_image.js');
-const { singleVideoFrame, renderImageGallery } = require('./image_gallery_rendering.js');
+const { singleVideoFrame } = require('./image_gallery_rendering.js');
 const { 
     downloadVideo,
     extractAudioFromVideo,
@@ -241,6 +241,10 @@ const createTwitterVideoCanvas = async (metadataJson) => {
     const recombinedFilePath = `${localWorkingPath}/recombined-av-${sourceVideoFilename}`;
 
     await downloadVideo(videoUrl, localVideoOutputPath);
+    if (downloadVideo === false) {
+        return false;
+    }
+
     await extractAudioFromVideo(localVideoOutputPath, localAudioPath);
     await extractFrames(localVideoOutputPath);
 

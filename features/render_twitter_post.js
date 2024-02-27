@@ -1,6 +1,7 @@
 const { readFile } = require('node:fs').promises
 const { createTwitterCanvas } = require('./twitter_canvas.js');
 const { createTwitterVideoCanvas } = require('./twitter_video_canvas.js');
+const { getVideoDuration } = require('./video-twitter');
 const { cleanup } = require('./video-twitter/cleanup.js');
 
 const renderTwitterPost = async (metadataJson, message) => {
@@ -23,19 +24,13 @@ const renderTwitterPost = async (metadataJson, message) => {
 
     if(hasVids) {
 
-        /**
-         * UNDER CONSTRUCTION
-         */
-        // await message.reply(
-        //     {
-        //         content: 'Video generation is under construction!',
-        //     }
-        // );
-
+        // /**
+        //  * UNDER CONSTRUCTION
+        //  */
         // const mediaUrl = metadataJson.mediaURLs[0];
         // await message.reply(
         //     {
-        //         content: mediaUrl,
+        //         content: `Video generation is under construction! ${mediaUrl}`,
         //     }
         // );
         // return;
@@ -43,7 +38,7 @@ const renderTwitterPost = async (metadataJson, message) => {
         console.log('>>>>> renderTwitterPost > HAS videos!!!');
 
         const processingDir = 'ffmpeg';
-        const workingDir = 'canvassed';
+        // const workingDir = 'canvassed';
 
         const mediaUrl = metadataJson.mediaURLs[0];
         const mediaUrlParts = mediaUrl.split('/');
@@ -68,23 +63,33 @@ const renderTwitterPost = async (metadataJson, message) => {
             }
         );
 
-        await createTwitterVideoCanvas(metadataJson);
+        const isSuccess = await createTwitterVideoCanvas(metadataJson);
 
         // Create a MessageAttachment and send it
         try {
-            const files = [];
-            const finalVideoFile = await readFile(recombinedFilePath);
-            files.push({
-                attachment: finalVideoFile,
-                name: 'video.mp4', // FIXME: Use the actual file hash + extension etc
-            });
 
-            await message.reply(
-                {
-                    // content: `Media URLs found: ${mediaUrlsFormatted}`,
-                    files,
-                }
-            );
+            if (isSuccess === false) {
+                await message.reply(
+                    {
+                        content: `Video too long! Must be less than 60 seconds! Try VX instead...`,
+                    }
+                );
+            }
+            else {
+                const files = [];
+                const finalVideoFile = await readFile(recombinedFilePath);
+                files.push({
+                    attachment: finalVideoFile,
+                    name: 'video.mp4', // FIXME: Use the actual file hash + extension etc
+                });
+    
+                await message.reply(
+                    {
+                        // content: `Media URLs found: ${mediaUrlsFormatted}`,
+                        files,
+                    }
+                );
+            }
         } catch (err) {
             await message.reply(
                 {
