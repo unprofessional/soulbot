@@ -53,7 +53,7 @@ const renderTwitterPost = async (metadataJson, message) => {
         const filenameParts = originalVideoFilename.split('.');
         const filename = filenameParts[0]; // grab filename/fileID without extension
         const localWorkingPath = `${processingDir}/${filename}`; // filename is the directory here for uniqueness
-        // const localVideoOutputPath = `${localWorkingPath}/${originalVideoFilename}`;
+        const localVideoOutputPath = `${localWorkingPath}/${originalVideoFilename}`;
         // const localCompiledVideoOutputPath = `${localWorkingPath}/finished-${originalVideoFilename}`;
         const recombinedFilePath = `${localWorkingPath}/recombined-av-${originalVideoFilename}`;
 
@@ -74,6 +74,7 @@ const renderTwitterPost = async (metadataJson, message) => {
                         content: `Video too long! Must be less than 60 seconds! Try VX instead...`,
                     }
                 );
+                await cleanup([originalVideoFilename], [localVideoOutputPath]);
             }
             else {
                 const files = [];
