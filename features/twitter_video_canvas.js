@@ -240,8 +240,9 @@ const createTwitterVideoCanvas = async (metadataJson) => {
     const localCompiledVideoOutputPath = `${localWorkingPath}/finished-${sourceVideoFilename}`;
     const recombinedFilePath = `${localWorkingPath}/recombined-av-${sourceVideoFilename}`;
 
-    await downloadVideo(videoUrl, localVideoOutputPath);
-    if (downloadVideo === false) {
+    const isSuccess = await downloadVideo(videoUrl, localVideoOutputPath);
+    console.log('>>>>> twitter_video_canvas > downloadVideo: ', downloadVideo);
+    if (isSuccess === false) {
         return false;
     }
 

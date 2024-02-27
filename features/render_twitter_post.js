@@ -64,10 +64,10 @@ const renderTwitterPost = async (metadataJson, message) => {
         );
 
         const isSuccess = await createTwitterVideoCanvas(metadataJson);
+        console.log('>>>>> renderTwitterPost > isSuccess: ', isSuccess);
 
         // Create a MessageAttachment and send it
         try {
-
             if (isSuccess === false) {
                 await message.reply(
                     {
