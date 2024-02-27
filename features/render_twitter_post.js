@@ -71,7 +71,7 @@ const renderTwitterPost = async (metadataJson, message) => {
             if (isSuccess === false) {
                 await message.reply(
                     {
-                        content: `Video too long! Must be less than 60 seconds! Try VX instead...`,
+                        content: `Video too long! Must be less than 60 seconds! ${mediaUrl}`,
                     }
                 );
                 await cleanup([originalVideoFilename], [localVideoOutputPath]);
