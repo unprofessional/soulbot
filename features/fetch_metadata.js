@@ -1,11 +1,4 @@
-// const { unfurl } = require('unfurl.js');
-
 const fetchMetadata = async (url, message, isXDotCom) => {
-    // const metadata = await unfurl(url);
-    //     message.channel.send(`
-    // \`\`\`JSON
-    // ${JSON.stringify(metadata, null, 2)}
-    // \`\`\``);
     const urlPattern = isXDotCom ? 'https://x.com/' : 'https://twitter.com/';
     const parts = url.split(urlPattern);
     console.log('>>>>> fetchMetadata > parts: ', parts);

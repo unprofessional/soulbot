@@ -4,7 +4,7 @@ const {
     loadImage,
 } = require('canvas');
 const { cropSingleImage } = require('./crop_single_image.js');
-const { renderImageGallery } = require('./image_gallery_rendering.js');
+const { singleImage, renderImageGallery } = require('./image_gallery_rendering.js');
 
 const TimeAgo = require('javascript-time-ago');
 const en = require('javascript-time-ago/locale/en');
@@ -51,37 +51,13 @@ function getWrappedText(ctx, text, maxWidth, hasVids) {
     return lines;
 }
 
-// recursive utility function
-const scaleDownByHalf = (
-    { height, width },
-    mediaMaxHeight,
-    mediaMaxWidth,
-) => {
-    // console.log('>>>>> scaleDownByHalf > height: ', height);
-    // console.log('>>>>> scaleDownByHalf > width: ', width);
-    if(height < mediaMaxHeight && width < mediaMaxWidth) {
-        return {
-            height,
-            width,
-        };
-    }
-    return scaleDownByHalf(
-        {
-            height: Math.floor(height/2),
-            width: Math.floor(width/2),
-        },
-        mediaMaxHeight,
-        mediaMaxWidth,
-    );
-};
-
 const formatTwitterDate = (twitterDate) => {
     // Parse the date string and create a Date object
     const date = new Date(twitterDate);
     return timeAgo.format(date); 
 };
 
-const createTwitterCanvas = async (metadataJson) => {
+const createTwitterCanvas = async (metadataJson, isImage) => {
 
     const metadata = {
         authorNick: metadataJson.user_screen_name,
@@ -166,8 +142,6 @@ const createTwitterCanvas = async (metadataJson) => {
             height: metadata.mediaExtended[0].size.height,
             width: metadata.mediaExtended[0].size.width,
         };
-        // Recusively scale down by half if larger than allowed
-        // mediaObject = scaleDownByHalf(mediaObject, mediaMaxHeight, mediaMaxWidth);
         // console.log('>>>>> hasImgs > mediaObject: ', mediaObject);
         if(metadata.mediaExtended.length < 2 && mediaObject.width > mediaObject.height) {
             const newWidthRatio = mediaMaxWidth / mediaObject.width;
@@ -190,12 +164,12 @@ const createTwitterCanvas = async (metadataJson) => {
         
         // If Media exists
         if(qtMetadata.mediaUrls.length > 0) {
-          console.log('>>>>> calcQtHeight has media!');
-          return 330;
+            console.log('>>>>> calcQtHeight has media!');
+            return 330;
         }
         const totalDescLinesHeight = descLinesLength * 30;
         return minHeight > totalDescLinesHeight ? minHeight : totalDescLinesHeight;
-      };
+    };
   
     // Pre-process description with text wrapping
     const maxCharLength = hasOnlyVideos ? 120 : 220; // Maximum width for text
@@ -382,7 +356,7 @@ const createTwitterCanvas = async (metadataJson) => {
     }
 
     // Convert the canvas to a Buffer and return it
-    return canvas.toBuffer();
+    return isImage ? canvas.toBuffer('image/png') : canvas.toBuffer();
 };
 
 module.exports = { createTwitterCanvas };

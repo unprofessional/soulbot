@@ -27,3 +27,6 @@
 # secrets
 secrets.*.js
 /.nova
+
+# auto-generated directories
+/ffmpeg
