@@ -92,7 +92,7 @@ describe('initial video loading', () => {
     });
 
     test('file cleanup', async () => {
-        await cleanup([localOutputPath], [`${processingDir}/${testDir}`]);
+        await cleanup([], [`${processingDir}/${testDir}`]);
         const fileExists = existsSync(localOutputPath);
         console.log('>>>>> test > cleanup > fileExists: ', fileExists);
         expect(fileExists).toBe(false);

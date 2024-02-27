@@ -74,7 +74,7 @@ const renderTwitterPost = async (metadataJson, message) => {
                         content: `Video too long! Must be less than 60 seconds! ${mediaUrl}`,
                     }
                 );
-                await cleanup([originalVideoFilename], [localVideoOutputPath]);
+                await cleanup([], [localWorkingPath]);
             }
             else {
                 const files = [];
@@ -99,7 +99,7 @@ const renderTwitterPost = async (metadataJson, message) => {
             );
         }
 
-        await cleanup([recombinedFilePath], [localWorkingPath]);
+        await cleanup([], [localWorkingPath]);
     }
     else {
         console.log('>>>>> renderTwitterPost > DOES NOT have videos!!!');
