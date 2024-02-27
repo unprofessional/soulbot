@@ -38,31 +38,38 @@ const metadata = {
     "user_screen_name": "hansvanharken"
 };
 
+const processingDir = 'ffmpeg';
+// const workingDir = 'canvassed';
+
 const mediaUrl = metadata.mediaURLs[0];
 const mediaUrlParts = mediaUrl.split('/');
 const filenameWithQueryParams = mediaUrlParts[mediaUrlParts.length - 1];
 const filenameWithQueryParamsParts = filenameWithQueryParams.split('?');
 const originalVideoFilename = filenameWithQueryParamsParts[0];
-console.log('>>>>> twitter_video_canvas TEST > originalVideoFilename: ', originalVideoFilename);
-const finalVideoFilename = `recombined-av-${originalVideoFilename}`;
-console.log('>>>>> twitter_video_canvas TEST > finalVideoFilename: ', finalVideoFilename);
+
+const filenameParts = originalVideoFilename.split('.');
+const filename = filenameParts[0]; // grab filename/fileID without extension
+const localWorkingPath = `${processingDir}/${filename}`; // filename is the directory here for uniqueness
+const localVideoOutputPath = `${localWorkingPath}/${originalVideoFilename}`;
+// const localAudioPath = `${localWorkingPath}/${filename}.mp3`;
+
+// const framesPattern = `${localWorkingPath}/${workingDir}/${filename}_%03d.png`;
+// const localCompiledVideoOutputPath = `${localWorkingPath}/finished-${originalVideoFilename}`;
+const recombinedFilePath = `${localWorkingPath}/recombined-av-${originalVideoFilename}`;
+
 
 describe('twitter video canvas frame embedding and file output testing', () => {
     test('send metadata into the canvas', async () => {
         await createTwitterVideoCanvas(metadata);
 
-        const originalVideoFileExists = existsSync(`ffmpeg/${originalVideoFilename}`);
+        console.log('>>>>> send metadata TEST > localVideoOutputPath: ', localVideoOutputPath);
+        console.log('>>>>> send metadata TEST > recombinedFilePath: ', recombinedFilePath);
+
+        const originalVideoFileExists = existsSync(localVideoOutputPath);
         expect(originalVideoFileExists).toBe(true);
-        const finalVideoFileExists = existsSync(`ffmpeg/${finalVideoFilename}`);
+        const finalVideoFileExists = existsSync(recombinedFilePath);
         expect(finalVideoFileExists).toBe(true);
 
-        // const originalVideoFileExists = async path => !!(await stat(path).catch(e => false));
-        // await originalVideoFileExists();
-        // expect(originalVideoFileExists).toBe(true);
-        // const finalVideoFileExists = async path => !!(await stat(path).catch(e => false));
-        // await finalVideoFileExists();
-        // expect(finalVideoFileExists).toBe(true);
-
-        await cleanup([`ffmpeg/${originalVideoFilename}`], ['ffmpeg', 'ffmpeg/canvassed']);
+        await cleanup([localVideoOutputPath], [localWorkingPath]);
     }, 60000); // give it one full minute to test...
 });

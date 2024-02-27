@@ -32,59 +32,68 @@ const renderTwitterPost = async (metadataJson, message) => {
         //     }
         // );
 
-        const mediaUrl = metadataJson.mediaURLs[0];
-
-        await message.reply(
-            {
-                content: mediaUrl,
-            }
-        );
-
-        return;
-        
-        // console.log('>>>>> renderTwitterPost > HAS videos!!!');
         // const mediaUrl = metadataJson.mediaURLs[0];
-        // const mediaUrlParts = mediaUrl.split('/');
-        // const filenameWithQueryParams = mediaUrlParts[mediaUrlParts.length - 1];
-        // const filenameWithQueryParamsParts = filenameWithQueryParams.split('?');
-        // const originalVideoFilename = filenameWithQueryParamsParts[0];
+        // await message.reply(
+        //     {
+        //         content: mediaUrl,
+        //     }
+        // );
+        // return;
+        
+        console.log('>>>>> renderTwitterPost > HAS videos!!!');
+
+        const processingDir = 'ffmpeg';
+        const workingDir = 'canvassed';
+
+        const mediaUrl = metadataJson.mediaURLs[0];
+        const mediaUrlParts = mediaUrl.split('/');
+        const filenameWithQueryParams = mediaUrlParts[mediaUrlParts.length - 1];
+        const filenameWithQueryParamsParts = filenameWithQueryParams.split('?');
+        const originalVideoFilename = filenameWithQueryParamsParts[0];
         // console.log('>>>>> renderTwitterPost > originalVideoFilename: ', originalVideoFilename);
         // const finalVideoFilename = `recombined-av-${originalVideoFilename}`;
         // console.log('>>>>> renderTwitterPost > finalVideoFilename: ', finalVideoFilename);
         // const finalVideoFilePath = `ffmpeg/${finalVideoFilename}`;
 
-        // await message.reply(
-        //     {
-        //         content: 'Generating video! Could take a minute. Please stand by...',
-        //     }
-        // );
+        const filenameParts = originalVideoFilename.split('.');
+        const filename = filenameParts[0]; // grab filename/fileID without extension
+        const localWorkingPath = `${processingDir}/${filename}`; // filename is the directory here for uniqueness
+        // const localVideoOutputPath = `${localWorkingPath}/${originalVideoFilename}`;
+        // const localCompiledVideoOutputPath = `${localWorkingPath}/finished-${originalVideoFilename}`;
+        const recombinedFilePath = `${localWorkingPath}/recombined-av-${originalVideoFilename}`;
 
-        // await createTwitterVideoCanvas(metadataJson);
+        await message.reply(
+            {
+                content: 'Generating video! Could take a minute. Please stand by...',
+            }
+        );
 
-        // // Create a MessageAttachment and send it
-        // try {
-        //     const files = [];
-        //     const finalVideoFile = await readFile(finalVideoFilePath);
-        //     files.push({
-        //         attachment: finalVideoFile,
-        //         name: 'video.mp4', // FIXME: Use the actual file hash + extension etc
-        //     });
+        await createTwitterVideoCanvas(metadataJson);
 
-        //     await message.reply(
-        //         {
-        //             // content: `Media URLs found: ${mediaUrlsFormatted}`,
-        //             files,
-        //         }
-        //     );
-        // } catch (err) {
-        //     await message.reply(
-        //         {
-        //             content: `Video was too large to attach! err: ${err}`,
-        //         }
-        //     );
-        // }
+        // Create a MessageAttachment and send it
+        try {
+            const files = [];
+            const finalVideoFile = await readFile(recombinedFilePath);
+            files.push({
+                attachment: finalVideoFile,
+                name: 'video.mp4', // FIXME: Use the actual file hash + extension etc
+            });
 
-        // await cleanup([finalVideoFilePath], ['ffmpeg', 'ffmpeg/canvassed']);
+            await message.reply(
+                {
+                    // content: `Media URLs found: ${mediaUrlsFormatted}`,
+                    files,
+                }
+            );
+        } catch (err) {
+            await message.reply(
+                {
+                    content: `Video was too large to attach! err: ${err}`,
+                }
+            );
+        }
+
+        await cleanup([finalVideoFilePath], [localWorkingPath]);
     }
     else {
         console.log('>>>>> renderTwitterPost > DOES NOT have videos!!!');

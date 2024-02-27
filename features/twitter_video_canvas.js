@@ -227,26 +227,24 @@ const createTwitterVideoCanvas = async (metadataJson) => {
 
     const sourceVideoFilename = extractFilename(videoUrl);
 
-    const processingDir = 'ffmpeg'; // FIXME: hash? uuid? — `${filename}`;
+    const processingDir = 'ffmpeg';
     const workingDir = 'canvassed';
 
-    const filenameParts = sourceVideoFilename.split('.'); // tmp working
-    const filename = filenameParts[0];
-    const localOutputPath = `${processingDir}/${sourceVideoFilename}`;
-    const localAudioPath = `${processingDir}/${filename}.mp3`;
-    const pathParts = localOutputPath.split('/'); // tmp working
-    const pathPartsWithoutFile = pathParts.splice(0, pathParts.length - 1); // tmp working
-    const path = pathPartsWithoutFile.join('/');
+    const filenameParts = sourceVideoFilename.split('.');
+    const filename = filenameParts[0]; // grab filename/fileID without extension
+    const localWorkingPath = `${processingDir}/${filename}`; // filename is the directory here for uniqueness
+    const localVideoOutputPath = `${localWorkingPath}/${sourceVideoFilename}`;
+    const localAudioPath = `${localWorkingPath}/${filename}.mp3`;
 
-    const framesPattern = `${path}/canvassed/${filename}_%03d.png`;
-    const localCompiledVideoOutputPath = `${processingDir}/finished-${sourceVideoFilename}`;
-    const recombinedFilePath = `${processingDir}/recombined-av-${sourceVideoFilename}`;
+    const framesPattern = `${localWorkingPath}/${workingDir}/${filename}_%03d.png`;
+    const localCompiledVideoOutputPath = `${localWorkingPath}/finished-${sourceVideoFilename}`;
+    const recombinedFilePath = `${localWorkingPath}/recombined-av-${sourceVideoFilename}`;
 
-    await downloadVideo(videoUrl, localOutputPath);
-    await extractAudioFromVideo(localOutputPath, localAudioPath);
-    await extractFrames(localOutputPath);
+    await downloadVideo(videoUrl, localVideoOutputPath);
+    await extractAudioFromVideo(localVideoOutputPath, localAudioPath);
+    await extractFrames(localVideoOutputPath);
 
-    const framesFilenamesUnfiltered = await readdir(processingDir);
+    const framesFilenamesUnfiltered = await readdir(localWorkingPath); // raw video frames, not yet canvassed
     const framesFilenames = framesFilenamesUnfiltered.filter((framepath) => {
         const framepathParts = framepath.split('.');
         return framepathParts[framepathParts.length - 1] === 'png';
@@ -254,25 +252,14 @@ const createTwitterVideoCanvas = async (metadataJson) => {
 
     console.log('>>>>> twitter_video_canvas > framesFilenames: ', framesFilenames);
 
-    /**
-     * [DONE] 1) get array of resulting frames (filenames — or just get the last numbered frame)
-     * 2) loop through n-frames until last one
-     *   [DONE] i) read the resulting frame as an image source
-     *   [DONE] ii) load frame image into the media space
-     * 
-     *   iii) account for the fact that we won't have height/width of the image <---- TODO
-     * 
-     *   [DONE] iv) export the image as a file to the file system
-     * 3) [DONE]when loop complete, stitch them all together via `framesToVideo`
-     */
-
-    mkdir(`./${processingDir}/${workingDir}/`, { recursive: true }, (err) => {
+    // TODO: account for the fact that we won't have height/width of the image
+    
+    mkdir(`./${localWorkingPath}/${workingDir}/`, { recursive: true }, (err) => {
         if (err) throw err;
     });
 
     for (const frameFilename of framesFilenames) {
-        const path = processingDir;
-        const filenamePath = `${path}/${frameFilename}`;
+        const filenamePath = `${localWorkingPath}/${frameFilename}`;
         // console.log('!!! twitter_video_canvas > filenamePath: ', filenamePath);
     
         await singleVideoFrame(
@@ -283,7 +270,7 @@ const createTwitterVideoCanvas = async (metadataJson) => {
             mediaMaxHeight,
             mediaMaxWidth,
         );
-        const canvasFilePath = `${processingDir}/canvassed/${frameFilename}`;
+        const canvasFilePath = `${localWorkingPath}/${workingDir}/${frameFilename}`;
         // console.log('>>>>> twitter_video_canvas > canvasFilePath: ', canvasFilePath);
         await writeFile(canvasFilePath, canvas.toBuffer('image/png'), { flag: 'w', encoding: 'utf8' });
     }
@@ -310,14 +297,7 @@ const createTwitterVideoCanvas = async (metadataJson) => {
         catch (err) {
             return reject(err);
         }
-
-        /**
-         * TODO TODO TODO TODO TODO TODO
-         * 
-         * return canvas.toBuffer(); // .. if we can return a video this way...
-         * 
-         * we might have to fetch the file and then return the file (or true)
-         */
+        // nothing else happens because all we're doing, when this is done, is reading the file we created from the calling side
     });
     
 };

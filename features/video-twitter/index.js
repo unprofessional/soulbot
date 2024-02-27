@@ -39,9 +39,10 @@ const ensureDirectoryExists = (filePath) => {
 const downloadVideo = async (remoteFileUrl, outputPath) => {
     ensureDirectoryExists(outputPath);
     const response = await fetch(remoteFileUrl);
-    // console.log('>>>>> fetching video from URL...');
+    console.log('>>>>> downloadVideo > fetching video from URL...');
     const fileStream = createWriteStream(outputPath);
-    // console.log('>>>>> creating Write Stream as fileStream...');
+    console.log('>>>>> downloadVideo > creating Write Stream as fileStream @ ', outputPath);
+    // console.log('>>>>> downloadVideo > outputPath: ', outputPath);
 
     // Use response.body as an async iterator to read chunks
     for await (const chunk of response.body) {
@@ -49,7 +50,7 @@ const downloadVideo = async (remoteFileUrl, outputPath) => {
         fileStream.write(chunk);
     }
     fileStream.end(); // we MUST close the stream
-    // console.log('>>>>> fileStream write complete');
+    console.log('>>>>> fileStream write complete');
     return new Promise((resolve, reject) => {
         // console.log('...promise handler...');
         fileStream.on('finish', () => {
@@ -67,25 +68,30 @@ const downloadVideo = async (remoteFileUrl, outputPath) => {
 /**
  * Extract frames from the video at one frame per second
  * Each frame is written to the local file system as a .png per second of frame...
- * @param {*} localVideoPath 
+ * @param {*} localVideoFilePath 
  * @param {*} frameRate 
  */
-function extractFrames(localVideoPath, frameRate = 20) {
-    const pathParts = localVideoPath.split('/');
-    // console.log('pathParts: ', pathParts);
-    // console.log('pathParts.length: ', pathParts.length);
+function extractFrames(localVideoFilePath, frameRate = 1) {
+
+    console.log('>>>> extractFrames > localVideoFilePath: ', localVideoFilePath);
+
+    const pathParts = localVideoFilePath.split('/');
+    console.log('pathParts: ', pathParts);
+    console.log('pathParts.length: ', pathParts.length);
     const filenameWithExtension = pathParts[pathParts.length - 1];
     const filenameParts = filenameWithExtension.split('.');
     const filename = filenameParts[0];
-    // console.log('filename: ', filename);
+    console.log('filename: ', filename);
     const pathPartsWithoutFile = pathParts.splice(0, pathParts.length - 1);
-    // console.log('pathPartsWithoutFile: ', pathPartsWithoutFile);
+    console.log('pathPartsWithoutFile: ', pathPartsWithoutFile);
     const path = pathPartsWithoutFile.join('/');
-    // console.log('path: ', path);
+    console.log('path: ', path);
+    const framesPathPattern = `${path}/${filename}_%03d.png`;
+    console.log('framesPathPattern: ', framesPathPattern);
 
     return new Promise((resolve, reject) => {
-        ffmpeg(localVideoPath)
-            .output(`${path}/${filename}_%03d.png`)
+        ffmpeg(localVideoFilePath)
+            .output(framesPathPattern)
             .outputOptions([`-vf fps=${frameRate}`])
             .on('end', function() {
                 console.log('Frames extraction completed.');
@@ -107,7 +113,7 @@ function extractFrames(localVideoPath, frameRate = 20) {
  * @param {*} outputVideoPath 
  * @param {*} frameRate
  */
-function recombineFramesToVideo(framesPattern, outputVideoPath, frameRate = 20) {
+function recombineFramesToVideo(framesPattern, outputVideoPath, frameRate = 1) {
     return new Promise((resolve, reject) => {
         ffmpeg()
             .input(framesPattern)
@@ -176,10 +182,6 @@ function combineAudioWithVideo(videoPath, audioPath, outputPath) {
             .run();
     });
 }
-
-// const filesToDelete = ['path/to/downloaded/video.mp4', 'path/to/another/file.png'];
-// const directoriesToCleanup = ['path/to/generated/frames', 'path/to/processed/images'];
-// cleanup(filesToDelete, directoriesToCleanup);
 
 module.exports = {
     downloadVideo,

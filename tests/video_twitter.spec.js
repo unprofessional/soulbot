@@ -9,13 +9,15 @@ const {
 const { cleanup } = require('../features/video-twitter/cleanup.js');
 
 const testVideoUrl = "https://video.twimg.com/ext_tw_video/1759421971660705792/pu/vid/avc1/888x640/vDn0W9g9SgNGVEcD.mp4?tag=12";
+const processingDir = 'ffmpeg';
+const workingDir = 'canvassed';
 const testDir = 'test';
 const testFile = 'testvideo.mp4';
-const localOutputPath = `${testDir}/${testFile}`;
-const localCompiledVideoOutputPath = `${testDir}/finished-${testFile}`;
+const localOutputPath = `${processingDir}/${testDir}/${testFile}`;
+const localCompiledVideoOutputPath = `${processingDir}/${testDir}/finished-${testFile}`;
 const testAudioFile = 'testaudio.mp3';
-const localAudioPath = `${testDir}/${testAudioFile}`;
-const recombinedFilePath = `${testDir}/recombined-av-${testFile}`;
+const localAudioPath = `${processingDir}/${testDir}/${testAudioFile}`;
+const recombinedFilePath = `${processingDir}/${testDir}/recombined-av-${testFile}`;
 
 describe('initial video loading', () => {
 
@@ -35,13 +37,14 @@ describe('initial video loading', () => {
 
         const pathPartsWithoutFile = pathParts.splice(0, pathParts.length - 1);
         const path = pathPartsWithoutFile.join('/');
-        const output = `${path}/${filename}_001.png`;
+        const firstFrameOutput = `${path}/${filename}_001.png`;
+        console.log('>>>>> test > extracting frame > firstFrameOutput: ', firstFrameOutput);
 
         const fileExists = existsSync(localOutputPath);
         console.log('>>>>> test > extracting frame > fileExists: ', fileExists);
         expect(fileExists).toBe(true);
         await extractFrames(localOutputPath);
-        const firstFrameExists = existsSync(output);
+        const firstFrameExists = existsSync(firstFrameOutput);
         console.log('>>>>> test > extracting frame > firstFrameExists: ', firstFrameExists);
         expect(firstFrameExists).toBe(true);
     });
@@ -89,7 +92,7 @@ describe('initial video loading', () => {
     });
 
     test('file cleanup', async () => {
-        await cleanup([localOutputPath], [testDir, 'ffmpeg']);
+        await cleanup([localOutputPath], [`${processingDir}/${testDir}`]);
         const fileExists = existsSync(localOutputPath);
         console.log('>>>>> test > cleanup > fileExists: ', fileExists);
         expect(fileExists).toBe(false);

@@ -1,5 +1,6 @@
 const {
     readdir,
+    rm,
     unlink,
 } = require('node:fs');
 
@@ -47,6 +48,15 @@ function deleteFilesInDirectory(dirPath) {
     });
 }
 
+function deleteDirectory(dirPath) {
+    return new Promise((resolve, reject) => {
+        rm(dirPath, { recursive: true, force: true }, (err) => {
+            if (err) reject(err);
+            else resolve();
+        });
+    });
+}
+
 // Cleanup function to purge specified files and directories
 async function cleanup(filesToDelete = [], directoriesToCleanup = []) {
     try {
@@ -60,6 +70,8 @@ async function cleanup(filesToDelete = [], directoriesToCleanup = []) {
         for (const dir of directoriesToCleanup) {
             await deleteFilesInDirectory(dir);
             console.log(`Deleted all files in directory: ${dir}`);
+            await deleteDirectory(dir);
+            console.log(`Removed directory: ${dir}`);
         }
 
         console.log('Cleanup completed successfully.');
@@ -67,12 +79,6 @@ async function cleanup(filesToDelete = [], directoriesToCleanup = []) {
         console.error('Cleanup error:', err);
     }
 }
-
-// Usage example: Specify the files and directories you want to clean up
-
-// const filesToDelete = ['path/to/downloaded/video.mp4', 'path/to/another/file.png'];
-// const directoriesToCleanup = ['path/to/generated/frames', 'path/to/processed/images'];
-// cleanup(filesToDelete, directoriesToCleanup);
 
 module.exports = {
     cleanup,
