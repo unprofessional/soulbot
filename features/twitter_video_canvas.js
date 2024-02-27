@@ -298,11 +298,13 @@ const createTwitterVideoCanvas = async (metadataJson) => {
     // console.log('>>>>> twitter_video_canvas > localCompiledVideoOutputPath: ', localCompiledVideoOutputPath);
     // console.log('>>>>> twitter_video_canvas > localAudioPath: ', localAudioPath);
     // console.log('>>>>> twitter_video_canvas > recombinedFilePath: ', recombinedFilePath);
-    console.log('>>>>> twitter_video_canvas > recombining audio with new video...');
 
-    const localAudioFileExists = async path => !!(await stat(localAudioPath).catch(e => false));
-    await finalVideoFileExists();
+
+    const checkIfLocalAudioFileExists = async path => !!(await stat(localAudioPath).catch(e => false));
+    const localAudioFileExists = await checkIfLocalAudioFileExists();
+    console.log('>>>>> twitter_video_canvas > localAudioFileExists: ', localAudioFileExists);
     if (localAudioFileExists) {
+        console.log('>>>>> twitter_video_canvas > recombining audio with new video...');
         await combineAudioWithVideo(localCompiledVideoOutputPath, localAudioPath, recombinedFilePath);   
     }
 
