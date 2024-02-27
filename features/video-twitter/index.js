@@ -106,7 +106,7 @@ function extractAudioFromVideo(videoPath, outputPath) {
  * @param {*} localVideoFilePath 
  * @param {*} frameRate 
  */
-function extractFrames(localVideoFilePath, frameRate = 5) {
+function extractFrames(localVideoFilePath, frameRate = 1) {
 
     console.log('>>>> extractFrames > localVideoFilePath: ', localVideoFilePath);
 
@@ -148,14 +148,15 @@ function extractFrames(localVideoFilePath, frameRate = 5) {
  * @param {*} outputVideoPath 
  * @param {*} frameRate
  */
-function recombineFramesToVideo(framesPattern, outputVideoPath, frameRate = 5) {
+function recombineFramesToVideo(framesPattern, outputVideoPath, frameRate = 1) {
     return new Promise((resolve, reject) => {
         ffmpeg()
             .input(framesPattern)
             .inputFPS(frameRate)
+            .outputOptions(['-pix_fmt yuv420p']) // Specify the pixel format here
             .output(outputVideoPath)
+            .size('560x?') // Set the video size to 1280x720
             .videoCodec('libx264')
-            .outputOptions('-pix_fmt yuv420p') // Specify the pixel format here
             .on('end', function() {
                 console.log('Video creation completed.');
                 resolve(); // Resolve the promise when extraction is completed
