@@ -22,49 +22,61 @@ const renderTwitterPost = async (metadataJson, message) => {
     console.log('>>>>> renderTwitterPost > hasVids: ', hasVids);
 
     if(hasVids) {
-        console.log('>>>>> renderTwitterPost > HAS videos!!!');
-        const mediaUrl = metadataJson.mediaURLs[0];
-        const mediaUrlParts = mediaUrl.split('/');
-        const filenameWithQueryParams = mediaUrlParts[mediaUrlParts.length - 1];
-        const filenameWithQueryParamsParts = filenameWithQueryParams.split('?');
-        const originalVideoFilename = filenameWithQueryParamsParts[0];
-        console.log('>>>>> renderTwitterPost > originalVideoFilename: ', originalVideoFilename);
-        const finalVideoFilename = `recombined-av-${originalVideoFilename}`;
-        console.log('>>>>> renderTwitterPost > finalVideoFilename: ', finalVideoFilename);
-        const finalVideoFilePath = `ffmpeg/${finalVideoFilename}`;
 
+        /**
+         * UNDER CONSTRUCTION
+         */
         await message.reply(
             {
-                content: 'Generating video! Could take a minute. Please stand by...',
+                content: 'Video generation is under construction!',
             }
         );
 
-        await createTwitterVideoCanvas(metadataJson);
+        return;
+        
+        // console.log('>>>>> renderTwitterPost > HAS videos!!!');
+        // const mediaUrl = metadataJson.mediaURLs[0];
+        // const mediaUrlParts = mediaUrl.split('/');
+        // const filenameWithQueryParams = mediaUrlParts[mediaUrlParts.length - 1];
+        // const filenameWithQueryParamsParts = filenameWithQueryParams.split('?');
+        // const originalVideoFilename = filenameWithQueryParamsParts[0];
+        // console.log('>>>>> renderTwitterPost > originalVideoFilename: ', originalVideoFilename);
+        // const finalVideoFilename = `recombined-av-${originalVideoFilename}`;
+        // console.log('>>>>> renderTwitterPost > finalVideoFilename: ', finalVideoFilename);
+        // const finalVideoFilePath = `ffmpeg/${finalVideoFilename}`;
 
-        // Create a MessageAttachment and send it
-        try {
-            const files = [];
-            const finalVideoFile = await readFile(finalVideoFilePath);
-            files.push({
-                attachment: finalVideoFile,
-                name: 'video.mp4', // FIXME: Use the actual file hash + extension etc
-            });
+        // await message.reply(
+        //     {
+        //         content: 'Generating video! Could take a minute. Please stand by...',
+        //     }
+        // );
 
-            await message.reply(
-                {
-                    // content: `Media URLs found: ${mediaUrlsFormatted}`,
-                    files,
-                }
-            );
-        } catch (err) {
-            await message.reply(
-                {
-                    content: `Video was too large to attach! err: ${err}`,
-                }
-            );
-        }
+        // await createTwitterVideoCanvas(metadataJson);
 
-        await cleanup([finalVideoFilePath], ['ffmpeg', 'ffmpeg/canvassed']);
+        // // Create a MessageAttachment and send it
+        // try {
+        //     const files = [];
+        //     const finalVideoFile = await readFile(finalVideoFilePath);
+        //     files.push({
+        //         attachment: finalVideoFile,
+        //         name: 'video.mp4', // FIXME: Use the actual file hash + extension etc
+        //     });
+
+        //     await message.reply(
+        //         {
+        //             // content: `Media URLs found: ${mediaUrlsFormatted}`,
+        //             files,
+        //         }
+        //     );
+        // } catch (err) {
+        //     await message.reply(
+        //         {
+        //             content: `Video was too large to attach! err: ${err}`,
+        //         }
+        //     );
+        // }
+
+        // await cleanup([finalVideoFilePath], ['ffmpeg', 'ffmpeg/canvassed']);
     }
     else {
         console.log('>>>>> renderTwitterPost > DOES NOT have videos!!!');
