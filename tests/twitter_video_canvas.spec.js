@@ -70,6 +70,6 @@ describe('twitter video canvas frame embedding and file output testing', () => {
         const finalVideoFileExists = existsSync(recombinedFilePath);
         expect(finalVideoFileExists).toBe(true);
 
-        // await cleanup([], [localWorkingPath]);
+        await cleanup([], [localWorkingPath]);
     }, 60000); // give it one full minute to test...
 });

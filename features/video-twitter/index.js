@@ -106,7 +106,7 @@ function extractAudioFromVideo(videoPath, outputPath) {
  * @param {*} localVideoFilePath 
  * @param {*} frameRate 
  */
-function extractFrames(localVideoFilePath, frameRate = 1) {
+function extractFrames(localVideoFilePath, frameRate = 5) {
 
     console.log('>>>> extractFrames > localVideoFilePath: ', localVideoFilePath);
 
@@ -148,7 +148,7 @@ function extractFrames(localVideoFilePath, frameRate = 1) {
  * @param {*} outputVideoPath 
  * @param {*} frameRate
  */
-function recombineFramesToVideo(framesPattern, outputVideoPath, frameRate = 1) {
+function recombineFramesToVideo(framesPattern, outputVideoPath, frameRate = 5) {
     return new Promise((resolve, reject) => {
         ffmpeg()
             .input(framesPattern)
