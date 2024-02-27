@@ -244,7 +244,7 @@ const createTwitterVideoCanvas = async (metadataJson) => {
     console.log('>>>>> twitter_video_canvas > downloading video...');
     const isSuccess = await downloadVideo(videoUrl, localVideoOutputPath);
     console.log('>>>>> twitter_video_canvas > isSuccess: ', isSuccess);
-    if (isSuccess === false) {
+    if (isSuccess === false) { // duration too long FIXME: we need to capture this specific Error scenario (custom Error Object?)
         return false;
     }
 

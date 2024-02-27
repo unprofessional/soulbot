@@ -68,7 +68,7 @@ const renderTwitterPost = async (metadataJson, message) => {
 
         // Create a MessageAttachment and send it
         try {
-            if (isSuccess === false) {
+            if (successFilePath === false) {
                 await message.reply(
                     {
                         content: `Video too long! Must be less than 60 seconds! ${mediaUrl}`,
