@@ -93,7 +93,7 @@ const renderTwitterPost = async (metadataJson, message) => {
             );
         }
 
-        await cleanup([finalVideoFilePath], [localWorkingPath]);
+        await cleanup([recombinedFilePath], [localWorkingPath]);
     }
     else {
         console.log('>>>>> renderTwitterPost > DOES NOT have videos!!!');
