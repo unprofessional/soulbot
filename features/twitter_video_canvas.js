@@ -240,29 +240,39 @@ const createTwitterVideoCanvas = async (metadataJson) => {
     const localCompiledVideoOutputPath = `${localWorkingPath}/finished-${sourceVideoFilename}`;
     const recombinedFilePath = `${localWorkingPath}/recombined-av-${sourceVideoFilename}`;
 
+    console.log('>>>>> twitter_video_canvas > downloading video...');
     const isSuccess = await downloadVideo(videoUrl, localVideoOutputPath);
     console.log('>>>>> twitter_video_canvas > isSuccess: ', isSuccess);
     if (isSuccess === false) {
         return false;
     }
 
-    await extractAudioFromVideo(localVideoOutputPath, localAudioPath);
+    try {
+        console.log('>>>>> twitter_video_canvas > extracting audio...');
+        await extractAudioFromVideo(localVideoOutputPath, localAudioPath);
+    } catch (err) {
+        console.log('>>>>> twitter_video_canvas > audio processing error!: ', err);
+    }
+    console.log('>>>>> twitter_video_canvas > extracting video frames...');
     await extractFrames(localVideoOutputPath);
 
+    console.log('>>>>> twitter_video_canvas > compiling list of frames to work with...');
     const framesFilenamesUnfiltered = await readdir(localWorkingPath); // raw video frames, not yet canvassed
     const framesFilenames = framesFilenamesUnfiltered.filter((framepath) => {
         const framepathParts = framepath.split('.');
         return framepathParts[framepathParts.length - 1] === 'png';
     });
 
-    console.log('>>>>> twitter_video_canvas > framesFilenames: ', framesFilenames);
+    // console.log('>>>>> twitter_video_canvas > framesFilenames: ', framesFilenames);
 
     // TODO: account for the fact that we won't have height/width of the image
     
+    console.log('>>>>> twitter_video_canvas > creating directoties if not exists...');
     mkdir(`./${localWorkingPath}/${workingDir}/`, { recursive: true }, (err) => {
         if (err) throw err;
     });
 
+    console.log('>>>>> twitter_video_canvas > generating frames...');
     for (const frameFilename of framesFilenames) {
         const filenamePath = `${localWorkingPath}/${frameFilename}`;
         // console.log('!!! twitter_video_canvas > filenamePath: ', filenamePath);
@@ -282,11 +292,13 @@ const createTwitterVideoCanvas = async (metadataJson) => {
 
     // console.log('>>>>> twitter_video_canvas > framesPattern: ', framesPattern);
     // console.log('>>>>> twitter_video_canvas > localCompiledVideoOutputPath: ', localCompiledVideoOutputPath);
+    console.log('>>>>> twitter_video_canvas > recombining canvassed frames into video...');
     await recombineFramesToVideo(framesPattern, localCompiledVideoOutputPath);
 
     // console.log('>>>>> twitter_video_canvas > localCompiledVideoOutputPath: ', localCompiledVideoOutputPath);
     // console.log('>>>>> twitter_video_canvas > localAudioPath: ', localAudioPath);
     // console.log('>>>>> twitter_video_canvas > recombinedFilePath: ', recombinedFilePath);
+    console.log('>>>>> twitter_video_canvas > recombining audio with new video...');
     await combineAudioWithVideo(localCompiledVideoOutputPath, localAudioPath, recombinedFilePath);
 
     return new Promise((resolve, reject) => {

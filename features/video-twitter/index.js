@@ -76,6 +76,31 @@ const downloadVideo = async (remoteFileUrl, outputPath) => {
 };
 
 /**
+ * Extracts audio from a given video file and saves it as a separate audio file.
+ * @param {*} videoPath - The path to the video file from which audio will be extracted.
+ * @param {*} outputPath -The path to the audio file to be combined with the video (.mp3 or .wav)
+ */
+function extractAudioFromVideo(videoPath, outputPath) {
+    console.log('>>>>> extractAudioFromVideo > videoPath: ', videoPath);
+    console.log('>>>>> extractAudioFromVideo > outputPath: ', outputPath);
+    return new Promise((resolve, reject) => {
+        ffmpeg(videoPath)
+            .output(outputPath)
+            .noVideo() // This option ensures no video is included in the output.
+            .audioCodec('libmp3lame') // 'copy' copies the original audio without re-encoding, else specify the codec/format
+            .on('end', function() {
+                console.log('Audio extraction completed.');
+                resolve(); // Resolve the promise when extraction is completed.
+            })
+            .on('error', function(err) {
+                console.error('An error occurred during audio extraction: ' + err.message);
+                reject(err); // Reject the promise on error.
+            })
+            .run();
+    });
+}
+
+/**
  * Extract frames from the video at one frame per second
  * Each frame is written to the local file system as a .png per second of frame...
  * @param {*} localVideoFilePath 
@@ -143,31 +168,6 @@ function recombineFramesToVideo(framesPattern, outputVideoPath, frameRate = 5) {
 }
 
 /**
- * Extracts audio from a given video file and saves it as a separate audio file.
- * @param {*} videoPath - The path to the video file from which audio will be extracted.
- * @param {*} outputPath -The path to the audio file to be combined with the video (.mp3 or .wav)
- */
-function extractAudioFromVideo(videoPath, outputPath) {
-    console.log('>>>>> extractAudioFromVideo > videoPath: ', videoPath);
-    console.log('>>>>> extractAudioFromVideo > outputPath: ', outputPath);
-    return new Promise((resolve, reject) => {
-        ffmpeg(videoPath)
-            .output(outputPath)
-            .noVideo() // This option ensures no video is included in the output.
-            .audioCodec('libmp3lame') // 'copy' copies the original audio without re-encoding, else specify the codec/format
-            .on('end', function() {
-                console.log('Audio extraction completed.');
-                resolve(); // Resolve the promise when extraction is completed.
-            })
-            .on('error', function(err) {
-                console.error('An error occurred during audio extraction: ' + err.message);
-                reject(err); // Reject the promise on error.
-            })
-            .run();
-    });
-}
-
-/**
  * Combines an audio file with a video file to create a new video with sound.
  * @param {*} videoPath - The path to the video file that will have audio added.
  * @param {*} audioPath - The path to the audio file to be combined with the video (.mp3 or .wav)
@@ -209,9 +209,9 @@ function getVideoDuration(filePath) {
 
 module.exports = {
     downloadVideo,
+    extractAudioFromVideo,
     extractFrames,
     recombineFramesToVideo,
-    extractAudioFromVideo,
     combineAudioWithVideo,
     getVideoDuration,
 };
