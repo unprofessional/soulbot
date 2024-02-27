@@ -33,6 +33,12 @@ const renderTwitterPost = async (metadataJson, message) => {
         console.log('>>>>> renderTwitterPost > finalVideoFilename: ', finalVideoFilename);
         const finalVideoFilePath = `ffmpeg/${finalVideoFilename}`;
 
+        await message.reply(
+            {
+                content: 'Generating video! Could take a minute. Please stand by...',
+            }
+        );
+
         await createTwitterVideoCanvas(metadataJson);
 
         // Create a MessageAttachment and send it
@@ -72,7 +78,7 @@ const renderTwitterPost = async (metadataJson, message) => {
         console.log('>>>>> renderTwitterPost > metadataJson: ', metadataJson);
         const mediaUrls = metadataJson.mediaURLs;
         console.log('>>>>> renderTwitterPost > mediaUrls: ', mediaUrls);
-        
+
         let files = [{
             attachment: buffer,
             name: 'image.png',
