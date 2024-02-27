@@ -36,7 +36,10 @@ const renderTwitterPost = async (metadataJson, message) => {
         try {
             const files = [];
             const finalVideoFile = await readFile(finalVideoFilePath);
-            files.push(finalVideoFile);
+            files.push({
+                attachment: finalVideoFile,
+                name: 'video.mp4', // FIXME: Use the actual file hash + extension etc
+            });
 
             await message.reply(
                 {
