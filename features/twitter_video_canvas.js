@@ -268,7 +268,7 @@ const createTwitterVideoCanvas = async (metadataJson) => {
 
     // TODO: account for the fact that we won't have height/width of the image
     
-    console.log('>>>>> twitter_video_canvas > creating directoties if not exists...');
+    console.log('>>>>> twitter_video_canvas > creating directories if not exists...');
     mkdir(`./${localWorkingPath}/${workingDir}/`, { recursive: true }, (err) => {
         if (err) throw err;
     });
@@ -303,17 +303,20 @@ const createTwitterVideoCanvas = async (metadataJson) => {
 
     const checkIfLocalAudioFileExists = async path => !!(await stat(localAudioPath).catch(e => false));
     const localAudioFileExists = await checkIfLocalAudioFileExists();
+    let finalVideoFileExists = false;
     console.log('>>>>> twitter_video_canvas > localAudioFileExists: ', localAudioFileExists);
     if (localAudioFileExists) {
         console.log('>>>>> twitter_video_canvas > recombining audio with new video...');
-        await combineAudioWithVideo(localCompiledVideoOutputPath, localAudioPath, recombinedFilePath);   
+        await combineAudioWithVideo(localCompiledVideoOutputPath, localAudioPath, recombinedFilePath);
+        finalVideoFileExists = existsSync(recombinedFilePath);
+    } else {
+        finalVideoFileExists = existsSync(localCompiledVideoOutputPath);
     }
 
     return new Promise((resolve, reject) => {
         try {
-            const finalVideoFileExists = existsSync(recombinedFilePath);
             if(finalVideoFileExists) {
-                return resolve(true);
+                return resolve(localAudioFileExists ? recombinedFilePath : localCompiledVideoOutputPath);
             }
             else {
                 return reject('File does not yet exist!');

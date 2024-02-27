@@ -63,8 +63,8 @@ const renderTwitterPost = async (metadataJson, message) => {
             }
         );
 
-        const isSuccess = await createTwitterVideoCanvas(metadataJson);
-        console.log('>>>>> renderTwitterPost > isSuccess: ', isSuccess);
+        const successFilePath = await createTwitterVideoCanvas(metadataJson); // possible to get either audio or no audio version
+        console.log('>>>>> renderTwitterPost > successFilePath: ', successFilePath);
 
         // Create a MessageAttachment and send it
         try {
@@ -78,7 +78,7 @@ const renderTwitterPost = async (metadataJson, message) => {
             }
             else {
                 const files = [];
-                const finalVideoFile = await readFile(recombinedFilePath);
+                const finalVideoFile = await readFile(successFilePath);
                 files.push({
                     attachment: finalVideoFile,
                     name: 'video.mp4', // FIXME: Use the actual file hash + extension etc
