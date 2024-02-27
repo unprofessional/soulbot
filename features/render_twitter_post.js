@@ -1,6 +1,7 @@
 const { readFile } = require('node:fs').promises
 const { createTwitterCanvas } = require('./twitter_canvas.js');
 const { createTwitterVideoCanvas } = require('./twitter_video_canvas.js');
+const { cleanup } = require('./video-twitter/cleanup.js');
 
 const renderTwitterPost = async (metadataJson, message) => {
 
@@ -36,10 +37,10 @@ const renderTwitterPost = async (metadataJson, message) => {
             const files = [];
             const finalVideoFile = await readFile(finalVideoFilePath);
             files.push(finalVideoFile);
-            
+
             await message.reply(
                 {
-                    content: `Media URLs found: ${mediaUrlsFormatted}`,
+                    // content: `Media URLs found: ${mediaUrlsFormatted}`,
                     files,
                 }
             );
