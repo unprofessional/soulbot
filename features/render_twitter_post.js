@@ -7,6 +7,16 @@ const { cleanup } = require('./video-twitter/cleanup.js');
 const MAX_CONCURRENT_REQUESTS = 3; // Example limit
 const processingDir = 'ffmpeg';
 
+async function createDirectoryIfNotExists(processingDir) {
+    try {
+        await mkdir(`./${processingDir}/`, { recursive: true });
+        console.log(`Directory ${processingDir} created or already exists`);
+    } catch (err) {
+        console.error(`Error creating directory ${processingDir}:`, err);
+        throw err; // Rethrow or handle error appropriately
+    }
+}
+
 async function countDirectoriesInDirectory(dirPath) {
     try {
         const entries = await readdir(dirPath, { withFileTypes: true });
@@ -37,9 +47,7 @@ const renderTwitterPost = async (metadataJson, message) => {
     console.log('>>>>> renderTwitterPost > hasVids: ', hasVids);
 
     console.log('>>>>> renderTwitterPost > creating directories if not exists...');
-    mkdir(`./${processingDir}/`, { recursive: true }, (err) => {
-        if (err) throw err;
-    });
+    await createDirectoryIfNotExists(processingDir);
 
     if(hasVids) {
 
