@@ -110,7 +110,7 @@ const createTwitterCanvas = async (metadataJson, isImage) => {
     // Height adjustment for images
     const getMaxHeight = (numImgs) => {
         switch(numImgs) {
-        case 1: return 600;
+        case 1: return 800;
         case 2: return 600;
         case 3: return 530;
         case 4: return 530;

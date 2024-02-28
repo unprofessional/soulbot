@@ -93,27 +93,6 @@ const createTwitterVideoCanvas = async (metadataJson) => {
     // Fill background color
     ctx.fillStyle = '#000';
 
-    // // Find number of associated media
-    // const filterMediaUrls = (metadata, extensions) => {
-    //     return metadata.mediaUrls.filter((mediaUrl) => {
-    //         const mediaUrlParts = mediaUrl.split('.');
-    //         const fileExtensionWithQueryParams = mediaUrlParts[mediaUrlParts.length - 1];
-    //         const fileExtension = fileExtensionWithQueryParams.split('?')[0];
-    //         return extensions.includes(fileExtension);
-    //     });
-    // };
-
-    // // Height adjustment for images
-    // const getMaxHeight = (numImgs) => {
-    //     switch(numImgs) {
-    //     case 1: return 600;
-    //     case 2: return 600;
-    //     case 3: return 530;
-    //     case 4: return 530;
-    //     default: return 600;
-    //     }
-    // };
-
     const numOfImgs = 1;//filterMediaUrls(metadata, ['jpg', 'jpeg', 'png']).length;
     console.log('>>>>> createTwitterCanvas > numOfImgs', numOfImgs);
     const numOfVideos = 1;//filterMediaUrls(metadata, ['mp4']).length;
