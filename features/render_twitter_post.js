@@ -37,7 +37,7 @@ const renderTwitterPost = async (metadataJson, message) => {
     console.log('>>>>> renderTwitterPost > hasVids: ', hasVids);
 
     console.log('>>>>> renderTwitterPost > creating directories if not exists...');
-    await mkdir(`./${processingDir}/`, (err) => {
+    mkdir(`./${processingDir}/`, { recursive: true }, (err) => {
         if (err) throw err;
     });
 
