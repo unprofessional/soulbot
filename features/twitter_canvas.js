@@ -142,6 +142,8 @@ const createTwitterCanvas = async (metadataJson, isImage) => {
             height: metadata.mediaExtended[0].size.height,
             width: metadata.mediaExtended[0].size.width,
         };
+        // Recusively scale down by half if larger than allowed
+        // mediaObject = scaleDownByHalf(mediaObject, mediaMaxHeight, mediaMaxWidth);
         // console.log('>>>>> hasImgs > mediaObject: ', mediaObject);
         if(metadata.mediaExtended.length < 2 && mediaObject.width > mediaObject.height) {
             const newWidthRatio = mediaMaxWidth / mediaObject.width;

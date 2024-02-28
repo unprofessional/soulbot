@@ -16,6 +16,30 @@ const scaleToFitWiderThanHeight = (
     ctx.drawImage(mainMedia1, 20, yPosition, mediaMaxWidth, adjustedHeight);
 };
 
+// recursive utility function
+const scaleDownToFit = (
+    { height, width },
+    mediaMaxHeight,
+    mediaMaxWidth,
+) => {
+    // console.log('>>>>> scaleDownByHalf > height: ', height);
+    // console.log('>>>>> scaleDownByHalf > width: ', width);
+    if(height < mediaMaxHeight && width < mediaMaxWidth) {
+        return {
+            height,
+            width,
+        };
+    }
+    return scaleDownToFit(
+        {
+            height: Math.floor(height/1.1),
+            width: Math.floor(width/1.1),
+        },
+        mediaMaxHeight,
+        mediaMaxWidth,
+    );
+};
+
 /**
  * 
  * @param {*} ctx 
@@ -35,12 +59,35 @@ const singleImage = async (
 ) => {
     const mainMedia1Url = metadata.mediaUrls[0];
     const mainMedia1 = await loadImage(mainMedia1Url);
-    const xPosition = 20;
+    // const xPosition = 20;
     const yPosition = calculatedCanvasHeightFromDescLines - heightShim - 50;
     if (mainMedia1.width > mainMedia1.height) {
         scaleToFitWiderThanHeight(ctx, mainMedia1, yPosition, mediaMaxWidth);
     } else {
-        cropSingleImage(ctx, mainMedia1, mediaMaxHeight, mediaMaxWidth, xPosition, yPosition);
+        let mediaObject = {
+            height: metadata.mediaExtended[0].size.height,
+            width: metadata.mediaExtended[0].size.width,
+        };
+        console.log('>>>>> single image > mediaObject1: ', mediaObject);
+        mediaObject = scaleDownToFit(mediaObject, mediaMaxHeight, mediaMaxWidth);        
+        console.log('>>>>> single image > mediaObject1: ', mediaObject);
+        console.log('>>>>> single image > mediaMaxHeight: ', mediaMaxHeight);
+        console.log('>>>>> single image > mediaMaxWidth: ', mediaMaxWidth);
+        
+        /*
+        if maxWidth is 560, then X is the media width
+        center coordinate of maxWidth is maxWidth/2
+        then we need to "add" (or subject in this case to shift left):
+            mediaObject.width/2
+        then offset right 20 to fit padding
+        */
+        
+        const firstXPosition = 20 + mediaMaxWidth/2 - mediaObject.width/2;
+        const firstYPosition = calculatedCanvasHeightFromDescLines - heightShim - 50;
+        ctx.drawImage(
+            mainMedia1,
+            firstXPosition, firstYPosition, mediaObject.width, mediaObject.height
+        );
     }
 };
 

@@ -23,6 +23,11 @@ const renderTwitterPost = async (metadataJson, message) => {
     console.log('>>>>> renderTwitterPost > hasVids: ', hasVids);
 
     if(hasVids) {
+
+        /**
+         * 1) readdir 'ffmpeg' to count directories
+         * 2) if dirCount > 3, message.reply({ content: 'video processing at capacity, try again later' })
+         */
         
         console.log('>>>>> renderTwitterPost > HAS videos!!!');
 
