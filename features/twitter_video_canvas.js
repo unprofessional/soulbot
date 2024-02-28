@@ -269,7 +269,7 @@ const createTwitterVideoCanvas = async (metadataJson) => {
     // TODO: account for the fact that we won't have height/width of the image
     
     console.log('>>>>> twitter_video_canvas > creating directories if not exists...');
-    mkdir(`./${localWorkingPath}/${workingDir}/`, { recursive: true }, (err) => {
+    await mkdir(`./${localWorkingPath}/${workingDir}/`, { recursive: true }, (err) => {
         if (err) throw err;
     });
 

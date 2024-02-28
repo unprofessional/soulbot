@@ -1,4 +1,4 @@
-const { readdir, readFile } = require('node:fs').promises
+const { mkdir, readdir, readFile } = require('node:fs').promises
 const { createTwitterCanvas } = require('./twitter_canvas.js');
 const { createTwitterVideoCanvas } = require('./twitter_video_canvas.js');
 // const { getVideoDuration } = require('./video-twitter');
@@ -35,6 +35,11 @@ const renderTwitterPost = async (metadataJson, message) => {
     console.log('>>>>> renderTwitterPost > numOfVideos: ', numOfVideos);
     const hasVids = numOfVideos > 0;
     console.log('>>>>> renderTwitterPost > hasVids: ', hasVids);
+
+    console.log('>>>>> renderTwitterPost > creating directories if not exists...');
+    await mkdir(`./${processingDir}/`, (err) => {
+        if (err) throw err;
+    });
 
     if(hasVids) {
 
