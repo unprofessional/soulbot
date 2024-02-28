@@ -5,6 +5,7 @@ const { createTwitterVideoCanvas } = require('./twitter_video_canvas.js');
 const { cleanup } = require('./video-twitter/cleanup.js');
 
 const MAX_CONCURRENT_REQUESTS = 3; // Example limit
+const processingDir = 'ffmpeg';
 
 async function countDirectoriesInDirectory(dirPath) {
     try {
@@ -37,7 +38,7 @@ const renderTwitterPost = async (metadataJson, message) => {
 
     if(hasVids) {
 
-        const currentDirCount = await countDirectoriesInDirectory(baseWorkingDir);
+        const currentDirCount = await countDirectoriesInDirectory(processingDir);
         if (currentDirCount >= MAX_CONCURRENT_REQUESTS) {
             // Logic to queue the request or reject it with a message to try again later
             return await message.reply(
@@ -48,8 +49,6 @@ const renderTwitterPost = async (metadataJson, message) => {
         }
         
         console.log('>>>>> renderTwitterPost > HAS videos!!!');
-
-        const processingDir = 'ffmpeg';
 
         const mediaUrl = metadataJson.mediaURLs[0];
         const mediaUrlParts = mediaUrl.split('/');
