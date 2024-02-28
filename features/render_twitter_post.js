@@ -1,8 +1,21 @@
-const { readFile } = require('node:fs').promises
+const { readdir, readFile } = require('node:fs').promises
 const { createTwitterCanvas } = require('./twitter_canvas.js');
 const { createTwitterVideoCanvas } = require('./twitter_video_canvas.js');
-const { getVideoDuration } = require('./video-twitter');
+// const { getVideoDuration } = require('./video-twitter');
 const { cleanup } = require('./video-twitter/cleanup.js');
+
+const MAX_CONCURRENT_REQUESTS = 3; // Example limit
+
+async function countDirectoriesInDirectory(dirPath) {
+    try {
+        const entries = await readdir(dirPath, { withFileTypes: true });
+        const dirCount = entries.filter(dirent => dirent.isDirectory()).length;
+        return dirCount;
+    } catch (error) {
+        console.error('An error occurred:', error);
+        throw error; // Rethrow the error if you want to handle it further up the call stack
+    }
+}
 
 const renderTwitterPost = async (metadataJson, message) => {
 
@@ -24,10 +37,15 @@ const renderTwitterPost = async (metadataJson, message) => {
 
     if(hasVids) {
 
-        /**
-         * 1) readdir 'ffmpeg' to count directories
-         * 2) if dirCount > 3, message.reply({ content: 'video processing at capacity, try again later' })
-         */
+        const currentDirCount = await countDirectoriesInDirectory(baseWorkingDir);
+        if (currentDirCount >= MAX_CONCURRENT_REQUESTS) {
+            // Logic to queue the request or reject it with a message to try again later
+            return await message.reply(
+                {
+                    content: 'Video processing at capacity; try again later.',
+                }
+            );
+        }
         
         console.log('>>>>> renderTwitterPost > HAS videos!!!');
 
