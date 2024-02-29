@@ -217,6 +217,7 @@ const renderImageGallery = async (
 };
 
 module.exports = {
+    scaleDownToFit,
     singleImage,
     singleVideoFrame,
     renderImageGallery,

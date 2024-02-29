@@ -4,7 +4,7 @@ const {
     loadImage,
 } = require('canvas');
 const { cropSingleImage } = require('./crop_single_image.js');
-const { singleImage, renderImageGallery } = require('./image_gallery_rendering.js');
+const { scaleDownToFit, renderImageGallery } = require('./image_gallery_rendering.js');
 
 const TimeAgo = require('javascript-time-ago');
 const en = require('javascript-time-ago/locale/en');
@@ -143,8 +143,8 @@ const createTwitterCanvas = async (metadataJson, isImage) => {
             width: metadata.mediaExtended[0].size.width,
         };
         // Recusively scale down by half if larger than allowed
-        // mediaObject = scaleDownByHalf(mediaObject, mediaMaxHeight, mediaMaxWidth);
         // console.log('>>>>> hasImgs > mediaObject: ', mediaObject);
+        mediaObject = scaleDownToFit(mediaObject, mediaMaxHeight, mediaMaxWidth);
         if(metadata.mediaExtended.length < 2 && mediaObject.width > mediaObject.height) {
             const newWidthRatio = mediaMaxWidth / mediaObject.width;
             // console.log('>>>>> newWidthRatio: ', newWidthRatio);
@@ -152,7 +152,10 @@ const createTwitterCanvas = async (metadataJson, isImage) => {
             // console.log('>>>>> adjustedHeight: ', adjustedHeight);
             heightShim = adjustedHeight;    
         } else {
-            heightShim = mediaMaxHeight;
+            // heightShim = mediaMaxHeight;
+            console.log('>>> mediaObject.height: ', mediaObject.height);
+            console.log('>>> mediaMaxHeight: ', mediaMaxHeight);
+            heightShim = mediaObject.height < mediaMaxHeight ? mediaObject.height : mediaMaxHeight;
         }
     }
 
