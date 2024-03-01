@@ -28,7 +28,7 @@ async function countDirectoriesInDirectory(dirPath) {
     }
 }
 
-const renderTwitterPost = async (metadataJson, message) => {
+const renderTwitterPost = async (metadataJson, message, isTwitterUrl) => {
 
     // Calculate media
     const filteredVideoUrls = metadataJson.mediaURLs.filter((mediaUrl) => {
@@ -92,9 +92,12 @@ const renderTwitterPost = async (metadataJson, message) => {
         // Create a MessageAttachment and send it
         try {
             if (successFilePath === false) {
+                const fixedUrl = isTwitterUrl
+                    ? mediaUrl.replace('https://twitter.com', 'https://vxtwitter.com') 
+                    : mediaUrl.replace('https://x.com', 'https://fixvx.com');
                 await message.reply(
                     {
-                        content: `Video too long! Must be less than 60 seconds! ${mediaUrl}`,
+                        content: `Video too long! Must be less than 60 seconds! ${fixedUrl}`,
                     }
                 );
                 await cleanup([], [localWorkingPath]);
