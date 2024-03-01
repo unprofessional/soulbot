@@ -92,9 +92,10 @@ const renderTwitterPost = async (metadataJson, message, isTwitterUrl) => {
         // Create a MessageAttachment and send it
         try {
             if (successFilePath === false) {
+                const twitterUrl = metadataJson.tweetURL;
                 const fixedUrl = isTwitterUrl
-                    ? mediaUrl.replace('https://twitter.com', 'https://vxtwitter.com') 
-                    : mediaUrl.replace('https://x.com', 'https://fixvx.com');
+                    ? twitterUrl.replace('https://twitter.com', 'https://vxtwitter.com') 
+                    : twitterUrl.replace('https://x.com', 'https://fixvx.com');
                 await message.reply(
                     {
                         content: `Video too long! Must be less than 60 seconds! ${fixedUrl}`,
