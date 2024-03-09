@@ -47,7 +47,12 @@ spec:
         volumeMounts:
         - name: data-volume
           mountPath: /data
+        - name: temp-data-volume
+          mountPath: /tempdata
       volumes:
       - name: data-volume
         persistentVolumeClaim:
           claimName: soulbot-pvc
+      - name: temp-data-volume
+        emptyDir:
+          medium: Memory
