@@ -2,6 +2,7 @@ const { existsSync } = require('node:fs');
 // const { stat } = require('node:fs').promises;
 const { cleanup } = require('../features/video-twitter/cleanup.js');
 const { createTwitterVideoCanvas } = require('../features/twitter_video_canvas.js');
+const { buildPathsAndStuff } = require('../features/path_builder.js');
 
 const metadata = {
     "communityNote": null,
@@ -39,23 +40,12 @@ const metadata = {
 };
 
 const processingDir = 'ffmpeg';
-// const workingDir = 'canvassed';
+const pathObj = buildPathsAndStuff(processingDir, metadata.mediaURLs[0]);
 
-const mediaUrl = metadata.mediaURLs[0];
-const mediaUrlParts = mediaUrl.split('/');
-const filenameWithQueryParams = mediaUrlParts[mediaUrlParts.length - 1];
-const filenameWithQueryParamsParts = filenameWithQueryParams.split('?');
-const originalVideoFilename = filenameWithQueryParamsParts[0];
+const localWorkingPath = pathObj.localWorkingPath;
+const localVideoOutputPath = pathObj.localVideoOutputPath;
 
-const filenameParts = originalVideoFilename.split('.');
-const filename = filenameParts[0]; // grab filename/fileID without extension
-const localWorkingPath = `${processingDir}/${filename}`; // filename is the directory here for uniqueness
-const localVideoOutputPath = `${localWorkingPath}/${originalVideoFilename}`;
-// const localAudioPath = `${localWorkingPath}/${filename}.mp3`;
-
-// const framesPattern = `${localWorkingPath}/${workingDir}/${filename}_%03d.png`;
-// const localCompiledVideoOutputPath = `${localWorkingPath}/finished-${originalVideoFilename}`;
-const recombinedFilePath = `${localWorkingPath}/recombined-av-${originalVideoFilename}`;
+const recombinedFilePath = pathObj.recombinedFilePath;
 
 
 describe('twitter video canvas frame embedding and file output testing', () => {
