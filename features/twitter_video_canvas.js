@@ -20,7 +20,7 @@ const {
     recombineFramesToVideo,
     combineAudioWithVideo,
 } = require('./video-twitter');
-
+const { buildPathsAndStuff } = require('./path_builder.js');
 const TimeAgo = require('javascript-time-ago');
 const en = require('javascript-time-ago/locale/en');
 TimeAgo.addDefaultLocale(en);
@@ -189,36 +189,21 @@ const createTwitterVideoCanvas = async (metadataJson) => {
     const videoUrl = metadata.mediaUrls[0];
     console.log('>>>>> twitter_video_canvas > videoUrl: ', videoUrl);
 
-    const extractFilename = (videoUrl) => {
-        const videoUrlParts = videoUrl.split('/');
-        console.log('>>>>> twitter_video_canvas > videoUrlParts: ', videoUrlParts);
-        const filenameQueryParamParts = videoUrlParts[videoUrlParts.length - 1].split('?');
-        console.log('>>>>> twitter_video_canvas > filenameQueryParamParts: ', filenameQueryParamParts);
-        const filename = filenameQueryParamParts[0];
-        console.log('>>>>> twitter_video_canvas > filename: ', filename);
-        return filename;
-    };
-
     /**
      * BEGIN FILENAME / PATHING PRE-PROCESSING
      * 
      * TODO: Refactor ths out into a utility function that returns an object with these properties (and better named)
      */
-
-    const sourceVideoFilename = extractFilename(videoUrl);
-
-    const processingDir = 'ffmpeg';
+    const processingDir = '/tempdata';
     const workingDir = 'canvassed';
+    const pathObj = buildPathsAndStuff(processingDir, videoUrl);
 
-    const filenameParts = sourceVideoFilename.split('.');
-    const filename = filenameParts[0]; // grab filename/fileID without extension
-    const localWorkingPath = `${processingDir}/${filename}`; // filename is the directory here for uniqueness
-    const localVideoOutputPath = `${localWorkingPath}/${sourceVideoFilename}`;
-    const localAudioPath = `${localWorkingPath}/${filename}.mp3`;
-
-    const framesPattern = `${localWorkingPath}/${workingDir}/${filename}_%03d.png`;
-    const localCompiledVideoOutputPath = `${localWorkingPath}/finished-${sourceVideoFilename}`;
-    const recombinedFilePath = `${localWorkingPath}/recombined-av-${sourceVideoFilename}`;
+    const localWorkingPath = pathObj.localWorkingPath;
+    const localVideoOutputPath = pathObj.localVideoOutputPath;
+    const localAudioPath = pathObj.localAudioPath;
+    const framesPattern = pathObj.framesPattern;
+    const localCompiledVideoOutputPath = pathObj.localCompiledVideoOutputPath;
+    const recombinedFilePath = pathObj.recombinedFilePath;
 
     console.log('>>>>> twitter_video_canvas > downloading video...');
     const isSuccess = await downloadVideo(videoUrl, localVideoOutputPath);
