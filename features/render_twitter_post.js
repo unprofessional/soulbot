@@ -5,7 +5,7 @@ const { createTwitterVideoCanvas } = require('./twitter_video_canvas.js');
 const { cleanup } = require('./video-twitter/cleanup.js');
 
 const MAX_CONCURRENT_REQUESTS = 3; // Example limit
-const processingDir = 'ffmpeg';
+const processingDir = '/tempdata';
 
 async function createDirectoryIfNotExists(processingDir) {
     try {
