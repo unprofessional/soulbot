@@ -20,11 +20,12 @@ const basePath = process.env.STORE_PATH;
  * @returns 
  */
 const ensureDirectoryExists = (filePath) => {
-    const dirname = path.dirname(filePath);
+    const dirname = path.dirname(filePath); // TODO: we can use this for others
     if (existsSync(dirname)) {
         return true;
     }
-    mkdirSync(dirname, { recursive: true });
+    console.log('>>>>> ensureDirectoryExists > dirname: ', dirname);
+    mkdirSync(`${dirname}/canvassed/`, { recursive: true });
 };
 
 /**
@@ -37,6 +38,7 @@ const ensureDirectoryExists = (filePath) => {
  * @returns a promise depending on fileStream write success or not
  */
 const downloadVideo = async (remoteFileUrl, outputPath) => {
+    console.log('>>>>> downloadVideo > outputPath: ', outputPath);
     ensureDirectoryExists(outputPath);
     const response = await fetch(remoteFileUrl);
     console.log('>>>>> downloadVideo > fetching video from URL...');
