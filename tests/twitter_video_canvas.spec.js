@@ -39,7 +39,7 @@ const metadata = {
     "user_screen_name": "hansvanharken"
 };
 
-const processingDir = 'ffmpeg';
+const processingDir = '/tempdata';
 const pathObj = buildPathsAndStuff(processingDir, metadata.mediaURLs[0]);
 
 const localWorkingPath = pathObj.localWorkingPath;
@@ -60,6 +60,6 @@ describe('twitter video canvas frame embedding and file output testing', () => {
         const finalVideoFileExists = existsSync(recombinedFilePath);
         expect(finalVideoFileExists).toBe(true);
 
-        await cleanup([], [localWorkingPath]);
+        // await cleanup([], [localWorkingPath]);
     }, 60000); // give it one full minute to test...
 });
