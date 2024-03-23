@@ -155,7 +155,7 @@ function recombineFramesToVideo(framesPattern, outputVideoPath, frameRate = 10) 
         ffmpeg()
             .input(framesPattern)
             .inputFPS(frameRate)
-            .outputOptions(['-pix_fmt yuv420p']) // Specify the pixel format here
+            .outputOptions(['-pix_fmt yuv420p', '-preset ultrafast']) // Specify the pixel format here
             .output(outputVideoPath)
             .size('560x?') // Set the video size to 1280x720
             .videoCodec('libx264')
