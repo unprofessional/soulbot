@@ -189,7 +189,8 @@ const createTwitterVideoCanvas = async (metadataJson) => {
     const videoUrl = metadata.mediaUrls[0];
     console.log('>>>>> twitter_video_canvas > videoUrl: ', videoUrl);
 
-    /**
+    /** VIDEO PROCESSING LOGIC BEGINS HERE!!!!!
+     * 
      * BEGIN FILENAME / PATHING PRE-PROCESSING
      * 
      * TODO: Refactor ths out into a utility function that returns an object with these properties (and better named)
