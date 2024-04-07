@@ -10,7 +10,7 @@ const metadata = {
     "date": "Mon Feb 19 03:37:49 +0000 2024",
     "date_epoch": 1708313869,
     "hashtags": [],
-    "likes": 137,
+    "likes": 138,
     "mediaURLs": [
         "https://video.twimg.com/ext_tw_video/1759421971660705792/pu/vid/avc1/888x640/vDn0W9g9SgNGVEcD.mp4?tag=12"
     ],
@@ -35,10 +35,9 @@ const metadata = {
     "tweetID": "1759422005991063570",
     "tweetURL": "https://twitter.com/hansvanharken/status/1759422005991063570",
     "user_name": "Hans Van Harken",
-    "user_profile_image_url": "https://pbs.twimg.com/profile_images/1686508177565904896/YmgfubiL_normal.jpg",
+    "user_profile_image_url": "https://pbs.twimg.com/profile_images/1773206429232680960/lbBg-l3U_normal.jpg",
     "user_screen_name": "hansvanharken"
-};
-
+}
 const processingDir = '/tempdata';
 const pathObj = buildPathsAndStuff(processingDir, metadata.mediaURLs[0]);
 
@@ -47,19 +46,44 @@ const localVideoOutputPath = pathObj.localVideoOutputPath;
 
 const recombinedFilePath = pathObj.recombinedFilePath;
 
+const piece1 = `${localWorkingPath}/segment_000.mp4`;
+const piece2 = `${localWorkingPath}/segment_001.mp4`;
+
+const firstFrame = `${localWorkingPath}/segment_000/frame_001.png`;
 
 describe('twitter video canvas frame embedding and file output testing', () => {
-    test('send metadata into the canvas', async () => {
+
+    test('split video into 10 second chunks', async () => {
         await createTwitterVideoCanvas(metadata);
+        console.log('>>>>> split video TEST > localVideoOutputPath: ', localVideoOutputPath);
+        console.log('>>>>> split video TEST > recombinedFilePath: ', recombinedFilePath);
 
-        console.log('>>>>> send metadata TEST > localVideoOutputPath: ', localVideoOutputPath);
-        console.log('>>>>> send metadata TEST > recombinedFilePath: ', recombinedFilePath);
+        const firstPieceExists = existsSync(piece1);
+        expect(firstPieceExists).toBe(true);
+        const secondPieceExists = existsSync(piece2);
+        expect(secondPieceExists).toBe(true);
 
-        const originalVideoFileExists = existsSync(localVideoOutputPath);
-        expect(originalVideoFileExists).toBe(true);
-        const finalVideoFileExists = existsSync(recombinedFilePath);
-        expect(finalVideoFileExists).toBe(true);
+        console.log('>>>>> split video TEST > firstFrame: ', firstFrame);
+
+        const firstFrameExists = existsSync(firstFrame);
+        expect(firstFrameExists).toBe(true);
 
         // await cleanup([], [localWorkingPath]);
-    }, 60000); // give it one full minute to test...
+    }, 30000);
+
+    // test('send metadata into the canvas', async () => {
+    //     await createTwitterVideoCanvas(metadata);
+
+    //     console.log('>>>>> send metadata TEST > localVideoOutputPath: ', localVideoOutputPath);
+    //     console.log('>>>>> send metadata TEST > recombinedFilePath: ', recombinedFilePath);
+
+    //     const originalVideoFileExists = existsSync(localVideoOutputPath);
+    //     expect(originalVideoFileExists).toBe(true);
+    //     const finalVideoFileExists = existsSync(recombinedFilePath);
+    //     expect(finalVideoFileExists).toBe(true);
+
+    //     await cleanup([], [localWorkingPath]);
+    // }, 60000); // give it one full minute to test...
+
 });
+

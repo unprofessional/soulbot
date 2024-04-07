@@ -1,26 +1,10 @@
-const { existsSync } = require('node:fs');
-const { 
-    mkdir,
-    // readFile,
-    readdir,
-    stat,
-    writeFile,
-} = require('node:fs').promises
 const {
     // registerFont,
     createCanvas,
     loadImage,
 } = require('canvas');
-// const { cropSingleImage } = require('./crop_single_image.js');
-const { singleVideoFrame } = require('./image_gallery_rendering.js');
-const { 
-    downloadVideo,
-    extractAudioFromVideo,
-    extractFrames,
-    recombineFramesToVideo,
-    combineAudioWithVideo,
-} = require('./video-twitter');
-const { buildPathsAndStuff } = require('./path_builder.js');
+// const { videoLogic } = require('./video-twitter/video_logic');
+const { executeVideoSplitAndProcessFlow } = require('./video_splitter.js');
 const TimeAgo = require('javascript-time-ago');
 const en = require('javascript-time-ago/locale/en');
 TimeAgo.addDefaultLocale(en);
@@ -180,118 +164,27 @@ const createTwitterVideoCanvas = async (metadataJson) => {
     };
   
     const favIconUrl = 'https://abs.twimg.com/favicons/twitter.3.ico';
+    console.log('>>> twitter_video_canvas > favicon loading...: ', favIconUrl);
     const favicon = await loadImage(favIconUrl);
     const pfpUrl = metadata.pfpUrl;
+    console.log('>>> twitter_video_canvas > pfpUrl loading...: ', pfpUrl);
     const pfp = await loadImage(pfpUrl);
     drawBasicElements(metadata, favicon, pfp);
 
-    // TODO: Utility function
+    // Video processing starts here
+
     const videoUrl = metadata.mediaUrls[0];
     console.log('>>>>> twitter_video_canvas > videoUrl: ', videoUrl);
+    const successFilePath = await executeVideoSplitAndProcessFlow(
+        ctx,
+        calculatedCanvasHeightFromDescLines,
+        heightShim, mediaMaxHeight, mediaMaxWidth,
+        canvas,
+        videoUrl,
+    );
+    console.log('>>>>> twitter_video_canvas > successFilePath: ', successFilePath);
 
-    /** VIDEO PROCESSING LOGIC BEGINS HERE!!!!!
-     * 
-     * BEGIN FILENAME / PATHING PRE-PROCESSING
-     * 
-     * TODO: Refactor ths out into a utility function that returns an object with these properties (and better named)
-     */
-    const processingDir = '/tempdata';
-    const workingDir = 'canvassed';
-    const pathObj = buildPathsAndStuff(processingDir, videoUrl);
-
-    const localWorkingPath = pathObj.localWorkingPath;
-    const localVideoOutputPath = pathObj.localVideoOutputPath;
-    const localAudioPath = pathObj.localAudioPath;
-    const framesPattern = pathObj.framesPattern;
-    const localCompiledVideoOutputPath = pathObj.localCompiledVideoOutputPath;
-    const recombinedFilePath = pathObj.recombinedFilePath;
-
-    console.log('>>>>> twitter_video_canvas > downloading video...');
-    const isSuccess = await downloadVideo(videoUrl, localVideoOutputPath);
-    console.log('>>>>> twitter_video_canvas > isSuccess: ', isSuccess);
-    if (isSuccess === false) { // duration too long FIXME: we need to capture this specific Error scenario (custom Error Object?)
-        return false;
-    }
-
-    try {
-        console.log('>>>>> twitter_video_canvas > extracting audio...');
-        await extractAudioFromVideo(localVideoOutputPath, localAudioPath);
-    } catch (err) {
-        console.log('>>>>> twitter_video_canvas > audio processing error!: ', err);
-    }
-    console.log('>>>>> twitter_video_canvas > extracting video frames...');
-    await extractFrames(localVideoOutputPath);
-
-    console.log('>>>>> twitter_video_canvas > compiling list of frames to work with...');
-    const framesFilenamesUnfiltered = await readdir(localWorkingPath); // raw video frames, not yet canvassed
-    const framesFilenames = framesFilenamesUnfiltered.filter((framepath) => {
-        const framepathParts = framepath.split('.');
-        return framepathParts[framepathParts.length - 1] === 'png';
-    });
-
-    // console.log('>>>>> twitter_video_canvas > framesFilenames: ', framesFilenames);
-
-    // TODO: account for the fact that we won't have height/width of the image
-    
-    console.log('>>>>> twitter_video_canvas > creating directories if not exists...: ', `${localWorkingPath}/${workingDir}/`);
-    await mkdir(`${localWorkingPath}/${workingDir}/`, { recursive: true }, (err) => {
-        if (err) throw err;
-    });
-
-    console.log('>>>>> twitter_video_canvas > generating frames...');
-    for (const frameFilename of framesFilenames) {
-        const filenamePath = `${localWorkingPath}/${frameFilename}`;
-        // console.log('!!! twitter_video_canvas > filenamePath: ', filenamePath);
-    
-        await singleVideoFrame(
-            ctx,
-            filenamePath,
-            calculatedCanvasHeightFromDescLines,
-            heightShim,
-            mediaMaxHeight,
-            mediaMaxWidth,
-        );
-        const canvasFilePath = `${localWorkingPath}/${workingDir}/${frameFilename}`;
-        // console.log('>>>>> twitter_video_canvas > canvasFilePath: ', canvasFilePath);
-        await writeFile(canvasFilePath, canvas.toBuffer('image/png'), { flag: 'w', encoding: 'utf8' });
-    }
-
-    // console.log('>>>>> twitter_video_canvas > framesPattern: ', framesPattern);
-    // console.log('>>>>> twitter_video_canvas > localCompiledVideoOutputPath: ', localCompiledVideoOutputPath);
-    console.log('>>>>> twitter_video_canvas > recombining canvassed frames into video...');
-    await recombineFramesToVideo(framesPattern, localCompiledVideoOutputPath);
-
-    // console.log('>>>>> twitter_video_canvas > localCompiledVideoOutputPath: ', localCompiledVideoOutputPath);
-    // console.log('>>>>> twitter_video_canvas > localAudioPath: ', localAudioPath);
-    // console.log('>>>>> twitter_video_canvas > recombinedFilePath: ', recombinedFilePath);
-
-
-    const checkIfLocalAudioFileExists = async path => !!(await stat(localAudioPath).catch(e => false));
-    const localAudioFileExists = await checkIfLocalAudioFileExists();
-    let finalVideoFileExists = false;
-    console.log('>>>>> twitter_video_canvas > localAudioFileExists: ', localAudioFileExists);
-    if (localAudioFileExists) {
-        console.log('>>>>> twitter_video_canvas > recombining audio with new video...');
-        await combineAudioWithVideo(localCompiledVideoOutputPath, localAudioPath, recombinedFilePath);
-        finalVideoFileExists = existsSync(recombinedFilePath);
-    } else {
-        finalVideoFileExists = existsSync(localCompiledVideoOutputPath);
-    }
-
-    return new Promise((resolve, reject) => {
-        try {
-            if(finalVideoFileExists) {
-                return resolve(localAudioFileExists ? recombinedFilePath : localCompiledVideoOutputPath);
-            }
-            else {
-                return reject('File does not yet exist!');
-            }
-        }
-        catch (err) {
-            return reject(err);
-        }
-        // nothing else happens because all we're doing, when this is done, is reading the file we created from the calling side
-    });
+    return successFilePath;
     
 };
 
