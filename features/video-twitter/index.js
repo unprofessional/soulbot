@@ -1,7 +1,6 @@
 const path = require('node:path');
 const {
-    constants,
-    // writeFile,
+    mkdir,
 } = require('node:fs').promises;
 const {
     // createReadStream,
@@ -108,23 +107,33 @@ function extractAudioFromVideo(videoPath, outputPath) {
  * @param {*} localVideoFilePath 
  * @param {*} frameRate 
  */
-function extractFrames(localVideoFilePath, frameRate = 10) {
+async function extractFrames(localVideoFilePath, frameRate = 10) {
 
-    console.log('>>>> extractFrames > localVideoFilePath: ', localVideoFilePath);
+    console.log('>>> extractFrames > localVideoFilePath: ', localVideoFilePath);
 
     const pathParts = localVideoFilePath.split('/');
-    console.log('pathParts: ', pathParts);
-    console.log('pathParts.length: ', pathParts.length);
+    console.log('>>> extractFrames > pathParts: ', pathParts);
+    console.log('>>> extractFrames > pathParts.length: ', pathParts.length);
     const filenameWithExtension = pathParts[pathParts.length - 1];
+    console.log('>>> extractFrames > filenameWithExtension: ', filenameWithExtension);
+    const filenameWithoutExtension = filenameWithExtension.split('.')[0];
+    console.log('>>> extractFrames > filenameWithoutExtension: ', filenameWithoutExtension);
     const filenameParts = filenameWithExtension.split('.');
     const filename = filenameParts[0];
-    console.log('filename: ', filename);
+    console.log('>>> extractFrames > filename: ', filename);
     const pathPartsWithoutFile = pathParts.splice(0, pathParts.length - 1);
-    console.log('pathPartsWithoutFile: ', pathPartsWithoutFile);
+    console.log('>>> extractFrames > pathPartsWithoutFile: ', pathPartsWithoutFile);
     const path = pathPartsWithoutFile.join('/');
-    console.log('path: ', path);
-    const framesPathPattern = `${path}/${filename}_%03d.png`;
-    console.log('framesPathPattern: ', framesPathPattern);
+    console.log('>>> extractFrames > path: ', path);
+    const framesPathPattern = `${path}/${filename}/frame_%03d.png`;
+    console.log('>>> extractFrames > framesPathPattern: ', framesPathPattern);
+
+    console.log('>>>>> extractFrames > creating directories if not exists...: ', `${path}/${filename}`);
+    await mkdir(`${path}/${filename}`, { recursive: true }, (err) => {
+        if (err) throw err;
+    });
+
+    console.log('>>>>> extractFrames > PROCESSING VIDE NOW!!!');
 
     return new Promise((resolve, reject) => {
         ffmpeg(localVideoFilePath)
@@ -135,7 +144,7 @@ function extractFrames(localVideoFilePath, frameRate = 10) {
                 resolve(); // Resolve the promise when extraction is completed
             })
             .on('error', function(err) {
-                console.error('An error occurred: ' + err.message);
+                console.error('An error occurred: ' + err);
                 reject(err); // Reject the promise on error
             })
             .run();
@@ -151,6 +160,10 @@ function extractFrames(localVideoFilePath, frameRate = 10) {
  * @param {*} frameRate
  */
 function recombineFramesToVideo(framesPattern, outputVideoPath, frameRate = 10) {
+
+    console.log('>>> recombineFramesToVideo > framesPattern: ', framesPattern);
+    console.log('>>> recombineFramesToVideo > outputVideoPath: ', outputVideoPath);
+
     return new Promise((resolve, reject) => {
         ffmpeg()
             .input(framesPattern)
