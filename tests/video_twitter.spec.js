@@ -5,8 +5,8 @@ const {
     recombineFramesToVideo,
     extractAudioFromVideo,
     combineAudioWithVideo,
-} = require('../features/video-twitter/index.js');
-const { cleanup } = require('../features/video-twitter/cleanup.js');
+} = require('../features/twitter-video/index.js');
+const { cleanup } = require('../features/twitter-video/cleanup.js');
 
 const testVideoUrl = "https://video.twimg.com/ext_tw_video/1759421971660705792/pu/vid/avc1/888x640/vDn0W9g9SgNGVEcD.mp4?tag=12";
 const processingDir = 'ffmpeg';

@@ -1,8 +1,8 @@
 const { mkdir, readdir, readFile } = require('node:fs').promises
-const { createTwitterCanvas } = require('./twitter_canvas.js');
-const { createTwitterVideoCanvas } = require('./twitter_video_canvas.js');
+const { createTwitterCanvas } = require('../twitter-post/twitter_canvas.js');
+const { createTwitterVideoCanvas } = require('../twitter-video/twitter_video_canvas.js');
 // const { getVideoDuration } = require('./video-twitter');
-const { cleanup } = require('./video-twitter/cleanup.js');
+const { cleanup } = require('../twitter-video/cleanup.js');
 
 const MAX_CONCURRENT_REQUESTS = 3; // Example limit
 const processingDir = '/tempdata';
@@ -28,7 +28,14 @@ async function countDirectoriesInDirectory(dirPath) {
     }
 }
 
-const renderTwitterPost = async (metadataJson, message, isTwitterUrl) => {
+/**
+ * !!! DEPRECATED !!!
+ * @param {d} metadataJson 
+ * @param {*} message 
+ * @param {*} isTwitterUrl 
+ * @returns 
+ */
+const oldRenderTwitterPost = async (metadataJson, message, isTwitterUrl) => {
 
     // Calculate media
     const filteredVideoUrls = metadataJson.mediaURLs.filter((mediaUrl) => {
@@ -163,6 +170,124 @@ const renderTwitterPost = async (metadataJson, message, isTwitterUrl) => {
     }
 };
 
+const filterVideoUrls = (mediaUrls) => {
+    return mediaUrls.filter(url => {
+        const fileExtension = url.split('.').pop().split('?')[0];
+        console.log('File extension:', fileExtension);
+        return fileExtension === 'mp4';
+    });
+};
+
+const getFilenameWithoutExtension = (url) => {
+    const filenameWithQueryParams = url.split('/').pop();
+    return filenameWithQueryParams.split('?')[0].split('.')[0];
+};
+
+const processVideos = async (metadataJson, message, isTwitterUrl) => {
+    console.log('Processing videos');
+
+    const mediaUrl = metadataJson.mediaURLs[0];
+    const filename = getFilenameWithoutExtension(mediaUrl);
+    const localWorkingPath = `${processingDir}/${filename}`;
+
+    await message.reply({
+        content: 'Generating video! Could take a minute. Please stand by...',
+    });
+
+    const successFilePath = await createTwitterVideoCanvas(metadataJson);
+
+    if (!successFilePath) {
+        return handleVideoTooLong(metadataJson, message, isTwitterUrl, localWorkingPath);
+    }
+
+    await sendVideoReply(message, successFilePath, localWorkingPath);
+};
+
+
+const handleVideoTooLong = async (metadataJson, message, isTwitterUrl, localWorkingPath) => {
+    console.log('Video too long');
+    const twitterUrl = metadataJson.tweetURL;
+    const fixedUrl = isTwitterUrl
+        ? twitterUrl.replace('https://twitter.com', 'https://vxtwitter.com') 
+        : twitterUrl.replace('https://x.com', 'https://fixvx.com');
+
+    await message.reply({
+        content: `Video too long! Must be less than 60 seconds! ${fixedUrl}`,
+    });
+
+    await cleanup([], [localWorkingPath]);
+};
+
+const sendVideoReply = async (message, successFilePath, localWorkingPath) => {
+    console.log('Sending video reply');
+    const files = [{
+        attachment: await readFile(successFilePath),
+        name: 'video.mp4',
+    }];
+
+    try {
+        await message.reply({ files });
+    } catch (err) {
+        await message.reply({
+            content: `Video was too large to attach! err: ${err}`,
+        });
+    }
+
+    await cleanup([], [localWorkingPath]);
+};
+
+const renderTwitterPost = async (metadataJson, message, isTwitterUrl) => {
+    const videoUrls = filterVideoUrls(metadataJson.mediaURLs);
+    const hasVids = videoUrls.length > 0;
+
+    await createDirectoryIfNotExists(processingDir);
+
+    if (hasVids) {
+        const currentDirCount = await countDirectoriesInDirectory(processingDir);
+        if (currentDirCount >= MAX_CONCURRENT_REQUESTS) {
+            return message.reply({
+                content: 'Video processing at capacity; try again later.',
+            });
+        }
+
+        return processVideos(metadataJson, message, isTwitterUrl);
+    } else {
+        // Handle non-video processing
+        console.log('>>>>> renderTwitterPost > DOES NOT have videos!!!');
+        // Convert the canvas to a Buffer
+        const buffer = await createTwitterCanvas(metadataJson);
+        await message.suppressEmbeds(true);
+
+        /**
+         * Pull image and add it as a separate image/file
+         */
+        console.log('>>>>> renderTwitterPost > metadataJson: ', metadataJson);
+        const mediaUrls = metadataJson.mediaURLs;
+        console.log('>>>>> renderTwitterPost > mediaUrls: ', mediaUrls);
+
+        let files = [{
+            attachment: buffer,
+            name: 'image.png',
+        }];
+
+        // Create a MessageAttachment and send it
+        try {
+            await message.reply(
+                {
+                    files,
+                }
+            );
+        } catch (err) {
+            await message.reply(
+                {
+                    content: `File(s) too large to attach! err: ${err}`,
+                }
+            );
+        }
+    }
+};
+
 module.exports = {
+    oldRenderTwitterPost,
     renderTwitterPost,
 };

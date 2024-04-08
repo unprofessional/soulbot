@@ -1,8 +1,8 @@
 const { existsSync } = require('node:fs');
 // const { stat } = require('node:fs').promises;
-const { cleanup } = require('../features/video-twitter/cleanup.js');
-const { createTwitterVideoCanvas } = require('../features/twitter_video_canvas.js');
-const { buildPathsAndStuff } = require('../features/path_builder.js');
+const { cleanup } = require('../features/twitter-video/cleanup.js');
+const { createTwitterVideoCanvas } = require('../features/twitter-video/twitter_video_canvas.js');
+const { buildPathsAndStuff } = require('../features/twitter-core/path_builder.js');
 
 const metadata = {
     "communityNote": null,
@@ -10,7 +10,7 @@ const metadata = {
     "date": "Mon Feb 19 03:37:49 +0000 2024",
     "date_epoch": 1708313869,
     "hashtags": [],
-    "likes": 137,
+    "likes": 138,
     "mediaURLs": [
         "https://video.twimg.com/ext_tw_video/1759421971660705792/pu/vid/avc1/888x640/vDn0W9g9SgNGVEcD.mp4?tag=12"
     ],
@@ -35,7 +35,7 @@ const metadata = {
     "tweetID": "1759422005991063570",
     "tweetURL": "https://twitter.com/hansvanharken/status/1759422005991063570",
     "user_name": "Hans Van Harken",
-    "user_profile_image_url": "https://pbs.twimg.com/profile_images/1686508177565904896/YmgfubiL_normal.jpg",
+    "user_profile_image_url": "https://pbs.twimg.com/profile_images/1773206429232680960/lbBg-l3U_normal.jpg",
     "user_screen_name": "hansvanharken"
 };
 
