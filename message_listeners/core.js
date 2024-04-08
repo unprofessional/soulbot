@@ -22,11 +22,11 @@ const twitterFeature = features.find(feature => feature.type === 'twitter');
 const {
     fetchMetadata,
     fetchQTMetadata,
-} = require('../features/fetch_metadata.js');
+} = require('../features/twitter-core/fetch_metadata.js');
 
 const {
     renderTwitterPost,
-} = require('../features/render_twitter_post.js');
+} = require('../features/twitter-core/render_twitter_post.js');
 
 // TODO: Move to "Message Validation"?
 const validationChecksHook = (message) => {
