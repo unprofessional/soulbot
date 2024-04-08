@@ -2,7 +2,7 @@ const { Events } = require('discord.js');
 
 const {
     renderProfileCanvas,
-} = require('../features/render_profile_canvas.js');
+} = require('../features/discord-profile/render_profile_canvas.js');
 
 const initializeGuildMemberAdd = (client) => {
     // "guildMemberAdd"
