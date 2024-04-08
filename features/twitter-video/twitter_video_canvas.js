@@ -12,15 +12,15 @@ const {
     loadImage,
 } = require('canvas');
 // const { cropSingleImage } = require('./crop_single_image.js');
-const { singleVideoFrame } = require('./image_gallery_rendering.js');
+const { singleVideoFrame } = require('../twitter-post/image_gallery_rendering.js');
 const { 
     downloadVideo,
     extractAudioFromVideo,
     extractFrames,
     recombineFramesToVideo,
     combineAudioWithVideo,
-} = require('./video-twitter');
-const { buildPathsAndStuff } = require('./path_builder.js');
+} = require('./index.js');
+const { buildPathsAndStuff } = require('../twitter-core/path_builder.js');
 const TimeAgo = require('javascript-time-ago');
 const en = require('javascript-time-ago/locale/en');
 TimeAgo.addDefaultLocale(en);
