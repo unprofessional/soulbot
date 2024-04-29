@@ -4,7 +4,7 @@ const { createTwitterVideoCanvas } = require('../twitter-video/twitter_video_can
 // const { getVideoDuration } = require('./video-twitter');
 const { cleanup } = require('../twitter-video/cleanup.js');
 
-const MAX_CONCURRENT_REQUESTS = 3; // Example limit
+const MAX_CONCURRENT_REQUESTS = 3;
 const processingDir = '/tempdata';
 
 async function createDirectoryIfNotExists(processingDir) {
@@ -13,7 +13,7 @@ async function createDirectoryIfNotExists(processingDir) {
         console.log(`Directory ${processingDir} created or already exists`);
     } catch (err) {
         console.error(`Error creating directory ${processingDir}:`, err);
-        throw err; // Rethrow or handle error appropriately
+        throw err;
     }
 }
 
@@ -126,11 +126,20 @@ const oldRenderTwitterPost = async (metadataJson, message, isTwitterUrl) => {
                 );
             }
         } catch (err) {
-            await message.reply(
-                {
-                    content: `Video was too large to attach! err: ${err}`,
-                }
-            );
+            try {
+                await message.reply(
+                    {
+                        content: `Video was too large to attach! err: ${err}`,
+                    }
+                );
+            } catch (err2) {
+                console.err('!!! err2: ', err2);
+                const messageReference = err2.message_reference;
+                console.err('!!! messageReference: ', messageReference);
+                const unknownMessage = messageReference.REPLIES_UNKNOWN_MESSAGE;
+                console.err('!!! unknownMessage: ', unknownMessage);
+                await cleanup([], [localWorkingPath]);
+            }
         }
 
         await cleanup([], [localWorkingPath]);
@@ -254,7 +263,6 @@ const renderTwitterPost = async (metadataJson, message, isTwitterUrl) => {
     } else {
         // Handle non-video processing
         console.log('>>>>> renderTwitterPost > DOES NOT have videos!!!');
-        // Convert the canvas to a Buffer
         const buffer = await createTwitterCanvas(metadataJson);
         await message.suppressEmbeds(true);
 
