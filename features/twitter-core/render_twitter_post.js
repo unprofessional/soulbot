@@ -241,8 +241,11 @@ const sendVideoReply = async (message, successFilePath, localWorkingPath) => {
         await message.reply({ files });
     } catch (err) {
         console.error('!!! err: ', err);
-        const messageReference = err?.message;
-        console.error('!!! messageReference: ', messageReference);
+        const errorName = err?.name;
+        console.error('!!! errorName: ', errorName);
+        const errorMsg = err?.message;
+        console.error('!!! errorMsg: ', errorMsg);
+        console.error('!!! typeof err: ', typeof err);
         // const unknownMessage = messageReference?.REPLIES_UNKNOWN_MESSAGE;
         // console.error('!!! unknownMessage: ', unknownMessage);
         await cleanup([], [localWorkingPath]);
