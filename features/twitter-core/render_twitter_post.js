@@ -249,9 +249,13 @@ const sendVideoReply = async (message, successFilePath, localWorkingPath) => {
         // const unknownMessage = messageReference?.REPLIES_UNKNOWN_MESSAGE;
         // console.error('!!! unknownMessage: ', unknownMessage);
         await cleanup([], [localWorkingPath]);
-        // if () {
-
-        // }
+        if (errorMsg === 'Invalid Form Body') {
+            await message.channel.send(
+                {
+                    content: `Encountered error trying to reply... the sender probably deleted the original message: ${err}`,
+                }
+            );
+        }
         await message.channel.send(
             {
                 content: `There was a problem! err: ${err}`,
