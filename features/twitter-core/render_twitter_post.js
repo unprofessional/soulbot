@@ -24,7 +24,7 @@ async function countDirectoriesInDirectory(dirPath) {
         return dirCount;
     } catch (error) {
         console.error('An error occurred:', error);
-        throw error; // Rethrow the error if you want to handle it further up the call stack
+        throw error;
     }
 }
 
