@@ -237,9 +237,20 @@ const sendVideoReply = async (message, successFilePath, localWorkingPath) => {
     try {
         await message.reply({ files });
     } catch (err) {
-        await message.reply({
-            content: `Video was too large to attach! err: ${err}`,
-        });
+        console.err('!!! err: ', err);
+        const messageReference = err.message_reference;
+        console.err('!!! messageReference: ', messageReference);
+        const unknownMessage = messageReference.REPLIES_UNKNOWN_MESSAGE;
+        console.err('!!! unknownMessage: ', unknownMessage);
+        await cleanup([], [localWorkingPath]);
+        // if () {
+
+        // }
+        await message.channel.send(
+            {
+                content: `There was a problem! err: ${err}`,
+            }
+        );
     }
 
     await cleanup([], [localWorkingPath]);
