@@ -249,7 +249,8 @@ const sendVideoReply = async (message, successFilePath, localWorkingPath) => {
         // const unknownMessage = messageReference?.REPLIES_UNKNOWN_MESSAGE;
         // console.error('!!! unknownMessage: ', unknownMessage);
         await cleanup([], [localWorkingPath]);
-        if (errorMsg === 'Invalid Form Body') {
+        if (errorMsg === 'Invalid Form Body' || errorName === 'DiscordAPIError[50035]') {
+            console.log('>>> errorMsg is Invalid Form Body');
             await message.channel.send(
                 {
                     content: `Encountered error trying to reply... the sender probably deleted the original message: ${err}`,
