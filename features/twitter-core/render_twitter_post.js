@@ -126,6 +126,9 @@ const oldRenderTwitterPost = async (metadataJson, message, isTwitterUrl) => {
                 );
             }
         } catch (err) {
+            /**
+             * THIS IS THE OLD BLOCK
+             */
             console.err('!!! err: ', err);
             const messageReference = err?.message_reference;
             console.err('!!! messageReference: ', messageReference);
@@ -238,10 +241,10 @@ const sendVideoReply = async (message, successFilePath, localWorkingPath) => {
         await message.reply({ files });
     } catch (err) {
         console.error('!!! err: ', err);
-        const messageReference = err.message_reference;
+        const messageReference = err?.message_reference;
         console.error('!!! messageReference: ', messageReference);
-        const unknownMessage = messageReference.REPLIES_UNKNOWN_MESSAGE;
-        console.error('!!! unknownMessage: ', unknownMessage);
+        // const unknownMessage = messageReference?.REPLIES_UNKNOWN_MESSAGE;
+        // console.error('!!! unknownMessage: ', unknownMessage);
         await cleanup([], [localWorkingPath]);
         // if () {
 
