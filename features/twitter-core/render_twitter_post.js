@@ -127,10 +127,10 @@ const oldRenderTwitterPost = async (metadataJson, message, isTwitterUrl) => {
             }
         } catch (err) {
             console.err('!!! err: ', err);
-            const messageReference = err.message_reference;
+            const messageReference = err?.message_reference;
             console.err('!!! messageReference: ', messageReference);
-            const unknownMessage = messageReference.REPLIES_UNKNOWN_MESSAGE;
-            console.err('!!! unknownMessage: ', unknownMessage);
+            // const unknownMessage = messageReference?.REPLIES_UNKNOWN_MESSAGE;
+            // console.err('!!! unknownMessage: ', unknownMessage);
             await cleanup([], [localWorkingPath]);
             // if () {
 
