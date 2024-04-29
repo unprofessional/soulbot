@@ -126,8 +126,8 @@ const oldRenderTwitterPost = async (metadataJson, message, isTwitterUrl) => {
                 );
             }
         } catch (err) {
-            console.err('!!! err2: ', err2);
-            const messageReference = err2.message_reference;
+            console.err('!!! err: ', err);
+            const messageReference = err.message_reference;
             console.err('!!! messageReference: ', messageReference);
             const unknownMessage = messageReference.REPLIES_UNKNOWN_MESSAGE;
             console.err('!!! unknownMessage: ', unknownMessage);
@@ -135,11 +135,11 @@ const oldRenderTwitterPost = async (metadataJson, message, isTwitterUrl) => {
             // if () {
 
             // }
-            // await message.reply(
-            //     {
-            //         content: `Video was too large to attach! err: ${err}`,
-            //     }
-            // );
+            await message.channel.send(
+                {
+                    content: `Video was too large to attach! err: ${err}`,
+                }
+            );
         }
 
         await cleanup([], [localWorkingPath]);
