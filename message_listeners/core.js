@@ -44,6 +44,13 @@ const validationChecksHook = (message) => {
     return validationChecks.every((check) => check());
 };
 
+// any bot
+const isABot = (message) => {
+    if(message.author.bot) return true;
+    return false;
+};
+
+
 // bot
 const isSelf = (message) => {
     if(message.author.id === '891854264845094922') return true;
@@ -113,6 +120,7 @@ const initializeListeners = (client) => {
             console.log('>>>>> NOT self!!! Reading message!!');
 
             const guildId = message.guildId;
+            const cachedGuild = client.guilds.cache.get(guildId);
 
             /**
              * Unvalidated
@@ -172,7 +180,6 @@ const initializeListeners = (client) => {
                     return;
                 }
 
-                const cachedGuild = client.guilds.cache.get(guildId);
                 // console.log('>>>>> cachedGuild: ', cachedGuild);
                 const cachedMember = cachedGuild.members.cache.get(user.id);
                 // console.log('>>>>> cachedMember: ', cachedMember);
