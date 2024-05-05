@@ -2,6 +2,7 @@ const catchPhrases = [
     'but its not like i care or anything',
     'but idrc',
     'but thats cringe',
+    // 'but yeah im normal',
 ];
 
 const getRandomCatchPhrase = () => {
@@ -12,29 +13,34 @@ const getRandomCatchPhrase = () => {
 const getTemplateResult = (userId, originalMsg, randomCatchphrase) => `<@${userId}> wants you to know: ${originalMsg} ${randomCatchphrase}`;
 
 const enforceGoldyRole = async (message) => {
-    if(message.author.id === '983754855795527710') {
 
-        const goldyUser = await message.guild.members.fetch('983754855795527710');
-        const roleNames =  goldyUser.roles.cache.map(role => role.name);
+    if (!message.guild) return;
+
+    try {
+        const memberId = message.author.id;
+        const targetUser = await message.guild.members.fetch(memberId);
+        const roleNames =  targetUser.roles.cache.map(role => role.name.toLowerCase());
         console.log('>>> enforceGoldyRole > roleNames: ', roleNames);
         const rolesContainGoldyRole = roleNames.includes('goldy');
         console.log('>>> enforceGoldyRole > rolesContainGoldyRole: ', rolesContainGoldyRole);
-
+  
         if(rolesContainGoldyRole) {
+            const originalMsg = message.content;
+            const randomCatchphrase = getRandomCatchPhrase();
+            const templateResult = getTemplateResult(memberId, originalMsg, randomCatchphrase);
+            console.log('>>> enforceGoldyRole > randomCatchphrase: ', randomCatchphrase);
             try {
-                const originalMsg = message.content;
-                const randomCatchphrase = getRandomCatchPhrase();
-                console.log('>>> enforceGoldyRole > randomCatchphrase: ', randomCatchphrase);
-                const templateResult = getTemplateResult(message.author.id, originalMsg, randomCatchphrase);
-                console.log('>>> enforceGoldyRole > templateResult: ', templateResult);
                 await message.delete();
                 await message.channel.send(templateResult);
-            } catch (err) {
-                console.error('>>> enforceGoldyRole > err: ', err);
+            } catch (deleteError) {
+                console.error('Failed to delete or send message:', deleteError);
+                // Optionally send an error message to the channel
+                // await message.channel.send("Oops! Something went wrong.");
             }
         }
+    } catch (err) {
+        console.error('>>> enforceGoldyRole > err: ', err);
     }
-
 };
 
 module.exports = { enforceGoldyRole };
