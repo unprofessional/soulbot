@@ -264,11 +264,9 @@ const createTwitterCanvas = async (metadataJson, isImage) => {
         // QT Canvas Stroke
         ctx.strokeStyle = "gray";
         console.log('>>> mediaQtMaxHeight: ', mediaQtMaxHeight);
-        const halfQtCalcHeight = calcQtHeight(qtMetadata)/2;
-        console.log('>>> halfQtCalcHeight: ', halfQtCalcHeight);
         const minMediaHeight = 300;
-        const determinedHeight = minMediaHeight > halfQtCalcHeight ? minMediaHeight : halfQtCalcHeight;
-        ctx.strokeRect(qtXPosition, qtYPosition, mediaQtMaxWidth, determinedHeight);
+        const determinedHeight = minMediaHeight > qtCalculatedCanvasHeightFromDescLines ? minMediaHeight : qtCalculatedCanvasHeightFromDescLines;
+        ctx.strokeRect(qtXPosition, qtYPosition, mediaQtMaxWidth, determinedHeight - 20); // 20 offset to match the left and right margins
         
         // Draw nickname elements
         ctx.fillStyle = 'white'; // Text color
