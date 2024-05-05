@@ -16,15 +16,19 @@ const enforceGoldyRole = async (message) => {
 
         const goldyUser = await message.guild.members.fetch('983754855795527710');
         const roleNames =  goldyUser.roles.cache.map(role => role.name);
+        console.log('>>> enforceGoldyRole > roleNames: ', roleNames);
         const rolesContainGoldyRole = roleNames.includes('goldy');
+        console.log('>>> enforceGoldyRole > rolesContainGoldyRole: ', rolesContainGoldyRole);
 
         if(rolesContainGoldyRole) {
             try {
                 const originalMsg = message.content;
                 const randomCatchphrase = getRandomCatchPhrase();
+                console.log('>>> enforceGoldyRole > randomCatchphrase: ', randomCatchphrase);
                 const templateResult = getTemplateResult(message.author.id, originalMsg, randomCatchphrase);
-                await message.delete();
-                await message.channel.send(templateResult);
+                console.log('>>> enforceGoldyRole > templateResult: ', templateResult);
+                // await message.delete();
+                // await message.channel.send(templateResult);
             } catch (err) {
                 console.error('>>> enforceGoldyRole > err: ', err);
             }

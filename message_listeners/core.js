@@ -27,6 +27,7 @@ const {
 const {
     renderTwitterPost,
 } = require('../features/twitter-core/render_twitter_post.js');
+const { enforceGoldyRole } = require('../features/role-enforcement/role-enforcement.js');
 
 // TODO: Move to "Message Validation"?
 const validationChecksHook = (message) => {
@@ -74,6 +75,8 @@ const initializeListeners = (client) => {
         console.log(`${message.guildId}: ${message.author.globalName}: ${message.content}`);
 
         if(!isSelf(message)) { // not self, but can be anyone else
+
+            await enforceGoldyRole();
 
             /**
              * This is where the actual Twitter URL listener logic begins
