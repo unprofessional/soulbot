@@ -34,12 +34,12 @@ function getWrappedText(ctx, text, maxWidth, hasVids) {
 
             for (let i = 1; i < words.length; i++) {
                 const word = words[i];
-                const width = ctx.measureText(currentLine + " " + word).width;
+                const width = ctx.measureText(currentLine + ' ' + word).width;
                 // console.log('!!!!! getWrappedText > width: ', width);
                 // console.log('!!!!! getWrappedText > maxWidth: ', maxWidth);
               
                 if (width < maxWidth) {
-                    currentLine += " " + word;
+                    currentLine += ' ' + word;
                 } else {
                     lines.push(currentLine);
                     currentLine = word;
@@ -59,12 +59,21 @@ const formatTwitterDate = (twitterDate) => {
 
 const createTwitterCanvas = async (metadataJson, isImage) => {
 
+    const removeTCOLink = (text) => {
+        if(!text) {
+            return '';
+        }
+        const shortTwitterUrlPattern = /https:\/\/t\.co\/\S+/;
+        const filteredText = text.replace(shortTwitterUrlPattern, '');
+        return filteredText;
+      };
+
     const metadata = {
         authorNick: metadataJson.user_screen_name,
         authorUsername: metadataJson.user_name,
         pfpUrl: metadataJson.user_profile_image_url,
         date: metadataJson.date,
-        description: metadataJson.text || "",
+        description: removeTCOLink(metadataJson.text),
         mediaUrls: metadataJson.mediaURLs,
         mediaExtended: metadataJson.media_extended,
     };
@@ -76,7 +85,7 @@ const createTwitterCanvas = async (metadataJson, isImage) => {
             authorUsername: metadataJson.qtMetadata.user_name,
             pfpUrl: metadataJson.qtMetadata.user_profile_image_url,
             date: metadataJson.qtMetadata.date,
-            description: metadataJson.qtMetadata.text || "", // TODO: truncate
+            description: metadataJson.qtMetadata.text || '', // TODO: truncate
             mediaUrls: metadataJson.qtMetadata.mediaURLs,
             mediaExtended: metadataJson.qtMetadata.media_extended,
         };
@@ -204,7 +213,7 @@ const createTwitterCanvas = async (metadataJson, isImage) => {
 
     /** TODO TODO TODOTODO TODO TODOTODO TODO TODOTODO TODO TODOTODO TODO TODOTODO TODO
      * REFACTOR CONSIDERATIONS: Rather than separate by PRIMARY TWEET Draw vs QT Draw,
-     * — let's instead break out each of these "Draw ______ element" into their own functions
+     * — let's instead break out each of these 'Draw ______ element' into their own functions
      * — so we can parameterize them
      */
     const drawBasicElements = (metadata, favicon, pfp) => {
@@ -262,7 +271,7 @@ const createTwitterCanvas = async (metadataJson, isImage) => {
         let qtYPosition = calculatedCanvasHeightFromDescLines;
         
         // QT Canvas Stroke
-        ctx.strokeStyle = "gray";
+        ctx.strokeStyle = 'gray';
         console.log('>>> mediaQtMaxHeight: ', mediaQtMaxHeight);
         const minMediaHeight = 300;
         const determinedHeight = minMediaHeight > qtCalculatedCanvasHeightFromDescLines ? minMediaHeight : qtCalculatedCanvasHeightFromDescLines;
@@ -350,7 +359,7 @@ const createTwitterCanvas = async (metadataJson, isImage) => {
          * FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME 
          */
         // Media Canvas Stroke
-        // ctx.strokeStyle = "gray";
+        // ctx.strokeStyle = 'gray';
         // const zxPosition = 20;
         // const zyPosition = calculatedCanvasHeightFromDescLines - heightShim - 50;
         // ctx.strokeRect(zxPosition, zyPosition, mediaMaxWidth, mediaMaxHeight);
