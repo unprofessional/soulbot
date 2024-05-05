@@ -66,7 +66,7 @@ const createTwitterCanvas = async (metadataJson, isImage) => {
         const shortTwitterUrlPattern = /https:\/\/t\.co\/\S+/;
         const filteredText = text.replace(shortTwitterUrlPattern, '');
         return filteredText;
-      };
+    };
 
     const metadata = {
         authorNick: metadataJson.user_screen_name,
