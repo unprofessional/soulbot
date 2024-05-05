@@ -9,7 +9,7 @@ const getRandomCatchPhrase = () => {
     return catchPhrases[randomIndex];
 };
 
-const getTemplateResult = (userId, originalMsg, randomCatchphrase) => `<@${userId}> is rancid: ${originalMsg} ${randomCatchphrase}`;
+const getTemplateResult = (userId, originalMsg, randomCatchphrase) => `<@${userId}> wants you to know: ${originalMsg} ${randomCatchphrase}`;
 
 const enforceGoldyRole = async (message) => {
     if(message.author.id === '983754855795527710') {
