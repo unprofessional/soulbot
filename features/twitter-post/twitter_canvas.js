@@ -160,19 +160,22 @@ const createTwitterCanvas = async (metadataJson, isImage) => {
     }
 
     const calcQtHeight = (qtMetadata) => {
-        const minHeight = 180;
+        let minHeight = 180;
         
         // TODO: Calculate new descLines here
         const qtDescLines = getWrappedText(ctx, qtMetadata.description, 120, hasOnlyVideos);
-        const descLinesLength = qtDescLines.length;
         console.log('>>> qtDescLines: ', qtDescLines);
+        const descLinesFilteredEmptyLines = qtDescLines.filter(line => line !== '');
+        console.log('>>> descLinesFilteredEmptyLines: ', descLinesFilteredEmptyLines);
+        const descLinesLength = descLinesFilteredEmptyLines?.length;
+        console.log('>>> descLinesLength: ', descLinesLength);
         
         // If Media exists
         if(qtMetadata.mediaUrls.length > 0) {
             console.log('>>>>> calcQtHeight has media!');
-            return 330;
+            minHeight = 330;
         }
-        const totalDescLinesHeight = descLinesLength * 30;
+        const totalDescLinesHeight = descLinesLength * 40;
         return minHeight > totalDescLinesHeight ? minHeight : totalDescLinesHeight;
     };
   
