@@ -27,8 +27,8 @@ const enforceGoldyRole = async (message) => {
                 console.log('>>> enforceGoldyRole > randomCatchphrase: ', randomCatchphrase);
                 const templateResult = getTemplateResult(message.author.id, originalMsg, randomCatchphrase);
                 console.log('>>> enforceGoldyRole > templateResult: ', templateResult);
-                // await message.delete();
-                // await message.channel.send(templateResult);
+                await message.delete();
+                await message.channel.send(templateResult);
             } catch (err) {
                 console.error('>>> enforceGoldyRole > err: ', err);
             }
