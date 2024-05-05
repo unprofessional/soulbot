@@ -1,7 +1,7 @@
 const catchPhrases = [
-    ' but its not like i care or anything',
-    ' but idrc',
-    ' but thats cringe',
+    'but its not like i care or anything',
+    'but idrc',
+    'but thats cringe',
 ];
 
 const getRandomCatchPhrase = () => {
