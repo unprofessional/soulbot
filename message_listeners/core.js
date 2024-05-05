@@ -76,7 +76,7 @@ const initializeListeners = (client) => {
 
         if(!isSelf(message)) { // not self, but can be anyone else
 
-            await enforceGoldyRole();
+            await enforceGoldyRole(message);
 
             /**
              * This is where the actual Twitter URL listener logic begins
