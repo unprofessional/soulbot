@@ -2,7 +2,10 @@ const catchPhrases = [
     'but its not like i care or anything',
     'but idrc',
     'but thats cringe',
-    // 'but yeah im normal',
+    'but thats pathetic coded',
+    'but shrug',
+    'but seethe away',
+    'but thats so cute',
 ];
 
 const getRandomCatchPhrase = () => {
