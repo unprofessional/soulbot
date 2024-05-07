@@ -1,3 +1,11 @@
+const prefixes = [
+    'wants you to know',
+    'is still here',
+    'wants attention',
+    'desperately insists',
+    '',
+];
+
 const catchPhrases = [
     'but its not like i care or anything',
     'but idrc',
@@ -9,12 +17,17 @@ const catchPhrases = [
     'but thats boring'
 ];
 
+const getRandomPrefixes = () => {
+    const randomIndex = Math.floor(Math.random() * prefixes.length);
+    return prefixes[randomIndex];
+};
+
 const getRandomCatchPhrase = () => {
     const randomIndex = Math.floor(Math.random() * catchPhrases.length);
     return catchPhrases[randomIndex];
 };
 
-const getTemplateResult = (userId, originalMsg, randomCatchphrase) => `<@${userId}> wants you to know: ${originalMsg} ${randomCatchphrase}`;
+const getTemplateResult = (userId, randomPrefix, originalMsg, randomCatchphrase) => `<@${userId}> ${randomPrefix}: ${originalMsg} ${randomCatchphrase}`;
 
 const enforceGoldyRole = async (message) => {
 
@@ -30,8 +43,9 @@ const enforceGoldyRole = async (message) => {
   
         if(rolesContainGoldyRole) {
             const originalMsg = message.content;
+            const randomPrefix = getRandomPrefixes();
             const randomCatchphrase = getRandomCatchPhrase();
-            const templateResult = getTemplateResult(memberId, originalMsg, randomCatchphrase);
+            const templateResult = getTemplateResult(memberId, randomPrefix, originalMsg, randomCatchphrase);
             console.log('>>> enforceGoldyRole > randomCatchphrase: ', randomCatchphrase);
             try {
                 await message.delete();
