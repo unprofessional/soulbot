@@ -6,6 +6,7 @@ const catchPhrases = [
     'but shrug',
     'but seethe away',
     'but thats so cute',
+    'but thats boring'
 ];
 
 const getRandomCatchPhrase = () => {
