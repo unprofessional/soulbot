@@ -81,9 +81,9 @@ const singleImage = async (
             mediaObject.width/2
         then offset right 20 to fit padding
         */
-        
+        const descriptionSpacer = metadata.description ? 50 : 75;
         const firstXPosition = 20 + mediaMaxWidth/2 - mediaObject.width/2;
-        const firstYPosition = calculatedCanvasHeightFromDescLines - heightShim - 50;
+        const firstYPosition = calculatedCanvasHeightFromDescLines - heightShim - descriptionSpacer;
         ctx.drawImage(
             mainMedia1,
             firstXPosition, firstYPosition, mediaObject.width, mediaObject.height
