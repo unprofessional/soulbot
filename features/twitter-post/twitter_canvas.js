@@ -249,16 +249,16 @@ const createTwitterCanvas = async (metadataJson, isImage) => {
         ctx.fillText(`${formatTwitterDate(metadata.date)} from this posting`, 30, calculatedCanvasHeightFromDescLines - 20);
     
         // Draw the circle mask...
-        const radius = 25;
-        ctx.beginPath();
-        ctx.arc(45, 45, radius, 0, Math.PI * 2, true);
-        ctx.closePath();
-        ctx.clip();
-        // Draw the image centered in the circle
-        ctx.drawImage(pfp, 20, 20, 50, radius * 2);
+        // const radius = 25;
+        // ctx.beginPath();
+        // ctx.arc(45, 45, radius, 0, Math.PI * 2, true);
+        // ctx.closePath();
+        // ctx.clip();
+        // // Draw the image centered in the circle
+        // ctx.drawImage(pfp, 20, 20, 50, radius * 2);
 
         // Draw pfp image
-        // ctx.drawImage(pfp, 20, 20, 50, 50);
+        ctx.drawImage(pfp, 20, 20, 50, 50);
     };
 
     const drawQtBasicElements = (qtMeta, pfp, mainMedia1, qtVidThumbnail) => {
