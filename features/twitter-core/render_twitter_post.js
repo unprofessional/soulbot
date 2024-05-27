@@ -87,7 +87,7 @@ const oldRenderTwitterPost = async (metadataJson, message, isTwitterUrl) => {
         // const localCompiledVideoOutputPath = `${localWorkingPath}/finished-${originalVideoFilename}`;
         // const recombinedFilePath = `${localWorkingPath}/recombined-av-${originalVideoFilename}`;
 
-        await message.reply(
+        const replyMsg = await message.reply(
             {
                 content: 'Generating video! Could take a minute. Please stand by...',
             }
@@ -108,6 +108,7 @@ const oldRenderTwitterPost = async (metadataJson, message, isTwitterUrl) => {
                         content: `Video too long! Must be less than 60 seconds! ${fixedUrl}`,
                     }
                 );
+                await replyMsg.delete();
                 await cleanup([], [localWorkingPath]);
             }
             else {
@@ -124,6 +125,7 @@ const oldRenderTwitterPost = async (metadataJson, message, isTwitterUrl) => {
                         files,
                     }
                 );
+                await replyMsg.delete();
             }
         } catch (err) {
             /**
@@ -134,6 +136,7 @@ const oldRenderTwitterPost = async (metadataJson, message, isTwitterUrl) => {
             console.err('!!! messageReference: ', messageReference);
             // const unknownMessage = messageReference?.REPLIES_UNKNOWN_MESSAGE;
             // console.err('!!! unknownMessage: ', unknownMessage);
+            await replyMsg.delete();
             await cleanup([], [localWorkingPath]);
             // if () {
 
