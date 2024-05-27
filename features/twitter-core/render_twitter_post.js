@@ -92,6 +92,7 @@ const oldRenderTwitterPost = async (metadataJson, message, isTwitterUrl) => {
                 content: 'Generating video! Could take a minute. Please stand by...',
             }
         );
+        console.log('>>>>> renderTwitterPost > replyMsg: ', replyMsg);
 
         const successFilePath = await createTwitterVideoCanvas(metadataJson); // possible to get either audio or no audio version
         console.log('>>>>> renderTwitterPost > successFilePath: ', successFilePath);
@@ -99,6 +100,7 @@ const oldRenderTwitterPost = async (metadataJson, message, isTwitterUrl) => {
         // Create a MessageAttachment and send it
         try {
             if (successFilePath === false) {
+                console.log('>>>>> renderTwitterPost > no success file path... probably too long...');
                 const twitterUrl = metadataJson.tweetURL;
                 const fixedUrl = isTwitterUrl
                     ? twitterUrl.replace('https://twitter.com', 'https://vxtwitter.com') 
@@ -112,6 +114,7 @@ const oldRenderTwitterPost = async (metadataJson, message, isTwitterUrl) => {
                 await cleanup([], [localWorkingPath]);
             }
             else {
+                console.log('>>>>> renderTwitterPost > success file path found!');
                 const files = [];
                 const finalVideoFile = await readFile(successFilePath);
                 files.push({
@@ -128,6 +131,7 @@ const oldRenderTwitterPost = async (metadataJson, message, isTwitterUrl) => {
                 await replyMsg.delete();
             }
         } catch (err) {
+            console.log('>>>>> renderTwitterPost > some other error occurred...!');
             /**
              * THIS IS THE OLD BLOCK
              */
