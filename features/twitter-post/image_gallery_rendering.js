@@ -142,6 +142,14 @@ const renderImageGallery = async (
     mediaMaxWidth,
     defaultYPosition,
 ) => {
+
+    let mediaObject1 = {
+        height: metadata.mediaExtended[0].size.height,
+        width: metadata.mediaExtended[0].size.width,
+    };
+    const scaledMediaDimensions1 = scaleDownToFit(mediaObject1, mediaMaxHeight, mediaMaxWidth);
+    // console.log('>>> scaledMediaDimensions1: ', scaledMediaDimensions1);
+
     /** Single Image */
     if(metadata.mediaUrls.length === 1) {
         await singleImage(
@@ -155,21 +163,6 @@ const renderImageGallery = async (
     }
     /** Two images */
     if(metadata.mediaUrls.length === 2) {
-
-        let mediaObject1 = {
-        height: metadata.mediaExtended[0].size.height,
-        width: metadata.mediaExtended[0].size.width,
-        };
-        const scaledMediaDimensions1 = scaleDownToFit(mediaObject1, mediaMaxHeight, mediaMaxWidth);
-        // console.log('>>> scaledMediaDimensions1: ', scaledMediaDimensions1);
-        
-        let mediaObject2 = {
-        height: metadata.mediaExtended[1].size.height,
-        width: metadata.mediaExtended[1].size.width,
-        };
-        const scaledMediaDimensions2 = scaleDownToFit(mediaObject2, mediaMaxHeight, mediaMaxWidth);
-        // console.log('>>> scaledMediaDimensions2: ', scaledMediaDimensions2);
-
         const mainMedia1Url = metadata.mediaUrls[0];
         const mainMedia1 = await loadImage(mainMedia1Url);
         const firstXPosition = 20;
@@ -194,19 +187,19 @@ const renderImageGallery = async (
         const mainMedia1 = await loadImage(mainMedia1Url);
         const firstXPosition = 20;
         const firstYPosition = calculatedCanvasHeightFromDescLines - heightShim - 50;
-        cropSingleImage(ctx, mainMedia1, mediaMaxHeight, mediaMaxWidth / 2, firstXPosition, firstYPosition);
+        cropSingleImage(ctx, mainMedia1, scaledMediaDimensions1.height, mediaMaxWidth / 2, firstXPosition, firstYPosition);
 
         const mainMedia2Url = metadata.mediaUrls[1];
         const mainMedia2 = await loadImage(mainMedia2Url);
         const secondXPosition = mediaMaxWidth / 2 + 25;
         const secondYPosition = calculatedCanvasHeightFromDescLines - heightShim - 50;
-        cropSingleImage(ctx, mainMedia2, mediaMaxHeight / 2, mediaMaxWidth / 2, secondXPosition, secondYPosition);
+        cropSingleImage(ctx, mainMedia2, scaledMediaDimensions1.height / 2, mediaMaxWidth / 2, secondXPosition, secondYPosition);
 
         const mainMedia3Url = metadata.mediaUrls[2];
         const mainMedia3 = await loadImage(mainMedia3Url);
         const thirdXPosition = mediaMaxWidth / 2 + 25;
-        const thirdYPosition = mediaMaxHeight / 2 + defaultYPosition - 5;
-        cropSingleImage(ctx, mainMedia3, mediaMaxHeight / 2, mediaMaxWidth / 2, thirdXPosition, thirdYPosition);
+        const thirdYPosition = scaledMediaDimensions1.height / 2 + defaultYPosition - 5;
+        cropSingleImage(ctx, mainMedia3, scaledMediaDimensions1.height / 2, mediaMaxWidth / 2, thirdXPosition, thirdYPosition);
     }
     /** Four images */
     if(metadata.mediaUrls.length === 4) {
@@ -214,25 +207,25 @@ const renderImageGallery = async (
         const mainMedia1 = await loadImage(mainMedia1Url);
         const firstXPosition = 20;
         const firstYPosition = calculatedCanvasHeightFromDescLines - heightShim - 50;
-        cropSingleImage(ctx, mainMedia1, mediaMaxHeight / 2, mediaMaxWidth / 2, firstXPosition, firstYPosition);
+        cropSingleImage(ctx, mainMedia1, scaledMediaDimensions1.height / 2, mediaMaxWidth / 2, firstXPosition, firstYPosition);
 
         const mainMedia2Url = metadata.mediaUrls[1];
         const mainMedia2 = await loadImage(mainMedia2Url);
         const secondXPosition = mediaMaxWidth / 2 + 25;
         const secondYPosition = calculatedCanvasHeightFromDescLines - heightShim - 50;
-        cropSingleImage(ctx, mainMedia2, mediaMaxHeight / 2, mediaMaxWidth / 2, secondXPosition, secondYPosition);
+        cropSingleImage(ctx, mainMedia2, scaledMediaDimensions1.height / 2, mediaMaxWidth / 2, secondXPosition, secondYPosition);
 
         const mainMedia3Url = metadata.mediaUrls[2];
         const mainMedia3 = await loadImage(mainMedia3Url);
         const thirdXPosition = 20;
-        const thirdYPosition = mediaMaxHeight / 2 + defaultYPosition - 5;
-        cropSingleImage(ctx, mainMedia3, mediaMaxHeight / 2, mediaMaxWidth / 2, thirdXPosition, thirdYPosition);
+        const thirdYPosition = scaledMediaDimensions1.height / 2 + defaultYPosition - 5;
+        cropSingleImage(ctx, mainMedia3, scaledMediaDimensions1.height / 2, mediaMaxWidth / 2, thirdXPosition, thirdYPosition);
 
         const mainMedia4Url = metadata.mediaUrls[3];
         const mainMedia4 = await loadImage(mainMedia4Url);
         const fourthXPosition = mediaMaxWidth / 2 + 25;
-        const fourthYPosition = mediaMaxHeight / 2 + defaultYPosition - 5;
-        cropSingleImage(ctx, mainMedia4, mediaMaxHeight / 2, mediaMaxWidth / 2, fourthXPosition, fourthYPosition);
+        const fourthYPosition = scaledMediaDimensions1.height / 2 + defaultYPosition - 5;
+        cropSingleImage(ctx, mainMedia4, scaledMediaDimensions1.height / 2, mediaMaxWidth / 2, fourthXPosition, fourthYPosition);
 
     }
 };
