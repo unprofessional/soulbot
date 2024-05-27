@@ -209,16 +209,19 @@ const processVideos = async (metadataJson, message, isTwitterUrl) => {
     const filename = getFilenameWithoutExtension(mediaUrl);
     const localWorkingPath = `${processingDir}/${filename}`;
 
-    await message.reply({
+    const replyMsg = await message.reply({
         content: 'Generating video! Could take a minute. Please stand by...',
     });
+    console.log('>>>>> renderTwitterPost > replyMsg: ', replyMsg);
 
     const successFilePath = await createTwitterVideoCanvas(metadataJson);
 
     if (!successFilePath) {
+        await replyMsg.delete();
         return handleVideoTooLong(metadataJson, message, isTwitterUrl, localWorkingPath);
     }
 
+    await replyMsg.delete();
     await sendVideoReply(message, successFilePath, localWorkingPath);
 };
 
