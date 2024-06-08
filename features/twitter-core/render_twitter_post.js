@@ -69,6 +69,8 @@ const handleVideoTooLong = async (metadataJson, message, isTwitterUrl, localWork
     console.log('Video too long');
     const twitterUrl = metadataJson.tweetURL;
     // NOTE: for now, it looks like this will ALWAYS be a twitter.com URL
+    // TODO: comment strictly to kick off the build pipeline which didn't happen...
+    // ...attempt 1
     // const fixedUrl = isTwitterUrl
     //     ? twitterUrl.replace('https://twitter.com', 'https://vxtwitter.com') 
     //     : twitterUrl.replace('https://x.com', 'https://fixvx.com');
