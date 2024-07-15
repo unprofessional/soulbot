@@ -286,7 +286,8 @@ function bakeImageAsFilterIntoVideo(
             .output(videoOutputPath)
             .on('end', function() {
                 console.log('Overlay process completed.');
-                resolve(); // Resolve the promise when the process is completed
+                const successFilePath = videoOutputPath;
+                resolve(successFilePath); // Resolve the promise when the process is completed
             })
             .on('error', function(err) {
                 console.error('An error occurred: ' + err.message);

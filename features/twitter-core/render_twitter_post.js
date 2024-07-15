@@ -160,11 +160,18 @@ const renderTwitterPost = async (metadataJson, message) => {
 
         await downloadVideo(videoUrl, videoInputPath);
         const { canvasHeight, canvasWidth, heightShim } = await createTwitterVideoCanvas(metadataJson);
-        await bakeImageAsFilterIntoVideo(
+        const successFilePath = await bakeImageAsFilterIntoVideo(
             videoInputPath, canvasInputPath, videoOutputPath,
             mediaObject.height, mediaObject.width,
             canvasHeight, canvasWidth, heightShim,
         );
+
+        /**
+         * DO something with the video!!!!
+         */
+        // await replyMsg.delete(); // don't even need to do this anymore
+        await sendVideoReply(message, successFilePath, localWorkingPath);
+
     } else {
         // Handle non-video processing
         console.log('>>>>> renderTwitterPost > DOES NOT have videos!!!');
