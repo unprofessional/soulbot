@@ -1,4 +1,4 @@
-const { existsSync } = require('node:fs');
+const { existsSync, mkdirSync, writeFileSync } = require('node:fs');
 const { 
     mkdir,
     // readFile,
@@ -32,13 +32,15 @@ function getWrappedText(ctx, text, maxWidth, hasVids) {
         ? [text.replace(/\n/g, ' ')]
         : text.split('\n'); // Conditionally handle newlines
 
-    paragraphs.forEach(paragraph => {
-        const shortTwitterUrlPattern = /https:\/\/t\.co\/\S+/;
-        const containsUrl = shortTwitterUrlPattern.test(paragraph);
-        const matches = paragraph.split(shortTwitterUrlPattern);
+    const shortTwitterUrlPattern = /https:\/\/t\.co\/\S+/g; // Ensure global match
 
-        if(containsUrl && matches[0]) {
-            paragraph = matches[0];
+    paragraphs.forEach(paragraph => {
+        let matches = paragraph.match(shortTwitterUrlPattern); // Get the URL matches
+
+        if (matches) {
+            matches.forEach(url => {
+                paragraph = paragraph.replace(url, '').trim();
+            });
         }
 
         if (paragraph === '') {
@@ -50,9 +52,7 @@ function getWrappedText(ctx, text, maxWidth, hasVids) {
             for (let i = 1; i < words.length; i++) {
                 const word = words[i];
                 const width = ctx.measureText(currentLine + " " + word).width;
-                // console.log('!!!!! getWrappedText > width: ', width);
-                // console.log('!!!!! getWrappedText > maxWidth: ', maxWidth);
-            
+
                 if (width < maxWidth) {
                     currentLine += " " + word;
                 } else {
@@ -63,6 +63,7 @@ function getWrappedText(ctx, text, maxWidth, hasVids) {
             lines.push(currentLine); // Push the last line of the paragraph
         }
     });
+
     return lines;
 }
 
@@ -189,108 +190,37 @@ const createTwitterVideoCanvas = async (metadataJson) => {
     const videoUrl = metadata.mediaUrls[0];
     console.log('>>>>> twitter_video_canvas > videoUrl: ', videoUrl);
 
+    // Convert the canvas to a buffer
+    const buffer = canvas.toBuffer('image/png');
+
+    // Write the buffer to a file
     /**
-     * BEGIN FILENAME / PATHING PRE-PROCESSING
-     * 
-     * TODO: Refactor ths out into a utility function that returns an object with these properties (and better named)
+     * TODO TODO TODO — use temp filename first
      */
     const processingDir = '/tempdata';
-    const workingDir = 'canvassed';
     const pathObj = buildPathsAndStuff(processingDir, videoUrl);
-
+    const filename = pathObj.filename;
     const localWorkingPath = pathObj.localWorkingPath;
-    const localVideoOutputPath = pathObj.localVideoOutputPath;
-    const localAudioPath = pathObj.localAudioPath;
-    const framesPattern = pathObj.framesPattern;
-    const localCompiledVideoOutputPath = pathObj.localCompiledVideoOutputPath;
-    const recombinedFilePath = pathObj.recombinedFilePath;
+    const localFilename = `${filename}.png`;
 
-    console.log('>>>>> twitter_video_canvas > downloading video...');
-    const isSuccess = await downloadVideo(videoUrl, localVideoOutputPath);
-    console.log('>>>>> twitter_video_canvas > isSuccess: ', isSuccess);
-    if (isSuccess === false) { // duration too long FIXME: we need to capture this specific Error scenario (custom Error Object?)
-        return false;
+    console.log('>>>>> twitter_video_canvas > localWorkingPath: ', localWorkingPath);
+
+    /**
+     * Rewrite with proper async handling for failure-cases...
+     */
+    if (!existsSync(localWorkingPath)) {
+        mkdirSync(localWorkingPath, { recursive: true });
     }
-
-    try {
-        console.log('>>>>> twitter_video_canvas > extracting audio...');
-        await extractAudioFromVideo(localVideoOutputPath, localAudioPath);
-    } catch (err) {
-        console.log('>>>>> twitter_video_canvas > audio processing error!: ', err);
-    }
-    console.log('>>>>> twitter_video_canvas > extracting video frames...');
-    await extractFrames(localVideoOutputPath);
-
-    console.log('>>>>> twitter_video_canvas > compiling list of frames to work with...');
-    const framesFilenamesUnfiltered = await readdir(localWorkingPath); // raw video frames, not yet canvassed
-    const framesFilenames = framesFilenamesUnfiltered.filter((framepath) => {
-        const framepathParts = framepath.split('.');
-        return framepathParts[framepathParts.length - 1] === 'png';
-    });
-
-    // console.log('>>>>> twitter_video_canvas > framesFilenames: ', framesFilenames);
-
-    // TODO: account for the fact that we won't have height/width of the image
-    
-    console.log('>>>>> twitter_video_canvas > creating directories if not exists...: ', `${localWorkingPath}/${workingDir}/`);
-    await mkdir(`${localWorkingPath}/${workingDir}/`, { recursive: true }, (err) => {
+    writeFileSync(`${localWorkingPath}/${localFilename}`, buffer, (err) => {
         if (err) throw err;
+        console.log('The file was saved!');
     });
-
-    console.log('>>>>> twitter_video_canvas > generating frames...');
-    for (const frameFilename of framesFilenames) {
-        const filenamePath = `${localWorkingPath}/${frameFilename}`;
-        // console.log('!!! twitter_video_canvas > filenamePath: ', filenamePath);
-    
-        await singleVideoFrame(
-            ctx,
-            filenamePath,
-            calculatedCanvasHeightFromDescLines,
-            heightShim,
-            mediaMaxHeight,
-            mediaMaxWidth,
-        );
-        const canvasFilePath = `${localWorkingPath}/${workingDir}/${frameFilename}`;
-        // console.log('>>>>> twitter_video_canvas > canvasFilePath: ', canvasFilePath);
-        await writeFile(canvasFilePath, canvas.toBuffer('image/png'), { flag: 'w', encoding: 'utf8' });
-    }
-
-    // console.log('>>>>> twitter_video_canvas > framesPattern: ', framesPattern);
-    // console.log('>>>>> twitter_video_canvas > localCompiledVideoOutputPath: ', localCompiledVideoOutputPath);
-    console.log('>>>>> twitter_video_canvas > recombining canvassed frames into video...');
-    await recombineFramesToVideo(framesPattern, localCompiledVideoOutputPath);
-
-    // console.log('>>>>> twitter_video_canvas > localCompiledVideoOutputPath: ', localCompiledVideoOutputPath);
-    // console.log('>>>>> twitter_video_canvas > localAudioPath: ', localAudioPath);
-    // console.log('>>>>> twitter_video_canvas > recombinedFilePath: ', recombinedFilePath);
-
-
-    const checkIfLocalAudioFileExists = async path => !!(await stat(localAudioPath).catch(e => false));
-    const localAudioFileExists = await checkIfLocalAudioFileExists();
-    let finalVideoFileExists = false;
-    console.log('>>>>> twitter_video_canvas > localAudioFileExists: ', localAudioFileExists);
-    if (localAudioFileExists) {
-        console.log('>>>>> twitter_video_canvas > recombining audio with new video...');
-        await combineAudioWithVideo(localCompiledVideoOutputPath, localAudioPath, recombinedFilePath);
-        finalVideoFileExists = existsSync(recombinedFilePath);
-    } else {
-        finalVideoFileExists = existsSync(localCompiledVideoOutputPath);
-    }
-
-    return new Promise((resolve, reject) => {
-        try {
-            if(finalVideoFileExists) {
-                return resolve(localAudioFileExists ? recombinedFilePath : localCompiledVideoOutputPath);
-            }
-            else {
-                return reject('File does not yet exist!');
-            }
-        }
-        catch (err) {
-            return reject(err);
-        }
-        // nothing else happens because all we're doing, when this is done, is reading the file we created from the calling side
-    });
+    return {
+        localFilename,
+        canvasHeight: calculatedCanvasHeightFromDescLines,
+        canvasWidth: mediaMaxWidth,
+        heightShim,
+    };
     
 };
 

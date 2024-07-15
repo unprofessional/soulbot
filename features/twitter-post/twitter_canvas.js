@@ -4,10 +4,11 @@ const {
     loadImage,
 } = require('canvas');
 const { cropSingleImage } = require('./crop_single_image.js');
-const { scaleDownToFit, renderImageGallery } = require('./image_gallery_rendering.js');
+const { renderImageGallery } = require('./image_gallery_rendering.js');
 
 const TimeAgo = require('javascript-time-ago');
 const en = require('javascript-time-ago/locale/en');
+const { scaleDownToFitAspectRatio } = require('./scale_down.js');
 TimeAgo.addDefaultLocale(en);
 const timeAgo = new TimeAgo('en-US');
 
@@ -153,7 +154,7 @@ const createTwitterCanvas = async (metadataJson, isImage) => {
         };
         // Recusively scale down by half if larger than allowed
         // console.log('>>>>> hasImgs > mediaObject: ', mediaObject);
-        mediaObject = scaleDownToFit(mediaObject, mediaMaxHeight, mediaMaxWidth);
+        mediaObject = scaleDownToFitAspectRatio(mediaObject, mediaMaxHeight, mediaMaxWidth);
         if(metadata.mediaExtended.length < 2 && mediaObject.width > mediaObject.height) {
             const newWidthRatio = mediaMaxWidth / mediaObject.width;
             // console.log('>>>>> newWidthRatio: ', newWidthRatio);

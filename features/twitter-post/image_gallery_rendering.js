@@ -2,6 +2,7 @@ const {
     loadImage,
 } = require('canvas');
 const { cropSingleImage } = require('./crop_single_image.js');
+const { scaleDownToFitAspectRatio } = require('./scale_down.js');
 
 const scaleToFitWiderThanHeight = (
     ctx,
@@ -14,30 +15,6 @@ const scaleToFitWiderThanHeight = (
     const adjustedHeight = mainMedia1.height * newWidthRatio;
     // console.log('>>>>> adjustedHeight: ', adjustedHeight);
     ctx.drawImage(mainMedia1, 20, yPosition, mediaMaxWidth, adjustedHeight);
-};
-
-// recursive utility function
-const scaleDownToFit = (
-    { height, width },
-    mediaMaxHeight,
-    mediaMaxWidth,
-) => {
-    // console.log('>>>>> scaleDownByHalf > height: ', height);
-    // console.log('>>>>> scaleDownByHalf > width: ', width);
-    if(height < mediaMaxHeight && width < mediaMaxWidth) {
-        return {
-            height,
-            width,
-        };
-    }
-    return scaleDownToFit(
-        {
-            height: Math.floor(height/1.1),
-            width: Math.floor(width/1.1),
-        },
-        mediaMaxHeight,
-        mediaMaxWidth,
-    );
 };
 
 /**
@@ -69,7 +46,7 @@ const singleImage = async (
             width: metadata.mediaExtended[0].size.width,
         };
         console.log('>>>>> single image > mediaObject1: ', mediaObject);
-        mediaObject = scaleDownToFit(mediaObject, mediaMaxHeight, mediaMaxWidth);        
+        mediaObject = scaleDownToFitAspectRatio(mediaObject, mediaMaxHeight, mediaMaxWidth);
         console.log('>>>>> single image > mediaObject1: ', mediaObject);
         console.log('>>>>> single image > mediaMaxHeight: ', mediaMaxHeight);
         console.log('>>>>> single image > mediaMaxWidth: ', mediaMaxWidth);
@@ -147,7 +124,7 @@ const renderImageGallery = async (
         height: metadata.mediaExtended[0].size.height,
         width: metadata.mediaExtended[0].size.width,
     };
-    const scaledMediaDimensions1 = scaleDownToFit(mediaObject1, mediaMaxHeight, mediaMaxWidth);
+    const scaledMediaDimensions1 = scaleDownToFitAspectRatio(mediaObject1, mediaMaxHeight, mediaMaxWidth);
     // console.log('>>> scaledMediaDimensions1: ', scaledMediaDimensions1);
 
     /** Single Image */
@@ -231,7 +208,6 @@ const renderImageGallery = async (
 };
 
 module.exports = {
-    scaleDownToFit,
     singleImage,
     singleVideoFrame,
     renderImageGallery,

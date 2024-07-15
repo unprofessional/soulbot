@@ -11,6 +11,7 @@ const {
 } = require('node:fs');
 // https://github.com/fluent-ffmpeg/node-fluent-ffmpeg
 var ffmpeg = require('fluent-ffmpeg');
+const { scaleDownToFitAspectRatio } = require('../twitter-post/scale_down');
 
 const basePath = process.env.STORE_PATH;
 
@@ -211,6 +212,90 @@ function getVideoDuration(filePath) {
     });
 }
 
+function bakeImageAsFilterIntoVideo(
+    videoInputPath, canvasInputPath, videoOutputPath,
+    videoHeight, videoWidth,
+    canvasHeight, canvasWidth, heightShim,
+) {
+    console.log('>>> bakeImageAsFilterIntoVideo > videoInputPath: ', videoInputPath);
+    console.log('>>> bakeImageAsFilterIntoVideo > canvasInputPath: ', canvasInputPath);
+    console.log('>>> bakeImageAsFilterIntoVideo > videoOutputPath: ', videoOutputPath);
+    return new Promise((resolve, reject) => {
+        // Check if input files exist
+        if (!existsSync(videoInputPath)) {
+            return reject(new Error(`Video input file does not exist: ${videoInputPath}`));
+        }
+        if (!existsSync(canvasInputPath)) {
+            return reject(new Error(`Canvas input file does not exist: ${canvasInputPath}`));
+        }
+
+        /**
+         * TODO: parameterize based on positioning logic in twitter_video_canvas
+         */
+        console.log('>>> bakeImageAsFilterIntoVideo > canvasHeight: ', canvasHeight);
+        console.log('>>> bakeImageAsFilterIntoVideo > canvasWidth: ', canvasWidth);
+
+        // Ensure the dimensions are even
+        const adjustedCanvasWidth = Math.ceil(canvasWidth / 2) * 2;
+        const adjustedCanvasHeight = Math.ceil(canvasHeight / 2) * 2;
+        const adjustedVideoWidth = Math.ceil(videoWidth / 2) * 2;
+        const adjustedVideoHeight = Math.ceil(videoHeight / 2) * 2;
+
+        const mediaObject = {
+            height: adjustedVideoHeight,
+            width: adjustedVideoWidth
+        };
+
+        console.log('>>> bakeImageAsFilterIntoVideo > mediaObject: ', mediaObject);
+        console.log('>>> bakeImageAsFilterIntoVideo > adjustedCanvasHeight: ', adjustedCanvasHeight);
+        console.log('>>> bakeImageAsFilterIntoVideo > adjustedCanvasWidth: ', adjustedCanvasWidth);
+        const scaledDownObject = scaleDownToFitAspectRatio(mediaObject, adjustedCanvasHeight, adjustedCanvasWidth, (canvasHeight - heightShim));
+        console.log('>>> bakeImageAsFilterIntoVideo > scaledDownObject: ', scaledDownObject);
+
+        /**
+         * Determine overlay coordinates based on calculatedCanvasHeightFromDescLines?
+         * maybe also heightShim
+         */
+        console.log('>>> bakeImageAsFilterIntoVideo > adjustedVideoWidth: ', adjustedVideoWidth);
+        console.log('>>> bakeImageAsFilterIntoVideo > canvasWidth: ', canvasWidth);
+        const overlayX = (canvasWidth - scaledDownObject.width) / 2;
+        const overlayY = canvasHeight - heightShim - 50;
+        console.log('>>> bakeImageAsFilterIntoVideo > overlayX: ', overlayX);
+        console.log('>>> bakeImageAsFilterIntoVideo > overlayY: ', overlayY);
+
+        ffmpeg()
+            .input(canvasInputPath)
+            .input(videoInputPath)
+            .complexFilter([
+                `[0:v]scale=${adjustedCanvasWidth}:${adjustedCanvasHeight}[frame]`,
+                `[1:v]scale=${scaledDownObject.width}:${scaledDownObject.height}[video]`,
+                `[frame][video]overlay=${overlayX}:${overlayY}[out]`
+            ])
+            .outputOptions([
+                '-map [out]',
+                '-map 1:a',
+                '-c:v libx264',
+                '-c:a copy'
+            ])
+            .on('start', commandLine => {
+                console.log('@@@@@ Spawned FFmpeg with command: ' + commandLine);
+            })
+            // .on('stderr', stderrLine => {
+            //     console.log('@@@@@ FFmpeg stderr: ' + stderrLine);
+            // })
+            .output(videoOutputPath)
+            .on('end', function() {
+                console.log('Overlay process completed.');
+                resolve(); // Resolve the promise when the process is completed
+            })
+            .on('error', function(err) {
+                console.error('An error occurred: ' + err.message);
+                reject(err); // Reject the promise on error
+            })
+            .run();
+    });
+}
+
 module.exports = {
     downloadVideo,
     extractAudioFromVideo,
@@ -218,4 +303,5 @@ module.exports = {
     recombineFramesToVideo,
     combineAudioWithVideo,
     getVideoDuration,
+    bakeImageAsFilterIntoVideo,
 };

@@ -1,8 +1,10 @@
 const { mkdir, readdir, readFile } = require('node:fs').promises
 const { createTwitterCanvas } = require('../twitter-post/twitter_canvas.js');
 const { createTwitterVideoCanvas } = require('../twitter-video/twitter_video_canvas.js');
-// const { getVideoDuration } = require('./video-twitter');
 const { cleanup } = require('../twitter-video/cleanup.js');
+const { buildPathsAndStuff } = require('../twitter-core/path_builder.js');
+
+const { downloadVideo, bakeImageAsFilterIntoVideo } = require('../twitter-video/index.js');
 
 const MAX_CONCURRENT_REQUESTS = 3;
 const processingDir = '/tempdata';
@@ -120,8 +122,9 @@ const sendVideoReply = async (message, successFilePath, localWorkingPath) => {
     await cleanup([], [localWorkingPath]);
 };
 
-const renderTwitterPost = async (metadataJson, message, isTwitterUrl) => {
+const renderTwitterPost = async (metadataJson, message) => {
     const videoUrls = filterVideoUrls(metadataJson.mediaURLs);
+    const videoUrl = videoUrls[0];
     const hasVids = videoUrls.length > 0;
 
     await createDirectoryIfNotExists(processingDir);
@@ -134,7 +137,34 @@ const renderTwitterPost = async (metadataJson, message, isTwitterUrl) => {
             });
         }
 
-        return processVideos(metadataJson, message, isTwitterUrl);
+        // build path stuff
+        // const processingDir = '/tempdata';
+        const pathObj = buildPathsAndStuff(processingDir, videoUrl);
+        const filename = pathObj.filename;
+        const localWorkingPath = pathObj.localWorkingPath;
+
+        // paths we need to use
+        const videoInputPath = `${localWorkingPath}/${filename}.mp4`;
+        const canvasInputPath = `${localWorkingPath}//${filename}.png`;
+        const videoOutputPath = `${localWorkingPath}/${filename}-output.mp4`;
+        console.log('>>> renderTwitterPost > videoInputPath: ', videoInputPath);
+        console.log('>>> renderTwitterPost > canvasInputPath: ', canvasInputPath);
+        console.log('>>> renderTwitterPost > videoOutputPath: ', videoOutputPath);
+
+        // video dimensions
+        const mediaObject = metadataJson.media_extended[0].size;
+        if (!mediaObject.height || !mediaObject.width) {
+            throw Error('Video has no dimensions in metadata! Cannot process...');
+            // TODO: we would have to then infer it from the video itself possibly using ffmpeg.ffprobe
+        }
+
+        await downloadVideo(videoUrl, videoInputPath);
+        const { canvasHeight, canvasWidth, heightShim } = await createTwitterVideoCanvas(metadataJson);
+        await bakeImageAsFilterIntoVideo(
+            videoInputPath, canvasInputPath, videoOutputPath,
+            mediaObject.height, mediaObject.width,
+            canvasHeight, canvasWidth, heightShim,
+        );
     } else {
         // Handle non-video processing
         console.log('>>>>> renderTwitterPost > DOES NOT have videos!!!');
