@@ -25,7 +25,7 @@ const ensureDirectoryExists = (filePath) => {
     if (existsSync(dirname)) {
         return true;
     }
-    console.log('>>>>> ensureDirectoryExists > dirname: ', dirname);
+    // console.log('>>>>> ensureDirectoryExists > dirname: ', dirname);
     mkdirSync(`${dirname}/canvassed/`, { recursive: true });
 };
 
@@ -39,12 +39,12 @@ const ensureDirectoryExists = (filePath) => {
  * @returns a promise depending on fileStream write success or not
  */
 const downloadVideo = async (remoteFileUrl, outputPath) => {
-    console.log('>>>>> downloadVideo > outputPath: ', outputPath);
+    // console.log('>>>>> downloadVideo > outputPath: ', outputPath);
     ensureDirectoryExists(outputPath);
     const response = await fetch(remoteFileUrl);
-    console.log('>>>>> downloadVideo > fetching video from URL...');
+    // console.log('>>>>> downloadVideo > fetching video from URL...');
     const fileStream = createWriteStream(outputPath);
-    console.log('>>>>> downloadVideo > creating Write Stream as fileStream @ ', outputPath);
+    // console.log('>>>>> downloadVideo > creating Write Stream as fileStream @ ', outputPath);
     // console.log('>>>>> downloadVideo > outputPath: ', outputPath);
 
     // Use response.body as an async iterator to read chunks
@@ -53,16 +53,16 @@ const downloadVideo = async (remoteFileUrl, outputPath) => {
         fileStream.write(chunk);
     }
     fileStream.end(); // we MUST close the stream
-    console.log('>>>>> fileStream write complete');
+    // console.log('>>>>> fileStream write complete');
     
     return new Promise((resolve, reject) => {
-        console.log('...promise handler...');
+        // console.log('...promise handler...');
 
         fileStream.on('finish', async () => {
-            console.log('fileStream finished! resolving!');
-            console.log('>>>>> trying to read videoDuration...');
+            // console.log('fileStream finished! resolving!');
+            // console.log('>>>>> trying to read videoDuration...');
             const videoDuration = await getVideoDuration(outputPath); // try/catch?
-            console.log('>>>>> videoDuration: ', videoDuration);
+            // console.log('>>>>> videoDuration: ', videoDuration);
             if(videoDuration > 60) {
                 console.log('video longer than 60 secs!');
                 return resolve(false);
@@ -71,7 +71,7 @@ const downloadVideo = async (remoteFileUrl, outputPath) => {
             }
         });
         fileStream.on('error', (err) => {
-            console.log('fileStream error! rejecting! err: ', err);
+            console.error('fileStream error! rejecting! err: ', err);
             return reject(err);
         });
         // do we need a general on 'close' event capture?
@@ -217,9 +217,6 @@ function bakeImageAsFilterIntoVideo(
     videoHeight, videoWidth,
     canvasHeight, canvasWidth, heightShim,
 ) {
-    console.log('>>> bakeImageAsFilterIntoVideo > videoInputPath: ', videoInputPath);
-    console.log('>>> bakeImageAsFilterIntoVideo > canvasInputPath: ', canvasInputPath);
-    console.log('>>> bakeImageAsFilterIntoVideo > videoOutputPath: ', videoOutputPath);
     return new Promise((resolve, reject) => {
         // Check if input files exist
         if (!existsSync(videoInputPath)) {
@@ -228,12 +225,6 @@ function bakeImageAsFilterIntoVideo(
         if (!existsSync(canvasInputPath)) {
             return reject(new Error(`Canvas input file does not exist: ${canvasInputPath}`));
         }
-
-        /**
-         * TODO: parameterize based on positioning logic in twitter_video_canvas
-         */
-        console.log('>>> bakeImageAsFilterIntoVideo > canvasHeight: ', canvasHeight);
-        console.log('>>> bakeImageAsFilterIntoVideo > canvasWidth: ', canvasWidth);
 
         // Ensure the dimensions are even
         const adjustedCanvasWidth = Math.ceil(canvasWidth / 2) * 2;
@@ -246,54 +237,56 @@ function bakeImageAsFilterIntoVideo(
             width: adjustedVideoWidth
         };
 
-        console.log('>>> bakeImageAsFilterIntoVideo > mediaObject: ', mediaObject);
-        console.log('>>> bakeImageAsFilterIntoVideo > adjustedCanvasHeight: ', adjustedCanvasHeight);
-        console.log('>>> bakeImageAsFilterIntoVideo > adjustedCanvasWidth: ', adjustedCanvasWidth);
-        const scaledDownObject = scaleDownToFitAspectRatio(mediaObject, adjustedCanvasHeight, adjustedCanvasWidth, (canvasHeight - heightShim));
-        console.log('>>> bakeImageAsFilterIntoVideo > scaledDownObject: ', scaledDownObject);
+        const scaledDownObject = scaleDownToFitAspectRatio(
+            mediaObject, adjustedCanvasHeight, adjustedCanvasWidth, (canvasHeight - heightShim)
+        );
 
-        /**
-         * Determine overlay coordinates based on calculatedCanvasHeightFromDescLines?
-         * maybe also heightShim
-         */
-        console.log('>>> bakeImageAsFilterIntoVideo > adjustedVideoWidth: ', adjustedVideoWidth);
-        console.log('>>> bakeImageAsFilterIntoVideo > canvasWidth: ', canvasWidth);
         const overlayX = (canvasWidth - scaledDownObject.width) / 2;
         const overlayY = canvasHeight - heightShim - 50;
-        console.log('>>> bakeImageAsFilterIntoVideo > overlayX: ', overlayX);
-        console.log('>>> bakeImageAsFilterIntoVideo > overlayY: ', overlayY);
 
-        ffmpeg()
-            .input(canvasInputPath)
-            .input(videoInputPath)
-            .complexFilter([
-                `[0:v]scale=${adjustedCanvasWidth}:${adjustedCanvasHeight}[frame]`,
-                `[1:v]scale=${scaledDownObject.width}:${scaledDownObject.height}[video]`,
-                `[frame][video]overlay=${overlayX}:${overlayY}[out]`
-            ])
-            .outputOptions([
-                '-map [out]',
-                '-map 1:a',
-                '-c:v libx264',
-                '-c:a copy'
-            ])
-            .on('start', commandLine => {
-                console.log('@@@@@ Spawned FFmpeg with command: ' + commandLine);
-            })
-            // .on('stderr', stderrLine => {
-            //     console.log('@@@@@ FFmpeg stderr: ' + stderrLine);
-            // })
-            .output(videoOutputPath)
-            .on('end', function() {
-                console.log('Overlay process completed.');
-                const successFilePath = videoOutputPath;
-                resolve(successFilePath); // Resolve the promise when the process is completed
-            })
-            .on('error', function(err) {
-                console.error('An error occurred: ' + err.message);
-                reject(err); // Reject the promise on error
-            })
-            .run();
+        // Check if video has an audio stream
+        ffmpeg.ffprobe(videoInputPath, (err, metadata) => {
+            if (err) {
+                return reject(new Error(`Failed to probe video: ${err.message}`));
+            }
+
+            const hasAudio = metadata.streams.some(stream => stream.codec_type === 'audio');
+            // console.log('>>> bakeImageAsFilterIntoVideo > hasAudio: ', hasAudio);
+
+            const command = ffmpeg()
+                .input(canvasInputPath)
+                .input(videoInputPath)
+                .complexFilter([
+                    `[0:v]scale=${adjustedCanvasWidth}:${adjustedCanvasHeight}[frame]`,
+                    `[1:v]scale=${scaledDownObject.width}:${scaledDownObject.height}[video]`,
+                    `[frame][video]overlay=${overlayX}:${overlayY}[out]`
+                ])
+                .outputOptions(['-c:v libx264']);
+
+            command.outputOptions(['-map [out]']);
+
+            if (hasAudio) {
+                command.outputOptions(['-map 1:a', '-c:a copy']);
+            }
+
+            command.output(videoOutputPath)
+                .on('start', commandLine => {
+                    console.log('@@@@@ Spawned FFmpeg with command: ' + commandLine);
+                })
+                // .on('stderr', stderrLine => {
+                //     console.log('@@@@@ FFmpeg stderr: ' + stderrLine);
+                // })
+                .on('end', function() {
+                    console.log('Overlay process completed.');
+                    const successFilePath = videoOutputPath;
+                    resolve(successFilePath); // Resolve the promise when the process is completed
+                })
+                .on('error', function(err) {
+                    console.error('An error occurred: ' + err.message);
+                    reject(err); // Reject the promise on error
+                })
+                .run();
+        });
     });
 }
 

@@ -1,6 +1,3 @@
-const { existsSync } = require('node:fs');
-// const { stat } = require('node:fs').promises;
-const { cleanup } = require('../features/twitter-video/cleanup.js');
 const { createTwitterVideoCanvas } = require('../features/twitter-video/twitter_video_canvas.js');
 const { buildPathsAndStuff } = require('../features/twitter-core/path_builder.js');
 

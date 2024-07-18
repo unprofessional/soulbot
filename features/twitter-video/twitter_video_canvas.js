@@ -1,25 +1,9 @@
 const { existsSync, mkdirSync, writeFileSync } = require('node:fs');
-const { 
-    mkdir,
-    // readFile,
-    readdir,
-    stat,
-    writeFile,
-} = require('node:fs').promises
 const {
     // registerFont,
     createCanvas,
     loadImage,
 } = require('canvas');
-// const { cropSingleImage } = require('./crop_single_image.js');
-const { singleVideoFrame } = require('../twitter-post/image_gallery_rendering.js');
-const { 
-    downloadVideo,
-    extractAudioFromVideo,
-    extractFrames,
-    recombineFramesToVideo,
-    combineAudioWithVideo,
-} = require('./index.js');
 const { buildPathsAndStuff } = require('../twitter-core/path_builder.js');
 const TimeAgo = require('javascript-time-ago');
 const en = require('javascript-time-ago/locale/en');
@@ -83,7 +67,7 @@ const createTwitterVideoCanvas = async (metadataJson) => {
         mediaUrls: metadataJson.mediaURLs,
         mediaExtended: metadataJson.media_extended,
     };
-    console.log('>>>>> createTwitterVideoCanvas > metadata: ', metadata);
+    // console.log('>>>>> createTwitterVideoCanvas > metadata: ', metadata);
 
     const globalFont = 'Arial';
     const maxCanvasWidth = 600;
@@ -95,9 +79,9 @@ const createTwitterVideoCanvas = async (metadataJson) => {
     ctx.fillStyle = '#000';
 
     const numOfImgs = 1;//filterMediaUrls(metadata, ['jpg', 'jpeg', 'png']).length;
-    console.log('>>>>> createTwitterCanvas > numOfImgs', numOfImgs);
+    // console.log('>>>>> createTwitterCanvas > numOfImgs', numOfImgs);
     const numOfVideos = 1;//filterMediaUrls(metadata, ['mp4']).length;
-    console.log('>>>>> createTwitterCanvas > numOfVideos', numOfVideos);
+    // console.log('>>>>> createTwitterCanvas > numOfVideos', numOfVideos);
     let mediaMaxHeight = 600;//getMaxHeight(numOfImgs);
     let mediaMaxWidth = 560;
     const hasImgs = numOfImgs > 0;
@@ -141,7 +125,7 @@ const createTwitterVideoCanvas = async (metadataJson) => {
         ? maxCanvasWidth // Has vids, make square
         : (descLinesLength * 30) + defaultYPosition + 40 + heightShim;
 
-    console.log('>>>>> calculatedCanvasHeightFromDescLines: ', calculatedCanvasHeightFromDescLines);
+    // console.log('>>>>> calculatedCanvasHeightFromDescLines: ', calculatedCanvasHeightFromDescLines);
 
     // Re-calc canvas
     ctx.canvas.height = calculatedCanvasHeightFromDescLines;
@@ -188,7 +172,7 @@ const createTwitterVideoCanvas = async (metadataJson) => {
 
     // TODO: Utility function
     const videoUrl = metadata.mediaUrls[0];
-    console.log('>>>>> twitter_video_canvas > videoUrl: ', videoUrl);
+    // console.log('>>>>> twitter_video_canvas > videoUrl: ', videoUrl);
 
     // Convert the canvas to a buffer
     const buffer = canvas.toBuffer('image/png');
@@ -203,7 +187,7 @@ const createTwitterVideoCanvas = async (metadataJson) => {
     const localWorkingPath = pathObj.localWorkingPath;
     const localFilename = `${filename}.png`;
 
-    console.log('>>>>> twitter_video_canvas > localWorkingPath: ', localWorkingPath);
+    // console.log('>>>>> twitter_video_canvas > localWorkingPath: ', localWorkingPath);
 
     /**
      * Rewrite with proper async handling for failure-cases...

@@ -1,4 +1,4 @@
-const { mkdir, readdir, readFile } = require('node:fs').promises
+const { mkdir, readdir, readFile } = require('node:fs').promises;
 const { createTwitterCanvas } = require('../twitter-post/twitter_canvas.js');
 const { createTwitterVideoCanvas } = require('../twitter-video/twitter_video_canvas.js');
 const { cleanup } = require('../twitter-video/cleanup.js');
@@ -97,12 +97,10 @@ const sendVideoReply = async (message, successFilePath, localWorkingPath) => {
     } catch (err) {
         console.error('!!! err: ', err);
         const errorName = err?.name;
-        console.error('!!! errorName: ', errorName);
+        // console.error('!!! errorName: ', errorName);
         const errorMsg = err?.message;
-        console.error('!!! errorMsg: ', errorMsg);
-        console.error('!!! typeof err: ', typeof err);
-        // const unknownMessage = messageReference?.REPLIES_UNKNOWN_MESSAGE;
-        // console.error('!!! unknownMessage: ', unknownMessage);
+        // console.error('!!! errorMsg: ', errorMsg);
+        // console.error('!!! typeof err: ', typeof err);
         await cleanup([], [localWorkingPath]);
         if (errorMsg === 'Invalid Form Body' || errorName === 'DiscordAPIError[50035]') {
             console.log('>>> errorMsg is Invalid Form Body');
@@ -147,9 +145,9 @@ const renderTwitterPost = async (metadataJson, message) => {
         const videoInputPath = `${localWorkingPath}/${filename}.mp4`;
         const canvasInputPath = `${localWorkingPath}//${filename}.png`;
         const videoOutputPath = `${localWorkingPath}/${filename}-output.mp4`;
-        console.log('>>> renderTwitterPost > videoInputPath: ', videoInputPath);
-        console.log('>>> renderTwitterPost > canvasInputPath: ', canvasInputPath);
-        console.log('>>> renderTwitterPost > videoOutputPath: ', videoOutputPath);
+        // console.log('>>> renderTwitterPost > videoInputPath: ', videoInputPath);
+        // console.log('>>> renderTwitterPost > canvasInputPath: ', canvasInputPath);
+        // console.log('>>> renderTwitterPost > videoOutputPath: ', videoOutputPath);
 
         // video dimensions
         const mediaObject = metadataJson.media_extended[0].size;
@@ -174,16 +172,16 @@ const renderTwitterPost = async (metadataJson, message) => {
 
     } else {
         // Handle non-video processing
-        console.log('>>>>> renderTwitterPost > DOES NOT have videos!!!');
+        // console.log('>>>>> renderTwitterPost > DOES NOT have videos!!!');
         const buffer = await createTwitterCanvas(metadataJson);
         await message.suppressEmbeds(true);
 
         /**
          * Pull image and add it as a separate image/file
          */
-        console.log('>>>>> renderTwitterPost > metadataJson: ', metadataJson);
+        // console.log('>>>>> renderTwitterPost > metadataJson: ', metadataJson);
         const mediaUrls = metadataJson.mediaURLs;
-        console.log('>>>>> renderTwitterPost > mediaUrls: ', mediaUrls);
+        // console.log('>>>>> renderTwitterPost > mediaUrls: ', mediaUrls);
 
         let files = [{
             attachment: buffer,

@@ -72,7 +72,8 @@ const initializeListeners = (client) => {
     client.on(Events.MessageCreate, async (message) => {
 
         // Logger
-        console.log(`${message.guildId}: ${message.author.globalName}: ${message.content}`);
+        // THIS IS SPAMMY, ONLY USE FOR DEBUGGING!
+        // console.log(`${message.guildId}: ${message.author.globalName}: ${message.content}`);
 
         if(!isSelf(message)) { // not self, but can be anyone else
 
@@ -86,8 +87,8 @@ const initializeListeners = (client) => {
                 const containsTwitterUrl = twitterUrlPattern.test(message.content);
                 const xDotComUrlPattern = /https?:\/\/x\.com\/[a-zA-Z0-9_]+\/status\/\d+/g;
                 const containsXDotComUrl = xDotComUrlPattern.test(message.content);
-                console.log('>>>>> containsTwitterUrl: ', containsTwitterUrl);
-                console.log('>>>>> containsXDotComUrl: ', containsXDotComUrl);
+                // console.log('>>>>> containsTwitterUrl: ', containsTwitterUrl);
+                // console.log('>>>>> containsXDotComUrl: ', containsXDotComUrl);
                 if(containsTwitterUrl || containsXDotComUrl) {
                     await message.suppressEmbeds(true);
                     const urls = containsXDotComUrl
@@ -120,7 +121,7 @@ const initializeListeners = (client) => {
 
         if(!isSelf(message) && isOwner(message)) {
 
-            console.log('>>>>> NOT self!!! Reading message!!');
+            // console.log('>>>>> NOT self!!! Reading message!!');
 
             const guildId = message.guildId;
             const cachedGuild = client.guilds.cache.get(guildId);
@@ -176,8 +177,8 @@ const initializeListeners = (client) => {
 
                 const contentArr = message.content.split('`');
                 let prefix = contentArr[1];
-                console.log('>>>>> contentArr: ', contentArr);
-                console.log('>>>>> prefix: ', prefix);
+                // console.log('>>>>> contentArr: ', contentArr);
+                // console.log('>>>>> prefix: ', prefix);
                 if (!prefix || contentArr.length < 3) {
                     message.channel.send(`You must specify a prefix in backticks (i.e. \`James\`)`);
                     return;
@@ -200,7 +201,7 @@ const initializeListeners = (client) => {
                     }
                 }
                 else {
-                    console.log('>>>>> Member nickname already set! ignoring...');
+                    // console.log('>>>>> Member nickname already set! ignoring...');
                     return;
                 }
             }

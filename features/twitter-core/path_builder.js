@@ -10,11 +10,11 @@ let pathObject = {
 
 const extractFilename = (videoUrl) => {
     const videoUrlParts = videoUrl.split('/');
-    console.log('>>>>> pathBuilder > extractFilename > videoUrlParts: ', videoUrlParts);
+    // console.log('>>>>> pathBuilder > extractFilename > videoUrlParts: ', videoUrlParts);
     const filenameQueryParamParts = videoUrlParts[videoUrlParts.length - 1].split('?');
-    console.log('>>>>> pathBuilder > extractFilename > filenameQueryParamParts: ', filenameQueryParamParts);
+    // console.log('>>>>> pathBuilder > extractFilename > filenameQueryParamParts: ', filenameQueryParamParts);
     const filename = filenameQueryParamParts[0];
-    console.log('>>>>> pathBuilder > extractFilename > filename: ', filename);
+    // console.log('>>>>> pathBuilder > extractFilename > filename: ', filename);
     return filename;
 };
 
@@ -49,13 +49,6 @@ const buildPathsAndStuff = (processingDir = '/tempdata', videoUrl) => {
         recombinedFilePath,
     };
 
-    return pathObject;
-};
-
-/**
- * After path data initialized
- */
-const getPathObject = () => {
     return pathObject;
 };
 
