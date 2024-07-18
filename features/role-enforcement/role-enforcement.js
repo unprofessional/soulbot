@@ -37,16 +37,16 @@ const enforceGoldyRole = async (message) => {
         const memberId = message.author.id;
         const targetUser = await message.guild.members.fetch(memberId);
         const roleNames =  targetUser.roles.cache.map(role => role.name.toLowerCase());
-        console.log('>>> enforceGoldyRole > roleNames: ', roleNames);
+        // console.log('>>> enforceGoldyRole > roleNames: ', roleNames);
         const rolesContainGoldyRole = roleNames.includes('goldy');
-        console.log('>>> enforceGoldyRole > rolesContainGoldyRole: ', rolesContainGoldyRole);
+        // console.log('>>> enforceGoldyRole > rolesContainGoldyRole: ', rolesContainGoldyRole);
   
         if(rolesContainGoldyRole) {
             const originalMsg = message.content;
             const randomPrefix = getRandomPrefixes();
             const randomCatchphrase = getRandomCatchPhrase();
             const templateResult = getTemplateResult(memberId, randomPrefix, originalMsg, randomCatchphrase);
-            console.log('>>> enforceGoldyRole > randomCatchphrase: ', randomCatchphrase);
+            // console.log('>>> enforceGoldyRole > randomCatchphrase: ', randomCatchphrase);
             try {
                 await message.delete();
                 await message.channel.send(templateResult);

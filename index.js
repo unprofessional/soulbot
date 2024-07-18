@@ -51,7 +51,7 @@ client.on(Events.Warn, (warning) => {
     console.error('----- Events: Warn:', warning);
 });
 client.on(Events.Debug, (debug) => {
-    console.error('----- Events: Debug:', debug);
+    // console.error('----- Events: Debug:', debug);
 });
 
 // ShardEvents
