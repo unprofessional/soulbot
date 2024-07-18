@@ -156,19 +156,23 @@ const renderTwitterPost = async (metadataJson, message) => {
             // TODO: we would have to then infer it from the video itself possibly using ffmpeg.ffprobe
         }
 
-        await downloadVideo(videoUrl, videoInputPath);
-        const { canvasHeight, canvasWidth, heightShim } = await createTwitterVideoCanvas(metadataJson);
-        const successFilePath = await bakeImageAsFilterIntoVideo(
-            videoInputPath, canvasInputPath, videoOutputPath,
-            mediaObject.height, mediaObject.width,
-            canvasHeight, canvasWidth, heightShim,
-        );
-
-        /**
-         * DO something with the video!!!!
-         */
-        // await replyMsg.delete(); // don't even need to do this anymore
-        await sendVideoReply(message, successFilePath, localWorkingPath);
+        try {
+            await downloadVideo(videoUrl, videoInputPath);
+            const { canvasHeight, canvasWidth, heightShim } = await createTwitterVideoCanvas(metadataJson);
+            const successFilePath = await bakeImageAsFilterIntoVideo(
+                videoInputPath, canvasInputPath, videoOutputPath,
+                mediaObject.height, mediaObject.width,
+                canvasHeight, canvasWidth, heightShim,
+            );
+    
+            /**
+             * DO something with the video!!!!
+             */
+            // await replyMsg.delete(); // don't even need to do this anymore
+            await sendVideoReply(message, successFilePath, localWorkingPath);
+        } catch (err) {
+            await cleanup([], [localWorkingPath]);
+        }
 
     } else {
         // Handle non-video processing
@@ -179,10 +183,6 @@ const renderTwitterPost = async (metadataJson, message) => {
         /**
          * Pull image and add it as a separate image/file
          */
-        // console.log('>>>>> renderTwitterPost > metadataJson: ', metadataJson);
-        const mediaUrls = metadataJson.mediaURLs;
-        // console.log('>>>>> renderTwitterPost > mediaUrls: ', mediaUrls);
-
         let files = [{
             attachment: buffer,
             name: 'image.png',
