@@ -38,53 +38,6 @@ const filterVideoUrls = (mediaUrls) => {
     });
 };
 
-const getFilenameWithoutExtension = (url) => {
-    const filenameWithQueryParams = url.split('/').pop();
-    return filenameWithQueryParams.split('?')[0].split('.')[0];
-};
-
-const processVideos = async (metadataJson, message, isTwitterUrl) => {
-    console.log('Processing videos');
-
-    const mediaUrl = metadataJson.mediaURLs[0];
-    const filename = getFilenameWithoutExtension(mediaUrl);
-    const localWorkingPath = `${processingDir}/${filename}`;
-
-    const replyMsg = await message.reply({
-        content: 'Generating video! Could take a minute. Please stand by...',
-    });
-    console.log('>>>>> renderTwitterPost > replyMsg: ', replyMsg);
-
-    const successFilePath = await createTwitterVideoCanvas(metadataJson);
-
-    if (!successFilePath) {
-        await replyMsg.delete();
-        return handleVideoTooLong(metadataJson, message, isTwitterUrl, localWorkingPath);
-    }
-
-    await replyMsg.delete();
-    await sendVideoReply(message, successFilePath, localWorkingPath);
-};
-
-
-const handleVideoTooLong = async (metadataJson, message, isTwitterUrl, localWorkingPath) => {
-    console.log('Video too long');
-    const twitterUrl = metadataJson.tweetURL;
-    // NOTE: for now, it looks like this will ALWAYS be a twitter.com URL
-    // TODO: comment strictly to kick off the build pipeline which didn't happen...
-    // ...attempt 1
-    // const fixedUrl = isTwitterUrl
-    //     ? twitterUrl.replace('https://twitter.com', 'https://vxtwitter.com') 
-    //     : twitterUrl.replace('https://x.com', 'https://fixvx.com');
-    const fixedUrl = twitterUrl.replace('https://twitter.com', 'https://vxtwitter.com');
-
-    await message.reply({
-        content: `Video too long! Must be less than 60 seconds! ${fixedUrl}`,
-    });
-
-    await cleanup([], [localWorkingPath]);
-};
-
 const sendVideoReply = async (message, successFilePath, localWorkingPath) => {
     console.log('Sending video reply');
     const files = [{
