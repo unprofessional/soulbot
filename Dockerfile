@@ -11,7 +11,7 @@ WORKDIR /app/
 COPY . /app/
 
 # Run NPM ci (install)
-RUN npm ci
+RUN npm ci --verbose
 
 # expose for HTTP and HTTPS
 EXPOSE 80 443
