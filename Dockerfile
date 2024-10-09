@@ -1,5 +1,14 @@
 FROM node:18.18-bullseye
 
+# Install the necessary Canvas/Cairo libs
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    libcairo2-dev \
+    libpango1.0-dev \
+    libjpeg-dev \
+    libgif-dev \
+    librsvg2-dev
+
 # Install ffmpeg and ffprobe
 RUN apt-get update && apt-get install -y ffmpeg
 
