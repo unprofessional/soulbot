@@ -203,6 +203,9 @@ const renderTwitterPost = async (metadataJson, message) => {
         } catch (err) {
             await sendWebhookProxyMsg(message, `File(s) too large to attach! err: ${err}`);
         }
+        await message.suppressEmbeds(true);
+        await message.suppressEmbeds(true);
+        await message.suppressEmbeds(true);
     }
 
     // await sendWebhookProxyMsg(message); // TESTING
