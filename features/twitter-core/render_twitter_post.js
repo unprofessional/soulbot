@@ -66,7 +66,7 @@ const sendWebhookProxyMsg = async (message) => {
     await webhook.send({
         content: `TESTING WEBHOOK MSG PROXY: ${content}`,
         username: username,
-        avatarURL: displayAvatarURL(),
+        avatarURL: avatarURL,
     });
 
     console.log('>>> sendWebhookProxyMsg sent!');
