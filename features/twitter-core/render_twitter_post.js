@@ -62,7 +62,9 @@ const sendWebhookProxyMsg = async (message, content, files = []) => {
 
     console.log('>>> sendWebhookProxyMsg webhook created!');
 
-    const modifiedContent = message.content.replace(/(https:\/\/\S+)/, '$1\u200B');
+    // const modifiedContent = message.content.replace(/(https:\/\/\S+)/, '$1\u200B');
+    const modifiedContent = message.content.replace(/(https:\/\/\S+)/, '<$1>');
+
 
     // Send the message through the webhook
     await webhook.send({
