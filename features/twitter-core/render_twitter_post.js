@@ -47,9 +47,8 @@ const sendWebhookProxyMsg = async (message) => {
     console.log('>>> sendWebhookProxyMsg reached!');
 
     // Save user details for the webhook
-    const { username, displayAvatarURL } = message.author;
+    const username = message.author.username;
     console.log('>>> sendWebhookProxyMsg > username: ', username);
-    console.log('>>> sendWebhookProxyMsg > displayAvatarURL(): ', displayAvatarURL());
     const avatarURL = message.author.displayAvatarURL(); // Call displayAvatarURL as a function to get the URL
     console.log('>>> sendWebhookProxyMsg > avatarURL: ', avatarURL);
     const content = message.content; // Store the message content (Twitter link)
