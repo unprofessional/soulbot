@@ -197,7 +197,7 @@ const renderTwitterPost = async (metadataJson, message) => {
         }
     }
 
-    await sendWebhookProxyMsg(message); // TESTING
+    // await sendWebhookProxyMsg(message); // TESTING
     console.log('>>> renderTwitterPost proxy msg sent!');
 
 };
