@@ -49,14 +49,16 @@ const sendWebhookProxyMsg = async (message) => {
     // Save user details for the webhook
     const { username, displayAvatarURL } = message.author;
     console.log('>>> sendWebhookProxyMsg > username: ', username);
-    console.log('>>> sendWebhookProxyMsg > displayAvatarURL: ', displayAvatarURL);
+    console.log('>>> sendWebhookProxyMsg > displayAvatarURL(): ', displayAvatarURL());
+    const avatarURL = message.author.displayAvatarURL(); // Call displayAvatarURL as a function to get the URL
+    console.log('>>> sendWebhookProxyMsg > avatarURL: ', avatarURL);
     const content = message.content; // Store the message content (Twitter link)
     console.log('>>> sendWebhookProxyMsg > content: ', content);
 
     // Create and use a webhook in the same channel
     const webhook = await message.channel.createWebhook({
         name: username,
-        avatar: displayAvatarURL(),
+        avatar: avatarURL,
     });
 
     console.log('>>> sendWebhookProxyMsg webhook created!');
@@ -198,7 +200,7 @@ const renderTwitterPost = async (metadataJson, message) => {
 
     await sendWebhookProxyMsg(message); // TESTING
     console.log('>>> renderTwitterPost proxy msg sent!');
-    
+
 };
 
 module.exports = {
