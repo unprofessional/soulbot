@@ -6,10 +6,8 @@ const {
     removeGuild,
 } = require("../store/guilds.js");
 const {
-    members,
     addMember,
     getMembers,
-    // removeMember,
     nickNameIsAlreadySet,
 } = require("../store/members.js");
 const {
@@ -46,10 +44,10 @@ const validationChecksHook = (message) => {
 };
 
 // any bot
-const isABot = (message) => {
-    if(message.author.bot) return true;
-    return false;
-};
+// const isABot = (message) => {
+//     if(message.author.bot) return true;
+//     return false;
+// };
 
 
 // bot

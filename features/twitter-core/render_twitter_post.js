@@ -38,6 +38,29 @@ const filterVideoUrls = (mediaUrls) => {
     });
 };
 
+const sendWebhookProxyMsg = async (message) => {
+
+    // Save user details for the webhook
+    const { username, displayAvatarURL } = message.author;
+    const content = message.content; // Store the message content (Twitter link)
+
+    // Create and use a webhook in the same channel
+    const webhook = await message.channel.createWebhook({
+        name: username,
+        avatar: displayAvatarURL(),
+    });
+
+    // Send the message through the webhook
+    await webhook.send({
+        content: `TESTING WEBHOOK MSG PROXY: ${content}`,
+        username: username,
+        avatarURL: displayAvatarURL(),
+    });
+
+    // Delete the webhook to keep the channel clean
+    await webhook.delete();
+};
+
 const sendVideoReply = async (message, successFilePath, localWorkingPath) => {
     console.log('Sending video reply');
     const files = [{
@@ -57,11 +80,13 @@ const sendVideoReply = async (message, successFilePath, localWorkingPath) => {
         await cleanup([], [localWorkingPath]);
         if (errorMsg === 'Invalid Form Body' || errorName === 'DiscordAPIError[50035]') {
             console.log('>>> errorMsg is Invalid Form Body');
+            await sendWebhookProxyMsg(message); // TESTING
             await message.channel.send(
                 {
                     content: `Encountered error trying to reply... the sender probably deleted the original message: ${err}`,
                 }
             );
+            
         }
         await message.channel.send(
             {
