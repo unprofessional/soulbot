@@ -47,7 +47,11 @@ const getMembers = (client, guildId) => {
     console.log('!!!!! _member: ', _member);
         const cachedMember = cachedGuild.members.cache.get(_member.memberId);
         console.log('!!!!! cachedMember: ', cachedMember);
-        nicknames.push(cachedMember.nickname);
+        if(!cachedMember) {
+            nicknames.push('UNDEFINED! Deleted member: ', _member.prefix);
+        } else {
+            nicknames.push(cachedMember.nickname);
+        }
     });
     // return list;
 
