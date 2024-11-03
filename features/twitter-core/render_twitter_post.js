@@ -38,17 +38,28 @@ const filterVideoUrls = (mediaUrls) => {
     });
 };
 
+/**
+ * 
+ * @param {*} message 
+ */
 const sendWebhookProxyMsg = async (message) => {
+
+    console.log('>>> sendWebhookProxyMsg reached!');
 
     // Save user details for the webhook
     const { username, displayAvatarURL } = message.author;
+    console.log('>>> sendWebhookProxyMsg > username: ', username);
+    console.log('>>> sendWebhookProxyMsg > displayAvatarURL: ', displayAvatarURL);
     const content = message.content; // Store the message content (Twitter link)
+    console.log('>>> sendWebhookProxyMsg > content: ', content);
 
     // Create and use a webhook in the same channel
     const webhook = await message.channel.createWebhook({
         name: username,
         avatar: displayAvatarURL(),
     });
+
+    console.log('>>> sendWebhookProxyMsg webhook created!');
 
     // Send the message through the webhook
     await webhook.send({
@@ -57,8 +68,12 @@ const sendWebhookProxyMsg = async (message) => {
         avatarURL: displayAvatarURL(),
     });
 
+    console.log('>>> sendWebhookProxyMsg sent!');
+
     // Delete the webhook to keep the channel clean
     await webhook.delete();
+
+    console.log('>>> sendWebhookProxyMsg deleted!');
 };
 
 const sendVideoReply = async (message, successFilePath, localWorkingPath) => {
@@ -70,6 +85,9 @@ const sendVideoReply = async (message, successFilePath, localWorkingPath) => {
 
     try {
         await message.reply({ files });
+
+        await sendWebhookProxyMsg(message); // TESTING
+        
     } catch (err) {
         console.error('!!! err: ', err);
         const errorName = err?.name;
@@ -80,7 +98,6 @@ const sendVideoReply = async (message, successFilePath, localWorkingPath) => {
         await cleanup([], [localWorkingPath]);
         if (errorMsg === 'Invalid Form Body' || errorName === 'DiscordAPIError[50035]') {
             console.log('>>> errorMsg is Invalid Form Body');
-            await sendWebhookProxyMsg(message); // TESTING
             await message.channel.send(
                 {
                     content: `Encountered error trying to reply... the sender probably deleted the original message: ${err}`,
