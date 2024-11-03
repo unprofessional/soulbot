@@ -49,7 +49,7 @@ const sendWebhookProxyMsg = async (message) => {
     // Save user details for the webhook
     const username = message.author.username;
     console.log('>>> sendWebhookProxyMsg > username: ', username);
-    const avatarURL = message.author.displayAvatarURL(); // Call displayAvatarURL as a function to get the URL
+    const avatarURL = message.author.avatarURL({ dynamic: true }) || message.author.displayAvatarURL(); // Call displayAvatarURL as a function to get the URL
     console.log('>>> sendWebhookProxyMsg > avatarURL: ', avatarURL);
     const content = message.content; // Store the message content (Twitter link)
     console.log('>>> sendWebhookProxyMsg > content: ', content);
@@ -64,7 +64,7 @@ const sendWebhookProxyMsg = async (message) => {
 
     // Send the message through the webhook
     await webhook.send({
-        content: `TESTING WEBHOOK MSG PROXY: ${content}`,
+        content: `TESTING WEBHOOK MSG PROXY`,
         username: username,
         avatarURL: avatarURL,
     });
@@ -197,7 +197,7 @@ const renderTwitterPost = async (metadataJson, message) => {
         }
     }
 
-    // await sendWebhookProxyMsg(message); // TESTING
+    await sendWebhookProxyMsg(message); // TESTING
     console.log('>>> renderTwitterPost proxy msg sent!');
 
 };
