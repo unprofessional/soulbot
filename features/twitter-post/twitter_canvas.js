@@ -1,5 +1,5 @@
 const {
-    registerFont,
+    // registerFont,
     createCanvas,
     loadImage,
 } = require('canvas');
@@ -96,8 +96,8 @@ const createTwitterCanvas = async (metadataJson, isImage) => {
 
     // Unnecessary if the font is loaded in the local OS
     // TODO: Investigate if `fonts/` is even necessary...
-    registerFont('/usr/share/fonts/truetype/noto/NotoColorEmoji.ttf', { family: 'Noto Color Emoji' });
-    const globalFont = '"Noto Color Emoji"';
+    // registerFont('/usr/share/fonts/truetype/noto/NotoColorEmoji.ttf', { family: 'Noto Color Emoji' });
+    const globalFont = 'Arial';
 
     const maxCanvasWidth = 600;
     let canvasHeight = 650;
@@ -237,13 +237,14 @@ const createTwitterCanvas = async (metadataJson, isImage) => {
         // Draw description (post text wrap handling)
         ctx.fillStyle = 'white';
         ctx.font = !hasImgs && hasVids ? '36px ' + globalFont : '24px ' + globalFont;
-        // const lineHeight = hasOnlyVideos ? 50 : 30;
-        // const descXPosition = !hasImgs && hasVids ? 80 : 30;
-        // descLines.forEach(line => {
-        //     ctx.fillText(line, descXPosition, defaultYPosition);
-        //     defaultYPosition += lineHeight;
-        // });
-        ctx.fillText("Text with emojis 🎉 and symbols ♠️", 50, 100);
+        const lineHeight = hasOnlyVideos ? 50 : 30;
+        const descXPosition = !hasImgs && hasVids ? 80 : 30;
+        descLines.forEach(line => {
+            ctx.fillText(line, descXPosition, defaultYPosition);
+            defaultYPosition += lineHeight;
+        });
+        // TEST
+        // ctx.fillText("Text with emojis 🎉 and symbols ♠️", 50, 100);
 
         // Draw date elements
         ctx.fillStyle = 'gray';
