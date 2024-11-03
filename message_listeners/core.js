@@ -64,7 +64,7 @@ const isOwner = (message) => {
     return false;
 };
 
-const initializeListeners = (client) => {
+const initializeListeners = async (client) => {
 
     /**
      * Listen to every message...
@@ -207,7 +207,7 @@ const initializeListeners = (client) => {
             }
 
             if(message.content.includes('!!! nicklist') && validationChecksHook(message)) {
-                const memberList = getMembers(client, guildId);
+                const memberList = await getMembers(client, guildId);
                 if(memberList.length > 0) {
                     message.channel.send(`Current controlled users: ${memberList}`);
                 } else {
