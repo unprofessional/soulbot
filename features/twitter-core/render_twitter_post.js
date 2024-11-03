@@ -64,7 +64,7 @@ const sendWebhookProxyMsg = async (message, content, files = []) => {
 
     // Send the message through the webhook
     await webhook.send({
-        // content: message.content,
+        content: message.content,
         username: username,
         avatarURL: avatarURL,
         files: files,
