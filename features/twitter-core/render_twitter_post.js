@@ -42,7 +42,7 @@ const filterVideoUrls = (mediaUrls) => {
  * 
  * @param {*} message 
  */
-const sendWebhookProxyMsg = async (message) => {
+const sendWebhookProxyMsg = async (message, content, files = []) => {
 
     console.log('>>> sendWebhookProxyMsg reached!');
 
@@ -51,8 +51,8 @@ const sendWebhookProxyMsg = async (message) => {
     console.log('>>> sendWebhookProxyMsg > username: ', username);
     const avatarURL = message.author.avatarURL({ dynamic: true }) || message.author.displayAvatarURL(); // Call displayAvatarURL as a function to get the URL
     console.log('>>> sendWebhookProxyMsg > avatarURL: ', avatarURL);
-    const content = message.content; // Store the message content (Twitter link)
-    console.log('>>> sendWebhookProxyMsg > content: ', content);
+
+    // console.log('>>> sendWebhookProxyMsg > content: ', content);
 
     // Create and use a webhook in the same channel
     const webhook = await message.channel.createWebhook({
@@ -64,9 +64,10 @@ const sendWebhookProxyMsg = async (message) => {
 
     // Send the message through the webhook
     await webhook.send({
-        content: `TESTING WEBHOOK MSG PROXY`,
+        // content,
         username: username,
         avatarURL: avatarURL,
+        files: files,
     });
 
     console.log('>>> sendWebhookProxyMsg sent!');
@@ -181,19 +182,26 @@ const renderTwitterPost = async (metadataJson, message) => {
             name: 'image.png',
         }];
 
-        // Create a MessageAttachment and send it
+        // // Create a MessageAttachment and send it
+        // try {
+        //     await message.reply(
+        //         {
+        //             files,
+        //         }
+        //     );
+        // } catch (err) {
+        //     await message.reply(
+        //         {
+        //             content: `File(s) too large to attach! err: ${err}`,
+        //         }
+        //     );
+        // }
+
+        // Use the webhook proxy to send the message with the file
         try {
-            await message.reply(
-                {
-                    files,
-                }
-            );
+            await sendWebhookProxyMsg(message, 'Here’s the Twitter canvas:', files);
         } catch (err) {
-            await message.reply(
-                {
-                    content: `File(s) too large to attach! err: ${err}`,
-                }
-            );
+            await sendWebhookProxyMsg(message, `File(s) too large to attach! err: ${err}`);
         }
     }
 

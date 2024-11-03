@@ -44,10 +44,10 @@ const validationChecksHook = (message) => {
 };
 
 // any bot
-// const isABot = (message) => {
-//     if(message.author.bot) return true;
-//     return false;
-// };
+const isABot = (message) => {
+    if(message.author.bot) return true;
+    return false;
+};
 
 
 // bot
@@ -117,7 +117,7 @@ const initializeListeners = async (client) => {
             }
         }
 
-        if(!isSelf(message) && isOwner(message)) {
+        if(!isSelf(message) && !isABot(message) && isOwner(message)) {
 
             // console.log('>>>>> NOT self!!! Reading message!!');
 
