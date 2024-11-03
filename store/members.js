@@ -69,7 +69,7 @@ const getMembers = async (client) => {
         const cachedMember = cachedMembers.get(_member.memberId);
         console.log('!!!!! cachedMember: ', cachedMember);
         if(!cachedMember) {
-            nicknames.push(`member not found: ${_member.prefix}`);
+            nicknames.push(`MISSING: ${_member.prefix}`);
         } else {
             nicknames.push(cachedMember.nickname);
         }
