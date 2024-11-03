@@ -1,5 +1,5 @@
 const {
-    // registerFont,
+    registerFont,
     createCanvas,
     loadImage,
 } = require('canvas');
@@ -96,8 +96,8 @@ const createTwitterCanvas = async (metadataJson, isImage) => {
 
     // Unnecessary if the font is loaded in the local OS
     // TODO: Investigate if `fonts/` is even necessary...
-    // registerFont('/usr/share/fonts/truetype/noto/NotoColorEmoji.ttf', { family: 'Noto Color Emoji' });
-    const globalFont = 'Arial';
+    registerFont('/usr/share/fonts/truetype/noto/NotoColorEmoji.ttf', { family: 'Noto Color Emoji' });
+    const globalFont = '"Noto Color Emoji"';
 
     const maxCanvasWidth = 600;
     let canvasHeight = 650;
