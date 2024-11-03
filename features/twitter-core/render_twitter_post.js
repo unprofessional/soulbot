@@ -84,17 +84,7 @@ const sendVideoReply = async (message, successFilePath, localWorkingPath) => {
     }];
 
     try {
-
-        console.log('>>> sendVideoReply reached!');
-
         await message.reply({ files });
-
-        console.log('>>> sendVideoReply msg reply sent!');
-
-        await sendWebhookProxyMsg(message); // TESTING
-
-        console.log('>>> sendVideoReply proxy msg sent!');
-
     } catch (err) {
         console.error('!!! err: ', err);
         const errorName = err?.name;
@@ -205,6 +195,10 @@ const renderTwitterPost = async (metadataJson, message) => {
             );
         }
     }
+
+    await sendWebhookProxyMsg(message); // TESTING
+    console.log('>>> renderTwitterPost proxy msg sent!');
+    
 };
 
 module.exports = {
