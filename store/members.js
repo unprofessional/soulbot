@@ -40,11 +40,19 @@ const addMember = (user, prefix, message) => {
  * @returns 
  */
 const getMembers = async (client, guildId) => {
-    const cachedGuild = client.guilds.cache.get(guildId);
+    let cachedGuild;
+    try {
+        cachedGuild = await client.guilds.fetch(guildId);
+    } catch (error) {
+        console.log('Error fetching guild:', error);
+        return 'Error fetching guild data';
+    }
     console.log('!!!!! cachedGuild: ', cachedGuild);
+    
     const nicknames = [];
     
     for (const _member of members) {
+        console.log('!!! _member: ', _member);
         let cachedMember;
         try {
             cachedMember = await cachedGuild.members.fetch(_member.memberId);
