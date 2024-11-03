@@ -62,7 +62,7 @@ const initializeMemberCache = async (client) => {
  */
 const getMembers = async (client) => {
     const cachedMembers = await initializeMemberCache(client);
-    console.log('!!!!! cachedGuild: ', cachedMembers);
+    // console.log('!!!!! cachedGuild: ', cachedMembers); // will print out huge list.....
     const nicknames = [];
     members.forEach((_member) => {
     console.log('!!!!! _member: ', _member);
