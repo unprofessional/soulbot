@@ -46,8 +46,9 @@ const initializeMemberCache = async (client) => {
         return;
     }
     try {
-        await cachedGuild.members.fetch(); // Fetch and cache all members at once
-        console.log("All members cached successfully.");
+        const fetchedMembers = await cachedGuild.members.fetch(); // Fetch and cache all members at once
+        console.log("All members cached successfully: ", fetchedMembers);
+        return fetchedMembers;
     } catch (error) {
         console.error("Error fetching members for cache:", error);
     }
@@ -60,12 +61,12 @@ const initializeMemberCache = async (client) => {
  * @returns 
  */
 const getMembers = async (client) => {
-    const cachedGuild = await initializeMemberCache(client);
-    console.log('!!!!! cachedGuild: ', cachedGuild);
+    const cachedMembers = await initializeMemberCache(client);
+    console.log('!!!!! cachedGuild: ', cachedMembers);
     const nicknames = [];
     members.forEach((_member) => {
     console.log('!!!!! _member: ', _member);
-        const cachedMember = cachedGuild.members.cache.get(_member.memberId); // use `fetch` instead of `get` since v14
+        const cachedMember = cachedMembers.get(_member.memberId);
         console.log('!!!!! cachedMember: ', cachedMember);
         if(!cachedMember) {
             nicknames.push(`member not found: ${_member.prefix}`);
