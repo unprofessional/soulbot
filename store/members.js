@@ -43,9 +43,9 @@ const getMembers = (client, guildId) => {
     const cachedGuild = client.guilds.cache.get(guildId);
     console.log('!!!!! cachedGuild: ', cachedGuild);
     const nicknames = [];
-    members.forEach((_member) => {
+    members.forEach(async (_member) => {
     console.log('!!!!! _member: ', _member);
-        const cachedMember = cachedGuild.members.fetch(_member.memberId); // use `fetch` instead of `get` since v14
+        const cachedMember = await cachedGuild.members.fetch(_member.memberId); // use `fetch` instead of `get` since v14
         console.log('!!!!! cachedMember: ', cachedMember);
         if(!cachedMember) {
             nicknames.push(`Persisted member not found: ${_member.prefix}`);
