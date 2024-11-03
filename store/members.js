@@ -45,7 +45,7 @@ const getMembers = (client, guildId) => {
     const nicknames = [];
     members.forEach((_member) => {
     console.log('!!!!! _member: ', _member);
-        const cachedMember = cachedGuild.members.cache.get(_member.memberId);
+        const cachedMember = cachedGuild.members.cache.fetch(_member.memberId); // use `fetch` instead of `get` since v14
         console.log('!!!!! cachedMember: ', cachedMember);
         if(!cachedMember) {
             nicknames.push('UNDEFINED! Deleted member: ', _member.prefix);
@@ -53,7 +53,6 @@ const getMembers = (client, guildId) => {
             nicknames.push(cachedMember.nickname);
         }
     });
-    // return list;
 
     let nicknamesStringFormatted = "";
     nicknames.forEach((nickname) => {
