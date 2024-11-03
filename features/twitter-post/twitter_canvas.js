@@ -237,12 +237,13 @@ const createTwitterCanvas = async (metadataJson, isImage) => {
         // Draw description (post text wrap handling)
         ctx.fillStyle = 'white';
         ctx.font = !hasImgs && hasVids ? '36px ' + globalFont : '24px ' + globalFont;
-        const lineHeight = hasOnlyVideos ? 50 : 30;
-        const descXPosition = !hasImgs && hasVids ? 80 : 30;
-        descLines.forEach(line => {
-            ctx.fillText(line, descXPosition, defaultYPosition);
-            defaultYPosition += lineHeight;
-        });
+        // const lineHeight = hasOnlyVideos ? 50 : 30;
+        // const descXPosition = !hasImgs && hasVids ? 80 : 30;
+        // descLines.forEach(line => {
+        //     ctx.fillText(line, descXPosition, defaultYPosition);
+        //     defaultYPosition += lineHeight;
+        // });
+        ctx.fillText("Text with emojis 🎉 and symbols ♠️", 50, 100);
 
         // Draw date elements
         ctx.fillStyle = 'gray';
@@ -304,14 +305,13 @@ const createTwitterCanvas = async (metadataJson, isImage) => {
       
         // Draw description (post text wrap handling)
         ctx.fillStyle = 'white'; // Text color for description
-        ctx.font = '24px "Noto Color Emoji"';
-        // const lineHeight = 30;
-        // const qtTextXAxisStart = hasMedia ? 230 : 100;
-        // qtDescLines.forEach(line => {
-        //     ctx.fillText(line, qtTextXAxisStart, qtYPosition + 100);
-        //     qtYPosition += lineHeight;
-        // });
-        ctx.fillText("Text with emojis 🎉 and symbols ♠️", 50, 100);
+        ctx.font = '24px ' + globalFont;
+        const lineHeight = 30;
+        const qtTextXAxisStart = hasMedia ? 230 : 100;
+        qtDescLines.forEach(line => {
+            ctx.fillText(line, qtTextXAxisStart, qtYPosition + 100);
+            qtYPosition += lineHeight;
+        });
 
         // Draw pfp image
         ctx.drawImage(pfp, 40, calculatedCanvasHeightFromDescLines + 20, 50, 50);
