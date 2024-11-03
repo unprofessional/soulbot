@@ -41,12 +41,12 @@ const addMember = (user, prefix, message) => {
  */
 const getMembers = (client, guildId) => {
     const cachedGuild = client.guilds.cache.get(guildId);
-    // console.log('!!!!! cachedGuild: ', cachedGuild);
+    console.log('!!!!! cachedGuild: ', cachedGuild);
     const nicknames = [];
     members.forEach((_member) => {
-    // console.log('!!!!! _member: ', _member);
+    console.log('!!!!! _member: ', _member);
         const cachedMember = cachedGuild.members.cache.get(_member.memberId);
-        // console.log('!!!!! cachedMember: ', cachedMember);
+        console.log('!!!!! cachedMember: ', cachedMember);
         nicknames.push(cachedMember.nickname);
     });
     // return list;
@@ -55,7 +55,7 @@ const getMembers = (client, guildId) => {
     nicknames.forEach((nickname) => {
         nicknamesStringFormatted += `\`${nickname}\`, ` // TODO: fix singular dangling comma
     })
-    // console.log('>>>>> nicknamesStringFormatted: ', nicknamesStringFormatted);
+    console.log('>>>>> nicknamesStringFormatted: ', nicknamesStringFormatted);
     return nicknamesStringFormatted;
 };
 
