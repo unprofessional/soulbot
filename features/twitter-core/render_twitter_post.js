@@ -49,6 +49,8 @@ const sendWebhookProxyMsg = async (message, content, files = []) => {
     // Save user details for the webhook
     const username = message.author.username;
     console.log('>>> sendWebhookProxyMsg > username: ', username);
+    const nickname = message.author.nickname;
+    console.log('>>> sendWebhookProxyMsg > nickname: ', nickname);
     const avatarURL = message.author.avatarURL({ dynamic: true }) || message.author.displayAvatarURL(); // Call displayAvatarURL as a function to get the URL
     console.log('>>> sendWebhookProxyMsg > avatarURL: ', avatarURL);
 
@@ -56,7 +58,7 @@ const sendWebhookProxyMsg = async (message, content, files = []) => {
 
     // Create and use a webhook in the same channel
     const webhook = await message.channel.createWebhook({
-        name: username,
+        name: nickname,
         avatar: avatarURL,
     });
 
