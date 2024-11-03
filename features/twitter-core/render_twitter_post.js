@@ -47,9 +47,7 @@ const sendWebhookProxyMsg = async (message, content, files = []) => {
     console.log('>>> sendWebhookProxyMsg reached!');
 
     // Save user details for the webhook
-    const username = message.author.username;
-    console.log('>>> sendWebhookProxyMsg > username: ', username);
-    const nickname = message.author.nickname;
+    const nickname = message.member?.nickname || message.author.username;
     console.log('>>> sendWebhookProxyMsg > nickname: ', nickname);
     const avatarURL = message.author.avatarURL({ dynamic: true }) || message.author.displayAvatarURL(); // Call displayAvatarURL as a function to get the URL
     console.log('>>> sendWebhookProxyMsg > avatarURL: ', avatarURL);
@@ -71,7 +69,7 @@ const sendWebhookProxyMsg = async (message, content, files = []) => {
     // Send the message through the webhook
     await webhook.send({
         content: modifiedContent,
-        username: username,
+        username: nickname,
         avatarURL: avatarURL,
         files: files,
     });
