@@ -304,9 +304,9 @@ const createTwitterCanvas = async (metadataJson, isImage) => {
       
         // Draw description (post text wrap handling)
         ctx.fillStyle = 'white'; // Text color for description
-        ctx.font = '24px ' + globalFont;
-        const lineHeight = 30;
-        const qtTextXAxisStart = hasMedia ? 230 : 100;
+        ctx.font = '24px "Noto Color Emoji"';
+        // const lineHeight = 30;
+        // const qtTextXAxisStart = hasMedia ? 230 : 100;
         // qtDescLines.forEach(line => {
         //     ctx.fillText(line, qtTextXAxisStart, qtYPosition + 100);
         //     qtYPosition += lineHeight;
