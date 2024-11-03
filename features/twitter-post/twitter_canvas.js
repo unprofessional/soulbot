@@ -307,10 +307,11 @@ const createTwitterCanvas = async (metadataJson, isImage) => {
         ctx.font = '24px ' + globalFont;
         const lineHeight = 30;
         const qtTextXAxisStart = hasMedia ? 230 : 100;
-        qtDescLines.forEach(line => {
-            ctx.fillText(line, qtTextXAxisStart, qtYPosition + 100);
-            qtYPosition += lineHeight;
-        });
+        // qtDescLines.forEach(line => {
+        //     ctx.fillText(line, qtTextXAxisStart, qtYPosition + 100);
+        //     qtYPosition += lineHeight;
+        // });
+        ctx.fillText("Text with emojis 🎉 and symbols ♠️", 50, 100);
 
         // Draw pfp image
         ctx.drawImage(pfp, 40, calculatedCanvasHeightFromDescLines + 20, 50, 50);
