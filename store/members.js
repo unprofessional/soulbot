@@ -39,8 +39,28 @@ const addMember = (user, prefix, message) => {
  * @param {*} guildId 
  * @returns 
  */
-const getMembers = (client) => {
-    const cachedGuild = client.guilds.cache.get('818606858780147712'); // hard-coded for now...
+const initializeMemberCache = async (client) => {
+    const cachedGuild = client.guilds.cache.get('818606858780147712');
+    if (!cachedGuild) {
+        console.error("Guild not found!");
+        return;
+    }
+    try {
+        await cachedGuild.members.fetch(); // Fetch and cache all members at once
+        console.log("All members cached successfully.");
+    } catch (error) {
+        console.error("Error fetching members for cache:", error);
+    }
+};
+
+/**
+ * 
+ * @param {*} client 
+ * @param {*} guildId 
+ * @returns 
+ */
+const getMembers = async (client) => {
+    const cachedGuild = await initializeMemberCache(client);
     console.log('!!!!! cachedGuild: ', cachedGuild);
     const nicknames = [];
     members.forEach((_member) => {
@@ -48,7 +68,7 @@ const getMembers = (client) => {
         const cachedMember = cachedGuild.members.cache.get(_member.memberId); // use `fetch` instead of `get` since v14
         console.log('!!!!! cachedMember: ', cachedMember);
         if(!cachedMember) {
-            nicknames.push(`Persisted member not found: ${_member.prefix}`);
+            nicknames.push(`member not found: ${_member.prefix}`);
         } else {
             nicknames.push(cachedMember.nickname);
         }
