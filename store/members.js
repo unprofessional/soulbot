@@ -39,35 +39,25 @@ const addMember = (user, prefix, message) => {
  * @param {*} guildId 
  * @returns 
  */
-const getMembers = async (client, guildId) => {
-    let cachedGuild;
-    try {
-        cachedGuild = await client.guilds.fetch(guildId);
-    } catch (error) {
-        console.log('Error fetching guild:', error);
-        return 'Error fetching guild data';
-    }
+const getMembers = (client) => {
+    const cachedGuild = client.guilds.cache.get('818606858780147712'); // hard-coded for now...
     console.log('!!!!! cachedGuild: ', cachedGuild);
-    
     const nicknames = [];
-    
-    for (const _member of members) {
-        console.log('!!! _member: ', _member);
-        let cachedMember;
-        try {
-            cachedMember = await cachedGuild.members.fetch(_member.memberId);
-        } catch (error) {
-            console.log('Error fetching member:', error);
-        }
-        
-        if (!cachedMember) {
-            nicknames.push(`UNDEFINED! Deleted member: ${_member.prefix}`);
+    members.forEach((_member) => {
+    console.log('!!!!! _member: ', _member);
+        const cachedMember = cachedGuild.members.cache.get(_member.memberId); // use `fetch` instead of `get` since v14
+        console.log('!!!!! cachedMember: ', cachedMember);
+        if(!cachedMember) {
+            nicknames.push(`Persisted member not found: ${_member.prefix}`);
         } else {
-            nicknames.push(cachedMember.nickname || cachedMember.user.username);
+            nicknames.push(cachedMember.nickname);
         }
-    }
+    });
 
-    let nicknamesStringFormatted = nicknames.join(', ');
+    let nicknamesStringFormatted = "";
+    nicknames.forEach((nickname) => {
+        nicknamesStringFormatted += `\`${nickname}\`, ` // TODO: fix singular dangling comma
+    })
     console.log('>>>>> nicknamesStringFormatted: ', nicknamesStringFormatted);
     return nicknamesStringFormatted;
 };
