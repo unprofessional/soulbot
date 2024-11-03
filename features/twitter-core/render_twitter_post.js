@@ -74,6 +74,7 @@ const sendWebhookProxyMsg = async (message, content, files = []) => {
 
     console.log('>>> sendWebhookProxyMsg sent!');
 
+    await message.delete();
     // Delete the webhook to keep the channel clean
     await webhook.delete();
 
@@ -184,30 +185,12 @@ const renderTwitterPost = async (metadataJson, message) => {
             name: 'image.png',
         }];
 
-        // // Create a MessageAttachment and send it
-        // try {
-        //     await message.reply(
-        //         {
-        //             files,
-        //         }
-        //     );
-        // } catch (err) {
-        //     await message.reply(
-        //         {
-        //             content: `File(s) too large to attach! err: ${err}`,
-        //         }
-        //     );
-        // }
-
         // Use the webhook proxy to send the message with the file
         try {
             await sendWebhookProxyMsg(message, 'Here’s the Twitter canvas:', files);
         } catch (err) {
             await sendWebhookProxyMsg(message, `File(s) too large to attach! err: ${err}`);
         }
-        await message.suppressEmbeds(true);
-        await message.suppressEmbeds(true);
-        await message.suppressEmbeds(true);
     }
 
     // await sendWebhookProxyMsg(message); // TESTING
