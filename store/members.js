@@ -47,7 +47,7 @@ const initializeMemberCache = async (client) => {
     }
     try {
         const fetchedMembers = await cachedGuild.members.fetch(); // Fetch and cache all members at once
-        console.log("All members cached successfully: ", fetchedMembers);
+        console.log("All members cached successfully!"); // DO NOT PRINT MEMBERS, LIST WILL BE HUGE!
         return fetchedMembers;
     } catch (error) {
         console.error("Error fetching members for cache:", error);
