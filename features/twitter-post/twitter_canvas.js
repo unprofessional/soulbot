@@ -226,6 +226,7 @@ const createTwitterCanvas = async (metadataJson, isImage) => {
 
         // Draw nickname elements
         ctx.fillStyle = 'white';
+        ctx.textDrawingMode = "glyph"; // only need to set this once???
         ctx.font = 'bold 18px ' + globalFont;
         ctx.fillText(metadata.authorUsername, 100, 40);
 
