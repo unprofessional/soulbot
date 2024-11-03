@@ -73,7 +73,7 @@ const initializeListeners = async (client) => {
         // THIS IS SPAMMY, ONLY USE FOR DEBUGGING!
         // console.log(`${message.guildId}: ${message.author.globalName}: ${message.content}`);
 
-        if(!isSelf(message)) { // not self, but can be anyone else
+        if(!isSelf(message) && !isABot(message)) { // not self or a bot, but can be anyone else
 
             await enforceGoldyRole(message);
 
@@ -171,7 +171,7 @@ const initializeListeners = async (client) => {
                     message.channel.send(`You need to mention ONE user.`);
                     return;
                 }
-                const name = user.username;
+                // const name = user.username;
 
                 const contentArr = message.content.split('`');
                 let prefix = contentArr[1];
