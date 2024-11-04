@@ -113,7 +113,6 @@ const createTwitterCanvas = async (metadataJson, isImage) => {
             console.log('>>> Emoji detected!');
             ctx.textDrawingMode = "glyph";
             ctx.font = '24px "Noto Color Emoji"';
-            // ctx.textDrawingMode = "glyph";
         }
         else {
             console.log('>>> Emoji NOT detected...');
@@ -251,7 +250,8 @@ const createTwitterCanvas = async (metadataJson, isImage) => {
 
         // Draw nickname elements
         ctx.fillStyle = 'white';
-        ctx.font = 'bold 18px ' + globalFont;
+        // ctx.font = 'bold 18px ' + globalFont;
+        setFontBasedOnContent(ctx, metadata.authorUsername);
         ctx.fillText(metadata.authorUsername, 100, 40);
 
         // Draw username elements
