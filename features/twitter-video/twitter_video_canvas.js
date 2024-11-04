@@ -69,7 +69,7 @@ const formatTwitterDate = (twitterDate) => {
     // Map certain time zone abbreviations to more user-friendly names
     const timeZoneNames = {
         EST: 'EST',
-        EDT: 'Eastern',
+        EDT: 'EST',
         CST: 'Central',
         CDT: 'Central',
         MST: 'Mountain',
@@ -226,7 +226,7 @@ const createTwitterVideoCanvas = async (metadataJson) => {
         // Draw date elements
         ctx.fillStyle = 'gray';
         ctx.font = '18px ' + globalFont;
-        ctx.fillText(`${formatTwitterDate(metadata.date)} from this posting`, 30, calculatedCanvasHeightFromDescLines - 20);
+        ctx.fillText(formatTwitterDate(metadata.date), 30, calculatedCanvasHeightFromDescLines - 20);
   
         // Draw pfp image
         ctx.drawImage(pfp, 20, 20, 50, 50);
