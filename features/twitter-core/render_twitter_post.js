@@ -92,7 +92,15 @@ const sendVideoReply = async (message, successFilePath, localWorkingPath) => {
     }];
 
     try {
-        await message.reply({ files });
+        // await message.reply({ files });
+
+        try {
+            await sendWebhookProxyMsg(message, 'Here’s the Twitter canvas:', files);
+        } catch (err) {
+            await sendWebhookProxyMsg(message, `File(s) too large to attach! err: ${err}`);
+        }
+
+
     } catch (err) {
         console.error('!!! err: ', err);
         const errorName = err?.name;
