@@ -104,11 +104,15 @@ const createTwitterCanvas = async (metadataJson, isImage) => {
     const globalFont = '"Noto Color Emoji", "Noto Sans CJK"';
 
     function setFontBasedOnContent(ctx, text) {
+        console.log('>>> setFontBasedOnContent reached!');
         const emojiPattern = /[\u{1F600}-\u{1F64F}]/u; // Adjust pattern as needed for emojis
         if (emojiPattern.test(text)) {
+            console.log('>>> Emoji detected!');
             ctx.textDrawingMode = "glyph";
             ctx.font = '24px "Noto Color Emoji';
+            ctx.textDrawingMode = "glyph";
         } else {
+            console.log('>>> Emoji NOT detected...');
             ctx.font = '24px "Noto Sans CJK"';
         }
     }
