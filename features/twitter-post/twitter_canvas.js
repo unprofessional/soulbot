@@ -99,9 +99,9 @@ const createTwitterCanvas = async (metadataJson, isImage) => {
     // registerFont('/usr/share/fonts/truetype/noto/NotoColorEmoji.ttf', { family: 'Noto Color Emoji' });
 
     // Register Noto Sans CJK Regular and Bold
-    registerFont('/usr/share/fonts/opentype/noto/NotoSansCJK-VF.ttf.ttc', { family: 'Noto Sans CJK' });
+    // registerFont('/usr/share/fonts/opentype/noto/NotoSansCJK-VF.ttf.ttc', { family: 'Noto Sans CJK' });
 
-    const globalFont = '"Arial", "Noto Sans CJK"';
+    const globalFont = 'Arial';
 
     // function setFontBasedOnContent(ctx, text) {
     //     console.log('>>> setFontBasedOnContent reached!');
