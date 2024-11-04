@@ -64,8 +64,12 @@ const formatTwitterDate = (twitterDate) => {
     });
     const formattedTimeWithZone = timeFormatter.format(date);
 
+    console.log('>>>>> formatTwitterDate > formattedTimeWithZone: ', formattedTimeWithZone);
+
     // Extract the time and the time zone abbreviation (e.g., "12:50 PM EST")
     const [formattedTime, timeZoneAbbreviation] = formattedTimeWithZone.split(' ');
+
+    console.log('>>>>> formatTwitterDate > timeZoneAbbreviation: ', timeZoneAbbreviation);
 
     // Map certain time zone abbreviations to more user-friendly names
     const timeZoneNames = {
@@ -80,6 +84,8 @@ const formatTwitterDate = (twitterDate) => {
     };
 
     const friendlyTimeZoneName = timeZoneNames[timeZoneAbbreviation] || timeZoneAbbreviation;
+
+    console.log('>>>>> formatTwitterDate > friendlyTimeZoneName: ', friendlyTimeZoneName);
 
     // Format the date (e.g., "Nov 4, 2024")
     const dateFormatter = new Intl.DateTimeFormat('en-US', {
