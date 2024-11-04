@@ -53,45 +53,49 @@ function getWrappedText(ctx, text, maxWidth, hasVids) {
 }
 
 const formatTwitterDate = (twitterDate) => {
+
+    console.log('>>>>> formatTwitterDate > twitterDate: ', twitterDate);
+
     const date = new Date(twitterDate);
+
+    console.log('>>>>> formatTwitterDate > date: ', date);
+
+    // Define the Eastern Time Zone
+    const timeZone = 'America/New_York';
 
     // Format the time (e.g., "12:50 PM") with time zone information
     const timeFormatter = new Intl.DateTimeFormat('en-US', {
         hour: 'numeric',
         minute: 'numeric',
         hour12: true,
+        timeZone,
         timeZoneName: 'short',
     });
     const formattedTimeWithZone = timeFormatter.format(date);
 
     console.log('>>>>> formatTwitterDate > formattedTimeWithZone: ', formattedTimeWithZone);
 
-    // Extract the time and the time zone abbreviation (e.g., "12:50 PM EST")
+    // Extract the time and the time zone abbreviation (e.g., "12:50 PM EST" or "12:50 PM EDT")
     const [formattedTime, timeZoneAbbreviation] = formattedTimeWithZone.split(' ');
 
     console.log('>>>>> formatTwitterDate > timeZoneAbbreviation: ', timeZoneAbbreviation);
 
-    // Map certain time zone abbreviations to more user-friendly names
+    // Map common abbreviations to user-friendly names
     const timeZoneNames = {
         EST: 'Eastern',
         EDT: 'Eastern',
-        CST: 'Central',
-        CDT: 'Central',
-        MST: 'Mountain',
-        MDT: 'Mountain',
-        PST: 'Pacific',
-        PDT: 'Pacific',
     };
 
     const friendlyTimeZoneName = timeZoneNames[timeZoneAbbreviation] || timeZoneAbbreviation;
 
     console.log('>>>>> formatTwitterDate > friendlyTimeZoneName: ', friendlyTimeZoneName);
 
-    // Format the date (e.g., "Nov 4, 2024")
+    // Format the date (e.g., "Nov 4, 2024") in Eastern Time
     const dateFormatter = new Intl.DateTimeFormat('en-US', {
         month: 'short',
         day: 'numeric',
         year: 'numeric',
+        timeZone,
     });
     const formattedDate = dateFormatter.format(date);
 
