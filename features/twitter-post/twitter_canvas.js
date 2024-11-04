@@ -1,5 +1,5 @@
 const {
-    // registerFont,
+    registerFont,
     createCanvas,
     loadImage,
 } = require('canvas');
@@ -97,7 +97,8 @@ const createTwitterCanvas = async (metadataJson, isImage) => {
     // Unnecessary if the font is loaded in the local OS
     // TODO: Investigate if `fonts/` is even necessary...
     // registerFont('/usr/share/fonts/truetype/noto/NotoColorEmoji.ttf', { family: 'Noto Color Emoji' });
-    const globalFont = 'Arial';
+    registerFont('/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc', { family: 'Noto Sans CJK' });
+    const globalFont = '"Arial", "Noto Sans CJK"';
 
     const maxCanvasWidth = 600;
     let canvasHeight = 650;
@@ -106,6 +107,9 @@ const createTwitterCanvas = async (metadataJson, isImage) => {
 
     // Fill background color
     ctx.fillStyle = '#000';
+
+    // Grants emoji color
+    ctx.textDrawingMode = "glyph";
 
     // Find number of associated media
     const filterMediaUrls = (metadata, extensions) => {
@@ -226,7 +230,6 @@ const createTwitterCanvas = async (metadataJson, isImage) => {
 
         // Draw nickname elements
         ctx.fillStyle = 'white';
-        ctx.textDrawingMode = "glyph"; // only need to set this once???
         ctx.font = 'bold 18px ' + globalFont;
         ctx.fillText(metadata.authorUsername, 100, 40);
 

@@ -14,6 +14,7 @@ RUN apt-get update && apt-get install -y ffmpeg
 
 # Copy the Noto Color Emoji font into the image
 COPY fonts/NotoColorEmoji.ttf /usr/share/fonts/truetype/noto/NotoColorEmoji.ttf
+COPY fonts/NotoSansCJK-Regular.ttc /usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc
 
 # set /app directory as default working directory
 WORKDIR /app/
