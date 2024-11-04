@@ -52,9 +52,44 @@ function getWrappedText(ctx, text, maxWidth, hasVids) {
 }
 
 const formatTwitterDate = (twitterDate) => {
-    // Parse the date string and create a Date object
     const date = new Date(twitterDate);
-    return timeAgo.format(date); 
+
+    // Format the time (e.g., "12:50 PM") with time zone information
+    const timeFormatter = new Intl.DateTimeFormat('en-US', {
+        hour: 'numeric',
+        minute: 'numeric',
+        hour12: true,
+        timeZoneName: 'short',
+    });
+    const formattedTimeWithZone = timeFormatter.format(date);
+
+    // Extract the time and the time zone abbreviation (e.g., "12:50 PM EST")
+    const [formattedTime, timeZoneAbbreviation] = formattedTimeWithZone.split(' ');
+
+    // Map certain time zone abbreviations to more user-friendly names
+    const timeZoneNames = {
+        EST: 'EST',
+        EDT: 'Eastern',
+        CST: 'Central',
+        CDT: 'Central',
+        MST: 'Mountain',
+        MDT: 'Mountain',
+        PST: 'Pacific',
+        PDT: 'Pacific',
+    };
+
+    const friendlyTimeZoneName = timeZoneNames[timeZoneAbbreviation] || timeZoneAbbreviation;
+
+    // Format the date (e.g., "Nov 4, 2024")
+    const dateFormatter = new Intl.DateTimeFormat('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+    });
+    const formattedDate = dateFormatter.format(date);
+
+    // Combine the formatted time, friendly time zone name, and date
+    return `${formattedTime} ${friendlyTimeZoneName} · ${formattedDate}`;
 };
 
 const createTwitterVideoCanvas = async (metadataJson) => {
