@@ -101,7 +101,7 @@ const createTwitterCanvas = async (metadataJson, isImage) => {
     // Register Noto Sans CJK Regular and Bold
     registerFont('/usr/share/fonts/opentype/noto/NotoSansCJK-VF.ttf.ttc', { family: 'Noto Sans CJK' });
 
-    const globalFont = '"Arial", "Noto Color Emoji", "Noto Sans CJK"';
+    const globalFont = '"Noto Color Emoji", "Noto Sans CJK"';
 
     // function setFontBasedOnContent(ctx, text) {
     //     console.log('>>> setFontBasedOnContent reached!');
