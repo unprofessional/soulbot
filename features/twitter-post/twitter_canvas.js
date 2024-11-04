@@ -78,6 +78,7 @@ const formatTwitterDate = (twitterDate) => {
     // Extract the time and the time zone abbreviation (e.g., "12:50 PM EST" or "12:50 PM EDT")
     const [formattedTime, timeZoneAbbreviation] = formattedTimeWithZone.split(' ');
 
+    console.log('>>>>> formatTwitterDate > formattedTime: ', formattedTime);
     console.log('>>>>> formatTwitterDate > timeZoneAbbreviation: ', timeZoneAbbreviation);
 
     // Map common abbreviations to user-friendly names
