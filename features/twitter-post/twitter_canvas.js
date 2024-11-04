@@ -260,15 +260,23 @@ const createTwitterCanvas = async (metadataJson, isImage) => {
     
         // Draw description (post text wrap handling)
         ctx.fillStyle = 'white';
-        ctx.font = !hasImgs && hasVids ? '36px ' + globalFont : '24px ' + globalFont;
-        // const lineHeight = hasOnlyVideos ? 50 : 30;
-        // const descXPosition = !hasImgs && hasVids ? 80 : 30;
-        // descLines.forEach(line => {
-        //     ctx.fillText(line, descXPosition, defaultYPosition);
-        //     defaultYPosition += lineHeight;
-        // });
+
+
+        // ctx.font = !hasImgs && hasVids ? '36px ' + globalFont : '24px ' + globalFont;
+        const lineHeight = hasOnlyVideos ? 50 : 30;
+        const descXPosition = !hasImgs && hasVids ? 80 : 30;
+        descLines.forEach(line => {
+            if(!hasImgs && hasVids) {
+                ctx.font = '36px ' + globalFont;
+            } else {
+                setFontBasedOnContent(ctx, line);
+            }
+            ctx.fillText(line, descXPosition, defaultYPosition);
+            defaultYPosition += lineHeight;
+        });
+
         // TEST
-        setFontBasedOnContent(ctx, "Text with emojis 🎉 😔 💕 😄 🥰 💖 and symbols ♠️");
+        // setFontBasedOnContent(ctx, "Text with emojis 🎉 😔 💕 😄 🥰 💖 and symbols ♠️");
 
         // Draw date elements
         ctx.fillStyle = 'gray';
