@@ -115,10 +115,10 @@ const createTwitterCanvas = async (metadataJson, isImage) => {
             ctx.font = '24px "Noto Color Emoji"';
             // ctx.textDrawingMode = "glyph";
         }
-        // else {
-        //     console.log('>>> Emoji NOT detected...');
-        //     ctx.font = '24px "Noto Sans CJK"';
-        // }
+        else {
+            console.log('>>> Emoji NOT detected...');
+            ctx.font = '24px "Noto Color Emoji"';
+        }
     }
 
     const maxCanvasWidth = 600;
