@@ -69,8 +69,8 @@ const formatTwitterDate = (twitterDate) => {
 
     // Map certain time zone abbreviations to more user-friendly names
     const timeZoneNames = {
-        EST: 'EST',
-        EDT: 'EST',
+        EST: 'Eastern',
+        EDT: 'Eastern',
         CST: 'Central',
         CDT: 'Central',
         MST: 'Mountain',
