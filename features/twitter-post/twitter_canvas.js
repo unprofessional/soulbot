@@ -106,7 +106,8 @@ const createTwitterCanvas = async (metadataJson, isImage) => {
     function setFontBasedOnContent(ctx, text) {
         const emojiPattern = /[\u{1F600}-\u{1F64F}]/u; // Adjust pattern as needed for emojis
         if (emojiPattern.test(text)) {
-            ctx.font = '24px "Arial';
+            ctx.textDrawingMode = "glyph";
+            ctx.font = '24px "Noto Color Emoji';
         } else {
             ctx.font = '24px "Noto Sans CJK"';
         }
