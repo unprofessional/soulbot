@@ -103,6 +103,15 @@ const createTwitterCanvas = async (metadataJson, isImage) => {
 
     const globalFont = '"Noto Color Emoji", "Noto Sans CJK"';
 
+    function setFontBasedOnContent(ctx, text) {
+        const emojiPattern = /[\u{1F600}-\u{1F64F}]/u; // Adjust pattern as needed for emojis
+        if (emojiPattern.test(text)) {
+            ctx.font = '24px "Arial';
+        } else {
+            ctx.font = '24px "Noto Sans CJK"';
+        }
+    }
+
     const maxCanvasWidth = 600;
     let canvasHeight = 650;
     const canvas = createCanvas(maxCanvasWidth, canvasHeight);
@@ -233,17 +242,24 @@ const createTwitterCanvas = async (metadataJson, isImage) => {
 
         // Draw nickname elements
         ctx.fillStyle = 'white';
-        ctx.font = 'bold 18px ' + globalFont;
+        setFontBasedOnContent(ctx, metadata.authorUsername);
+        // ctx.font = 'bold 18px ' + globalFont;
         ctx.fillText(metadata.authorUsername, 100, 40);
 
         // Draw username elements
         ctx.fillStyle = 'gray';
-        ctx.font = '18px ' + globalFont;
+        setFontBasedOnContent(ctx, metadata.authorNick);
+        // ctx.font = '18px ' + globalFont;
         ctx.fillText(`@${metadata.authorNick}`, 100, 60);
     
         // Draw description (post text wrap handling)
         ctx.fillStyle = 'white';
-        ctx.font = !hasImgs && hasVids ? '36px ' + globalFont : '24px ' + globalFont;
+        if(!hasImgs && hasVids) {
+            ctx.font = '36px ' + globalFont;
+        } else {
+            setFontBasedOnContent(ctx, metadata.authorNick);
+        }
+        // ctx.font = !hasImgs && hasVids ? '36px ' + globalFont : '24px ' + globalFont;
         const lineHeight = hasOnlyVideos ? 50 : 30;
         const descXPosition = !hasImgs && hasVids ? 80 : 30;
         descLines.forEach(line => {
