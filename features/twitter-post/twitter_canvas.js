@@ -96,27 +96,27 @@ const createTwitterCanvas = async (metadataJson, isImage) => {
 
     // Unnecessary if the font is loaded in the local OS
     // TODO: Investigate if `fonts/` is even necessary...
-    registerFont('/usr/share/fonts/truetype/noto/NotoColorEmoji.ttf', { family: 'Noto Color Emoji' });
+    // registerFont('/usr/share/fonts/truetype/noto/NotoColorEmoji.ttf', { famil    y: 'Noto Color Emoji' });
 
     // Register Noto Sans CJK Regular and Bold
     registerFont('/usr/share/fonts/opentype/noto/NotoSansCJK-VF.ttf.ttc', { family: 'Noto Sans CJK' });
 
     const globalFont = '"Noto Color Emoji", "Noto Sans CJK"';
 
-    function setFontBasedOnContent(ctx, text) {
-        console.log('>>> setFontBasedOnContent reached!');
-        const emojiPattern = /[\u{1F300}-\u{1F5FF}\u{1F600}-\u{1F64F}\u{1F680}-\u{1F6FF}\u{1F700}-\u{1F77F}\u{1F780}-\u{1F7FF}\u{1F800}-\u{1F8FF}\u{1F900}-\u{1F9FF}\u{1FA00}-\u{1FAFF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/u;
+    // function setFontBasedOnContent(ctx, text) {
+    //     console.log('>>> setFontBasedOnContent reached!');
+    //     const emojiPattern = /[\u{1F300}-\u{1F5FF}\u{1F600}-\u{1F64F}\u{1F680}-\u{1F6FF}\u{1F700}-\u{1F77F}\u{1F780}-\u{1F7FF}\u{1F800}-\u{1F8FF}\u{1F900}-\u{1F9FF}\u{1FA00}-\u{1FAFF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/u;
 
-        if (emojiPattern.test(text)) {
-            console.log('>>> Emoji detected!');
-            ctx.textDrawingMode = "glyph";
-            ctx.font = '24px "Noto Color Emoji';
-            ctx.textDrawingMode = "glyph";
-        } else {
-            console.log('>>> Emoji NOT detected...');
-            ctx.font = '24px "Noto Sans CJK"';
-        }
-    }
+    //     if (emojiPattern.test(text)) {
+    //         console.log('>>> Emoji detected!');
+    //         ctx.textDrawingMode = "glyph";
+    //         ctx.font = '24px "Noto Color Emoji';
+    //         ctx.textDrawingMode = "glyph";
+    //     } else {
+    //         console.log('>>> Emoji NOT detected...');
+    //         ctx.font = '24px "Noto Sans CJK"';
+    //     }
+    // }
 
     const maxCanvasWidth = 600;
     let canvasHeight = 650;
@@ -248,24 +248,17 @@ const createTwitterCanvas = async (metadataJson, isImage) => {
 
         // Draw nickname elements
         ctx.fillStyle = 'white';
-        setFontBasedOnContent(ctx, metadata.authorUsername);
-        // ctx.font = 'bold 18px ' + globalFont;
+        ctx.font = 'bold 18px ' + globalFont;
         ctx.fillText(metadata.authorUsername, 100, 40);
 
         // Draw username elements
         ctx.fillStyle = 'gray';
-        setFontBasedOnContent(ctx, metadata.authorNick);
-        // ctx.font = '18px ' + globalFont;
+        ctx.font = '18px ' + globalFont;
         ctx.fillText(`@${metadata.authorNick}`, 100, 60);
     
         // Draw description (post text wrap handling)
         ctx.fillStyle = 'white';
-        if(!hasImgs && hasVids) {
-            ctx.font = '36px ' + globalFont;
-        } else {
-            setFontBasedOnContent(ctx, metadata.authorNick);
-        }
-        // ctx.font = !hasImgs && hasVids ? '36px ' + globalFont : '24px ' + globalFont;
+        ctx.font = !hasImgs && hasVids ? '36px ' + globalFont : '24px ' + globalFont;
         const lineHeight = hasOnlyVideos ? 50 : 30;
         const descXPosition = !hasImgs && hasVids ? 80 : 30;
         descLines.forEach(line => {
