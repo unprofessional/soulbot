@@ -1,6 +1,6 @@
 const { existsSync, mkdirSync, writeFileSync } = require('node:fs');
 const {
-    // registerFont,
+    registerFont,
     createCanvas,
     loadImage,
 } = require('canvas');
@@ -69,7 +69,33 @@ const createTwitterVideoCanvas = async (metadataJson) => {
     };
     // console.log('>>>>> createTwitterVideoCanvas > metadata: ', metadata);
 
-    const globalFont = 'Arial';
+    // Unnecessary if the font is loaded in the local OS
+    // TODO: Investigate if `fonts/` is even necessary...
+    registerFont('/usr/share/fonts/truetype/noto/NotoColorEmoji.ttf', { family: 'Noto Color Emoji' });
+
+    // Register Noto Sans CJK Regular and Bold
+    registerFont('/usr/share/fonts/opentype/noto/NotoSansCJK-VF.ttf.ttc', { family: 'Noto Sans CJK' });
+
+    const globalFont = '"Noto Color Emoji", "Noto Sans CJK"';
+
+    function setFontBasedOnContent(ctx, text) {
+        console.log('>>> setFontBasedOnContent reached!');
+        
+        const emojiPattern = /[\u{1F300}-\u{1F5FF}\u{1F600}-\u{1F64F}\u{1F680}-\u{1F6FF}\u{1F700}-\u{1F77F}\u{1F780}-\u{1F7FF}\u{1F800}-\u{1F8FF}\u{1F900}-\u{1F9FF}\u{1FA00}-\u{1FAFF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F1E6}-\u{1F1FF}\u{203C}-\u{3299}]/u;
+
+        console.log('>>> setFontBasedOnContent > text: ', text);
+
+        if (emojiPattern.test(text)) {
+            console.log('>>> Emoji detected!');
+            ctx.textDrawingMode = "glyph";
+            ctx.font = '24px "Noto Color Emoji"';
+        }
+        else {
+            console.log('>>> Emoji NOT detected...');
+            ctx.font = '24px "Noto Color Emoji"';
+        }
+    }
+
     const maxCanvasWidth = 600;
     let canvasHeight = 650;
     const canvas = createCanvas(maxCanvasWidth, canvasHeight);
@@ -137,7 +163,8 @@ const createTwitterVideoCanvas = async (metadataJson) => {
 
         // Draw nickname elements
         ctx.fillStyle = 'white';
-        ctx.font = 'bold 18px ' + globalFont;
+        // ctx.font = 'bold 18px ' + globalFont;
+        setFontBasedOnContent(ctx, metadata.authorUsername);
         ctx.fillText(metadata.authorUsername, 100, 40);
 
         // Draw username elements
@@ -147,10 +174,16 @@ const createTwitterVideoCanvas = async (metadataJson) => {
   
         // Draw description (post text wrap handling)
         ctx.fillStyle = 'white';
-        ctx.font = !hasImgs && hasVids ? '36px ' + globalFont : '24px ' + globalFont;
+        
+        // ctx.font = !hasImgs && hasVids ? '36px ' + globalFont : '24px ' + globalFont;
         const lineHeight = hasOnlyVideos ? 50 : 30;
         const descXPosition = !hasImgs && hasVids ? 80 : 30;
         descLines.forEach(line => {
+            if(!hasImgs && hasVids) {
+                ctx.font = '36px ' + globalFont;
+            } else {
+                setFontBasedOnContent(ctx, line);
+            }
             ctx.fillText(line, descXPosition, defaultYPosition);
             defaultYPosition += lineHeight;
         });
