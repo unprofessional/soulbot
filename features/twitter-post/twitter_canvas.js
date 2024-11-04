@@ -112,7 +112,7 @@ const createTwitterCanvas = async (metadataJson, isImage) => {
         if (emojiPattern.test(text)) {
             console.log('>>> Emoji detected!');
             ctx.textDrawingMode = "glyph";
-            ctx.font = '24px Arial';
+            ctx.font = '24px "Noto Color Emoji"';
             ctx.textDrawingMode = "glyph";
         } else {
             console.log('>>> Emoji NOT detected...');
