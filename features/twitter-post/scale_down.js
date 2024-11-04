@@ -2,29 +2,26 @@ const scaleDownToFitAspectRatio = (
     { height, width },
     mediaMaxHeight,
     mediaMaxWidth,
-    compensatedHeight,
+    compensatedHeight = 0
 ) => {
-    const aspectRatio = width / height;
+    // Calculate the effective maximum height, ensuring it is not negative
+    const effectiveMaxHeight = Math.max(0, mediaMaxHeight - compensatedHeight);
 
-    if (width > mediaMaxWidth) {
-        width = mediaMaxWidth;
-        height = Math.floor(mediaMaxWidth / aspectRatio);
-    }
+    // Calculate scaling factors for both width and height limits
+    const widthScale = mediaMaxWidth / width;
+    const heightScale = effectiveMaxHeight / height;
+    const scaleFactor = Math.min(widthScale, heightScale);
 
-    if (height > (mediaMaxHeight - compensatedHeight)) {
-        height = (mediaMaxHeight - compensatedHeight);
-        width = Math.floor((mediaMaxHeight - compensatedHeight) * aspectRatio);
-    }
+    // Scale dimensions using the calculated scaleFactor, preserving aspect ratio
+    const adjustedWidth = Math.floor(width * scaleFactor);
+    const adjustedHeight = Math.floor(height * scaleFactor);
 
     return {
-        height,
-        width,
+        height: adjustedHeight,
+        width: adjustedWidth,
     };
 };
-
 
 module.exports = {
     scaleDownToFitAspectRatio,
 };
-
-
