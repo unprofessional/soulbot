@@ -102,7 +102,7 @@ const formatTwitterDate = (twitterDate) => {
     const formattedDate = dateFormatter.format(date);
 
     // Combine the formatted time, friendly time zone name, and date
-    return `${formattedTime} ${friendlyTimeZoneName} · ${formattedDate}`;
+    return `${formattedTime} ${meridiem} ${friendlyTimeZoneName} · ${formattedDate}`;
 };
 
 const createTwitterCanvas = async (metadataJson, isImage) => {
