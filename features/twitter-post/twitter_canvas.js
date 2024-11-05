@@ -264,7 +264,7 @@ const createTwitterCanvas = async (metadataJson, isImage) => {
                 setFontBasedOnContent(ctx, line);
             }
             // ctx.fillText(line, descXPosition, defaultYPosition);
-            drawTextWithSpacing(ctx, line, descXPosition, defaultYPosition, 1.3);
+            drawTextWithSpacing(ctx, line, descXPosition, defaultYPosition, 1);
             defaultYPosition += lineHeight;
         });
 
