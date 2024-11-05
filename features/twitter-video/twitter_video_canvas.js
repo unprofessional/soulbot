@@ -185,6 +185,14 @@ const createTwitterVideoCanvas = async (metadataJson) => {
         ctx.fillStyle = 'gray';
         ctx.font = '18px ' + globalFont;
         ctx.fillText(formatTwitterDate(metadata.date), 30, calculatedCanvasHeightFromDescLines - 20);
+
+        // Draw the circle mask...
+        ctx.save();
+        const radius = 25;
+        ctx.beginPath();
+        ctx.arc(45, 45, radius, 0, Math.PI * 2, true);
+        ctx.closePath();
+        ctx.clip();
   
         // Draw pfp image
         ctx.drawImage(pfp, 20, 20, 50, 50);

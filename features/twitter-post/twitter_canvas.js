@@ -280,12 +280,10 @@ const createTwitterCanvas = async (metadataJson, isImage) => {
         ctx.arc(45, 45, radius, 0, Math.PI * 2, true);
         ctx.closePath();
         ctx.clip();
-        // Draw the image centered in the circle
+
+        // Draw pfp image centered in the circle
         ctx.drawImage(pfp, 20, 20, 50, radius * 2);
         ctx.restore();
-
-        // Draw pfp image
-        // ctx.drawImage(pfp, 20, 20, 50, 50);
     };
 
     const drawQtBasicElements = (qtMeta, pfp, mainMedia1, qtVidThumbnail) => {
