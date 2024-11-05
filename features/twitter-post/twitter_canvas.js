@@ -7,7 +7,7 @@ const { cropSingleImage } = require('./crop_single_image.js');
 const { renderImageGallery } = require('./image_gallery_rendering.js');
 const { scaleDownToFitAspectRatio } = require('./scale_down.js');
 const { formatTwitterDate } = require('../twitter-core/utils.js');
-const { drawTextWithSpacing } = require('../twitter-core/canvas-utils.js');
+// const { drawTextWithSpacing } = require('../twitter-core/canvas-utils.js');
 
 function getWrappedText(ctx, text, maxWidth, hasVids) {
     const lines = [];
@@ -263,8 +263,8 @@ const createTwitterCanvas = async (metadataJson, isImage) => {
             } else {
                 setFontBasedOnContent(ctx, line);
             }
-            // ctx.fillText(line, descXPosition, defaultYPosition);
-            drawTextWithSpacing(ctx, line, descXPosition, defaultYPosition, 1);
+            ctx.fillText(line, descXPosition, defaultYPosition);
+            // drawTextWithSpacing(ctx, line, descXPosition, defaultYPosition, 1);
             defaultYPosition += lineHeight;
         });
 
@@ -332,8 +332,8 @@ const createTwitterCanvas = async (metadataJson, isImage) => {
         const lineHeight = 30;
         const qtTextXAxisStart = hasMedia ? 230 : 100;
         qtDescLines.forEach(line => {
-            // ctx.fillText(line, qtTextXAxisStart, qtYPosition + 100);
-            drawTextWithSpacing(ctx, line, qtTextXAxisStart, qtYPosition + 100, 1);
+            ctx.fillText(line, qtTextXAxisStart, qtYPosition + 100);
+            // drawTextWithSpacing(ctx, line, qtTextXAxisStart, qtYPosition + 100, 1);
             qtYPosition += lineHeight;
         });
 
