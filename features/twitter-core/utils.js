@@ -4,7 +4,7 @@ const formatTwitterDate = (twitterDate) => {
 
     const date = new Date(twitterDate);
 
-  console.log('>>>>> formatTwitterDate > date: ', date);
+    console.log('>>>>> formatTwitterDate > date: ', date);
 
     // Define the Eastern Time Zone
     const timeZone = 'America/New_York';
@@ -52,5 +52,5 @@ const formatTwitterDate = (twitterDate) => {
 };
 
 module.exports = {
-  formatTwitterDate
+    formatTwitterDate
 };

@@ -5,11 +5,7 @@ const {
     loadImage,
 } = require('canvas');
 const { buildPathsAndStuff } = require('../twitter-core/path_builder.js');
-const TimeAgo = require('javascript-time-ago');
-const en = require('javascript-time-ago/locale/en');
 const { formatTwitterDate } = require('../twitter-core/utils.js');
-TimeAgo.addDefaultLocale(en);
-const timeAgo = new TimeAgo('en-US');
 
 function getWrappedText(ctx, text, maxWidth, hasVids) {
     const lines = [];

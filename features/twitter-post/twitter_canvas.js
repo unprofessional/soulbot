@@ -5,13 +5,9 @@ const {
 } = require('canvas');
 const { cropSingleImage } = require('./crop_single_image.js');
 const { renderImageGallery } = require('./image_gallery_rendering.js');
-
-const TimeAgo = require('javascript-time-ago');
-const en = require('javascript-time-ago/locale/en');
 const { scaleDownToFitAspectRatio } = require('./scale_down.js');
 const { formatTwitterDate } = require('../twitter-core/utils.js');
-TimeAgo.addDefaultLocale(en);
-const timeAgo = new TimeAgo('en-US');
+const { drawTextWithSpacing } = require('../twitter-core/canvas-utils.js');
 
 function getWrappedText(ctx, text, maxWidth, hasVids) {
     const lines = [];
@@ -267,12 +263,10 @@ const createTwitterCanvas = async (metadataJson, isImage) => {
             } else {
                 setFontBasedOnContent(ctx, line);
             }
-            ctx.fillText(line, descXPosition, defaultYPosition);
+            // ctx.fillText(line, descXPosition, defaultYPosition);
+            drawTextWithSpacing(ctx, line, descXPosition, defaultYPosition, 2);
             defaultYPosition += lineHeight;
         });
-
-        // TEST
-        // setFontBasedOnContent(ctx, "Text with emojis 🎉 😔 💕 😄 🥰 💖 and symbols ♠️");
 
         // Draw date elements
         ctx.fillStyle = 'gray';
