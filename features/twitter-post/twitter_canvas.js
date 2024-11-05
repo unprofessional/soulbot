@@ -332,7 +332,8 @@ const createTwitterCanvas = async (metadataJson, isImage) => {
         const lineHeight = 30;
         const qtTextXAxisStart = hasMedia ? 230 : 100;
         qtDescLines.forEach(line => {
-            ctx.fillText(line, qtTextXAxisStart, qtYPosition + 100);
+            // ctx.fillText(line, qtTextXAxisStart, qtYPosition + 100);
+            drawTextWithSpacing(ctx, line, qtTextXAxisStart, qtYPosition + 100, 1);
             qtYPosition += lineHeight;
         });
 
