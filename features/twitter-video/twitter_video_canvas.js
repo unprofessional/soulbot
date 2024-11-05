@@ -6,6 +6,7 @@ const {
 } = require('canvas');
 const { buildPathsAndStuff } = require('../twitter-core/path_builder.js');
 const { formatTwitterDate } = require('../twitter-core/utils.js');
+const { drawTextWithSpacing } = require('../twitter-core/canvas-utils.js');
 
 function getWrappedText(ctx, text, maxWidth, hasVids) {
     const lines = [];
@@ -175,7 +176,8 @@ const createTwitterVideoCanvas = async (metadataJson) => {
             } else {
                 setFontBasedOnContent(ctx, line);
             }
-            ctx.fillText(line, descXPosition, defaultYPosition);
+            // ctx.fillText(line, descXPosition, defaultYPosition);
+            drawTextWithSpacing(ctx, line, descXPosition, defaultYPosition, 1);
             defaultYPosition += lineHeight;
         });
 
