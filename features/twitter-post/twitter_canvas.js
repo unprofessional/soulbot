@@ -7,7 +7,8 @@ const { cropSingleImage } = require('./crop_single_image.js');
 const { renderImageGallery } = require('./image_gallery_rendering.js');
 const { scaleDownToFitAspectRatio } = require('./scale_down.js');
 const { formatTwitterDate } = require('../twitter-core/utils.js');
-// const { drawTextWithSpacing } = require('../twitter-core/canvas-utils.js');
+const { setFontBasedOnContent, drawDescription } = require('../twitter-core/canvas_utils.js');
+// const { drawTextWithSpacing } = require('../twitter-core/canvas_utils.js');
 
 function getWrappedText(ctx, text, maxWidth, hasVids) {
     const lines = [];
@@ -93,24 +94,6 @@ const createTwitterCanvas = async (metadataJson, isImage) => {
     registerFont('/usr/share/fonts/opentype/noto/NotoSansCJK-VF.ttf.ttc', { family: 'Noto Sans CJK' });
 
     const globalFont = '"Noto Color Emoji", "Noto Sans CJK"';
-
-    function setFontBasedOnContent(ctx, text) {
-        console.log('>>> setFontBasedOnContent reached!');
-
-        const emojiPattern = /[\u{1F300}-\u{1F5FF}\u{1F600}-\u{1F64F}\u{1F680}-\u{1F6FF}\u{1F700}-\u{1F77F}\u{1F780}-\u{1F7FF}\u{1F800}-\u{1F8FF}\u{1F900}-\u{1F9FF}\u{1FA00}-\u{1FAFF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F1E6}-\u{1F1FF}\u{203C}-\u{3299}]/u;
-
-        console.log('>>> setFontBasedOnContent > text: ', text);
-
-        if (emojiPattern.test(text)) {
-            console.log('>>> Emoji detected!');
-            ctx.textDrawingMode = "glyph";
-            ctx.font = '24px "Noto Color Emoji"';
-        }
-        else {
-            console.log('>>> Emoji NOT detected...');
-            ctx.font = '24px "Noto Color Emoji"';
-        }
-    }
 
     const maxCanvasWidth = 600;
     let canvasHeight = 650;
@@ -253,20 +236,7 @@ const createTwitterCanvas = async (metadataJson, isImage) => {
     
         // Draw description (post text wrap handling)
         ctx.fillStyle = 'white';
-
-        // ctx.font = !hasImgs && hasVids ? '36px ' + globalFont : '24px ' + globalFont;
-        const lineHeight = hasOnlyVideos ? 50 : 30;
-        const descXPosition = !hasImgs && hasVids ? 80 : 30;
-        descLines.forEach(line => {
-            if(!hasImgs && hasVids) {
-                ctx.font = '36px ' + globalFont;
-            } else {
-                setFontBasedOnContent(ctx, line);
-            }
-            ctx.fillText(line, descXPosition, defaultYPosition);
-            // drawTextWithSpacing(ctx, line, descXPosition, defaultYPosition, 1);
-            defaultYPosition += lineHeight;
-        });
+        drawDescription(ctx, hasImgs, hasVids, hasOnlyVideos, descLines, globalFont, defaultYPosition);
 
         // Draw date elements
         ctx.fillStyle = 'gray';
