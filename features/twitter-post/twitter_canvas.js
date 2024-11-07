@@ -7,48 +7,8 @@ const { cropSingleImage } = require('./crop_single_image.js');
 const { renderImageGallery } = require('./image_gallery_rendering.js');
 const { scaleDownToFitAspectRatio } = require('./scale_down.js');
 const { formatTwitterDate } = require('../twitter-core/utils.js');
-const { setFontBasedOnContent, drawDescription } = require('../twitter-core/canvas_utils.js');
+const { setFontBasedOnContent, drawDescription, getWrappedText } = require('../twitter-core/canvas_utils.js');
 // const { drawTextWithSpacing } = require('../twitter-core/canvas_utils.js');
-
-function getWrappedText(ctx, text, maxWidth, hasVids) {
-    const lines = [];
-    const paragraphs = hasVids
-        ? [text.replace(/\n/g, ' ')]
-        : text.split('\n'); // Conditionally handle newlines
-
-    paragraphs.forEach(paragraph => {
-        const shortTwitterUrlPattern = /https:\/\/t\.co\/\S+/;
-        const containsUrl = shortTwitterUrlPattern.test(paragraph);
-        const matches = paragraph.split(shortTwitterUrlPattern);
-
-        if(containsUrl && matches[0]) {
-            paragraph = matches[0];
-        }
-
-        if (paragraph === '') {
-            lines.push(''); // Handle blank lines (paragraph breaks)
-        } else {
-            const words = paragraph.split(' ');
-            let currentLine = words[0];
-
-            for (let i = 1; i < words.length; i++) {
-                const word = words[i];
-                const width = ctx.measureText(currentLine + ' ' + word).width;
-                // console.log('!!!!! getWrappedText > width: ', width);
-                // console.log('!!!!! getWrappedText > maxWidth: ', maxWidth);
-              
-                if (width < maxWidth) {
-                    currentLine += ' ' + word;
-                } else {
-                    lines.push(currentLine);
-                    currentLine = word;
-                }
-            }
-            lines.push(currentLine); // Push the last line of the paragraph
-        }
-    });
-    return lines;
-}
 
 const createTwitterCanvas = async (metadataJson, isImage) => {
 

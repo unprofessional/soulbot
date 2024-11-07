@@ -1,3 +1,43 @@
+function getWrappedText(ctx, text, maxWidth, hasVids) {
+    const lines = [];
+    const paragraphs = hasVids
+        ? [text.replace(/\n/g, ' ')]
+        : text.split('\n'); // Conditionally handle newlines
+
+    const shortTwitterUrlPattern = /https:\/\/t\.co\/\S+/g; // Ensure global match
+
+    paragraphs.forEach(paragraph => {
+        let matches = paragraph.match(shortTwitterUrlPattern); // Get the URL matches
+
+        if (matches) {
+            matches.forEach(url => {
+                paragraph = paragraph.replace(url, '').trim();
+            });
+        }
+
+        if (paragraph === '') {
+            lines.push(''); // Handle blank lines (paragraph breaks)
+        } else {
+            const words = paragraph.split(' ');
+            let currentLine = words[0];
+
+            for (let i = 1; i < words.length; i++) {
+                const word = words[i];
+                const width = ctx.measureText(currentLine + " " + word).width;
+
+                if (width < maxWidth) {
+                    currentLine += " " + word;
+                } else {
+                    lines.push(currentLine);
+                    currentLine = word;
+                }
+            }
+            lines.push(currentLine); // Push the last line of the paragraph
+        }
+    });
+    return lines;
+}
+
 function setFontBasedOnContent(ctx, text) {
     console.log('>>> setFontBasedOnContent reached!');
 
@@ -44,6 +84,7 @@ function drawTextWithSpacing(ctx, text, x, y, letterSpacing = 1) {
 }
 
 module.exports = {
+    getWrappedText,
     setFontBasedOnContent,
     drawDescription,
     drawTextWithSpacing,
