@@ -182,7 +182,7 @@ const createTwitterCanvas = async (metadataJson, isImage) => {
         const numOfQtImgs = filterMediaUrls(qtMetadata, ['jpg', 'jpeg', 'png']).length;
         console.log('>>>>> if(qtMetadata) > numOfQtImgs', numOfQtImgs);
         const numOfQtVideos = filterMediaUrls(qtMetadata, ['mp4']).length;
-        console.log('>>>>> if(qtMetadata) > numOfQtVideos', numOfQtVideos);
+        // console.log('>>>>> if(qtMetadata) > numOfQtVideos', numOfQtVideos);
 
         // load media
         const qtPfpUrl = qtMetadata.pfpUrl;
@@ -194,7 +194,7 @@ const createTwitterCanvas = async (metadataJson, isImage) => {
             const qtMainMedia1 = await loadImage(qtMainMedia1Url);
 
             // Quote-Tweet Post
-            drawQtBasicElements(ctx, globalFont, qtMetadata, qtPfp, descLines, qtMainMedia1, undefined, {
+            drawQtBasicElements(ctx, globalFont, qtMetadata, qtPfp, qtMainMedia1, undefined, {
                 canvasHeightOffset: calculatedCanvasHeightFromDescLines,
                 qtCanvasHeightOffset: qtCalculatedCanvasHeightFromDescLines,
                 hasImgs,
@@ -208,7 +208,7 @@ const createTwitterCanvas = async (metadataJson, isImage) => {
             const qtVidThumbnail = await loadImage(qtVidThumbnailUrl);
 
             // Quote-Tweet Post
-            drawQtBasicElements(ctx, globalFont, metadata, qtPfp, descLines, undefined, qtVidThumbnail, {
+            drawQtBasicElements(ctx, globalFont, qtMetadata, qtPfp, undefined, qtVidThumbnail, {
                 canvasHeightOffset: calculatedCanvasHeightFromDescLines,
                 qtCanvasHeightOffset: qtCalculatedCanvasHeightFromDescLines,
                 hasImgs,
@@ -220,7 +220,7 @@ const createTwitterCanvas = async (metadataJson, isImage) => {
         if (numOfQtVideos === 0 && numOfQtImgs === 0) {
 
             // Quote-Tweet Post
-            drawQtBasicElements(ctx, globalFont, qtMetadata, qtPfp, descLines, undefined, undefined, {
+            drawQtBasicElements(ctx, globalFont, qtMetadata, qtPfp, undefined, undefined, {
                 canvasHeightOffset: calculatedCanvasHeightFromDescLines,
                 qtCanvasHeightOffset: qtCalculatedCanvasHeightFromDescLines,
                 hasImgs,

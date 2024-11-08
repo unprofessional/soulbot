@@ -124,7 +124,7 @@ const drawBasicElements = (
 };
 
 const drawQtBasicElements = (
-    ctx, globalFont, metadata, pfp, descLines, mainMedia1, qtVidThumbnail, options
+    ctx, globalFont, metadata, pfp, mainMedia1, qtVidThumbnail, options
 ) => {
 
     const {
