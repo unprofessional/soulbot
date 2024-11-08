@@ -98,8 +98,10 @@ const drawBasicElements = (
 
     // Draw nickname elements
     ctx.fillStyle = 'white';
-    ctx.font = 'bold 18px ' + globalFont;
+    // ctx.font = 'bold 18px ' + globalFont;
     // setFontBasedOnContent(ctx, metadata.authorUsername);
+    ctx.textDrawingMode = "glyph";
+    ctx.font = '18px "Noto Color Emoji"';
     ctx.fillText(metadata.authorUsername, 100, 40);
 
     // Draw username elements
@@ -110,6 +112,8 @@ const drawBasicElements = (
     // Draw description (post text wrap handling)
     ctx.fillStyle = 'white';
     const descXPosition = !hasImgs && hasVids ? 80 : 30;
+    ctx.textDrawingMode = "glyph";
+    ctx.font = '24px "Noto Color Emoji"';
     drawDescription(ctx, hasImgs, hasVids, hasOnlyVideos, descLines, globalFont, descXPosition, defaultYPosition);
 
     // Draw date elements
