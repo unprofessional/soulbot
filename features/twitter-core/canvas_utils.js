@@ -67,7 +67,8 @@ const drawDescription = (ctx, hasImgs, hasVids, hasOnlyVideos, descLines, font, 
         if(!hasImgs && hasVids) {
             ctx.font = '36px ' + font;
         } else {
-            setFontBasedOnContent(ctx, line);
+            ctx.textDrawingMode = "glyph";
+            ctx.font = '24px "Noto Color Emoji"';
         }
         ctx.fillText(line, x, isQt ? y + 100: y);
         // drawTextWithSpacing(ctx, line, x, y, 1);
