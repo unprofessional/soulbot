@@ -56,7 +56,7 @@ function setFontBasedOnContent(ctx, text) {
     }
 }
 
-const drawDescription = (ctx, hasImgs, hasVids, hasOnlyVideos, descLines, font, x, y) => {
+const drawDescription = (ctx, hasImgs, hasVids, hasOnlyVideos, descLines, font, x, y, isQt) => {
     const lineHeight = hasOnlyVideos ? 50 : 30;
     descLines.forEach(line => {
         if(!hasImgs && hasVids) {
@@ -64,7 +64,7 @@ const drawDescription = (ctx, hasImgs, hasVids, hasOnlyVideos, descLines, font, 
         } else {
             setFontBasedOnContent(ctx, line);
         }
-        ctx.fillText(line, x, y);
+        ctx.fillText(line, x, isQt ? y + 100: y);
         // drawTextWithSpacing(ctx, line, x, y, 1);
         y += lineHeight;
     });

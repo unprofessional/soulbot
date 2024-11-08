@@ -266,7 +266,7 @@ const createTwitterCanvas = async (metadataJson, isImage) => {
         //     // drawTextWithSpacing(ctx, line, qtTextXAxisStart, qtYPosition + 100, 1);
         //     qtYPosition += lineHeight;
         // });
-        drawDescription(ctx, hasImgs, hasVids, hasOnlyVideos, qtDescLines, globalFont, qtTextXAxisStart, qtYPosition);
+        drawDescription(ctx, hasImgs, hasVids, hasOnlyVideos, qtDescLines, globalFont, qtTextXAxisStart, qtYPosition, true);
 
         // Draw pfp image
         ctx.drawImage(pfp, 40, calculatedCanvasHeightFromDescLines + 20, 50, 50);
