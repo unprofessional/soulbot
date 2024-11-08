@@ -6,7 +6,7 @@ const {
 } = require('canvas');
 const { buildPathsAndStuff } = require('../twitter-core/path_builder.js');
 const { formatTwitterDate } = require('../twitter-core/utils.js');
-const { drawDescription, setFontBasedOnContent, getWrappedText } = require('../twitter-core/canvas_utils.js');
+const { drawDescription, setFontBasedOnContent, getWrappedText, drawBasicElements } = require('../twitter-core/canvas_utils.js');
 // const { drawTextWithSpacing } = require('../twitter-core/canvas_utils.js');
 
 const createTwitterVideoCanvas = async (metadataJson) => {
@@ -91,42 +91,11 @@ const createTwitterVideoCanvas = async (metadataJson) => {
     ctx.canvas.height = calculatedCanvasHeightFromDescLines;
     ctx.fillRect(0, 0, maxCanvasWidth, calculatedCanvasHeightFromDescLines);
 
-    const drawBasicElements = (metadata, favicon, pfp) => {
-        // Load and draw favicon
-        ctx.drawImage(favicon, 550, 20, 32, 32);
-
-        // Draw nickname elements
-        ctx.fillStyle = 'white';
-        // ctx.font = 'bold 18px ' + globalFont;
-        setFontBasedOnContent(ctx, metadata.authorUsername);
-        ctx.fillText(metadata.authorUsername, 100, 40);
-
-        // Draw username elements
-        ctx.fillStyle = 'gray';
-        ctx.font = '18px ' + globalFont;
-        ctx.fillText(`@${metadata.authorNick}`, 100, 60);
-  
-        // Draw description (post text wrap handling)
-        ctx.fillStyle = 'white';
-        const descXPosition = !hasImgs && hasVids ? 80 : 30;
-        drawDescription(ctx, hasImgs, hasVids, hasOnlyVideos, descLines, globalFont, descXPosition, defaultYPosition);
-
-        // Draw date elements
-        ctx.fillStyle = 'gray';
-        ctx.font = '18px ' + globalFont;
-        ctx.fillText(formatTwitterDate(metadata.date), 30, calculatedCanvasHeightFromDescLines - 20);
-
-        // Draw the circle mask...
-        ctx.save();
-        const radius = 25;
-        ctx.beginPath();
-        ctx.arc(45, 45, radius, 0, Math.PI * 2, true);
-        ctx.closePath();
-        ctx.clip();
-  
-        // Draw pfp image
-        ctx.drawImage(pfp, 20, 20, 50, 50);
-    };
+    drawBasicElements(
+        ctx, globalFont, metadata, favicon, pfp,
+        hasImgs, hasVids, hasOnlyVideos, descLines, defaultYPosition,
+        calculatedCanvasHeightFromDescLines
+    );
   
     const favIconUrl = 'https://abs.twimg.com/favicons/twitter.3.ico';
     const favicon = await loadImage(favIconUrl);

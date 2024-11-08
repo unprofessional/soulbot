@@ -1,3 +1,5 @@
+const { formatTwitterDate } = require("./utils");
+
 function getWrappedText(ctx, text, maxWidth, hasVids) {
     const lines = [];
     const paragraphs = hasVids
@@ -82,9 +84,52 @@ function drawTextWithSpacing(ctx, text, x, y, letterSpacing = 1) {
     }
 }
 
+const drawBasicElements = (
+    ctx, globalFont, metadata, favicon, pfp,
+    hasImgs, hasVids, hasOnlyVideos, descLines, defaultYPosition,
+    calculatedCanvasHeightFromDescLines
+) => {
+    // Load and draw favicon
+    ctx.drawImage(favicon, 550, 20, 32, 32);
+
+    // Draw nickname elements
+    ctx.fillStyle = 'white';
+    // ctx.font = 'bold 18px ' + globalFont;
+    setFontBasedOnContent(ctx, metadata.authorUsername);
+    ctx.fillText(metadata.authorUsername, 100, 40);
+
+    // Draw username elements
+    ctx.fillStyle = 'gray';
+    ctx.font = '18px ' + globalFont;
+    ctx.fillText(`@${metadata.authorNick}`, 100, 60);
+
+    // Draw description (post text wrap handling)
+    ctx.fillStyle = 'white';
+    const descXPosition = !hasImgs && hasVids ? 80 : 30;
+    drawDescription(ctx, hasImgs, hasVids, hasOnlyVideos, descLines, globalFont, descXPosition, defaultYPosition);
+
+    // Draw date elements
+    ctx.fillStyle = 'gray';
+    ctx.font = '18px ' + globalFont;
+    ctx.fillText(formatTwitterDate(metadata.date), 30, calculatedCanvasHeightFromDescLines - 20);
+
+    // Draw the circle mask...
+    ctx.save();
+    const radius = 25;
+    ctx.beginPath();
+    ctx.arc(45, 45, radius, 0, Math.PI * 2, true);
+    ctx.closePath();
+    ctx.clip();
+
+    // Draw pfp image centered in the circle
+    ctx.drawImage(pfp, 20, 20, 50, radius * 2);
+    ctx.restore();
+};
+
 module.exports = {
     getWrappedText,
     setFontBasedOnContent,
     drawDescription,
     drawTextWithSpacing,
+    drawBasicElements,
 };

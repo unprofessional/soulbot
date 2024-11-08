@@ -7,7 +7,7 @@ const { cropSingleImage } = require('./crop_single_image.js');
 const { renderImageGallery } = require('./image_gallery_rendering.js');
 const { scaleDownToFitAspectRatio } = require('./scale_down.js');
 const { formatTwitterDate } = require('../twitter-core/utils.js');
-const { setFontBasedOnContent, drawDescription, getWrappedText } = require('../twitter-core/canvas_utils.js');
+const { setFontBasedOnContent, drawDescription, getWrappedText, drawBasicElements } = require('../twitter-core/canvas_utils.js');
 // const { drawTextWithSpacing } = require('../twitter-core/canvas_utils.js');
 
 const createTwitterCanvas = async (metadataJson, isImage) => {
@@ -174,48 +174,11 @@ const createTwitterCanvas = async (metadataJson, isImage) => {
     ctx.canvas.height = calculatedCanvasHeightFromDescLines + qtCalculatedCanvasHeightFromDescLines;
     ctx.fillRect(0, 0, maxCanvasWidth, calculatedCanvasHeightFromDescLines + qtCalculatedCanvasHeightFromDescLines);
 
-    /** TODO TODO TODOTODO TODO TODOTODO TODO TODOTODO TODO TODOTODO TODO TODOTODO TODO
-     * REFACTOR CONSIDERATIONS: Rather than separate by PRIMARY TWEET Draw vs QT Draw,
-     * — let's instead break out each of these 'Draw ______ element' into their own functions
-     * — so we can parameterize them
-     */
-    const drawBasicElements = (metadata, favicon, pfp) => {
-        // Load and draw favicon
-        ctx.drawImage(favicon, 550, 20, 32, 32);
-
-        // Draw nickname elements
-        ctx.fillStyle = 'white';
-        // ctx.font = 'bold 18px ' + globalFont;
-        setFontBasedOnContent(ctx, metadata.authorUsername);
-        ctx.fillText(metadata.authorUsername, 100, 40);
-
-        // Draw username elements
-        ctx.fillStyle = 'gray';
-        ctx.font = '18px ' + globalFont;
-        ctx.fillText(`@${metadata.authorNick}`, 100, 60);
-    
-        // Draw description (post text wrap handling)
-        ctx.fillStyle = 'white';
-        const descXPosition = !hasImgs && hasVids ? 80 : 30;
-        drawDescription(ctx, hasImgs, hasVids, hasOnlyVideos, descLines, globalFont, descXPosition, defaultYPosition);
-
-        // Draw date elements
-        ctx.fillStyle = 'gray';
-        ctx.font = '18px ' + globalFont;
-        ctx.fillText(formatTwitterDate(metadata.date), 30, calculatedCanvasHeightFromDescLines - 20);
-    
-        // Draw the circle mask...
-        ctx.save();
-        const radius = 25;
-        ctx.beginPath();
-        ctx.arc(45, 45, radius, 0, Math.PI * 2, true);
-        ctx.closePath();
-        ctx.clip();
-
-        // Draw pfp image centered in the circle
-        ctx.drawImage(pfp, 20, 20, 50, radius * 2);
-        ctx.restore();
-    };
+    drawBasicElements(
+        ctx, globalFont, metadata, favicon, pfp,
+        hasImgs, hasVids, hasOnlyVideos, descLines, defaultYPosition,
+        calculatedCanvasHeightFromDescLines
+    );
 
     const drawQtBasicElements = (qtMeta, pfp, mainMedia1, qtVidThumbnail) => {
         console.log('>>>>> drawQtBasicElements > qtMeta: ', qtMeta);
@@ -259,13 +222,6 @@ const createTwitterCanvas = async (metadataJson, isImage) => {
         ctx.fillStyle = 'white'; // Text color for description
         ctx.font = '24px ' + globalFont;
         const qtTextXAxisStart = hasMedia ? 230 : 100;
-        // const lineHeight = 30;
-        // const qtTextXAxisStart = hasMedia ? 230 : 100;
-        // qtDescLines.forEach(line => {
-        //     ctx.fillText(line, qtTextXAxisStart, qtYPosition + 100);
-        //     // drawTextWithSpacing(ctx, line, qtTextXAxisStart, qtYPosition + 100, 1);
-        //     qtYPosition += lineHeight;
-        // });
         drawDescription(ctx, hasImgs, hasVids, hasOnlyVideos, qtDescLines, globalFont, qtTextXAxisStart, qtYPosition, true);
 
         // Draw pfp image
