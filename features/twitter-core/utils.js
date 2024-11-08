@@ -51,6 +51,17 @@ const formatTwitterDate = (twitterDate) => {
     return `${formattedTime} ${meridiem} ${friendlyTimeZoneName} · ${formattedDate}`;
 };
 
+// Find number of associated media
+const filterMediaUrls = (metadata, extensions) => {
+    return metadata.mediaUrls.filter((mediaUrl) => {
+        const mediaUrlParts = mediaUrl.split('.');
+        const fileExtensionWithQueryParams = mediaUrlParts[mediaUrlParts.length - 1];
+        const fileExtension = fileExtensionWithQueryParams.split('?')[0];
+        return extensions.includes(fileExtension);
+    });
+};
+
 module.exports = {
-    formatTwitterDate
+    formatTwitterDate,
+    filterMediaUrls,
 };

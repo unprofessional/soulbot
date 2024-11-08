@@ -3,10 +3,10 @@ const {
     createCanvas,
     loadImage,
 } = require('canvas');
-const { cropSingleImage } = require('./crop_single_image.js');
 const { renderImageGallery } = require('./image_gallery_rendering.js');
 const { scaleDownToFitAspectRatio } = require('./scale_down.js');
-const { drawDescription, getWrappedText, drawBasicElements } = require('../twitter-core/canvas_utils.js');
+const { getWrappedText, drawBasicElements, drawQtBasicElements } = require('../twitter-core/canvas_utils.js');
+const { filterMediaUrls } = require('../twitter-core/utils.js');
 
 const createTwitterCanvas = async (metadataJson, isImage) => {
 
@@ -63,16 +63,6 @@ const createTwitterCanvas = async (metadataJson, isImage) => {
 
     // Grants emoji color
     ctx.textDrawingMode = "glyph";
-
-    // Find number of associated media
-    const filterMediaUrls = (metadata, extensions) => {
-        return metadata.mediaUrls.filter((mediaUrl) => {
-            const mediaUrlParts = mediaUrl.split('.');
-            const fileExtensionWithQueryParams = mediaUrlParts[mediaUrlParts.length - 1];
-            const fileExtension = fileExtensionWithQueryParams.split('?')[0];
-            return extensions.includes(fileExtension);
-        });
-    };
 
     // Height adjustment for images
     const getMaxHeight = (numImgs) => {
@@ -171,74 +161,12 @@ const createTwitterCanvas = async (metadataJson, isImage) => {
     // Re-calc canvas
     ctx.canvas.height = calculatedCanvasHeightFromDescLines + qtCalculatedCanvasHeightFromDescLines;
     ctx.fillRect(0, 0, maxCanvasWidth, calculatedCanvasHeightFromDescLines + qtCalculatedCanvasHeightFromDescLines);
-
-    const drawQtBasicElements = (qtMeta, pfp, mainMedia1, qtVidThumbnail) => {
-        console.log('>>>>> drawQtBasicElements > qtMeta: ', qtMeta);
-        
-        // Pre-process media
-        const numOfQtImgs = filterMediaUrls(qtMeta, ['jpg', 'jpeg', 'png']).length;
-        console.log('>>>>> qtMeta > createTwitterCanvas > numOfQtImgs', numOfQtImgs);
-        const numOfQtVideos = filterMediaUrls(qtMeta, ['mp4']).length;
-        console.log('>>>>> qtMeta > createTwitterCanvas > numOfQtVideos', numOfQtVideos);
-        const hasMedia = numOfQtImgs > 0 || numOfQtVideos > 0;
-        
-        const minHeight = 100;
-        let mediaQtMaxHeight = hasMedia ? 300 : minHeight;
-        let mediaQtMaxWidth = 560;
-        
-        // Pre-process description with text wrapping
-        const qtMaxCharLength = hasMedia ? 250 : 320; // Maximum width for text
-        const qtDescLines = getWrappedText(ctx, qtMeta.description, qtMaxCharLength, true);
-        
-        const qtXPosition = 20;
-        let qtYPosition = calculatedCanvasHeightFromDescLines;
-        
-        // QT Canvas Stroke
-        ctx.strokeStyle = 'gray';
-        console.log('>>> mediaQtMaxHeight: ', mediaQtMaxHeight);
-        const minMediaHeight = 300;
-        const determinedHeight = minMediaHeight > qtCalculatedCanvasHeightFromDescLines ? minMediaHeight : qtCalculatedCanvasHeightFromDescLines;
-        ctx.strokeRect(qtXPosition, qtYPosition, mediaQtMaxWidth, determinedHeight - 20); // 20 offset to match the left and right margins
-        
-        // Draw nickname elements
-        ctx.fillStyle = 'white'; // Text color
-        ctx.font = 'bold 18px ' + globalFont;
-        ctx.fillText(qtMeta.authorUsername, 100, qtYPosition + 40);
-      
-        // Draw username elements
-        ctx.fillStyle = 'gray'; // Text color
-        ctx.font = '18px ' + globalFont;
-        ctx.fillText(`@${qtMeta.authorNick}`, 100, qtYPosition + 60);
-      
-        // Draw description (post text wrap handling)
-        ctx.fillStyle = 'white'; // Text color for description
-        ctx.font = '24px ' + globalFont;
-        const qtTextXAxisStart = hasMedia ? 230 : 100;
-        drawDescription(ctx, hasImgs, hasVids, hasOnlyVideos, qtDescLines, globalFont, qtTextXAxisStart, qtYPosition, true);
-
-        // Draw pfp image
-        ctx.drawImage(pfp, 40, calculatedCanvasHeightFromDescLines + 20, 50, 50);
-        
-        const qtMediaYPos = calculatedCanvasHeightFromDescLines + 80;
-        console.log('>>>>> qtMediaYPos: ', qtMediaYPos);
-
-        // or if (mainMedia1 !== undefined)
-        if(numOfQtImgs > 0 && numOfQtVideos === 0) {
-            cropSingleImage(ctx, mainMedia1, 175, 175, qtXPosition + 20, qtMediaYPos);
-        }
-
-        // or if (qtVidThumbnail)
-        if(numOfQtVideos > 0) {
-            cropSingleImage(ctx, qtVidThumbnail, 175, 175, qtXPosition + 20, qtMediaYPos);
-        }
-        
-    };
     
     const favIconUrl = 'https://abs.twimg.com/favicons/twitter.3.ico';
     const favicon = await loadImage(favIconUrl);
     const pfpUrl = metadata.pfpUrl;
     const pfp = await loadImage(pfpUrl);
-    
+
     // Standard Post
     drawBasicElements(ctx, globalFont, metadata, favicon, pfp, descLines, {
         hasImgs, hasVids,
@@ -264,17 +192,41 @@ const createTwitterCanvas = async (metadataJson, isImage) => {
         if(numOfQtImgs > 0 && numOfQtVideos === 0) {
             const qtMainMedia1Url = qtMetadata.mediaUrls[0];
             const qtMainMedia1 = await loadImage(qtMainMedia1Url);
-            drawQtBasicElements(qtMetadata, qtPfp, qtMainMedia1); 
+
+            // Quote-Tweet Post
+            drawQtBasicElements(ctx, globalFont, qtMetadata, qtPfp, descLines, qtMainMedia1, undefined, {
+                canvasHeightOffset: calculatedCanvasHeightFromDescLines,
+                qtCanvasHeightOffset: qtCalculatedCanvasHeightFromDescLines,
+                hasImgs,
+                hasVids,
+                hasOnlyVideos,
+            });
         }
         // has videos, but no images
         if (numOfQtVideos > 0 && numOfQtImgs === 0) {
             const qtVidThumbnailUrl = qtMetadata.mediaExtended[0].thumbnail_url;
             const qtVidThumbnail = await loadImage(qtVidThumbnailUrl);
-            drawQtBasicElements(qtMetadata, qtPfp, undefined, qtVidThumbnail); 
+
+            // Quote-Tweet Post
+            drawQtBasicElements(ctx, globalFont, metadata, qtPfp, descLines, undefined, qtVidThumbnail, {
+                canvasHeightOffset: calculatedCanvasHeightFromDescLines,
+                qtCanvasHeightOffset: qtCalculatedCanvasHeightFromDescLines,
+                hasImgs,
+                hasVids,
+                hasOnlyVideos,
+            });
         }
         // is text only
         if (numOfQtVideos === 0 && numOfQtImgs === 0) {
-            drawQtBasicElements(qtMetadata, qtPfp); 
+
+            // Quote-Tweet Post
+            drawQtBasicElements(ctx, globalFont, qtMetadata, qtPfp, descLines, undefined, undefined, {
+                canvasHeightOffset: calculatedCanvasHeightFromDescLines,
+                qtCanvasHeightOffset: qtCalculatedCanvasHeightFromDescLines,
+                hasImgs,
+                hasVids,
+                hasOnlyVideos,
+            });
         }
     }
 
