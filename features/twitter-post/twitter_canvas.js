@@ -6,9 +6,7 @@ const {
 const { cropSingleImage } = require('./crop_single_image.js');
 const { renderImageGallery } = require('./image_gallery_rendering.js');
 const { scaleDownToFitAspectRatio } = require('./scale_down.js');
-const { formatTwitterDate } = require('../twitter-core/utils.js');
-const { setFontBasedOnContent, drawDescription, getWrappedText, drawBasicElements } = require('../twitter-core/canvas_utils.js');
-// const { drawTextWithSpacing } = require('../twitter-core/canvas_utils.js');
+const { drawDescription, getWrappedText, drawBasicElements } = require('../twitter-core/canvas_utils.js');
 
 const createTwitterCanvas = async (metadataJson, isImage) => {
 
@@ -240,11 +238,14 @@ const createTwitterCanvas = async (metadataJson, isImage) => {
     const favicon = await loadImage(favIconUrl);
     const pfpUrl = metadata.pfpUrl;
     const pfp = await loadImage(pfpUrl);
-    drawBasicElements(
-        ctx, globalFont, metadata, favicon, pfp,
-        hasImgs, hasVids, hasOnlyVideos, descLines, defaultYPosition,
-        calculatedCanvasHeightFromDescLines
-    );
+    
+    // Standard Post
+    drawBasicElements(ctx, globalFont, metadata, favicon, pfp, descLines, {
+        hasImgs, hasVids,
+        yOffset: defaultYPosition,
+        canvasHeightOffset: calculatedCanvasHeightFromDescLines,
+    });
+
     console.log('>>>>> qtMetadata: ', qtMetadata);
     // if has quote tweet reference
     if(qtMetadata) {
@@ -279,16 +280,6 @@ const createTwitterCanvas = async (metadataJson, isImage) => {
 
     // Draw the image, if one exists...
     if (hasImgs && !hasVids) {
-
-        /**
-         * FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME 
-         */
-        // Media Canvas Stroke
-        // ctx.strokeStyle = 'gray';
-        // const zxPosition = 20;
-        // const zyPosition = calculatedCanvasHeightFromDescLines - heightShim - 50;
-        // ctx.strokeRect(zxPosition, zyPosition, mediaMaxWidth, mediaMaxHeight);
-
         await renderImageGallery(
             ctx,
             metadata,

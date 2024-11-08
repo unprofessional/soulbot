@@ -5,9 +5,7 @@ const {
     loadImage,
 } = require('canvas');
 const { buildPathsAndStuff } = require('../twitter-core/path_builder.js');
-const { formatTwitterDate } = require('../twitter-core/utils.js');
-const { drawDescription, setFontBasedOnContent, getWrappedText, drawBasicElements } = require('../twitter-core/canvas_utils.js');
-// const { drawTextWithSpacing } = require('../twitter-core/canvas_utils.js');
+const { getWrappedText, drawBasicElements } = require('../twitter-core/canvas_utils.js');
 
 const createTwitterVideoCanvas = async (metadataJson) => {
     const metadata = {
@@ -37,6 +35,9 @@ const createTwitterVideoCanvas = async (metadataJson) => {
 
     // Fill background color
     ctx.fillStyle = '#000';
+
+    // Grants emoji color
+    ctx.textDrawingMode = "glyph";
 
     const numOfImgs = 1;//filterMediaUrls(metadata, ['jpg', 'jpeg', 'png']).length;
     // console.log('>>>>> createTwitterCanvas > numOfImgs', numOfImgs);
@@ -95,11 +96,13 @@ const createTwitterVideoCanvas = async (metadataJson) => {
     const favicon = await loadImage(favIconUrl);
     const pfpUrl = metadata.pfpUrl;
     const pfp = await loadImage(pfpUrl);
-    drawBasicElements(
-        ctx, globalFont, metadata, favicon, pfp,
-        hasImgs, hasVids, hasOnlyVideos, descLines, defaultYPosition,
-        calculatedCanvasHeightFromDescLines
-    );
+
+    // Standard Post
+    drawBasicElements(ctx, globalFont, metadata, favicon, pfp, descLines, {
+        hasImgs, hasVids,
+        yOffset: defaultYPosition,
+        canvasHeightOffset: calculatedCanvasHeightFromDescLines,
+    });
 
     // TODO: Utility function
     const videoUrl = metadata.mediaUrls[0];

@@ -40,27 +40,6 @@ function getWrappedText(ctx, text, maxWidth, hasVids) {
     return lines;
 }
 
-function setFontBasedOnContent(ctx, text) {
-    console.log('>>> setFontBasedOnContent reached!');
-
-    // const emojiPattern = /[\u{1F300}-\u{1F5FF}\u{1F600}-\u{1F64F}\u{1F680}-\u{1F6FF}\u{1F700}-\u{1F77F}\u{1F780}-\u{1F7FF}\u{1F800}-\u{1F8FF}\u{1F900}-\u{1F9FF}\u{1FA00}-\u{1FAFF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F1E6}-\u{1F1FF}\u{203C}-\u{3299}]/u;
-
-    console.log('>>> setFontBasedOnContent > text: ', text);
-
-    ctx.textDrawingMode = "glyph";
-    ctx.font = '24px "Noto Color Emoji"';
-
-    // if (emojiPattern.test(text)) {
-    //     console.log('>>> Emoji detected!');
-    //     ctx.textDrawingMode = "glyph";
-    //     ctx.font = '24px "Noto Color Emoji"';
-    // }
-    // else {
-    //     console.log('>>> Emoji NOT detected...');
-    //     ctx.font = '24px "Noto Color Emoji"';
-    // }
-}
-
 const drawDescription = (ctx, hasImgs, hasVids, hasOnlyVideos, descLines, font, x, y, isQt) => {
     const lineHeight = hasOnlyVideos ? 50 : 30;
     descLines.forEach(line => {
@@ -89,10 +68,20 @@ function drawTextWithSpacing(ctx, text, x, y, letterSpacing = 1) {
 }
 
 const drawBasicElements = (
-    ctx, globalFont, metadata, favicon, pfp,
-    hasImgs, hasVids, hasOnlyVideos, descLines, defaultYPosition,
-    calculatedCanvasHeightFromDescLines
+    ctx, globalFont, metadata, favicon, pfp, descLines, options
 ) => {
+
+    const {
+        // isQuoteTweet = false,
+        // mediaElements = {},
+        yOffset = 0,
+        canvasHeightOffset = 0,
+        hasImgs = false,
+        hasVids = false,
+        hasOnlyVideos = false,
+    } = options;
+
+
     // Load and draw favicon
     ctx.drawImage(favicon, 550, 20, 32, 32);
 
@@ -114,12 +103,12 @@ const drawBasicElements = (
     const descXPosition = !hasImgs && hasVids ? 80 : 30;
     ctx.textDrawingMode = "glyph";
     ctx.font = '24px "Noto Color Emoji"';
-    drawDescription(ctx, hasImgs, hasVids, hasOnlyVideos, descLines, globalFont, descXPosition, defaultYPosition);
+    drawDescription(ctx, hasImgs, hasVids, hasOnlyVideos, descLines, globalFont, descXPosition, yOffset);
 
     // Draw date elements
     ctx.fillStyle = 'gray';
     ctx.font = '18px ' + globalFont;
-    ctx.fillText(formatTwitterDate(metadata.date), 30, calculatedCanvasHeightFromDescLines - 20);
+    ctx.fillText(formatTwitterDate(metadata.date), 30, canvasHeightOffset - 20);
 
     // Draw the circle mask...
     ctx.save();
@@ -136,7 +125,6 @@ const drawBasicElements = (
 
 module.exports = {
     getWrappedText,
-    setFontBasedOnContent,
     drawDescription,
     drawTextWithSpacing,
     drawBasicElements,
