@@ -98,8 +98,8 @@ const drawBasicElements = (
 
     // Draw nickname elements
     ctx.fillStyle = 'white';
-    // ctx.font = 'bold 18px ' + globalFont;
-    setFontBasedOnContent(ctx, metadata.authorUsername);
+    ctx.font = 'bold 18px ' + globalFont;
+    // setFontBasedOnContent(ctx, metadata.authorUsername);
     ctx.fillText(metadata.authorUsername, 100, 40);
 
     // Draw username elements
