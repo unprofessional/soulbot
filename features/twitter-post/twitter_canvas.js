@@ -174,12 +174,6 @@ const createTwitterCanvas = async (metadataJson, isImage) => {
     ctx.canvas.height = calculatedCanvasHeightFromDescLines + qtCalculatedCanvasHeightFromDescLines;
     ctx.fillRect(0, 0, maxCanvasWidth, calculatedCanvasHeightFromDescLines + qtCalculatedCanvasHeightFromDescLines);
 
-    drawBasicElements(
-        ctx, globalFont, metadata, favicon, pfp,
-        hasImgs, hasVids, hasOnlyVideos, descLines, defaultYPosition,
-        calculatedCanvasHeightFromDescLines
-    );
-
     const drawQtBasicElements = (qtMeta, pfp, mainMedia1, qtVidThumbnail) => {
         console.log('>>>>> drawQtBasicElements > qtMeta: ', qtMeta);
         
@@ -246,7 +240,11 @@ const createTwitterCanvas = async (metadataJson, isImage) => {
     const favicon = await loadImage(favIconUrl);
     const pfpUrl = metadata.pfpUrl;
     const pfp = await loadImage(pfpUrl);
-    drawBasicElements(metadata, favicon, pfp);
+    drawBasicElements(
+        ctx, globalFont, metadata, favicon, pfp,
+        hasImgs, hasVids, hasOnlyVideos, descLines, defaultYPosition,
+        calculatedCanvasHeightFromDescLines
+    );
     console.log('>>>>> qtMetadata: ', qtMetadata);
     // if has quote tweet reference
     if(qtMetadata) {

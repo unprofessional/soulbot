@@ -90,18 +90,16 @@ const createTwitterVideoCanvas = async (metadataJson) => {
     // Re-calc canvas
     ctx.canvas.height = calculatedCanvasHeightFromDescLines;
     ctx.fillRect(0, 0, maxCanvasWidth, calculatedCanvasHeightFromDescLines);
-
-    drawBasicElements(
-        ctx, globalFont, metadata, favicon, pfp,
-        hasImgs, hasVids, hasOnlyVideos, descLines, defaultYPosition,
-        calculatedCanvasHeightFromDescLines
-    );
   
     const favIconUrl = 'https://abs.twimg.com/favicons/twitter.3.ico';
     const favicon = await loadImage(favIconUrl);
     const pfpUrl = metadata.pfpUrl;
     const pfp = await loadImage(pfpUrl);
-    drawBasicElements(metadata, favicon, pfp);
+    drawBasicElements(
+        ctx, globalFont, metadata, favicon, pfp,
+        hasImgs, hasVids, hasOnlyVideos, descLines, defaultYPosition,
+        calculatedCanvasHeightFromDescLines
+    );
 
     // TODO: Utility function
     const videoUrl = metadata.mediaUrls[0];
