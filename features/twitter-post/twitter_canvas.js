@@ -162,7 +162,8 @@ const createTwitterCanvas = async (metadataJson, isImage) => {
 
     let qtCalculatedCanvasHeightFromDescLines = 0;
     if(qtMetadata) {
-        qtCalculatedCanvasHeightFromDescLines = calcQtHeight(ctx, qtMetadata, maxCharLength); 
+        qtCalculatedCanvasHeightFromDescLines = calcQtHeight(qtMetadata); 
+        // qtCalculatedCanvasHeightFromDescLines = calcQtHeight(ctx, qtMetadata, maxCharLength); 
     }
 
     console.log('>>>>> calculatedCanvasHeightFromDescLines: ', calculatedCanvasHeightFromDescLines);
