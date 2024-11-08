@@ -107,43 +107,43 @@ const createTwitterCanvas = async (metadataJson, isImage) => {
         }
     }
 
-    // const calcQtHeight = (qtMetadata) => {
-    //     let minHeight = 180;
+    const calcQtHeight = (qtMetadata) => {
+        let minHeight = 180;
         
-    //     // TODO: Calculate new descLines here
-    //     const qtDescLines = getWrappedText(ctx, qtMetadata.description, 120, hasOnlyVideos);
-    //     console.log('>>> qtDescLines: ', qtDescLines);
-    //     const descLinesFilteredEmptyLines = qtDescLines.filter(line => line !== '');
-    //     console.log('>>> descLinesFilteredEmptyLines: ', descLinesFilteredEmptyLines);
-    //     const descLinesLength = descLinesFilteredEmptyLines?.length;
-    //     console.log('>>> descLinesLength: ', descLinesLength);
+        // TODO: Calculate new descLines here
+        const qtDescLines = getWrappedText(ctx, qtMetadata.description, 120, hasOnlyVideos);
+        console.log('>>> qtDescLines: ', qtDescLines);
+        const descLinesFilteredEmptyLines = qtDescLines.filter(line => line !== '');
+        console.log('>>> descLinesFilteredEmptyLines: ', descLinesFilteredEmptyLines);
+        const descLinesLength = descLinesFilteredEmptyLines?.length;
+        console.log('>>> descLinesLength: ', descLinesLength);
         
-    //     // If Media exists
-    //     if(qtMetadata.mediaUrls.length > 0) {
-    //         console.log('>>>>> calcQtHeight has media!');
-    //         minHeight = 330;
-    //     }
-    //     const totalDescLinesHeight = descLinesLength * 40;
-    //     return minHeight > totalDescLinesHeight ? minHeight : totalDescLinesHeight;
-    // };
-
-    const calcQtHeight = (ctx, qtMetadata, maxCharLength) => {
-        const qtDescLines = getWrappedText(ctx, qtMetadata.description, maxCharLength, false);
-    
-        // Dynamically calculate description height
-        const descHeight = qtDescLines.length * 30; // Assuming line height of 30
-        const minHeight = 180; // Minimum height for quote tweet box
-        const padding = 60; // Additional padding for avatar, margins
-    
-        let totalHeight = descHeight + padding;
-    
-        // Account for media height
-        if (qtMetadata.mediaUrls.length > 0) {
-            totalHeight += 300; // Approximate media height
+        // If Media exists
+        if(qtMetadata.mediaUrls.length > 0) {
+            console.log('>>>>> calcQtHeight has media!');
+            minHeight = 330;
         }
-    
-        return Math.max(totalHeight, minHeight);
+        const totalDescLinesHeight = descLinesLength * 40;
+        return minHeight > totalDescLinesHeight ? minHeight : totalDescLinesHeight;
     };
+
+    // const calcQtHeight = (ctx, qtMetadata, maxCharLength) => {
+    //     const qtDescLines = getWrappedText(ctx, qtMetadata.description, maxCharLength, false);
+    
+    //     // Dynamically calculate description height
+    //     const descHeight = qtDescLines.length * 30; // Assuming line height of 30
+    //     const minHeight = 180; // Minimum height for quote tweet box
+    //     const padding = 60; // Additional padding for avatar, margins
+    
+    //     let totalHeight = descHeight + padding;
+    
+    //     // Account for media height
+    //     if (qtMetadata.mediaUrls.length > 0) {
+    //         totalHeight += 300; // Approximate media height
+    //     }
+    
+    //     return Math.max(totalHeight, minHeight);
+    // };
     
   
     // Pre-process description with text wrapping
