@@ -61,7 +61,17 @@ const filterMediaUrls = (metadata, extensions) => {
     });
 };
 
+const removeTCOLink = (text) => {
+    if(!text) {
+        return '';
+    }
+    const shortTwitterUrlPattern = /https:\/\/t\.co\/\S+/;
+    const filteredText = text.replace(shortTwitterUrlPattern, '');
+    return filteredText;
+};
+
 module.exports = {
     formatTwitterDate,
     filterMediaUrls,
+    removeTCOLink,
 };
