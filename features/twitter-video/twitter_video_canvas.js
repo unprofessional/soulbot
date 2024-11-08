@@ -108,7 +108,8 @@ const createTwitterVideoCanvas = async (metadataJson) => {
   
         // Draw description (post text wrap handling)
         ctx.fillStyle = 'white';
-        drawDescription(ctx, hasImgs, hasVids, hasOnlyVideos, descLines, globalFont, defaultYPosition);
+        const descXPosition = !hasImgs && hasVids ? 80 : 30;
+        drawDescription(ctx, hasImgs, hasVids, hasOnlyVideos, descLines, globalFont, descXPosition, defaultYPosition);
 
         // Draw date elements
         ctx.fillStyle = 'gray';

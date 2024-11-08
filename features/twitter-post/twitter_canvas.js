@@ -196,7 +196,8 @@ const createTwitterCanvas = async (metadataJson, isImage) => {
     
         // Draw description (post text wrap handling)
         ctx.fillStyle = 'white';
-        drawDescription(ctx, hasImgs, hasVids, hasOnlyVideos, descLines, globalFont, defaultYPosition);
+        const descXPosition = !hasImgs && hasVids ? 80 : 30;
+        drawDescription(ctx, hasImgs, hasVids, hasOnlyVideos, descLines, globalFont, descXPosition, defaultYPosition);
 
         // Draw date elements
         ctx.fillStyle = 'gray';
@@ -257,13 +258,15 @@ const createTwitterCanvas = async (metadataJson, isImage) => {
         // Draw description (post text wrap handling)
         ctx.fillStyle = 'white'; // Text color for description
         ctx.font = '24px ' + globalFont;
-        const lineHeight = 30;
         const qtTextXAxisStart = hasMedia ? 230 : 100;
-        qtDescLines.forEach(line => {
-            ctx.fillText(line, qtTextXAxisStart, qtYPosition + 100);
-            // drawTextWithSpacing(ctx, line, qtTextXAxisStart, qtYPosition + 100, 1);
-            qtYPosition += lineHeight;
-        });
+        // const lineHeight = 30;
+        // const qtTextXAxisStart = hasMedia ? 230 : 100;
+        // qtDescLines.forEach(line => {
+        //     ctx.fillText(line, qtTextXAxisStart, qtYPosition + 100);
+        //     // drawTextWithSpacing(ctx, line, qtTextXAxisStart, qtYPosition + 100, 1);
+        //     qtYPosition += lineHeight;
+        // });
+        drawDescription(ctx, hasImgs, hasVids, hasOnlyVideos, qtDescLines, globalFont, qtTextXAxisStart, qtYPosition);
 
         // Draw pfp image
         ctx.drawImage(pfp, 40, calculatedCanvasHeightFromDescLines + 20, 50, 50);

@@ -56,18 +56,17 @@ function setFontBasedOnContent(ctx, text) {
     }
 }
 
-const drawDescription = (ctx, hasImgs, hasVids, hasOnlyVideos, descLines, globalFont, defaultYPosition) => {
+const drawDescription = (ctx, hasImgs, hasVids, hasOnlyVideos, descLines, font, x, y) => {
     const lineHeight = hasOnlyVideos ? 50 : 30;
-    const descXPosition = !hasImgs && hasVids ? 80 : 30;
     descLines.forEach(line => {
         if(!hasImgs && hasVids) {
-            ctx.font = '36px ' + globalFont;
+            ctx.font = '36px ' + font;
         } else {
             setFontBasedOnContent(ctx, line);
         }
-        ctx.fillText(line, descXPosition, defaultYPosition);
-        // drawTextWithSpacing(ctx, line, descXPosition, defaultYPosition, 1);
-        defaultYPosition += lineHeight;
+        ctx.fillText(line, x, y);
+        // drawTextWithSpacing(ctx, line, x, y, 1);
+        y += lineHeight;
     });
 };
 
