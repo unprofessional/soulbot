@@ -112,22 +112,25 @@ const createTwitterCanvas = async (metadataJson, isImage) => {
         
         // TODO: Calculate new descLines here
         const qtDescLines = getWrappedText(ctx, qtMetadata.description, 120);
-        console.log('>>> qtDescLines: ', qtDescLines);
+        console.log('>>> calcQtHeight > qtDescLines: ', qtDescLines);
         // const descLinesFilteredEmptyLines = qtDescLines.filter(line => line !== '');
         // console.log('>>> descLinesFilteredEmptyLines: ', descLinesFilteredEmptyLines);
         // const descLinesLength = descLinesFilteredEmptyLines?.length;
         const descLinesLength = qtDescLines?.length;
-        console.log('>>> descLinesLength: ', descLinesLength);
+        console.log('>>> calcQtHeight > descLinesLength: ', descLinesLength);
         
         // If Media exists
         if(qtMetadata.mediaUrls.length > 0) {
-            console.log('>>>>> calcQtHeight has media!');
+            console.log('>>>>> calcQtHeight > calcQtHeight has media!');
             minHeight = 330;
         } else {
-            console.log('>>>>> calcQtHeight has NO media...');
+            console.log('>>>>> calcQtHeight > calcQtHeight has NO media...');
         }
         const totalDescLinesHeight = descLinesLength * 40;
-        return minHeight > totalDescLinesHeight ? minHeight : totalDescLinesHeight;
+        console.log('>>> calcQtHeight > totalDescLinesHeight: ', totalDescLinesHeight);
+        const finalHeight = minHeight > totalDescLinesHeight ? minHeight : totalDescLinesHeight;
+        console.log('>>> calcQtHeight > totalDescLinesHeight: ', totalDescLinesHeight);
+        return finalHeight;
     };
 
     // const calcQtHeight = (ctx, qtMetadata, maxCharLength) => {
