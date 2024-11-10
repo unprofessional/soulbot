@@ -111,7 +111,7 @@ const createTwitterCanvas = async (metadataJson, isImage) => {
         let minHeight = 180;
     
         // TODO: Calculate new descLines here
-        let qtDescLines = getWrappedText(ctx, qtMetadata.description, 220);
+        let qtDescLines = getWrappedText(ctx, qtMetadata.description, 240);
         console.log('>>> calcQtHeight > qtDescLines[1]: ', qtDescLines);
         // const descLinesFilteredEmptyLines = qtDescLines.filter(line => line !== '');
         // console.log('>>> descLinesFilteredEmptyLines: ', descLinesFilteredEmptyLines);
@@ -128,7 +128,7 @@ const createTwitterCanvas = async (metadataJson, isImage) => {
         }
         console.log('>>> calcQtHeight > qtDescLines[2]: ', qtDescLines);
         console.log('>>> calcQtHeight > qtDescLinesLength[2]: ', qtDescLinesLength);
-        const totalQtDescLinesHeight = qtDescLinesLength * 30 + 60; // 30 is the lineheight and 20 is bottompadding
+        const totalQtDescLinesHeight = qtDescLinesLength * 30 + 100; // 30 is the lineheight and 20 is bottompadding
         console.log('>>> calcQtHeight > totalQtDescLinesHeight[1]: ', totalQtDescLinesHeight);
         console.log('>>> calcQtHeight > minHeight: ', minHeight);
         const finalHeight = minHeight > totalQtDescLinesHeight ? minHeight : totalQtDescLinesHeight;
