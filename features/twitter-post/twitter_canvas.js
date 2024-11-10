@@ -147,7 +147,7 @@ const createTwitterCanvas = async (metadataJson, isImage) => {
     
   
     // Pre-process description with text wrapping
-    const maxCharLength = hasOnlyVideos ? 120 : 230; // Maximum width for text
+    const maxCharLength = hasOnlyVideos ? 120 : 240; // Maximum width for text
     const descLines = getWrappedText(ctx, metadata.description, maxCharLength, hasOnlyVideos);
     let defaultYPosition = 110; // Starting Y position for description text
 
