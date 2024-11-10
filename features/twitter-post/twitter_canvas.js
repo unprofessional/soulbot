@@ -109,18 +109,18 @@ const createTwitterCanvas = async (metadataJson, isImage) => {
 
     const calcQtHeight = (qtMetadata) => {
         let minHeight = 180;
-        
+    
         // TODO: Calculate new descLines here
-        const qtDescLines = getWrappedText(ctx, qtMetadata.description, 120);
+        let qtDescLines = getWrappedText(ctx, qtMetadata.description, 220);
         console.log('>>> calcQtHeight > qtDescLines: ', qtDescLines);
         // const descLinesFilteredEmptyLines = qtDescLines.filter(line => line !== '');
         // console.log('>>> descLinesFilteredEmptyLines: ', descLinesFilteredEmptyLines);
         // const descLinesLength = descLinesFilteredEmptyLines?.length;
-        const qtDescLinesLength = qtDescLines?.length;
+        let qtDescLinesLength = qtDescLines?.length;
         console.log('>>> calcQtHeight > qtDescLinesLength: ', qtDescLinesLength);
-        
-        // If Media exists
         if(qtMetadata.mediaUrls.length > 0) {
+            qtDescLines = getWrappedText(ctx, qtMetadata.description, 120);
+            qtDescLinesLength = qtDescLines?.length;
             console.log('>>>>> calcQtHeight > calcQtHeight has media!');
             minHeight = 330;
         } else {
