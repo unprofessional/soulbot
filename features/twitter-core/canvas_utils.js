@@ -169,7 +169,7 @@ const drawQtBasicElements = (
     ctx.font = 'bold 18px ' + globalFont;
     ctx.fillText(metadata.authorUsername, 100, qtYPosition + 40);
   
-    // Draw username elements
+    // Draw nickname elements
     ctx.fillStyle = 'gray'; // Text color
     ctx.font = '18px ' + globalFont;
     ctx.fillText(`@${metadata.authorNick}`, 100, qtYPosition + 60);
