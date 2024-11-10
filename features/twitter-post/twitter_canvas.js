@@ -153,24 +153,26 @@ const createTwitterCanvas = async (metadataJson, isImage) => {
 
     // New height calcs
     const descLinesLength = descLines.length;
+    console.log('>>>>> twitter_canvas > descLinesLength: ', descLinesLength);
     let calculatedCanvasHeightFromDescLines = hasVids && !hasImgs
         ? maxCanvasWidth // Has vids, make square
         : (descLinesLength * 30) + defaultYPosition + 40 + heightShim;
+    console.log('>>>>> twitter_canvas > calculatedCanvasHeightFromDescLines[1]: ', calculatedCanvasHeightFromDescLines);
     if(!metadata.description) {
         calculatedCanvasHeightFromDescLines = calculatedCanvasHeightFromDescLines - 40;
     }
+    console.log('>>>>> twitter_canvas > calculatedCanvasHeightFromDescLines[2]: ', calculatedCanvasHeightFromDescLines);
 
     let qtCalculatedCanvasHeightFromDescLines = 0;
     if(qtMetadata) {
         qtCalculatedCanvasHeightFromDescLines = calcQtHeight(qtMetadata); 
         // qtCalculatedCanvasHeightFromDescLines = calcQtHeight(ctx, qtMetadata, maxCharLength); 
     }
-
-    // console.log('>>>>> calculatedCanvasHeightFromDescLines: ', calculatedCanvasHeightFromDescLines);
-    // console.log('>>>>> qtCalculatedCanvasHeightFromDescLines: ', qtCalculatedCanvasHeightFromDescLines);
+    console.log('>>>>> twitter_canvas >  qtCalculatedCanvasHeightFromDescLines[1]: ', qtCalculatedCanvasHeightFromDescLines);
   
     // Re-calc canvas
     ctx.canvas.height = calculatedCanvasHeightFromDescLines + qtCalculatedCanvasHeightFromDescLines;
+    console.log('>>>>> twitter_canvas >   ctx.canvas.height: ',  ctx.canvas.height);
     ctx.fillRect(0, 0, maxCanvasWidth, calculatedCanvasHeightFromDescLines + qtCalculatedCanvasHeightFromDescLines);
     
     const favIconUrl = 'https://abs.twimg.com/favicons/twitter.3.ico';
@@ -199,8 +201,8 @@ const createTwitterCanvas = async (metadataJson, isImage) => {
         const qtPfpUrl = qtMetadata.pfpUrl;
         const qtPfp = await loadImage(qtPfpUrl);
 
-        console.log('>>>> twitter_canvas > calculatedCanvasHeightFromDescLines: ', calculatedCanvasHeightFromDescLines);
-        console.log('>>>> twitter_canvas > qtCalculatedCanvasHeightFromDescLines: ', qtCalculatedCanvasHeightFromDescLines);
+        console.log('>>>> twitter_canvas > calculatedCanvasHeightFromDescLines[3]: ', calculatedCanvasHeightFromDescLines);
+        console.log('>>>> twitter_canvas > qtCalculatedCanvasHeightFromDescLines[2]: ', qtCalculatedCanvasHeightFromDescLines);
 
         // Quote-Tweet Post has images, but no videos
         if(numOfQtImgs > 0 && numOfQtVideos === 0) {
