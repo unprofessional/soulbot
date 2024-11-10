@@ -111,24 +111,27 @@ const createTwitterCanvas = async (metadataJson, isImage) => {
         let minHeight = 180;
         
         // TODO: Calculate new descLines here
-        const qtDescLines = getWrappedText(ctx, qtMetadata.description, 120, hasOnlyVideos);
+        const qtDescLines = getWrappedText(ctx, qtMetadata.description, 120);
         console.log('>>> qtDescLines: ', qtDescLines);
-        const descLinesFilteredEmptyLines = qtDescLines.filter(line => line !== '');
-        console.log('>>> descLinesFilteredEmptyLines: ', descLinesFilteredEmptyLines);
-        const descLinesLength = descLinesFilteredEmptyLines?.length;
+        // const descLinesFilteredEmptyLines = qtDescLines.filter(line => line !== '');
+        // console.log('>>> descLinesFilteredEmptyLines: ', descLinesFilteredEmptyLines);
+        // const descLinesLength = descLinesFilteredEmptyLines?.length;
+        const descLinesLength = qtDescLines?.length;
         console.log('>>> descLinesLength: ', descLinesLength);
         
         // If Media exists
         if(qtMetadata.mediaUrls.length > 0) {
             console.log('>>>>> calcQtHeight has media!');
             minHeight = 330;
+        } else {
+            console.log('>>>>> calcQtHeight has NO media...');
         }
         const totalDescLinesHeight = descLinesLength * 40;
         return minHeight > totalDescLinesHeight ? minHeight : totalDescLinesHeight;
     };
 
     // const calcQtHeight = (ctx, qtMetadata, maxCharLength) => {
-    //     const qtDescLines = getWrappedText(ctx, qtMetadata.description, maxCharLength, false);
+    //     const qtDescLines = getWrappedText(ctx, qtMetadata.description, maxCharLength);
     
     //     // Dynamically calculate description height
     //     const descHeight = qtDescLines.length * 30; // Assuming line height of 30
@@ -148,7 +151,7 @@ const createTwitterCanvas = async (metadataJson, isImage) => {
   
     // Pre-process description with text wrapping
     const maxCharLength = hasOnlyVideos ? 120 : 240; // Maximum width for text
-    const descLines = getWrappedText(ctx, metadata.description, maxCharLength, hasOnlyVideos);
+    const descLines = getWrappedText(ctx, metadata.description, maxCharLength);
     let defaultYPosition = 110; // Starting Y position for description text
 
     // New height calcs

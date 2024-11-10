@@ -1,7 +1,7 @@
 const { cropSingleImage } = require("../twitter-post/crop_single_image");
 const { formatTwitterDate, filterMediaUrls } = require("./utils");
 
-function getWrappedText(ctx, text, maxWidth, hasVids) {
+function getWrappedText(ctx, text, maxWidth) {
     const lines = [];
     // const paragraphs = hasVids
     //     ? [text.replace(/\n/g, ' ')]
