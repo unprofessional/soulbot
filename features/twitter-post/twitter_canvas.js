@@ -111,7 +111,7 @@ const createTwitterCanvas = async (metadataJson, isImage) => {
         let minHeight = 180;
     
         // TODO: Calculate new descLines here
-        let qtDescLines = getWrappedText(ctx, qtMetadata.description, 240);
+        let qtDescLines = getWrappedText(ctx, qtMetadata.description, 220);
         console.log('>>> calcQtHeight > qtDescLines[1]: ', qtDescLines);
         // const descLinesFilteredEmptyLines = qtDescLines.filter(line => line !== '');
         // console.log('>>> descLinesFilteredEmptyLines: ', descLinesFilteredEmptyLines);
