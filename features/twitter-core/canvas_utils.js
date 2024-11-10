@@ -3,9 +3,10 @@ const { formatTwitterDate, filterMediaUrls } = require("./utils");
 
 function getWrappedText(ctx, text, maxWidth, hasVids) {
     const lines = [];
-    const paragraphs = hasVids
-        ? [text.replace(/\n/g, ' ')]
-        : text.split('\n'); // Conditionally handle newlines
+    // const paragraphs = hasVids
+    //     ? [text.replace(/\n/g, ' ')]
+    //     : text.split('\n'); // Conditionally handle newlines
+    const paragraphs = text.split('\n');
 
     const shortTwitterUrlPattern = /https:\/\/t\.co\/\S+/g; // Ensure global match
 
