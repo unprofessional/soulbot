@@ -44,7 +44,7 @@ function getWrappedText(ctx, text, maxWidth, hasVids) {
 
 // ....hasOnlyVideos might be the wrong descriptor... could be QTVideo?????
 const drawDescription = (ctx, hasImgs, hasVids, descLines, font, x, y, isQt) => {
-    const lineHeight = hasImgs || hasVids ? 50 : 30;
+    const lineHeight = 30;
     console.log('>>>> canvas_utils > drawDescription > hasImgs || hasVids: ', hasImgs || hasVids);
     descLines.forEach(line => {
         ctx.textDrawingMode = "glyph";
