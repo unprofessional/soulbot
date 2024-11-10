@@ -118,18 +118,21 @@ const createTwitterCanvas = async (metadataJson, isImage) => {
         // const descLinesLength = descLinesFilteredEmptyLines?.length;
         let qtDescLinesLength = qtDescLines?.length;
         console.log('>>> calcQtHeight > qtDescLinesLength[1]: ', qtDescLinesLength);
+        let totalQtDescLinesHeight = qtDescLinesLength * 30 + 100; // 30 is the lineheight and 100 is bottompadding
+        console.log('>>> calcQtHeight > totalQtDescLinesHeight[1]: ', totalQtDescLinesHeight);
+        // if has media...
         if(qtMetadata.mediaUrls.length > 0) {
             console.log('>>>>> calcQtHeight > calcQtHeight has media!');
             qtDescLines = getWrappedText(ctx, qtMetadata.description, 120);
             qtDescLinesLength = qtDescLines?.length;
+            totalQtDescLinesHeight = qtDescLinesLength * 30; // remove the bottom padding since we don't need it
             minHeight = 330;
         } else {
             console.log('>>>>> calcQtHeight > calcQtHeight has NO media...');
         }
         console.log('>>> calcQtHeight > qtDescLines[2]: ', qtDescLines);
         console.log('>>> calcQtHeight > qtDescLinesLength[2]: ', qtDescLinesLength);
-        const totalQtDescLinesHeight = qtDescLinesLength * 30 + 100; // 30 is the lineheight and 20 is bottompadding
-        console.log('>>> calcQtHeight > totalQtDescLinesHeight[1]: ', totalQtDescLinesHeight);
+       
         console.log('>>> calcQtHeight > minHeight: ', minHeight);
         const finalHeight = minHeight > totalQtDescLinesHeight ? minHeight : totalQtDescLinesHeight;
         console.log('>>> calcQtHeight > totalQtDescLinesHeight[2]: ', totalQtDescLinesHeight);
