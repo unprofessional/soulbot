@@ -41,12 +41,16 @@ function getWrappedText(ctx, text, maxWidth, hasVids) {
     return lines;
 }
 
+// ....hasOnlyVideos might be the wrong descriptor... could be QTVideo?????
 const drawDescription = (ctx, hasImgs, hasVids, hasOnlyVideos, descLines, font, x, y, isQt) => {
     const lineHeight = hasOnlyVideos ? 50 : 30;
+    console.log('>>>> canvas_utils > drawDescription > hasOnlyVideos: ', hasOnlyVideos);
     descLines.forEach(line => {
         if(!hasImgs && hasVids) {
+            console.log('>>>> canvas_utils > drawDescription > !hasImgs and hasVids!');
             ctx.font = '36px ' + font;
         } else {
+            console.log('>>>> canvas_utils > drawDescription > either hasImgs or !hasVids or both!');
             ctx.textDrawingMode = "glyph";
             ctx.font = '24px "Noto Color Emoji"';
         }
