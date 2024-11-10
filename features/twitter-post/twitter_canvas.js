@@ -166,8 +166,8 @@ const createTwitterCanvas = async (metadataJson, isImage) => {
         // qtCalculatedCanvasHeightFromDescLines = calcQtHeight(ctx, qtMetadata, maxCharLength); 
     }
 
-    console.log('>>>>> calculatedCanvasHeightFromDescLines: ', calculatedCanvasHeightFromDescLines);
-    console.log('>>>>> qtCalculatedCanvasHeightFromDescLines: ', qtCalculatedCanvasHeightFromDescLines);
+    // console.log('>>>>> calculatedCanvasHeightFromDescLines: ', calculatedCanvasHeightFromDescLines);
+    // console.log('>>>>> qtCalculatedCanvasHeightFromDescLines: ', qtCalculatedCanvasHeightFromDescLines);
   
     // Re-calc canvas
     ctx.canvas.height = calculatedCanvasHeightFromDescLines + qtCalculatedCanvasHeightFromDescLines;
@@ -199,12 +199,13 @@ const createTwitterCanvas = async (metadataJson, isImage) => {
         const qtPfpUrl = qtMetadata.pfpUrl;
         const qtPfp = await loadImage(qtPfpUrl);
 
-        // has images, but no videos
+        console.log('>>>> twitter_canvas > calculatedCanvasHeightFromDescLines: ', calculatedCanvasHeightFromDescLines);
+        console.log('>>>> twitter_canvas > qtCalculatedCanvasHeightFromDescLines: ', qtCalculatedCanvasHeightFromDescLines);
+
+        // Quote-Tweet Post has images, but no videos
         if(numOfQtImgs > 0 && numOfQtVideos === 0) {
             const qtMainMedia1Url = qtMetadata.mediaUrls[0];
             const qtMainMedia1 = await loadImage(qtMainMedia1Url);
-
-            // Quote-Tweet Post
             drawQtBasicElements(ctx, globalFont, qtMetadata, qtPfp, qtMainMedia1, undefined, {
                 canvasHeightOffset: calculatedCanvasHeightFromDescLines,
                 qtCanvasHeightOffset: qtCalculatedCanvasHeightFromDescLines,
@@ -213,12 +214,10 @@ const createTwitterCanvas = async (metadataJson, isImage) => {
                 hasOnlyVideos,
             });
         }
-        // has videos, but no images
+        // Quote-Tweet Post has videos, but no images
         if (numOfQtVideos > 0 && numOfQtImgs === 0) {
             const qtVidThumbnailUrl = qtMetadata.mediaExtended[0].thumbnail_url;
             const qtVidThumbnail = await loadImage(qtVidThumbnailUrl);
-
-            // Quote-Tweet Post
             drawQtBasicElements(ctx, globalFont, qtMetadata, qtPfp, undefined, qtVidThumbnail, {
                 canvasHeightOffset: calculatedCanvasHeightFromDescLines,
                 qtCanvasHeightOffset: qtCalculatedCanvasHeightFromDescLines,
@@ -227,10 +226,8 @@ const createTwitterCanvas = async (metadataJson, isImage) => {
                 hasOnlyVideos,
             });
         }
-        // is text only
+        // Quote-Tweet Post is text only
         if (numOfQtVideos === 0 && numOfQtImgs === 0) {
-
-            // Quote-Tweet Post
             drawQtBasicElements(ctx, globalFont, qtMetadata, qtPfp, undefined, undefined, {
                 canvasHeightOffset: calculatedCanvasHeightFromDescLines,
                 qtCanvasHeightOffset: qtCalculatedCanvasHeightFromDescLines,
