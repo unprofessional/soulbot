@@ -116,8 +116,8 @@ const createTwitterCanvas = async (metadataJson, isImage) => {
         // const descLinesFilteredEmptyLines = qtDescLines.filter(line => line !== '');
         // console.log('>>> descLinesFilteredEmptyLines: ', descLinesFilteredEmptyLines);
         // const descLinesLength = descLinesFilteredEmptyLines?.length;
-        const descLinesLength = qtDescLines?.length;
-        console.log('>>> calcQtHeight > descLinesLength: ', descLinesLength);
+        const qtDescLinesLength = qtDescLines?.length;
+        console.log('>>> calcQtHeight > qtDescLinesLength: ', qtDescLinesLength);
         
         // If Media exists
         if(qtMetadata.mediaUrls.length > 0) {
@@ -126,10 +126,11 @@ const createTwitterCanvas = async (metadataJson, isImage) => {
         } else {
             console.log('>>>>> calcQtHeight > calcQtHeight has NO media...');
         }
-        const totalDescLinesHeight = descLinesLength * 40;
-        console.log('>>> calcQtHeight > totalDescLinesHeight: ', totalDescLinesHeight);
-        const finalHeight = minHeight > totalDescLinesHeight ? minHeight : totalDescLinesHeight;
-        console.log('>>> calcQtHeight > totalDescLinesHeight: ', totalDescLinesHeight);
+        const totalQtDescLinesHeight = qtDescLinesLength * 30 + 20; // 30 is the lineheight and 20 is bottompadding
+        console.log('>>> calcQtHeight > totalQtDescLinesHeight[1]: ', totalQtDescLinesHeight);
+        console.log('>>> calcQtHeight > minHeight: ', minHeight);
+        const finalHeight = minHeight > totalQtDescLinesHeight ? minHeight : totalQtDescLinesHeight;
+        console.log('>>> calcQtHeight > totalQtDescLinesHeight[2]: ', totalQtDescLinesHeight);
         return finalHeight;
     };
 
