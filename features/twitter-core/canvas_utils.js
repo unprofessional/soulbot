@@ -43,17 +43,15 @@ function getWrappedText(ctx, text, maxWidth, hasVids) {
 }
 
 // ....hasOnlyVideos might be the wrong descriptor... could be QTVideo?????
-const drawDescription = (ctx, hasImgs, hasVids, hasOnlyVideos, descLines, font, x, y, isQt) => {
-    const lineHeight = hasOnlyVideos ? 50 : 30;
-    console.log('>>>> canvas_utils > drawDescription > hasOnlyVideos: ', hasOnlyVideos);
+const drawDescription = (ctx, hasImgs, hasVids, descLines, font, x, y, isQt) => {
+    const lineHeight = hasImgs || hasVids ? 50 : 30;
+    console.log('>>>> canvas_utils > drawDescription > hasImgs || hasVids: ', hasImgs || hasVids);
     descLines.forEach(line => {
+        ctx.textDrawingMode = "glyph";
+        ctx.font = '24px "Noto Color Emoji"';
         if(!hasImgs && hasVids) {
             console.log('>>>> canvas_utils > drawDescription > !hasImgs and hasVids!');
             ctx.font = '36px ' + font;
-        } else {
-            console.log('>>>> canvas_utils > drawDescription > either hasImgs or !hasVids or both!');
-            ctx.textDrawingMode = "glyph";
-            ctx.font = '24px "Noto Color Emoji"';
         }
         ctx.fillText(line, x, isQt ? y + 100: y);
         // drawTextWithSpacing(ctx, line, x, y, 1);
@@ -82,7 +80,6 @@ const drawBasicElements = (
         canvasHeightOffset = 0,
         hasImgs = false,
         hasVids = false,
-        hasOnlyVideos = false,
     } = options;
 
     // Load and draw favicon
@@ -106,7 +103,7 @@ const drawBasicElements = (
     const descXPosition = !hasImgs && hasVids ? 80 : 30;
     ctx.textDrawingMode = "glyph";
     ctx.font = '24px "Noto Color Emoji"';
-    drawDescription(ctx, hasImgs, hasVids, hasOnlyVideos, descLines, globalFont, descXPosition, yOffset);
+    drawDescription(ctx, hasImgs, hasVids, descLines, globalFont, descXPosition, yOffset);
 
     // Draw date elements
     ctx.fillStyle = 'gray';
@@ -138,7 +135,6 @@ const drawQtBasicElements = (
         qtCanvasHeightOffset = 0,
         hasImgs = false,
         hasVids = false,
-        hasOnlyVideos = false,
     } = options;
 
     console.log('>>>>> drawQtBasicElements > qtMeta: ', metadata);
@@ -182,7 +178,7 @@ const drawQtBasicElements = (
     ctx.fillStyle = 'white'; // Text color for description
     ctx.font = '24px ' + globalFont;
     const qtTextXAxisStart = hasMedia ? 230 : 100;
-    drawDescription(ctx, hasImgs, hasVids, hasOnlyVideos, qtDescLines, globalFont, qtTextXAxisStart, qtYPosition, true);
+    drawDescription(ctx, hasImgs, hasVids, qtDescLines, globalFont, qtTextXAxisStart, qtYPosition, true);
 
     // Draw pfp image
     ctx.drawImage(pfp, 40, canvasHeightOffset + 20, 50, 50);
