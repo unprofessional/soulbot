@@ -107,11 +107,13 @@ const createTwitterCanvas = async (metadataJson, isImage) => {
         }
     }
 
+    let qtDescLines = [];
+
     const calcQtHeight = (qtMetadata) => {
         let minHeight = 180;
     
         // TODO: Calculate new descLines here
-        let qtDescLines = getWrappedText(ctx, qtMetadata.description, 320);
+        qtDescLines = getWrappedText(ctx, qtMetadata.description, 320);
         console.log('>>>>> twitter_canvas > calcQtHeight > qtDescLines[1]: ', qtDescLines);
         // const descLinesFilteredEmptyLines = qtDescLines.filter(line => line !== '');
         // console.log('>>> descLinesFilteredEmptyLines: ', descLinesFilteredEmptyLines);
@@ -226,6 +228,7 @@ const createTwitterCanvas = async (metadataJson, isImage) => {
                 hasImgs,
                 hasVids,
                 hasOnlyVideos,
+                qtDescLines
             });
         }
         // Quote-Tweet Post has videos, but no images
@@ -238,6 +241,7 @@ const createTwitterCanvas = async (metadataJson, isImage) => {
                 hasImgs,
                 hasVids,
                 hasOnlyVideos,
+                qtDescLines
             });
         }
         // Quote-Tweet Post is text only
@@ -248,6 +252,7 @@ const createTwitterCanvas = async (metadataJson, isImage) => {
                 hasImgs,
                 hasVids,
                 hasOnlyVideos,
+                qtDescLines
             });
         }
     }
