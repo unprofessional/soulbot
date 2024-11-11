@@ -33,7 +33,7 @@ const createTwitterCanvas = async (metadataJson, isImage) => {
         };
     }
 
-    console.log('>>>>> createTwitterCanvas > metadata: ', metadata);
+    console.log('>>>>> twitter_canvas > createTwitterCanvas >  > metadata: ', metadata);
 
     // Unnecessary if the font is loaded in the local OS
     // TODO: Investigate if `fonts/` is even necessary...
@@ -67,9 +67,9 @@ const createTwitterCanvas = async (metadataJson, isImage) => {
     };
 
     const numOfImgs = filterMediaUrls(metadata, ['jpg', 'jpeg', 'png']).length;
-    console.log('>>>>> createTwitterCanvas > numOfImgs', numOfImgs);
+    console.log('>>>>> twitter_canvas > createTwitterCanvas >  > numOfImgs', numOfImgs);
     const numOfVideos = filterMediaUrls(metadata, ['mp4']).length;
-    console.log('>>>>> createTwitterCanvas > numOfVideos', numOfVideos);
+    console.log('>>>>> twitter_canvas > createTwitterCanvas >  > numOfVideos', numOfVideos);
     let mediaMaxHeight = getMaxHeight(numOfImgs);
     let mediaMaxWidth = 560;
     const hasImgs = numOfImgs > 0;
@@ -85,24 +85,24 @@ const createTwitterCanvas = async (metadataJson, isImage) => {
     let heightShim = 0;
 
     if(hasImgs) {
-        // console.log('>>>>> has images!');
+        // console.log('>>>>> twitter_canvas > createTwitterCanvas > has images!');
         mediaObject = {
             height: metadata.mediaExtended[0].size.height,
             width: metadata.mediaExtended[0].size.width,
         };
         // Recusively scale down by half if larger than allowed
-        // console.log('>>>>> hasImgs > mediaObject: ', mediaObject);
+        // console.log('>>>>> twitter_canvas > createTwitterCanvas > hasImgs > mediaObject: ', mediaObject);
         mediaObject = scaleDownToFitAspectRatio(mediaObject, mediaMaxHeight, mediaMaxWidth);
         if(metadata.mediaExtended.length < 2 && mediaObject.width > mediaObject.height) {
             const newWidthRatio = mediaMaxWidth / mediaObject.width;
-            // console.log('>>>>> newWidthRatio: ', newWidthRatio);
+            // console.log('>>>>> twitter_canvas > createTwitterCanvas > newWidthRatio: ', newWidthRatio);
             const adjustedHeight = mediaObject.height * newWidthRatio;
-            // console.log('>>>>> adjustedHeight: ', adjustedHeight);
+            // console.log('>>>>> twitter_canvas > createTwitterCanvas > adjustedHeight: ', adjustedHeight);
             heightShim = adjustedHeight;    
         } else {
             // heightShim = mediaMaxHeight;
-            console.log('>>> mediaObject.height: ', mediaObject.height);
-            console.log('>>> mediaMaxHeight: ', mediaMaxHeight);
+            console.log('>>>>> twitter_canvas > createTwitterCanvas > mediaObject.height: ', mediaObject.height);
+            console.log('>>>>> twitter_canvas > createTwitterCanvas > mediaMaxHeight: ', mediaMaxHeight);
             heightShim = mediaObject.height < mediaMaxHeight ? mediaObject.height : mediaMaxHeight;
         }
     }
@@ -112,30 +112,30 @@ const createTwitterCanvas = async (metadataJson, isImage) => {
     
         // TODO: Calculate new descLines here
         let qtDescLines = getWrappedText(ctx, qtMetadata.description, 320);
-        console.log('>>> calcQtHeight > qtDescLines[1]: ', qtDescLines);
+        console.log('>>>>> twitter_canvas > calcQtHeight > qtDescLines[1]: ', qtDescLines);
         // const descLinesFilteredEmptyLines = qtDescLines.filter(line => line !== '');
         // console.log('>>> descLinesFilteredEmptyLines: ', descLinesFilteredEmptyLines);
         // const descLinesLength = descLinesFilteredEmptyLines?.length;
         let qtDescLinesLength = qtDescLines?.length;
-        console.log('>>> calcQtHeight > qtDescLinesLength[1]: ', qtDescLinesLength);
+        console.log('>>>>> twitter_canvas > calcQtHeight > qtDescLinesLength[1]: ', qtDescLinesLength);
         let totalQtDescLinesHeight = qtDescLinesLength * 30 + 100; // 30 is the lineheight and 100 is bottompadding
-        console.log('>>> calcQtHeight > totalQtDescLinesHeight[1]: ', totalQtDescLinesHeight);
+        console.log('>>>>> twitter_canvas > calcQtHeight > totalQtDescLinesHeight[1]: ', totalQtDescLinesHeight);
         // if has media...
         if(qtMetadata.mediaUrls.length > 0) {
-            console.log('>>>>> calcQtHeight > calcQtHeight has media!');
+            console.log('>>>>> twitter_canvas > calcQtHeight > calcQtHeight has media!');
             qtDescLines = getWrappedText(ctx, qtMetadata.description, 120);
             qtDescLinesLength = qtDescLines?.length;
             totalQtDescLinesHeight = qtDescLinesLength * 30; // remove the bottom padding since we don't need it
             minHeight = 330;
         } else {
-            console.log('>>>>> calcQtHeight > calcQtHeight has NO media...');
+            console.log('>>>>> twitter_canvas > calcQtHeight > calcQtHeight has NO media...');
         }
-        console.log('>>> calcQtHeight > qtDescLines[2]: ', qtDescLines);
-        console.log('>>> calcQtHeight > qtDescLinesLength[2]: ', qtDescLinesLength);
+        console.log('>>>>> twitter_canvas > calcQtHeight > qtDescLines[2]: ', qtDescLines);
+        console.log('>>>>> twitter_canvas > calcQtHeight > qtDescLinesLength[2]: ', qtDescLinesLength);
        
-        console.log('>>> calcQtHeight > minHeight: ', minHeight);
+        console.log('>>>>> twitter_canvas > calcQtHeight > minHeight: ', minHeight);
         const finalHeight = minHeight > totalQtDescLinesHeight ? minHeight : totalQtDescLinesHeight;
-        console.log('>>> calcQtHeight > totalQtDescLinesHeight[2]: ', totalQtDescLinesHeight);
+        console.log('>>>>> twitter_canvas > calcQtHeight > totalQtDescLinesHeight[2]: ', totalQtDescLinesHeight);
         return finalHeight;
     };
 
@@ -180,11 +180,11 @@ const createTwitterCanvas = async (metadataJson, isImage) => {
         qtCalculatedCanvasHeightFromDescLines = calcQtHeight(qtMetadata) + 100; 
         // qtCalculatedCanvasHeightFromDescLines = calcQtHeight(ctx, qtMetadata, maxCharLength); 
     }
-    console.log('>>>>> twitter_canvas >  qtCalculatedCanvasHeightFromDescLines[1]: ', qtCalculatedCanvasHeightFromDescLines);
+    console.log('>>>>> twitter_canvas > qtCalculatedCanvasHeightFromDescLines[1]: ', qtCalculatedCanvasHeightFromDescLines);
   
     // Re-calc canvas
     ctx.canvas.height = calculatedCanvasHeightFromDescLines + qtCalculatedCanvasHeightFromDescLines;
-    console.log('>>>>> twitter_canvas >   ctx.canvas.height: ',  ctx.canvas.height);
+    console.log('>>>>> twitter_canvas > ctx.canvas.height: ',  ctx.canvas.height);
     ctx.fillRect(0, 0, maxCanvasWidth, calculatedCanvasHeightFromDescLines + qtCalculatedCanvasHeightFromDescLines);
     
     const favIconUrl = 'https://abs.twimg.com/favicons/twitter.3.ico';
@@ -199,7 +199,7 @@ const createTwitterCanvas = async (metadataJson, isImage) => {
         canvasHeightOffset: calculatedCanvasHeightFromDescLines,
     });
 
-    console.log('>>>>> qtMetadata: ', qtMetadata);
+    console.log('>>>>> twitter_canvas > qtMetadata: ', qtMetadata);
     // if has quote tweet reference
     if(qtMetadata) {
         console.log('>>>>> if(qtMetadata) > qtMetadata EXISTS!!!');

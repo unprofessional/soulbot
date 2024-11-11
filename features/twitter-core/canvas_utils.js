@@ -144,13 +144,13 @@ const drawQtBasicElements = (
         hasVids = false,
     } = options;
 
-    console.log('>>>>> drawQtBasicElements > qtMeta: ', metadata);
+    console.log('>>>>> canvas_utils > drawQtBasicElements > qtMeta: ', metadata);
     
     // Pre-process media
     const numOfQtImgs = filterMediaUrls(metadata, ['jpg', 'jpeg', 'png']).length;
-    console.log('>>>>> qtMeta > createTwitterCanvas > numOfQtImgs', numOfQtImgs);
+    console.log('>>>>> canvas_utils > drawQtBasicElements > qtMeta > numOfQtImgs', numOfQtImgs);
     const numOfQtVideos = filterMediaUrls(metadata, ['mp4']).length;
-    console.log('>>>>> qtMeta > createTwitterCanvas > numOfQtVideos', numOfQtVideos);
+    console.log('>>>>> canvas_utils > drawQtBasicElements > numOfQtVideos', numOfQtVideos);
     const hasMedia = numOfQtImgs > 0 || numOfQtVideos > 0;
     
     const minHeight = 100;
@@ -166,7 +166,7 @@ const drawQtBasicElements = (
     
     // QT Canvas Stroke
     ctx.strokeStyle = 'gray';
-    console.log('>>> mediaQtMaxHeight: ', mediaQtMaxHeight);
+    console.log('>>>>> canvas_utils > drawQtBasicElements > mediaQtMaxHeight: ', mediaQtMaxHeight);
     const minMediaHeight = 300;
     const determinedHeight = minMediaHeight > qtCanvasHeightOffset ? minMediaHeight : qtCanvasHeightOffset;
     ctx.strokeRect(qtXPosition, qtYPosition, mediaQtMaxWidth, determinedHeight - 20); // 20 offset to match the left and right margins
@@ -191,7 +191,7 @@ const drawQtBasicElements = (
     ctx.drawImage(pfp, 40, canvasHeightOffset + 20, 50, 50);
     
     const qtMediaYPos = canvasHeightOffset + 80;
-    console.log('>>>>> qtMediaYPos: ', qtMediaYPos);
+    console.log('>>>>> canvas_utils > drawQtBasicElements > qtMediaYPos: ', qtMediaYPos);
 
     // or if (mainMedia1 !== undefined)
     if(numOfQtImgs > 0 && numOfQtVideos === 0) {
