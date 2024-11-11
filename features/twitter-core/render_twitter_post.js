@@ -46,6 +46,18 @@ const sendWebhookProxyMsg = async (message, content, files = []) => {
 
     console.log('>>> sendWebhookProxyMsg reached!');
 
+    const embed = {
+        color: 0x0099ff,
+        author: {
+            name: `${message.author.username}`,
+            icon_url: message.author.displayAvatarURL(),
+        },
+        description: 'This is a test embed',
+        footer: {
+            text: 'Test footer text',
+        },
+    };
+
     // Save user details for the webhook
     const nickname = message.member?.nickname;
     const displayName = nickname || message.author.globalName || message.author.username;
@@ -70,6 +82,7 @@ const sendWebhookProxyMsg = async (message, content, files = []) => {
     // Send the message through the webhook
     await webhook.send({
         content: modifiedContent,
+        embeds: [embed],
         username: displayName,
         avatarURL: avatarURL,
         files: files,
