@@ -3,8 +3,8 @@ const { formatTwitterDate, filterMediaUrls } = require("./utils");
 
 function getWrappedText(ctx, text, maxWidth) {
 
-    console.log('>>>> canvas_utils > drawDescription > text: ', text);
-    console.log('>>>> canvas_utils > drawDescription > maxWidth: ', maxWidth);
+    console.log('>>>>> canvas_utils > drawDescription > text: ', text);
+    console.log('>>>>> canvas_utils > drawDescription > maxWidth: ', maxWidth);
 
     const lines = [];
     // const paragraphs = hasVids
@@ -48,15 +48,16 @@ function getWrappedText(ctx, text, maxWidth) {
 
 // ....hasOnlyVideos might be the wrong descriptor... could be QTVideo?????
 const drawDescription = (ctx, hasImgs, hasVids, descLines, font, x, y, isQt) => {
-    console.log('>>>> canvas_utils > drawDescription > descLines: ', descLines);
+    console.log('>>>>> canvas_utils > drawDescription > descLines: ', descLines);
+    console.log('>>>>> canvas_utils > drawDescription > descLines.length: ', descLines.length);
     const lineHeight = 30;
-    console.log('>>>> canvas_utils > drawDescription > hasImgs || hasVids: ', hasImgs || hasVids);
+    console.log('>>>>> canvas_utils > drawDescription > hasImgs || hasVids: ', hasImgs || hasVids);
     descLines.forEach(line => {
         ctx.textDrawingMode = "glyph";
         // ctx.font = isQt ? '18px "Noto Color Emoji"' : '24px "Noto Color Emoji"';
         ctx.font = '24px "Noto Color Emoji"';
         if(!hasImgs && hasVids) {
-            console.log('>>>> canvas_utils > drawDescription > !hasImgs and hasVids!');
+            console.log('>>>>> canvas_utils > drawDescription > !hasImgs and hasVids!');
             ctx.font = '36px ' + font;
         }
         console.log('!!! canvas_utils > drawDescription > line: ', line);
