@@ -143,7 +143,7 @@ const drawQtBasicElements = (
         qtCanvasHeightOffset = 0,
         hasImgs = false,
         hasVids = false,
-        qtDescLines = [],
+        // qtDescLines = [],
     } = options;
 
     console.log('>>>>> canvas_utils > drawQtBasicElements > qtMeta: ', metadata);
@@ -160,8 +160,8 @@ const drawQtBasicElements = (
     let mediaQtMaxWidth = 560;
     
     // Pre-process description with text wrapping
-    // const qtMaxCharLength = hasMedia ? 250 : 320; // Maximum width for text
-    // qtDescLines = getWrappedText(ctx, metadata.description, qtMaxCharLength, true);
+    const qtMaxCharLength = hasMedia ? 250 : 320; // Maximum width for text
+    const qtDescLines = getWrappedText(ctx, metadata.description, qtMaxCharLength, true);
     
     const qtXPosition = 20;
     let qtYPosition = canvasHeightOffset;
