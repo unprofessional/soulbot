@@ -2,6 +2,10 @@ const { cropSingleImage } = require("../twitter-post/crop_single_image");
 const { formatTwitterDate, filterMediaUrls } = require("./utils");
 
 function getWrappedText(ctx, text, maxWidth) {
+
+    console.log('>>>> canvas_utils > drawDescription > text: ', text);
+    console.log('>>>> canvas_utils > drawDescription > maxWidth: ', maxWidth);
+
     const lines = [];
     // const paragraphs = hasVids
     //     ? [text.replace(/\n/g, ' ')]
