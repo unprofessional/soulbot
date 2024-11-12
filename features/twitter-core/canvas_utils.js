@@ -32,13 +32,14 @@ function getWrappedText(ctx, text, maxWidth) {
             const words = paragraph.split(' ');
             let currentLine = words[0];
 
+            console.log('@@@ Current Font Before Wrapping:', ctx.font);
+            console.log('@@@ maxWidth:', maxWidth);
+
             for (let i = 1; i < words.length; i++) {
                 const word = words[i];
                 const width = ctx.measureText(currentLine + " " + word).width;
-                console.log('@@@ Current Font Before Wrapping:', ctx.font);
                 console.log('@@@ currentLine:', currentLine);
                 console.log('@@@ maxWidth:', maxWidth);
-                console.log('@@@ width:', width);
 
                 if (width < maxWidth) {
                     currentLine += " " + word;
