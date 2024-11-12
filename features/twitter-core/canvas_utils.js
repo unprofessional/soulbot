@@ -171,7 +171,7 @@ const drawQtBasicElements = (
     let mediaQtMaxWidth = 560;
     
     // Pre-process description with text wrapping
-    const qtMaxCharLength = hasMedia ? 250 : 320; // Maximum width for text
+    const qtMaxCharLength = hasMedia ? 320 : 420; // Maximum width for text
     ctx.font = '24px ' + globalFont; // gotta set this here before getWrappedText for size calcs
     const qtDescLines = getWrappedText(ctx, metadata.description, qtMaxCharLength, true);
     
