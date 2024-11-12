@@ -114,7 +114,7 @@ const createTwitterCanvas = async (metadataJson, isImage) => {
     
         // TODO: Calculate new descLines here
         ctx.font = '24px "Noto Color Emoji"'; // we need to set the intended font here first before calcing it
-        qtDescLines = getWrappedText(ctx, qtMetadata.description, 320);
+        qtDescLines = getWrappedText(ctx, qtMetadata.description, 420);
         console.log('>>>>> twitter_canvas > calcQtHeight > qtDescLines[1]: ', qtDescLines);
         // const descLinesFilteredEmptyLines = qtDescLines.filter(line => line !== '');
         // console.log('>>> descLinesFilteredEmptyLines: ', descLinesFilteredEmptyLines);
@@ -127,7 +127,7 @@ const createTwitterCanvas = async (metadataJson, isImage) => {
         if(qtMetadata.mediaUrls.length > 0) {
             console.log('>>>>> twitter_canvas > calcQtHeight > calcQtHeight has media!');
             ctx.font = '24px "Noto Color Emoji"'; // we need to set the intended font here first before calcing it
-            qtDescLines = getWrappedText(ctx, qtMetadata.description, 120);
+            qtDescLines = getWrappedText(ctx, qtMetadata.description, 320);
             qtDescLinesLength = qtDescLines?.length;
             totalQtDescLinesHeight = qtDescLinesLength * 30; // remove the bottom padding since we don't need it
             minHeight = 330;
