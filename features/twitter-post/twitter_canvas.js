@@ -114,7 +114,7 @@ const createTwitterCanvas = async (metadataJson, isImage) => {
     
         // TODO: Calculate new descLines here
         ctx.font = '24px "Noto Color Emoji"'; // we need to set the intended font here first before calcing it
-        qtDescLines = getWrappedText(ctx, qtMetadata.description, 420);
+        qtDescLines = getWrappedText(ctx, qtMetadata.description, 600);
         console.log('>>>>> twitter_canvas > calcQtHeight > qtDescLines[1]: ', qtDescLines);
         // const descLinesFilteredEmptyLines = qtDescLines.filter(line => line !== '');
         // console.log('>>> descLinesFilteredEmptyLines: ', descLinesFilteredEmptyLines);
