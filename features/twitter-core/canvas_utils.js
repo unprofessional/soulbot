@@ -36,7 +36,7 @@ function getWrappedText(ctx, text, maxWidth) {
                 const word = words[i];
                 const width = ctx.measureText(currentLine + " " + word).width;
                 console.log('@@@ Current Font Before Wrapping:', ctx.font);
-                console.log('@@@ Text to Wrap:', text);
+                // console.log('@@@ Text to Wrap:', text);
                 console.log('@@@ maxWidth:', maxWidth);
                 console.log('@@@ width:', width);
 

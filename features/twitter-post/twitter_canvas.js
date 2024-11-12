@@ -121,7 +121,7 @@ const createTwitterCanvas = async (metadataJson, isImage) => {
         // const descLinesLength = descLinesFilteredEmptyLines?.length;
         let qtDescLinesLength = qtDescLines?.length;
         console.log('>>>>> twitter_canvas > calcQtHeight > qtDescLinesLength[1]: ', qtDescLinesLength);
-        let totalQtDescLinesHeight = (qtDescLinesLength * 30) + 100; // 30 is the lineheight and 100 is bottompadding
+        let totalQtDescLinesHeight = (qtDescLinesLength * 30); // 30 is the lineheight
         console.log('>>>>> twitter_canvas > calcQtHeight > totalQtDescLinesHeight[1]: ', totalQtDescLinesHeight);
         // if has media...
         if(qtMetadata.mediaUrls.length > 0) {
