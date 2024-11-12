@@ -66,10 +66,10 @@ const drawDescription = (ctx, hasImgs, hasVids, descLines, font, x, y, isQt) => 
         // ctx.font = isQt ? '18px "Noto Color Emoji"' : '24px "Noto Color Emoji"';
         // ctx.font = isQtWithMedia ? '18px "Noto Color Emoji"' : '24px "Noto Color Emoji"';
         ctx.font = '24px "Noto Color Emoji"';
-        if(!hasImgs && hasVids) {
-            console.log('>>>>> canvas_utils > drawDescription > !hasImgs and hasVids!');
-            ctx.font = '36px ' + font;
-        }
+        // if(!hasImgs && hasVids) {
+        //     console.log('>>>>> canvas_utils > drawDescription > !hasImgs and hasVids!');
+        //     ctx.font = '36px ' + font;
+        // }
         console.log('!!! canvas_utils > drawDescription > line: ', line);
         ctx.fillText(line, x, isQt ? y + 100: y);
         // drawTextWithSpacing(ctx, line, x, y, 1);
