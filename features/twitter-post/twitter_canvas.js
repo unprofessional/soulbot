@@ -140,6 +140,7 @@ const createTwitterCanvas = async (metadataJson, isImage) => {
         console.log('>>>>> twitter_canvas > calcQtHeight > minHeight: ', minHeight);
         const finalHeight = minHeight > totalQtDescLinesHeight ? minHeight : totalQtDescLinesHeight;
         console.log('>>>>> twitter_canvas > calcQtHeight > totalQtDescLinesHeight[2]: ', totalQtDescLinesHeight);
+        console.log('>>>>> twitter_canvas > calcQtHeight > finalHeight: ', finalHeight);
         return finalHeight;
     };
 
