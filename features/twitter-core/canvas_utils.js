@@ -36,7 +36,7 @@ function getWrappedText(ctx, text, maxWidth) {
                 const word = words[i];
                 const width = ctx.measureText(currentLine + " " + word).width;
                 console.log('@@@ Current Font Before Wrapping:', ctx.font);
-                // console.log('@@@ Text to Wrap:', text);
+                console.log('@@@ Text to Wrap:', text);
                 console.log('@@@ maxWidth:', maxWidth);
                 console.log('@@@ width:', width);
 
@@ -61,13 +61,11 @@ const drawDescription = (ctx, hasImgs, hasVids, descLines, font, x, y, isQt) => 
     // const lineHeight = isQtWithMedia ? 24 : 30;
     const lineHeight = 30;
     console.log('>>>>> canvas_utils > drawDescription > hasImgs || hasVids: ', hasImgs || hasVids);
-    ctx.font = '24px "Noto Color Emoji"';
     descLines.forEach(line => {
         ctx.textDrawingMode = "glyph";
         // ctx.font = isQt ? '18px "Noto Color Emoji"' : '24px "Noto Color Emoji"';
         // ctx.font = isQtWithMedia ? '18px "Noto Color Emoji"' : '24px "Noto Color Emoji"';
-        // ctx.font = '24px "Noto Color Emoji"';
-        // ctx.font = `24px ${font}`;
+        ctx.font = '24px "Noto Color Emoji"';
         // if(!hasImgs && hasVids) {
         //     console.log('>>>>> canvas_utils > drawDescription > !hasImgs and hasVids!');
         //     ctx.font = '36px ' + font;
