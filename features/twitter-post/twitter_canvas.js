@@ -126,7 +126,7 @@ const createTwitterCanvas = async (metadataJson, isImage) => {
         // if has media...
         if(qtMetadata.mediaUrls.length > 0) {
             console.log('>>>>> twitter_canvas > calcQtHeight > calcQtHeight has media!');
-            ctx.font = '18px "Noto Color Emoji"'; // we need to set the intended font here first before calcing it
+            ctx.font = '24px "Noto Color Emoji"'; // we need to set the intended font here first before calcing it
             qtDescLines = getWrappedText(ctx, qtMetadata.description, 120);
             qtDescLinesLength = qtDescLines?.length;
             totalQtDescLinesHeight = qtDescLinesLength * 30; // remove the bottom padding since we don't need it
