@@ -6,6 +6,9 @@ function getWrappedText(ctx, text, maxWidth) {
     console.log('>>>>> canvas_utils > drawDescription > text: ', text);
     console.log('>>>>> canvas_utils > drawDescription > maxWidth: ', maxWidth);
 
+    // Enforce this on every call....
+    ctx.font = '24px "Noto Color Emoji"'; // we need to set the intended font here first before calcing it
+
     const lines = [];
     // const paragraphs = hasVids
     //     ? [text.replace(/\n/g, ' ')]
