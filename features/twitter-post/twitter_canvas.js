@@ -138,10 +138,11 @@ const createTwitterCanvas = async (metadataJson, isImage) => {
         console.log('>>>>> twitter_canvas > calcQtHeight > qtDescLinesLength[2]: ', qtDescLinesLength);
        
         console.log('>>>>> twitter_canvas > calcQtHeight > minHeight: ', minHeight);
-        const finalHeight = minHeight > totalQtDescLinesHeight ? minHeight : totalQtDescLinesHeight;
-        console.log('>>>>> twitter_canvas > calcQtHeight > totalQtDescLinesHeight[2]: ', totalQtDescLinesHeight);
-        console.log('>>>>> twitter_canvas > calcQtHeight > finalHeight: ', finalHeight);
-        return finalHeight;
+        return totalQtDescLinesHeight;
+        // const finalHeight = minHeight > totalQtDescLinesHeight ? minHeight : totalQtDescLinesHeight;
+        // console.log('>>>>> twitter_canvas > calcQtHeight > totalQtDescLinesHeight[2]: ', totalQtDescLinesHeight);
+        // console.log('>>>>> twitter_canvas > calcQtHeight > finalHeight: ', finalHeight);
+        // return finalHeight;
     };
 
     // const calcQtHeight = (ctx, qtMetadata, maxCharLength) => {
@@ -182,7 +183,7 @@ const createTwitterCanvas = async (metadataJson, isImage) => {
 
     let qtCalculatedCanvasHeightFromDescLines = 0;
     if(qtMetadata) {
-        qtCalculatedCanvasHeightFromDescLines = calcQtHeight(qtMetadata) + 100; 
+        qtCalculatedCanvasHeightFromDescLines = calcQtHeight(qtMetadata) + 30; 
         // qtCalculatedCanvasHeightFromDescLines = calcQtHeight(ctx, qtMetadata, maxCharLength); 
     }
     console.log('>>>>> twitter_canvas > qtCalculatedCanvasHeightFromDescLines[1]: ', qtCalculatedCanvasHeightFromDescLines);
