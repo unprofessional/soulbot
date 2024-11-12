@@ -61,11 +61,13 @@ const drawDescription = (ctx, hasImgs, hasVids, descLines, font, x, y, isQt) => 
     // const lineHeight = isQtWithMedia ? 24 : 30;
     const lineHeight = 30;
     console.log('>>>>> canvas_utils > drawDescription > hasImgs || hasVids: ', hasImgs || hasVids);
+    ctx.font = '24px "Noto Color Emoji"';
     descLines.forEach(line => {
         ctx.textDrawingMode = "glyph";
         // ctx.font = isQt ? '18px "Noto Color Emoji"' : '24px "Noto Color Emoji"';
         // ctx.font = isQtWithMedia ? '18px "Noto Color Emoji"' : '24px "Noto Color Emoji"';
-        ctx.font = '24px "Noto Color Emoji"';
+        // ctx.font = '24px "Noto Color Emoji"';
+        // ctx.font = `24px ${font}`;
         // if(!hasImgs && hasVids) {
         //     console.log('>>>>> canvas_utils > drawDescription > !hasImgs and hasVids!');
         //     ctx.font = '36px ' + font;
