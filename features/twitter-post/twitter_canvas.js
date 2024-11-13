@@ -110,7 +110,7 @@ const createTwitterCanvas = async (metadataJson, isImage) => {
     let qtDescLines = [];
 
     const calcQtHeight = (qtMetadata) => {
-        let minHeight = 180;
+        // let minHeight = 180;
     
         // TODO: Calculate new descLines here
         ctx.font = '24px "Noto Color Emoji"'; // we need to set the intended font here first before calcing it
@@ -130,19 +130,27 @@ const createTwitterCanvas = async (metadataJson, isImage) => {
             qtDescLines = getWrappedText(ctx, qtMetadata.description, 320);
             qtDescLinesLength = qtDescLines?.length;
             totalQtDescLinesHeight = qtDescLinesLength * 30; // remove the bottom padding since we don't need it
-            minHeight = 330;
+            // minHeight = 330;
         } else {
             console.log('>>>>> twitter_canvas > calcQtHeight > calcQtHeight has NO media...');
         }
         console.log('>>>>> twitter_canvas > calcQtHeight > qtDescLines[2]: ', qtDescLines);
         console.log('>>>>> twitter_canvas > calcQtHeight > qtDescLinesLength[2]: ', qtDescLinesLength);
        
-        console.log('>>>>> twitter_canvas > calcQtHeight > minHeight: ', minHeight);
-        return totalQtDescLinesHeight;
+        // console.log('>>>>> twitter_canvas > calcQtHeight > minHeight: ', minHeight);
+
+        // return totalQtDescLinesHeight;
+    
         // const finalHeight = minHeight > totalQtDescLinesHeight ? minHeight : totalQtDescLinesHeight;
         // console.log('>>>>> twitter_canvas > calcQtHeight > totalQtDescLinesHeight[2]: ', totalQtDescLinesHeight);
         // console.log('>>>>> twitter_canvas > calcQtHeight > finalHeight: ', finalHeight);
         // return finalHeight;
+
+        const minMediaHeight = 80 + 175 + 30; // qtMediaOffset + qtMediaStaticHeight + qtBottomPadding
+        const determinedHeight = minMediaHeight > totalQtDescLinesHeight ? minMediaHeight : totalQtDescLinesHeight;
+        console.log('>>>>> twitter_canvas > calcQtHeight > minMediaHeight: ', minMediaHeight);
+        console.log('>>>>> twitter_canvas > calcQtHeight > determinedHeight: ', determinedHeight);
+        return determinedHeight;
     };
 
     // const calcQtHeight = (ctx, qtMetadata, maxCharLength) => {
