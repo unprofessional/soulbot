@@ -124,7 +124,8 @@ const createTwitterCanvas = async (metadataJson, isImage) => {
         let totalQtDescLinesHeight = (qtDescLinesLength * 30) + 30; // 30 is the lineheight while 30 is bottomPadding
         console.log('>>>>> twitter_canvas > calcQtHeight > totalQtDescLinesHeight[1]: ', totalQtDescLinesHeight);
         // if has media...
-        if(qtMetadata.mediaUrls.length > 0) {
+        const hasMedia = qtMetadata.mediaUrls.length > 0;
+        if(hasMedia) {
             console.log('>>>>> twitter_canvas > calcQtHeight > calcQtHeight has media!');
             ctx.font = '24px "Noto Color Emoji"'; // we need to set the intended font here first before calcing it
             qtDescLines = getWrappedText(ctx, qtMetadata.description, 320);
@@ -146,11 +147,15 @@ const createTwitterCanvas = async (metadataJson, isImage) => {
         // console.log('>>>>> twitter_canvas > calcQtHeight > finalHeight: ', finalHeight);
         // return finalHeight;
 
-        const minMediaHeight = 80 + 175 + 30; // qtMediaOffset + qtMediaStaticHeight + qtBottomPadding
-        const determinedHeight = minMediaHeight > totalQtDescLinesHeight ? minMediaHeight : totalQtDescLinesHeight;
-        console.log('>>>>> twitter_canvas > calcQtHeight > minMediaHeight: ', minMediaHeight);
-        console.log('>>>>> twitter_canvas > calcQtHeight > determinedHeight: ', determinedHeight);
-        return determinedHeight;
+        if (hasMedia) {
+            const minMediaHeight = 80 + 175 + 30; // qtMediaOffset + qtMediaStaticHeight + qtBottomPadding
+            const determinedHeight = minMediaHeight > totalQtDescLinesHeight ? minMediaHeight : totalQtDescLinesHeight;
+            console.log('>>>>> twitter_canvas > calcQtHeight > minMediaHeight: ', minMediaHeight);
+            console.log('>>>>> twitter_canvas > calcQtHeight > determinedHeight: ', determinedHeight);
+            return determinedHeight;
+        } else {
+            return totalQtDescLinesHeight;
+        }
     };
 
     // const calcQtHeight = (ctx, qtMetadata, maxCharLength) => {
