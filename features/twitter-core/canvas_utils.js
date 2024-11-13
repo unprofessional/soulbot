@@ -226,57 +226,6 @@ const drawQtBasicElements = (
     
 };
 
-// const drawQtBasicElements = (
-//     ctx, globalFont, metadata, pfp, mainMedia1, qtVidThumbnail, options
-// ) => {
-//     const {
-//         canvasHeightOffset = 0,
-//         qtCanvasHeightOffset = 0,
-//         hasImgs = false,
-//         hasVids = false,
-//         hasOnlyVideos = false,
-//     } = options;
-
-//     console.log('>>>>> drawQtBasicElements > metadata: ', metadata);
-
-//     const qtXPosition = 20;
-//     let qtYPosition = canvasHeightOffset;
-
-//     const totalHeight = qtCanvasHeightOffset;
-
-//     // Draw bounding box for quote tweet
-//     ctx.strokeStyle = 'gray';
-//     ctx.strokeRect(qtXPosition, qtYPosition, 560, totalHeight - 20);
-
-//     // Draw nickname elements
-//     ctx.fillStyle = 'white'; // Text color
-//     ctx.font = 'bold 18px ' + globalFont;
-//     ctx.fillText(metadata.authorUsername, qtXPosition + 70, qtYPosition + 40);
-
-//     // Draw username elements
-//     ctx.fillStyle = 'gray';
-//     ctx.font = '18px ' + globalFont;
-//     ctx.fillText(`@${metadata.authorNick}`, qtXPosition + 70, qtYPosition + 60);
-
-//     // Draw description text
-//     ctx.fillStyle = 'white';
-//     ctx.font = '24px ' + globalFont;
-//     const qtTextXAxisStart = 30;
-//     drawDescription(ctx, hasImgs, hasVids, hasOnlyVideos, getWrappedText(ctx, metadata.description, 220), globalFont, qtTextXAxisStart, qtYPosition + 100);
-
-//     // Draw profile image
-//     ctx.drawImage(pfp, qtXPosition + 10, qtYPosition + 20, 50, 50);
-
-//     const qtMediaYPos = qtYPosition + 120;
-//     if (mainMedia1) {
-//         cropSingleImage(ctx, mainMedia1, 175, 175, qtXPosition + 20, qtMediaYPos);
-//     }
-
-//     if (qtVidThumbnail) {
-//         cropSingleImage(ctx, qtVidThumbnail, 175, 175, qtXPosition + 20, qtMediaYPos);
-//     }
-// };
-
 module.exports = {
     getWrappedText,
     drawDescription,

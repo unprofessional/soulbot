@@ -126,7 +126,7 @@ const createTwitterCanvas = async (metadataJson, isImage) => {
             qtDescLines = getWrappedText(ctx, qtMetadata.description, 320);
             qtDescLinesLength = qtDescLines?.length;
             totalQtDescLinesHeight = qtDescLinesLength * lineheight; // remove the bottom padding since we don't need it
-            const minMediaHeight = 80 + 175; // qtMediaOffset + qtMediaStaticHeight
+            const minMediaHeight = 175 + bottomPadding; // qtMediaOffset + qtMediaStaticHeight + bottomPadding
             const determinedHeight = minMediaHeight > totalQtDescLinesHeight ? minMediaHeight : totalQtDescLinesHeight;
             console.log('>>>>> twitter_canvas > calcQtHeight > minMediaHeight: ', minMediaHeight);
             console.log('>>>>> twitter_canvas > calcQtHeight > determinedHeight: ', determinedHeight);
