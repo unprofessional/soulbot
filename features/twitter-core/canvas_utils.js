@@ -180,6 +180,8 @@ const drawQtBasicElements = (
     
     // QT Canvas Stroke
     ctx.strokeStyle = 'gray';
+    ctx.lineWidth = 2;  // Set the stroke width (optional)
+    const cornerRadius = 15; // Adjust corner radius as needed
     console.log('>>>>> canvas_utils > drawQtBasicElements > mediaQtMaxHeight: ', mediaQtMaxHeight);
     console.log('>>>>> canvas_utils > drawQtBasicElements > qtCanvasHeightOffset: ', qtCanvasHeightOffset);
     if (hasMedia) {
@@ -187,9 +189,15 @@ const drawQtBasicElements = (
         console.log('>>>>> canvas_utils > drawQtBasicElements > minMediaHeight: ', minMediaHeight);
         const determinedHeight = minMediaHeight > qtCanvasHeightOffset ? minMediaHeight : qtCanvasHeightOffset;
         console.log('>>>>> canvas_utils > drawQtBasicElements > determinedHeight: ', determinedHeight);
-        ctx.strokeRect(qtXPosition, qtYPosition, mediaQtMaxWidth, determinedHeight - 20); // 20 offset to match the left and right margins
+        // ctx.strokeRect(qtXPosition, qtYPosition, mediaQtMaxWidth, determinedHeight - 20); // 20 offset to match the left and right margins
+        ctx.beginPath();
+        ctx.roundRect(qtXPosition, qtYPosition, mediaQtMaxWidth, determinedHeight - 20, cornerRadius);
+        ctx.stroke();
     } else {
-        ctx.strokeRect(qtXPosition, qtYPosition, mediaQtMaxWidth, qtCanvasHeightOffset - 20); // 20 offset to match the left and right margins
+        // ctx.strokeRect(qtXPosition, qtYPosition, mediaQtMaxWidth, qtCanvasHeightOffset - 20); // 20 offset to match the left and right margins
+        ctx.beginPath();
+        ctx.roundRect(qtXPosition, qtYPosition, mediaQtMaxWidth, qtCanvasHeightOffset - 20, cornerRadius);
+        ctx.stroke();
     }
     
     // Draw nickname elements
