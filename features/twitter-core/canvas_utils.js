@@ -184,7 +184,9 @@ const drawQtBasicElements = (
     console.log('>>>>> canvas_utils > drawQtBasicElements > qtCanvasHeightOffset: ', qtCanvasHeightOffset);
     if (hasMedia) {
         const minMediaHeight = 80 + 175 + 30; // qtMediaOffset + qtMediaStaticHeight + qtBottomPadding
+        console.log('>>>>> canvas_utils > drawQtBasicElements > minMediaHeight: ', minMediaHeight);
         const determinedHeight = minMediaHeight > qtCanvasHeightOffset ? minMediaHeight : qtCanvasHeightOffset;
+        console.log('>>>>> canvas_utils > drawQtBasicElements > determinedHeight: ', determinedHeight);
         ctx.strokeRect(qtXPosition, qtYPosition, mediaQtMaxWidth, determinedHeight - 20); // 20 offset to match the left and right margins
     } else {
         ctx.strokeRect(qtXPosition, qtYPosition, mediaQtMaxWidth, qtCanvasHeightOffset - 20); // 20 offset to match the left and right margins
