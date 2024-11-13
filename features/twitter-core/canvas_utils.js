@@ -226,8 +226,9 @@ const drawQtBasicElements = (
     ctx.closePath();
     ctx.clip();
 
-    // Draw pfp image
-    ctx.drawImage(pfp, 40, pfpOffset, 50, 50);
+    // Draw pfp image centered in the circle
+    ctx.drawImage(pfp, 40, pfpOffset, 50, radius * 2);
+    ctx.restore();
     
     const qtMediaYPos = canvasHeightOffset + 80;
     console.log('>>>>> canvas_utils > drawQtBasicElements > qtMediaYPos: ', qtMediaYPos);
