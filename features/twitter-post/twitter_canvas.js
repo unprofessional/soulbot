@@ -42,7 +42,9 @@ const createTwitterCanvas = async (metadataJson, isImage) => {
     // Register Noto Sans CJK Regular and Bold
     registerFont('/usr/share/fonts/opentype/noto/NotoSansCJK-VF.ttf.ttc', { family: 'Noto Sans CJK' });
 
-    const globalFont = '"Noto Color Emoji", "Noto Sans CJK"';
+    registerFont('/usr/share/fonts/opentype/noto/NotoSansMath-Regular.ttf', { family: 'Noto Sans Math' });
+
+    const globalFont = '"Noto Color Emoji", "Noto Sans CJK", "Noto Sans Math"';
 
     const maxCanvasWidth = 600;
     let canvasHeight = 650;
