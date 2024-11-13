@@ -222,7 +222,7 @@ const drawQtBasicElements = (
     ctx.save();
     const radius = 25;
     ctx.beginPath();
-    ctx.arc(pfpOffset + radius, pfpOffset + radius, radius, 0, Math.PI * 2, true);
+    ctx.arc(40 + radius, pfpOffset + radius, radius, 0, Math.PI * 2, true);
     ctx.closePath();
     ctx.clip();
 
