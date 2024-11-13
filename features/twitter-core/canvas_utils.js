@@ -182,10 +182,13 @@ const drawQtBasicElements = (
     ctx.strokeStyle = 'gray';
     console.log('>>>>> canvas_utils > drawQtBasicElements > mediaQtMaxHeight: ', mediaQtMaxHeight);
     console.log('>>>>> canvas_utils > drawQtBasicElements > qtCanvasHeightOffset: ', qtCanvasHeightOffset);
-    // const minMediaHeight = 300;
-    // const determinedHeight = minMediaHeight > qtCanvasHeightOffset ? minMediaHeight : qtCanvasHeightOffset;
-    const determinedHeight = qtCanvasHeightOffset;
-    ctx.strokeRect(qtXPosition, qtYPosition, mediaQtMaxWidth, determinedHeight - 20); // 20 offset to match the left and right margins
+    if (hasMedia) {
+        const minMediaHeight = 80 + 175 + 30; // qtMediaOffset + qtMediaStaticHeight + qtBottomPadding
+        const determinedHeight = minMediaHeight > qtCanvasHeightOffset ? minMediaHeight : qtCanvasHeightOffset;
+        ctx.strokeRect(qtXPosition, qtYPosition, mediaQtMaxWidth, determinedHeight - 20); // 20 offset to match the left and right margins
+    } else {
+        ctx.strokeRect(qtXPosition, qtYPosition, mediaQtMaxWidth, qtCanvasHeightOffset - 20); // 20 offset to match the left and right margins
+    }
     
     // Draw nickname elements
     ctx.fillStyle = 'white'; // Text color
