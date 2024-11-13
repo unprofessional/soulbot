@@ -26,6 +26,47 @@ const scaleToFitWiderThanHeight = (
  * @param {*} mediaMaxHeight 
  * @param {*} mediaMaxWidth 
  */
+// const singleImage = async (
+//     ctx,
+//     metadata,
+//     calculatedCanvasHeightFromDescLines,
+//     heightShim,
+//     mediaMaxHeight,
+//     mediaMaxWidth,
+// ) => {
+//     const mainMedia1Url = metadata.mediaUrls[0];
+//     const mainMedia1 = await loadImage(mainMedia1Url);
+//     // const xPosition = 20;
+//     const yPosition = calculatedCanvasHeightFromDescLines - heightShim - 50;
+//     if (mainMedia1.width > mainMedia1.height) {
+//         scaleToFitWiderThanHeight(ctx, mainMedia1, yPosition, mediaMaxWidth);
+//     } else {
+//         let mediaObject = {
+//             height: metadata.mediaExtended[0].size.height,
+//             width: metadata.mediaExtended[0].size.width,
+//         };
+//         console.log('>>>>> single image > mediaObject1: ', mediaObject);
+//         mediaObject = scaleDownToFitAspectRatio(mediaObject, mediaMaxHeight, mediaMaxWidth);
+//         console.log('>>>>> single image > mediaObject1: ', mediaObject);
+//         console.log('>>>>> single image > mediaMaxHeight: ', mediaMaxHeight);
+//         console.log('>>>>> single image > mediaMaxWidth: ', mediaMaxWidth);
+        
+//         /*
+//         if maxWidth is 560, then X is the media width
+//         center coordinate of maxWidth is maxWidth/2
+//         then we need to "add" (or subject in this case to shift left):
+//             mediaObject.width/2
+//         then offset right 20 to fit padding
+//         */
+        
+//         const firstXPosition = 20 + mediaMaxWidth/2 - mediaObject.width/2;
+//         const firstYPosition = calculatedCanvasHeightFromDescLines - heightShim - 50;
+//         ctx.drawImage(
+//             mainMedia1,
+//             firstXPosition, firstYPosition, mediaObject.width, mediaObject.height
+//         );
+//     }
+// };
 const singleImage = async (
     ctx,
     metadata,
@@ -33,40 +74,73 @@ const singleImage = async (
     heightShim,
     mediaMaxHeight,
     mediaMaxWidth,
+    cornerRadius = 20 // Default corner radius
 ) => {
     const mainMedia1Url = metadata.mediaUrls[0];
     const mainMedia1 = await loadImage(mainMedia1Url);
-    // const xPosition = 20;
     const yPosition = calculatedCanvasHeightFromDescLines - heightShim - 50;
-    if (mainMedia1.width > mainMedia1.height) {
-        scaleToFitWiderThanHeight(ctx, mainMedia1, yPosition, mediaMaxWidth);
-    } else {
-        let mediaObject = {
-            height: metadata.mediaExtended[0].size.height,
-            width: metadata.mediaExtended[0].size.width,
-        };
-        console.log('>>>>> single image > mediaObject1: ', mediaObject);
-        mediaObject = scaleDownToFitAspectRatio(mediaObject, mediaMaxHeight, mediaMaxWidth);
-        console.log('>>>>> single image > mediaObject1: ', mediaObject);
-        console.log('>>>>> single image > mediaMaxHeight: ', mediaMaxHeight);
-        console.log('>>>>> single image > mediaMaxWidth: ', mediaMaxWidth);
-        
-        /*
-        if maxWidth is 560, then X is the media width
-        center coordinate of maxWidth is maxWidth/2
-        then we need to "add" (or subject in this case to shift left):
-            mediaObject.width/2
-        then offset right 20 to fit padding
-        */
-        
-        const firstXPosition = 20 + mediaMaxWidth/2 - mediaObject.width/2;
-        const firstYPosition = calculatedCanvasHeightFromDescLines - heightShim - 50;
-        ctx.drawImage(
-            mainMedia1,
-            firstXPosition, firstYPosition, mediaObject.width, mediaObject.height
-        );
-    }
+
+    let mediaObject = {
+        height: metadata.mediaExtended[0].size.height,
+        width: metadata.mediaExtended[0].size.width,
+    };
+
+    mediaObject = scaleDownToFitAspectRatio(mediaObject, mediaMaxHeight, mediaMaxWidth);
+
+    const firstXPosition = 20 + mediaMaxWidth / 2 - mediaObject.width / 2;
+    const firstYPosition = yPosition;
+
+    // Create a rounded rectangle path
+    ctx.beginPath();
+    ctx.moveTo(firstXPosition + cornerRadius, firstYPosition);
+    ctx.lineTo(firstXPosition + mediaObject.width - cornerRadius, firstYPosition);
+    ctx.quadraticCurveTo(
+        firstXPosition + mediaObject.width,
+        firstYPosition,
+        firstXPosition + mediaObject.width,
+        firstYPosition + cornerRadius
+    );
+    ctx.lineTo(firstXPosition + mediaObject.width, firstYPosition + mediaObject.height - cornerRadius);
+    ctx.quadraticCurveTo(
+        firstXPosition + mediaObject.width,
+        firstYPosition + mediaObject.height,
+        firstXPosition + mediaObject.width - cornerRadius,
+        firstYPosition + mediaObject.height
+    );
+    ctx.lineTo(firstXPosition + cornerRadius, firstYPosition + mediaObject.height);
+    ctx.quadraticCurveTo(
+        firstXPosition,
+        firstYPosition + mediaObject.height,
+        firstXPosition,
+        firstYPosition + mediaObject.height - cornerRadius
+    );
+    ctx.lineTo(firstXPosition, firstYPosition + cornerRadius);
+    ctx.quadraticCurveTo(
+        firstXPosition,
+        firstYPosition,
+        firstXPosition + cornerRadius,
+        firstYPosition
+    );
+    ctx.closePath();
+
+    // Apply the clip
+    ctx.clip();
+
+    // Draw the image inside the clipped path
+    ctx.drawImage(
+        mainMedia1,
+        firstXPosition,
+        firstYPosition,
+        mediaObject.width,
+        mediaObject.height
+    );
+
+    // Optionally, draw a border for the rounded rectangle
+    ctx.strokeStyle = 'gray'; // Border color
+    ctx.lineWidth = 2; // Border width
+    ctx.stroke(); // Stroke the path
 };
+
 
 // REFACTOR with above
 // (probably just replace it since we don't need to do an array search for a single img)
