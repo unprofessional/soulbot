@@ -129,11 +129,11 @@ const drawBasicElements = (
     ctx.font = '18px ' + globalFont;
     ctx.fillText(formatTwitterDate(metadata.date), 30, canvasHeightOffset - 20);
 
-    // Draw the circle mask...
+    // Draw circle mask
     ctx.save();
     const radius = 25;
     ctx.beginPath();
-    ctx.arc(45, 45, radius, 0, Math.PI * 2, true);
+    ctx.arc(20 + radius, 20 + radius, radius, 0, Math.PI * 2, true);
     ctx.closePath();
     ctx.clip();
 
@@ -216,8 +216,18 @@ const drawQtBasicElements = (
     const qtTextXAxisStart = hasMedia ? 230 : 100;
     drawDescription(ctx, hasImgs, hasVids, qtDescLines, globalFont, qtTextXAxisStart, qtYPosition, true);
 
+    const pfpOffset = canvasHeightOffset + 20;
+
+    // Draw circle mask
+    ctx.save();
+    const radius = 25;
+    ctx.beginPath();
+    ctx.arc(pfpOffset + radius, pfpOffset + radius, radius, 0, Math.PI * 2, true);
+    ctx.closePath();
+    ctx.clip();
+
     // Draw pfp image
-    ctx.drawImage(pfp, 40, canvasHeightOffset + 20, 50, 50);
+    ctx.drawImage(pfp, 40, pfpOffset, 50, 50);
     
     const qtMediaYPos = canvasHeightOffset + 80;
     console.log('>>>>> canvas_utils > drawQtBasicElements > qtMediaYPos: ', qtMediaYPos);
