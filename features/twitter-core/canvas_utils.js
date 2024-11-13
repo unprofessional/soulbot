@@ -181,8 +181,10 @@ const drawQtBasicElements = (
     // QT Canvas Stroke
     ctx.strokeStyle = 'gray';
     console.log('>>>>> canvas_utils > drawQtBasicElements > mediaQtMaxHeight: ', mediaQtMaxHeight);
-    const minMediaHeight = 300;
-    const determinedHeight = minMediaHeight > qtCanvasHeightOffset ? minMediaHeight : qtCanvasHeightOffset;
+    console.log('>>>>> canvas_utils > drawQtBasicElements > qtCanvasHeightOffset: ', qtCanvasHeightOffset);
+    // const minMediaHeight = 300;
+    // const determinedHeight = minMediaHeight > qtCanvasHeightOffset ? minMediaHeight : qtCanvasHeightOffset;
+    const determinedHeight = qtCanvasHeightOffset;
     ctx.strokeRect(qtXPosition, qtYPosition, mediaQtMaxWidth, determinedHeight - 20); // 20 offset to match the left and right margins
     
     // Draw nickname elements
