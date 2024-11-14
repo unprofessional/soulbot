@@ -136,7 +136,7 @@ const singleImage = async (
     );
 
     // Optionally, draw a border for the rounded rectangle
-    ctx.strokeStyle = 'gray'; // Border color
+    ctx.strokeStyle = '#4d4d4d'; // Border color
     ctx.lineWidth = 2; // Border width
     ctx.stroke(); // Stroke the path
 };

@@ -179,7 +179,7 @@ const drawQtBasicElements = (
     let qtYPosition = canvasHeightOffset;
     
     // QT Canvas Stroke
-    ctx.strokeStyle = 'gray';
+    ctx.strokeStyle = '#4d4d4d';
     ctx.lineWidth = 1;  // Set the stroke width (optional)
     const cornerRadius = 15; // Adjust corner radius as needed
     console.log('>>>>> canvas_utils > drawQtBasicElements > mediaQtMaxHeight: ', mediaQtMaxHeight);
