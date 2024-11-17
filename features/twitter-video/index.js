@@ -231,18 +231,26 @@ function bakeImageAsFilterIntoVideo(
         const adjustedCanvasHeight = Math.ceil(canvasHeight / 2) * 2;
         const adjustedVideoWidth = Math.ceil(videoWidth / 2) * 2;
         const adjustedVideoHeight = Math.ceil(videoHeight / 2) * 2;
+        console.log('>>>>> bakeImageAsFilterIntoVideo > adjustedCanvasWidth: ', adjustedCanvasWidth);
+        console.log('>>>>> bakeImageAsFilterIntoVideo > adjustedCanvasHeight: ', adjustedCanvasHeight);
+        console.log('>>>>> bakeImageAsFilterIntoVideo > adjustedVideoWidth: ', adjustedVideoWidth);
+        console.log('>>>>> bakeImageAsFilterIntoVideo > adjustedVideoHeight: ', adjustedVideoHeight);
 
         const mediaObject = {
             height: adjustedVideoHeight,
             width: adjustedVideoWidth
         };
+        console.log('>>>>> bakeImageAsFilterIntoVideo > mediaObject: ', mediaObject);
 
         const scaledDownObject = scaleDownToFitAspectRatio(
             mediaObject, adjustedCanvasHeight, adjustedCanvasWidth, (canvasHeight - heightShim)
         );
+        console.log('>>>>> bakeImageAsFilterIntoVideo > scaledDownObject: ', scaledDownObject);
 
         const overlayX = (canvasWidth - scaledDownObject.width) / 2;
         const overlayY = canvasHeight - heightShim - 50;
+        console.log('>>>>> bakeImageAsFilterIntoVideo > overlayX: ', overlayX);
+        console.log('>>>>> bakeImageAsFilterIntoVideo > overlayY: ', overlayY);
 
         // Check if video has an audio stream
         ffmpeg.ffprobe(videoInputPath, (err, metadata) => {

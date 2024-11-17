@@ -74,7 +74,7 @@ const singleImage = async (
     heightShim,
     mediaMaxHeight,
     mediaMaxWidth,
-    cornerRadius = 20 // Default corner radius
+    cornerRadius = 15 // Default corner radius
 ) => {
     const mainMedia1Url = metadata.mediaUrls[0];
     const mainMedia1 = await loadImage(mainMedia1Url);
