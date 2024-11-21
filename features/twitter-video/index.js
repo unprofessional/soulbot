@@ -261,20 +261,25 @@ function bakeImageAsFilterIntoVideo(
             const hasAudio = metadata.streams.some(stream => stream.codec_type === 'audio');
             // console.log('>>> bakeImageAsFilterIntoVideo > hasAudio: ', hasAudio);
 
-            console.log(`>>>>> bakeImageAsFilterIntoVideo > ${adjustedCanvasWidth}:${adjustedCanvasHeight}`);
-            console.log(`>>>>> bakeImageAsFilterIntoVideo > ${scaledDownObject.width}:${scaledDownObject.height}`);
+            console.log(`>>>>> bakeImageAsFilterIntoVideo > adjustedCanvasWidth:adjustedCanvasHeight: ${adjustedCanvasWidth}:${adjustedCanvasHeight}`);
+            console.log(`>>>>> bakeImageAsFilterIntoVideo > scaledDownObject.width:scaledDownObject.height:${scaledDownObject.width}:${scaledDownObject.height}`);
+
+            const videoAspectRatio = videoWidth / videoHeight;
+            const canvasAspectRatio = canvasWidth / canvasHeight;
+            console.log('>>>>> bakeImageAsFilterIntoVideo > Video Aspect Ratio:', videoAspectRatio);
+            console.log('>>>>> bakeImageAsFilterIntoVideo > Canvas Aspect Ratio:', canvasAspectRatio);
+            
+            const adjustedVideoAspectRatio = adjustedCanvasWidth / adjustedCanvasHeight;
+            const adjustedCanvasAspectRatio = adjustedCanvasWidth / adjustedCanvasHeight;
+            console.log('>>>>> bakeImageAsFilterIntoVideo > Adjusted Video Aspect Ratio:', adjustedVideoAspectRatio);
+            console.log('>>>>> bakeImageAsFilterIntoVideo > Adjusted Canvas Aspect Ratio:', adjustedCanvasAspectRatio);
 
             const command = ffmpeg()
                 .input(canvasInputPath)
                 .input(videoInputPath)
                 .complexFilter([
-
-                    // `[0:v]scale=${adjustedCanvasWidth}:${adjustedCanvasHeight}:force_original_aspect_ratio=1[frame]`,
-                    // `[1:v]scale=${scaledDownObject.width}:${scaledDownObject.height}:force_original_aspect_ratio=1[video]`,
-
                     `[0:v]scale=${adjustedCanvasWidth}:${adjustedCanvasHeight}[frame]`,
                     `[1:v]scale=${scaledDownObject.width}:${scaledDownObject.height}[video]`,
-
                     `[frame][video]overlay=${overlayX}:${overlayY}[out]`
                 ])
                 .outputOptions(['-c:v libx264']);
