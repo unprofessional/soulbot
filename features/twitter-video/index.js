@@ -265,8 +265,13 @@ function bakeImageAsFilterIntoVideo(
                 .input(canvasInputPath)
                 .input(videoInputPath)
                 .complexFilter([
-                    `[0:v]scale=${adjustedCanvasWidth}:${adjustedCanvasHeight}[frame]`,
-                    `[1:v]scale=${scaledDownObject.width}:${scaledDownObject.height}[video]`,
+                    `[0:v]scale=${adjustedCanvasWidth}:${adjustedCanvasHeight}:force_original_aspect_ratio=1[frame]`,
+                    `[1:v]scale=${scaledDownObject.width}:${scaledDownObject.height}:force_original_aspect_ratio=1[video]`,
+
+
+                    // `[0:v]scale=${adjustedCanvasWidth}:${adjustedCanvasHeight}[frame]`,
+                    // `[1:v]scale=${scaledDownObject.width}:${scaledDownObject.height}[video]`,
+                    
                     `[frame][video]overlay=${overlayX}:${overlayY}[out]`
                 ])
                 .outputOptions(['-c:v libx264']);
