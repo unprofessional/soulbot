@@ -4,6 +4,11 @@ const scaleDownToFitAspectRatio = (
     mediaMaxWidth,
     compensatedHeight = 0
 ) => {
+    console.log('>>>>> scaleDownToFitAspectRatio > height: ', height);
+    console.log('>>>>> scaleDownToFitAspectRatio > width: ', width);
+    console.log('>>>>> scaleDownToFitAspectRatio > mediaMaxHeight: ', mediaMaxHeight);
+    console.log('>>>>> scaleDownToFitAspectRatio > mediaMaxWidth: ', mediaMaxWidth);
+    console.log('>>>>> scaleDownToFitAspectRatio > compensatedHeight: ', compensatedHeight);
     // Calculate the effective maximum height, ensuring it is not negative
     const effectiveMaxHeight = Math.max(0, mediaMaxHeight - compensatedHeight);
 
