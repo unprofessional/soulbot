@@ -261,6 +261,9 @@ function bakeImageAsFilterIntoVideo(
             const hasAudio = metadata.streams.some(stream => stream.codec_type === 'audio');
             // console.log('>>> bakeImageAsFilterIntoVideo > hasAudio: ', hasAudio);
 
+            console.log(`>>>>> bakeImageAsFilterIntoVideo > ${adjustedCanvasWidth}:${adjustedCanvasHeight}`);
+            console.log(`>>>>> bakeImageAsFilterIntoVideo > ${scaledDownObject.width}:${scaledDownObject.height}`);
+
             const command = ffmpeg()
                 .input(canvasInputPath)
                 .input(videoInputPath)
