@@ -90,7 +90,7 @@ const createTwitterVideoCanvas = async (metadataJson) => {
 
     // Standard Post
     drawBasicElements(ctx, globalFont, metadata, favicon, pfp, descLines, {
-        hasImgs: false, hasVids: true,
+        hasImgs: true, hasVids: true,
         yOffset: defaultYPosition,
         canvasHeightOffset: calculatedCanvasHeightFromDescLines,
     });
