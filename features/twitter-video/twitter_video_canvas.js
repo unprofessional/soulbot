@@ -39,7 +39,7 @@ const createTwitterVideoCanvas = async (metadataJson) => {
     // Grants emoji color
     ctx.textDrawingMode = "glyph";
 
-    let mediaMaxHeight = 600;//getMaxHeight(numOfImgs);
+    let mediaMaxHeight = 600; // getMaxHeight(numOfImgs);
     let mediaMaxWidth = 560;
 
     // Default media embed dimensions
@@ -48,22 +48,19 @@ const createTwitterVideoCanvas = async (metadataJson) => {
         width: 0,
     };
 
-    let heightShim = 0;
+    let heightShim = mediaMaxHeight;
 
     // console.log('>>>>> has images!');
     mediaObject = {
         height: metadata.mediaExtended[0].size.height,
         width: metadata.mediaExtended[0].size.width,
     };
-    // console.log('>>>>> hasImgs > mediaObject: ', mediaObject);
-    if(metadata.mediaExtended.length < 2 && mediaObject.width > mediaObject.height) {
+
+    // if more wide than tall, heightShim should be scaled down with width ratio
+    if(mediaObject.width > mediaObject.height) {
         const newWidthRatio = mediaMaxWidth / mediaObject.width;
-        // console.log('>>>>> newWidthRatio: ', newWidthRatio);
         const adjustedHeight = mediaObject.height * newWidthRatio;
-        // console.log('>>>>> adjustedHeight: ', adjustedHeight);
         heightShim = adjustedHeight;    
-    } else {
-        heightShim = mediaMaxHeight;
     }
 
     // Pre-process description with text wrapping
@@ -99,35 +96,36 @@ const createTwitterVideoCanvas = async (metadataJson) => {
 
     // Convert the canvas to a buffer
     const buffer = canvas.toBuffer('image/png');
+    return buffer;
 
     // Write the buffer to a file
     /**
      * TODO TODO TODO — use temp filename first... UUID? then track state
      */
-    const processingDir = '/tempdata';
-    const pathObj = buildPathsAndStuff(processingDir, videoUrl);
-    const filename = pathObj.filename;
-    const localWorkingPath = pathObj.localWorkingPath;
-    const localFilename = `${filename}.png`;
+    // const processingDir = '/tempdata';
+    // const pathObj = buildPathsAndStuff(processingDir, videoUrl);
+    // const filename = pathObj.filename;
+    // const localWorkingPath = pathObj.localWorkingPath;
+    // const localFilename = `${filename}.png`;
 
-    // console.log('>>>>> twitter_video_canvas > localWorkingPath: ', localWorkingPath);
+    // // console.log('>>>>> twitter_video_canvas > localWorkingPath: ', localWorkingPath);
 
-    /**
-     * Rewrite with proper async handling for failure-cases...
-     */
-    if (!existsSync(localWorkingPath)) {
-        mkdirSync(localWorkingPath, { recursive: true });
-    }
-    writeFileSync(`${localWorkingPath}/${localFilename}`, buffer, (err) => {
-        if (err) throw err;
-        console.log('The file was saved!');
-    });
-    return {
-        localFilename,
-        canvasHeight: calculatedCanvasHeightFromDescLines,
-        canvasWidth: mediaMaxWidth,
-        heightShim,
-    };
+    // /**
+    //  * Rewrite with proper async handling for failure-cases...
+    //  */
+    // if (!existsSync(localWorkingPath)) {
+    //     mkdirSync(localWorkingPath, { recursive: true });
+    // }
+    // writeFileSync(`${localWorkingPath}/${localFilename}`, buffer, (err) => {
+    //     if (err) throw err;
+    //     console.log('The file was saved!');
+    // });
+    // return {
+    //     localFilename,
+    //     canvasHeight: calculatedCanvasHeightFromDescLines,
+    //     canvasWidth: mediaMaxWidth,
+    //     heightShim,
+    // };
     
 };
 
