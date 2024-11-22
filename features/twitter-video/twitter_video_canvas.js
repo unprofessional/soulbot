@@ -96,36 +96,35 @@ const createTwitterVideoCanvas = async (metadataJson) => {
 
     // Convert the canvas to a buffer
     const buffer = canvas.toBuffer('image/png');
-    return buffer;
 
     // Write the buffer to a file
     /**
      * TODO TODO TODO — use temp filename first... UUID? then track state
      */
-    // const processingDir = '/tempdata';
-    // const pathObj = buildPathsAndStuff(processingDir, videoUrl);
-    // const filename = pathObj.filename;
-    // const localWorkingPath = pathObj.localWorkingPath;
-    // const localFilename = `${filename}.png`;
+    const processingDir = '/tempdata';
+    const pathObj = buildPathsAndStuff(processingDir, videoUrl);
+    const filename = pathObj.filename;
+    const localWorkingPath = pathObj.localWorkingPath;
+    const localFilename = `${filename}.png`;
 
-    // // console.log('>>>>> twitter_video_canvas > localWorkingPath: ', localWorkingPath);
+    // console.log('>>>>> twitter_video_canvas > localWorkingPath: ', localWorkingPath);
 
-    // /**
-    //  * Rewrite with proper async handling for failure-cases...
-    //  */
-    // if (!existsSync(localWorkingPath)) {
-    //     mkdirSync(localWorkingPath, { recursive: true });
-    // }
-    // writeFileSync(`${localWorkingPath}/${localFilename}`, buffer, (err) => {
-    //     if (err) throw err;
-    //     console.log('The file was saved!');
-    // });
-    // return {
-    //     localFilename,
-    //     canvasHeight: calculatedCanvasHeightFromDescLines,
-    //     canvasWidth: mediaMaxWidth,
-    //     heightShim,
-    // };
+    /**
+     * Rewrite with proper async handling for failure-cases...
+     */
+    if (!existsSync(localWorkingPath)) {
+        mkdirSync(localWorkingPath, { recursive: true });
+    }
+    writeFileSync(`${localWorkingPath}/${localFilename}`, buffer, (err) => {
+        if (err) throw err;
+        console.log('The file was saved!');
+    });
+    return {
+        localFilename,
+        canvasHeight: calculatedCanvasHeightFromDescLines,
+        canvasWidth: mediaMaxWidth,
+        heightShim,
+    };
     
 };
 

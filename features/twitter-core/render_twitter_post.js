@@ -177,41 +177,23 @@ const renderTwitterPost = async (metadataJson, message) => {
             // TODO: we would have to then infer it from the video itself possibly using ffmpeg.ffprobe
         }
 
-        const buffer = await createTwitterVideoCanvas(metadataJson);
-        let files = [{
-            attachment: buffer,
-            name: 'image.png',
-        }];
         try {
-            await sendWebhookProxyMsg(message, 'Here’s the Twitter canvas:', files);
-        } catch (err) {
-            await sendWebhookProxyMsg(message, `File(s) too large to attach! err: ${err}`);
-        }
-
-        // Use the webhook proxy to send the message with the file
-        try {
-            await sendWebhookProxyMsg(message, 'Here’s the Twitter canvas:', files);
-        } catch (err) {
-            await sendWebhookProxyMsg(message, `File(s) too large to attach! err: ${err}`);
-        }
-
-        // try {
-        //     await downloadVideo(videoUrl, videoInputPath);
-        //     const { canvasHeight, canvasWidth, heightShim } = await createTwitterVideoCanvas(metadataJson);
-        //     const successFilePath = await bakeImageAsFilterIntoVideo(
-        //         videoInputPath, canvasInputPath, videoOutputPath,
-        //         mediaObject.height, mediaObject.width,
-        //         canvasHeight, canvasWidth, heightShim,
-        //     );
+            await downloadVideo(videoUrl, videoInputPath);
+            const { canvasHeight, canvasWidth, heightShim } = await createTwitterVideoCanvas(metadataJson);
+            const successFilePath = await bakeImageAsFilterIntoVideo(
+                videoInputPath, canvasInputPath, videoOutputPath,
+                mediaObject.height, mediaObject.width,
+                canvasHeight, canvasWidth, heightShim,
+            );
     
-        //     /**
-        //      * DO something with the video!!!!
-        //      */
-        //     // await replyMsg.delete(); // don't even need to do this anymore
-        //     await sendVideoReply(message, successFilePath, localWorkingPath);
-        // } catch (err) {
-        //     await cleanup([], [localWorkingPath]);
-        // }
+            /**
+             * DO something with the video!!!!
+             */
+            // await replyMsg.delete(); // don't even need to do this anymore
+            await sendVideoReply(message, successFilePath, localWorkingPath);
+        } catch (err) {
+            await cleanup([], [localWorkingPath]);
+        }
 
     } else {
         // Handle non-video processing
