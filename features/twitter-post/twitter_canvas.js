@@ -37,13 +37,13 @@ const createTwitterCanvas = async (metadataJson, isImage) => {
 
     // Unnecessary if the font is loaded in the local OS
     // TODO: Investigate if `fonts/` is even necessary...
-    // registerFont('/usr/share/fonts/truetype/noto/NotoColorEmoji.ttf', { family: 'Noto Color Emoji' });
+    registerFont('/usr/share/fonts/truetype/noto/NotoColorEmoji.ttf', { family: 'Noto Color Emoji' });
 
     // For Gothic etc
-    // registerFont('/usr/share/fonts/truetype/noto/NotoSansMath-Regular.ttf', { family: 'Noto Sans Math' });
+    registerFont('/usr/share/fonts/truetype/noto/NotoSansMath-Regular.ttf', { family: 'Noto Sans Math' });
 
     // Register Noto Sans CJK Regular and Bold
-    // registerFont('/usr/share/fonts/opentype/noto/NotoSansCJK-VF.ttf.ttc', { family: 'Noto Sans CJK' });
+    registerFont('/usr/share/fonts/opentype/noto/NotoSansCJK-VF.ttf.ttc', { family: 'Noto Sans CJK' });
 
 
     const globalFont = '"Noto Color Emoji", "Noto Sans CJK", "Noto Sans Math"';
