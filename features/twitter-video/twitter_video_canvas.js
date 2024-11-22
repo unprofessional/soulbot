@@ -39,34 +39,32 @@ const createTwitterVideoCanvas = async (metadataJson) => {
     // Grants emoji color
     ctx.textDrawingMode = "glyph";
 
-    // let mediaMaxHeight = 600;//getMaxHeight(numOfImgs);
+    let mediaMaxHeight = 600;//getMaxHeight(numOfImgs);
     let mediaMaxWidth = 560;
 
     // Default media embed dimensions
-    // let mediaObject = {
-    //     height: 0,
-    //     width: 0,
-    // };
+    let mediaObject = {
+        height: 0,
+        width: 0,
+    };
 
     let heightShim = 0;
 
-    // if(hasImgs) {
-    //     // console.log('>>>>> has images!');
-    //     mediaObject = {
-    //         height: metadata.mediaExtended[0].size.height,
-    //         width: metadata.mediaExtended[0].size.width,
-    //     };
-    //     // console.log('>>>>> hasImgs > mediaObject: ', mediaObject);
-    //     if(metadata.mediaExtended.length < 2 && mediaObject.width > mediaObject.height) {
-    //         const newWidthRatio = mediaMaxWidth / mediaObject.width;
-    //         // console.log('>>>>> newWidthRatio: ', newWidthRatio);
-    //         const adjustedHeight = mediaObject.height * newWidthRatio;
-    //         // console.log('>>>>> adjustedHeight: ', adjustedHeight);
-    //         heightShim = adjustedHeight;    
-    //     } else {
-    //         heightShim = mediaMaxHeight;
-    //     }
-    // }
+    // console.log('>>>>> has images!');
+    mediaObject = {
+        height: metadata.mediaExtended[0].size.height,
+        width: metadata.mediaExtended[0].size.width,
+    };
+    // console.log('>>>>> hasImgs > mediaObject: ', mediaObject);
+    if(metadata.mediaExtended.length < 2 && mediaObject.width > mediaObject.height) {
+        const newWidthRatio = mediaMaxWidth / mediaObject.width;
+        // console.log('>>>>> newWidthRatio: ', newWidthRatio);
+        const adjustedHeight = mediaObject.height * newWidthRatio;
+        // console.log('>>>>> adjustedHeight: ', adjustedHeight);
+        heightShim = adjustedHeight;    
+    } else {
+        heightShim = mediaMaxHeight;
+    }
 
     // Pre-process description with text wrapping
     ctx.font = '24px "Noto Color Emoji"'; // we need to set the intended font here first before calcing it
