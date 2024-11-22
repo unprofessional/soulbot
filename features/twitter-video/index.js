@@ -274,13 +274,15 @@ function bakeImageAsFilterIntoVideo(
             console.log('>>>>> bakeImageAsFilterIntoVideo > Adjusted Video Aspect Ratio:', adjustedVideoAspectRatio);
             console.log('>>>>> bakeImageAsFilterIntoVideo > Adjusted Canvas Aspect Ratio:', adjustedCanvasAspectRatio);
 
+            const widthPadding  = 40; // This is possibly what's screwing us up with the "squish" effect
+
             const command = ffmpeg()
                 .input(canvasInputPath)
                 .input(videoInputPath)
                 .complexFilter([
-                    `[0:v]scale=${adjustedCanvasWidth}:${adjustedCanvasHeight}[frame]`,
+                    `[0:v]scale=${adjustedCanvasWidth + widthPadding}:${adjustedCanvasHeight}[frame]`,
                     `[1:v]scale=${scaledDownObject.width}:${scaledDownObject.height}[video]`,
-                    `[frame][video]overlay=${overlayX}:${overlayY}[out]`
+                    `[frame][video]overlay=${overlayX + widthPadding/2}:${overlayY}[out]`
                 ])
                 .outputOptions(['-c:v libx264']);
 
