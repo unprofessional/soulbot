@@ -39,52 +39,43 @@ const createTwitterVideoCanvas = async (metadataJson) => {
     // Grants emoji color
     ctx.textDrawingMode = "glyph";
 
-    const numOfImgs = 1;//filterMediaUrls(metadata, ['jpg', 'jpeg', 'png']).length;
-    // console.log('>>>>> createTwitterCanvas > numOfImgs', numOfImgs);
-    const numOfVideos = 1;//filterMediaUrls(metadata, ['mp4']).length;
-    // console.log('>>>>> createTwitterCanvas > numOfVideos', numOfVideos);
-    let mediaMaxHeight = 600;//getMaxHeight(numOfImgs);
+    // let mediaMaxHeight = 600;//getMaxHeight(numOfImgs);
     let mediaMaxWidth = 560;
-    const hasImgs = numOfImgs > 0;
-    const hasVids = numOfVideos > 0;
-    const hasOnlyVideos = numOfVideos > 0 && !hasImgs;
 
     // Default media embed dimensions
-    let mediaObject = {
-        height: 0,
-        width: 0,
-    };
+    // let mediaObject = {
+    //     height: 0,
+    //     width: 0,
+    // };
 
     let heightShim = 0;
 
-    if(hasImgs) {
-        // console.log('>>>>> has images!');
-        mediaObject = {
-            height: metadata.mediaExtended[0].size.height,
-            width: metadata.mediaExtended[0].size.width,
-        };
-        // console.log('>>>>> hasImgs > mediaObject: ', mediaObject);
-        if(metadata.mediaExtended.length < 2 && mediaObject.width > mediaObject.height) {
-            const newWidthRatio = mediaMaxWidth / mediaObject.width;
-            // console.log('>>>>> newWidthRatio: ', newWidthRatio);
-            const adjustedHeight = mediaObject.height * newWidthRatio;
-            // console.log('>>>>> adjustedHeight: ', adjustedHeight);
-            heightShim = adjustedHeight;    
-        } else {
-            heightShim = mediaMaxHeight;
-        }
-    }
+    // if(hasImgs) {
+    //     // console.log('>>>>> has images!');
+    //     mediaObject = {
+    //         height: metadata.mediaExtended[0].size.height,
+    //         width: metadata.mediaExtended[0].size.width,
+    //     };
+    //     // console.log('>>>>> hasImgs > mediaObject: ', mediaObject);
+    //     if(metadata.mediaExtended.length < 2 && mediaObject.width > mediaObject.height) {
+    //         const newWidthRatio = mediaMaxWidth / mediaObject.width;
+    //         // console.log('>>>>> newWidthRatio: ', newWidthRatio);
+    //         const adjustedHeight = mediaObject.height * newWidthRatio;
+    //         // console.log('>>>>> adjustedHeight: ', adjustedHeight);
+    //         heightShim = adjustedHeight;    
+    //     } else {
+    //         heightShim = mediaMaxHeight;
+    //     }
+    // }
 
     // Pre-process description with text wrapping
-    const maxCharLength = hasOnlyVideos ? 120 : 220; // Maximum width for text
-    const descLines = getWrappedText(ctx, metadata.description, maxCharLength, hasOnlyVideos);
+    ctx.font = '24px "Noto Color Emoji"'; // we need to set the intended font here first before calcing it
+    const descLines = getWrappedText(ctx, metadata.description, 420, true);
     let defaultYPosition = 110; // Starting Y position for description text
 
     // New height calcs
     const descLinesLength = descLines.length;
-    const calculatedCanvasHeightFromDescLines = hasVids && !hasImgs
-        ? maxCanvasWidth // Has vids, make square
-        : (descLinesLength * 30) + defaultYPosition + 40 + heightShim;
+    const calculatedCanvasHeightFromDescLines = (descLinesLength * 30) + defaultYPosition + 40 + heightShim;
 
     // console.log('>>>>> calculatedCanvasHeightFromDescLines: ', calculatedCanvasHeightFromDescLines);
 
@@ -99,7 +90,7 @@ const createTwitterVideoCanvas = async (metadataJson) => {
 
     // Standard Post
     drawBasicElements(ctx, globalFont, metadata, favicon, pfp, descLines, {
-        hasImgs, hasVids,
+        hasImgs: false, hasVids: true,
         yOffset: defaultYPosition,
         canvasHeightOffset: calculatedCanvasHeightFromDescLines,
     });
