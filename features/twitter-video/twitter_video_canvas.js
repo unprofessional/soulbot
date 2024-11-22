@@ -64,8 +64,8 @@ const createTwitterVideoCanvas = async (metadataJson) => {
     }
 
     // Pre-process description with text wrapping
-    ctx.font = '24px "Noto Color Emoji"'; // we need to set the intended font here first before calcing it
-    const descLines = getWrappedText(ctx, metadata.description, 420, true);
+    ctx.font = '18px "Noto Color Emoji"'; // we need to set the intended font here first before calcing it
+    const descLines = getWrappedText(ctx, metadata.description, 420);
     let defaultYPosition = 110; // Starting Y position for description text
 
     // New height calcs
