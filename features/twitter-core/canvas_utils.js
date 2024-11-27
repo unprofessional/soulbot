@@ -1,12 +1,12 @@
-const { createCanvas } = require('canvas');
+// const { createCanvas } = require('canvas');
 const { cropSingleImage } = require("../twitter-post/crop_single_image");
 const { formatTwitterDate, filterMediaUrls } = require("./utils");
 const { scaleDownToFitAspectRatio } = require('../twitter-post/scale_down');
 
 function getWrappedText(ctx, text, maxWidth) {
 
-    console.log('>>>>> canvas_utils > drawDescription > text: ', text);
-    console.log('>>>>> canvas_utils > drawDescription > maxWidth: ', maxWidth);
+    // console.log('>>>>> canvas_utils > drawDescription > text: ', text);
+    // console.log('>>>>> canvas_utils > drawDescription > maxWidth: ', maxWidth);
 
     // Enforce this on every call....
     // ctx.font = '24px "Noto Color Emoji"'; // we need to set the intended font here first before calcing it
@@ -58,12 +58,12 @@ function getWrappedText(ctx, text, maxWidth) {
 
 // ....hasOnlyVideos might be the wrong descriptor... could be QTVideo?????
 const drawDescription = (ctx, hasImgs, hasVids, descLines, font, x, y, isQt) => {
-    console.log('>>>>> canvas_utils > drawDescription > descLines: ', descLines);
-    console.log('>>>>> canvas_utils > drawDescription > descLines.length: ', descLines.length);
+    // console.log('>>>>> canvas_utils > drawDescription > descLines: ', descLines);
+    // console.log('>>>>> canvas_utils > drawDescription > descLines.length: ', descLines.length);
     // const isQtWithMedia = isQt && (hasImgs || hasVids);
     // const lineHeight = isQtWithMedia ? 24 : 30;
     const lineHeight = 30;
-    console.log('>>>>> canvas_utils > drawDescription > hasImgs || hasVids: ', hasImgs || hasVids);
+    // console.log('>>>>> canvas_utils > drawDescription > hasImgs || hasVids: ', hasImgs || hasVids);
     descLines.forEach(line => {
         ctx.textDrawingMode = "glyph";
         // ctx.font = isQt ? '18px "Noto Color Emoji"' : '24px "Noto Color Emoji"';
@@ -73,7 +73,7 @@ const drawDescription = (ctx, hasImgs, hasVids, descLines, font, x, y, isQt) => 
         //     console.log('>>>>> canvas_utils > drawDescription > !hasImgs and hasVids!');
         //     ctx.font = '36px ' + font;
         // }
-        console.log('!!! canvas_utils > drawDescription > line: ', line);
+        // console.log('!!! canvas_utils > drawDescription > line: ', line);
         ctx.fillText(line, x, isQt ? y + 100: y);
         // drawTextWithSpacing(ctx, line, x, y, 1);
         y += lineHeight;
@@ -159,13 +159,13 @@ const drawQtBasicElements = (
         // qtDescLines = [],
     } = options;
 
-    console.log('>>>>> canvas_utils > drawQtBasicElements > qtMeta: ', metadata);
+    // console.log('>>>>> canvas_utils > drawQtBasicElements > qtMeta: ', metadata);
     
     // Pre-process media
     const numOfQtImgs = filterMediaUrls(metadata, ['jpg', 'jpeg', 'png']).length;
-    console.log('>>>>> canvas_utils > drawQtBasicElements > qtMeta > numOfQtImgs', numOfQtImgs);
+    // console.log('>>>>> canvas_utils > drawQtBasicElements > qtMeta > numOfQtImgs', numOfQtImgs);
     const numOfQtVideos = filterMediaUrls(metadata, ['mp4']).length;
-    console.log('>>>>> canvas_utils > drawQtBasicElements > numOfQtVideos', numOfQtVideos);
+    // console.log('>>>>> canvas_utils > drawQtBasicElements > numOfQtVideos', numOfQtVideos);
     const hasMedia = numOfQtImgs > 0 || numOfQtVideos > 0;
     
     const minHeight = 100;
@@ -184,13 +184,13 @@ const drawQtBasicElements = (
     ctx.strokeStyle = '#4d4d4d';
     ctx.lineWidth = 1;  // Set the stroke width (optional)
     const cornerRadius = 15; // Adjust corner radius as needed
-    console.log('>>>>> canvas_utils > drawQtBasicElements > mediaQtMaxHeight: ', mediaQtMaxHeight);
-    console.log('>>>>> canvas_utils > drawQtBasicElements > qtCanvasHeightOffset: ', qtCanvasHeightOffset);
+    // console.log('>>>>> canvas_utils > drawQtBasicElements > mediaQtMaxHeight: ', mediaQtMaxHeight);
+    // console.log('>>>>> canvas_utils > drawQtBasicElements > qtCanvasHeightOffset: ', qtCanvasHeightOffset);
     if (hasMedia) {
         const minMediaHeight = 80 + 175 + 30; // qtMediaOffset + qtMediaStaticHeight + qtBottomPadding
-        console.log('>>>>> canvas_utils > drawQtBasicElements > minMediaHeight: ', minMediaHeight);
+        // console.log('>>>>> canvas_utils > drawQtBasicElements > minMediaHeight: ', minMediaHeight);
         const determinedHeight = minMediaHeight > qtCanvasHeightOffset ? minMediaHeight : qtCanvasHeightOffset;
-        console.log('>>>>> canvas_utils > drawQtBasicElements > determinedHeight: ', determinedHeight);
+        // console.log('>>>>> canvas_utils > drawQtBasicElements > determinedHeight: ', determinedHeight);
         // ctx.strokeRect(qtXPosition, qtYPosition, mediaQtMaxWidth, determinedHeight - 20); // 20 offset to match the left and right margins
         ctx.beginPath();
         ctx.roundRect(qtXPosition, qtYPosition, mediaQtMaxWidth, determinedHeight - 20, cornerRadius);
@@ -233,7 +233,7 @@ const drawQtBasicElements = (
     ctx.restore();
     
     const qtMediaYPos = canvasHeightOffset + 80;
-    console.log('>>>>> canvas_utils > drawQtBasicElements > qtMediaYPos: ', qtMediaYPos);
+    // console.log('>>>>> canvas_utils > drawQtBasicElements > qtMediaYPos: ', qtMediaYPos);
 
     // or if (mainMedia1 !== undefined)
     if(numOfQtImgs > 0 && numOfQtVideos === 0) {
@@ -258,26 +258,26 @@ const getAdjustedAspectRatios = (
     const adjustedCanvasHeight = Math.ceil(canvasHeight / 2) * 2;
     const adjustedVideoWidth = Math.ceil(videoWidth / 2) * 2;
     const adjustedVideoHeight = Math.ceil(videoHeight / 2) * 2;
-    console.log('>>>>> getAdjustedAspectRatios > adjustedCanvasWidth: ', adjustedCanvasWidth);
-    console.log('>>>>> getAdjustedAspectRatios > adjustedCanvasHeight: ', adjustedCanvasHeight);
-    console.log('>>>>> getAdjustedAspectRatios > adjustedVideoWidth: ', adjustedVideoWidth);
-    console.log('>>>>> getAdjustedAspectRatios > adjustedVideoHeight: ', adjustedVideoHeight);
+    // console.log('>>>>> getAdjustedAspectRatios > adjustedCanvasWidth: ', adjustedCanvasWidth);
+    // console.log('>>>>> getAdjustedAspectRatios > adjustedCanvasHeight: ', adjustedCanvasHeight);
+    // console.log('>>>>> getAdjustedAspectRatios > adjustedVideoWidth: ', adjustedVideoWidth);
+    // console.log('>>>>> getAdjustedAspectRatios > adjustedVideoHeight: ', adjustedVideoHeight);
 
     const mediaObject = {
         height: adjustedVideoHeight,
         width: adjustedVideoWidth
     };
-    console.log('>>>>> getAdjustedAspectRatios > mediaObject: ', mediaObject);
+    // console.log('>>>>> getAdjustedAspectRatios > mediaObject: ', mediaObject);
 
     const scaledDownObject = scaleDownToFitAspectRatio(
         mediaObject, adjustedCanvasHeight, adjustedCanvasWidth, (canvasHeight - heightShim)
     );
-    console.log('>>>>> getAdjustedAspectRatios > scaledDownObject: ', scaledDownObject);
+    // console.log('>>>>> getAdjustedAspectRatios > scaledDownObject: ', scaledDownObject);
 
     const overlayX = (canvasWidth - scaledDownObject.width) / 2;
     const overlayY = canvasHeight - heightShim - 50;
-    console.log('>>>>> getAdjustedAspectRatios > overlayX: ', overlayX);
-    console.log('>>>>> getAdjustedAspectRatios > overlayY: ', overlayY);
+    // console.log('>>>>> getAdjustedAspectRatios > overlayX: ', overlayX);
+    // console.log('>>>>> getAdjustedAspectRatios > overlayY: ', overlayY);
 
     return {
         adjustedCanvasWidth, adjustedCanvasHeight,

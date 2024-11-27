@@ -276,18 +276,18 @@ function bakeImageAsFilterIntoVideo(
             const hasAudio = metadata.streams.some(stream => stream.codec_type === 'audio');
             // console.log('>>> bakeImageAsFilterIntoVideo > hasAudio: ', hasAudio);
 
-            console.log(`>>>>> bakeImageAsFilterIntoVideo > adjustedCanvasWidth:adjustedCanvasHeight: ${adjustedCanvasWidth}:${adjustedCanvasHeight}`);
-            console.log(`>>>>> bakeImageAsFilterIntoVideo > scaledDownObject.width:scaledDownObject.height: ${scaledDownObjectWidth}:${scaledDownObjectHeight}`);
+            // console.log(`>>>>> bakeImageAsFilterIntoVideo > adjustedCanvasWidth:adjustedCanvasHeight: ${adjustedCanvasWidth}:${adjustedCanvasHeight}`);
+            // console.log(`>>>>> bakeImageAsFilterIntoVideo > scaledDownObject.width:scaledDownObject.height: ${scaledDownObjectWidth}:${scaledDownObjectHeight}`);
 
-            const videoAspectRatio = videoWidth / videoHeight;
-            const canvasAspectRatio = canvasWidth / canvasHeight;
-            console.log('>>>>> bakeImageAsFilterIntoVideo > Video Aspect Ratio:', videoAspectRatio);
-            console.log('>>>>> bakeImageAsFilterIntoVideo > Canvas Aspect Ratio:', canvasAspectRatio);
+            // const videoAspectRatio = videoWidth / videoHeight;
+            // const canvasAspectRatio = canvasWidth / canvasHeight;
+            // console.log('>>>>> bakeImageAsFilterIntoVideo > Video Aspect Ratio:', videoAspectRatio);
+            // console.log('>>>>> bakeImageAsFilterIntoVideo > Canvas Aspect Ratio:', canvasAspectRatio);
             
-            const adjustedVideoAspectRatio = adjustedCanvasWidth / adjustedCanvasHeight;
-            const adjustedCanvasAspectRatio = adjustedCanvasWidth / adjustedCanvasHeight;
-            console.log('>>>>> bakeImageAsFilterIntoVideo > Adjusted Video Aspect Ratio:', adjustedVideoAspectRatio);
-            console.log('>>>>> bakeImageAsFilterIntoVideo > Adjusted Canvas Aspect Ratio:', adjustedCanvasAspectRatio);
+            // const adjustedVideoAspectRatio = adjustedCanvasWidth / adjustedCanvasHeight;
+            // const adjustedCanvasAspectRatio = adjustedCanvasWidth / adjustedCanvasHeight;
+            // console.log('>>>>> bakeImageAsFilterIntoVideo > Adjusted Video Aspect Ratio:', adjustedVideoAspectRatio);
+            // console.log('>>>>> bakeImageAsFilterIntoVideo > Adjusted Canvas Aspect Ratio:', adjustedCanvasAspectRatio);
 
             const widthPadding  = 40; // This is possibly what's screwing us up with the "squish" effect
             const command = ffmpeg()

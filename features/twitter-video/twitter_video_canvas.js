@@ -96,16 +96,16 @@ const createTwitterVideoCanvas = async (metadataJson) => {
         canvasHeightOffset: calculatedCanvasHeightFromDescLines,
     });
 
-    // Alpha layer masking
-    const {
-        adjustedCanvasWidth, adjustedCanvasHeight,
-        scaledDownObjectWidth, scaledDownObjectHeight,
-        overlayX, overlayY
-    } = getAdjustedAspectRatios(
-        maxCanvasWidth, canvasHeight,
-        mediaObject.width, mediaObject.height,
-        heightShim
-    );
+    // Alpha layer mask attempt... uncomment when implementing!
+    // const {
+    //     adjustedCanvasWidth, adjustedCanvasHeight,
+    //     scaledDownObjectWidth, scaledDownObjectHeight,
+    //     overlayX, overlayY
+    // } = getAdjustedAspectRatios(
+    //     maxCanvasWidth, canvasHeight,
+    //     mediaObject.width, mediaObject.height,
+    //     heightShim
+    // );
 
     // TODO: Utility function
     const videoUrl = metadata.mediaUrls[0];

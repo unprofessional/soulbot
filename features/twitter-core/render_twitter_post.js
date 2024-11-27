@@ -61,9 +61,9 @@ const sendWebhookProxyMsg = async (message, content, files = []) => {
     // Save user details for the webhook
     const nickname = message.member?.nickname;
     const displayName = nickname || message.author.globalName || message.author.username;
-    console.log('>>> sendWebhookProxyMsg > displayName: ', displayName);
+    // console.log('>>> sendWebhookProxyMsg > displayName: ', displayName);
     const avatarURL = message.author.avatarURL({ dynamic: true }) || message.author.displayAvatarURL(); // Call displayAvatarURL as a function to get the URL
-    console.log('>>> sendWebhookProxyMsg > avatarURL: ', avatarURL);
+    // console.log('>>> sendWebhookProxyMsg > avatarURL: ', avatarURL);
 
     // console.log('>>> sendWebhookProxyMsg > content: ', content);
 
@@ -73,7 +73,7 @@ const sendWebhookProxyMsg = async (message, content, files = []) => {
         avatar: avatarURL,
     });
 
-    console.log('>>> sendWebhookProxyMsg webhook created!');
+    // console.log('>>> sendWebhookProxyMsg webhook created!');
 
     // const modifiedContent = message.content.replace(/(https:\/\/\S+)/, '$1\u200B');
     const modifiedContent = message.content.replace(/(https:\/\/\S+)/, '<$1>');
@@ -88,13 +88,13 @@ const sendWebhookProxyMsg = async (message, content, files = []) => {
         files: files,
     });
 
-    console.log('>>> sendWebhookProxyMsg sent!');
+    // console.log('>>> sendWebhookProxyMsg sent!');
 
     await message.delete();
     // Delete the webhook to keep the channel clean
     await webhook.delete();
 
-    console.log('>>> sendWebhookProxyMsg deleted!');
+    // console.log('>>> sendWebhookProxyMsg deleted!');
 };
 
 const sendVideoReply = async (message, successFilePath, localWorkingPath) => {
