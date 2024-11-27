@@ -5,7 +5,7 @@ const {
     loadImage,
 } = require('canvas');
 const { buildPathsAndStuff } = require('../twitter-core/path_builder.js');
-const { getWrappedText, drawBasicElements } = require('../twitter-core/canvas_utils.js');
+const { getWrappedText, drawBasicElements, getAdjustedAspectRatios } = require('../twitter-core/canvas_utils.js');
 
 const createTwitterVideoCanvas = async (metadataJson) => {
     const metadata = {
@@ -19,17 +19,19 @@ const createTwitterVideoCanvas = async (metadataJson) => {
     };
     // console.log('>>>>> createTwitterVideoCanvas > metadata: ', metadata);
 
+    const baseFontUrl = '/Users/power/dev/devcru/soulbot/fonts';
+
     // Unnecessary if the font is loaded in the local OS
     // TODO: Investigate if `fonts/` is even necessary...
-    registerFont('/usr/share/fonts/truetype/noto/NotoColorEmoji.ttf', { family: 'Noto Color Emoji' });
+    registerFont(`${baseFontUrl}/truetype/noto/NotoColorEmoji.ttf`, { family: 'Noto Color Emoji' });
 
-    // For Gothic etc
-    registerFont('/usr/share/fonts/truetype/noto/NotoSansMath-Regular.ttf', { family: 'Noto Sans Math' });
+    // // For Gothic etc
+    registerFont(`${baseFontUrl}/truetype/noto/NotoSansMath-Regular.ttf`, { family: 'Noto Sans Math' });
 
-    // Register Noto Sans CJK Regular and Bold
-    registerFont('/usr/share/fonts/opentype/noto/NotoSansCJK-VF.ttf.ttc', { family: 'Noto Sans CJK' });
+    // // Register Noto Sans CJK Regular and Bold
+    registerFont(`${baseFontUrl}/opentype/noto/NotoSansCJK-VF.ttf.ttc`, { family: 'Noto Sans CJK' });
 
-    const globalFont = '"Noto Color Emoji", "Noto Sans CJK"';
+    const globalFont = '"Noto Color Emoji", "Noto Sans CJK", "Noto Sans Math"';
 
     const maxCanvasWidth = 600;
     let canvasHeight = 650;
@@ -92,6 +94,17 @@ const createTwitterVideoCanvas = async (metadataJson) => {
         yOffset: defaultYPosition,
         canvasHeightOffset: calculatedCanvasHeightFromDescLines,
     });
+
+    // Alpha layer masking
+    const {
+        adjustedCanvasWidth, adjustedCanvasHeight,
+        scaledDownObjectWidth, scaledDownObjectHeight,
+        overlayX, overlayY
+    } = getAdjustedAspectRatios(
+        maxCanvasWidth, canvasHeight,
+        mediaObject.width, mediaObject.height,
+        heightShim
+    );
 
     // TODO: Utility function
     const videoUrl = metadata.mediaUrls[0];

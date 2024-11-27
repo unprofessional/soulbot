@@ -1,5 +1,7 @@
+const { createCanvas } = require('canvas');
 const { cropSingleImage } = require("../twitter-post/crop_single_image");
 const { formatTwitterDate, filterMediaUrls } = require("./utils");
+const { scaleDownToFitAspectRatio } = require('../twitter-post/scale_down');
 
 function getWrappedText(ctx, text, maxWidth) {
 
@@ -32,14 +34,14 @@ function getWrappedText(ctx, text, maxWidth) {
             const words = paragraph.split(' ');
             let currentLine = words[0];
 
-            console.log('@@@ Current Font Before Wrapping:', ctx.font);
-            console.log('@@@ maxWidth:', maxWidth);
+            // console.log('@@@ Current Font Before Wrapping:', ctx.font);
+            // console.log('@@@ maxWidth:', maxWidth);
 
             for (let i = 1; i < words.length; i++) {
                 const word = words[i];
                 const width = ctx.measureText(currentLine + " " + word).width;
-                console.log('@@@ currentLine:', currentLine);
-                console.log('@@@ width:', width);
+                // console.log('@@@ currentLine:', currentLine);
+                // console.log('@@@ width:', width);
 
                 if (width < maxWidth) {
                     currentLine += " " + word;
@@ -245,10 +247,51 @@ const drawQtBasicElements = (
     
 };
 
+const getAdjustedAspectRatios = (
+    canvasWidth, canvasHeight,
+    videoWidth, videoHeight,
+    heightShim
+) => {
+
+    // Ensure the dimensions are even
+    const adjustedCanvasWidth = Math.ceil(canvasWidth / 2) * 2;
+    const adjustedCanvasHeight = Math.ceil(canvasHeight / 2) * 2;
+    const adjustedVideoWidth = Math.ceil(videoWidth / 2) * 2;
+    const adjustedVideoHeight = Math.ceil(videoHeight / 2) * 2;
+    console.log('>>>>> getAdjustedAspectRatios > adjustedCanvasWidth: ', adjustedCanvasWidth);
+    console.log('>>>>> getAdjustedAspectRatios > adjustedCanvasHeight: ', adjustedCanvasHeight);
+    console.log('>>>>> getAdjustedAspectRatios > adjustedVideoWidth: ', adjustedVideoWidth);
+    console.log('>>>>> getAdjustedAspectRatios > adjustedVideoHeight: ', adjustedVideoHeight);
+
+    const mediaObject = {
+        height: adjustedVideoHeight,
+        width: adjustedVideoWidth
+    };
+    console.log('>>>>> getAdjustedAspectRatios > mediaObject: ', mediaObject);
+
+    const scaledDownObject = scaleDownToFitAspectRatio(
+        mediaObject, adjustedCanvasHeight, adjustedCanvasWidth, (canvasHeight - heightShim)
+    );
+    console.log('>>>>> getAdjustedAspectRatios > scaledDownObject: ', scaledDownObject);
+
+    const overlayX = (canvasWidth - scaledDownObject.width) / 2;
+    const overlayY = canvasHeight - heightShim - 50;
+    console.log('>>>>> getAdjustedAspectRatios > overlayX: ', overlayX);
+    console.log('>>>>> getAdjustedAspectRatios > overlayY: ', overlayY);
+
+    return {
+        adjustedCanvasWidth, adjustedCanvasHeight,
+        scaledDownObjectWidth: scaledDownObject.width,
+        scaledDownObjectHeight: scaledDownObject.height,
+        overlayX, overlayY
+    };  
+};
+
 module.exports = {
     getWrappedText,
     drawDescription,
     drawTextWithSpacing,
     drawBasicElements,
     drawQtBasicElements,
+    getAdjustedAspectRatios,
 };
