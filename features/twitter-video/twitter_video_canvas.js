@@ -19,7 +19,8 @@ const createTwitterVideoCanvas = async (metadataJson) => {
     };
     // console.log('>>>>> createTwitterVideoCanvas > metadata: ', metadata);
 
-    const baseFontUrl = '/Users/power/dev/devcru/soulbot/fonts';
+    // const baseFontUrl = '/Users/power/dev/devcru/soulbot/fonts';
+    const baseFontUrl = '/usr/share/fonts';
 
     // Unnecessary if the font is loaded in the local OS
     // TODO: Investigate if `fonts/` is even necessary...
