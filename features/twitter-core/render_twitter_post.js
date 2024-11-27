@@ -121,7 +121,7 @@ const sendVideoReply = async (message, successFilePath, localWorkingPath) => {
         const errorMsg = err?.message;
         // console.error('!!! errorMsg: ', errorMsg);
         // console.error('!!! typeof err: ', typeof err);
-        // await cleanup([], [localWorkingPath]);
+        await cleanup([], [localWorkingPath]);
         if (errorMsg === 'Invalid Form Body' || errorName === 'DiscordAPIError[50035]') {
             console.log('>>> errorMsg is Invalid Form Body');
             await message.channel.send(
@@ -138,7 +138,7 @@ const sendVideoReply = async (message, successFilePath, localWorkingPath) => {
         );
     }
 
-    // await cleanup([], [localWorkingPath]);
+    await cleanup([], [localWorkingPath]);
 };
 
 const renderTwitterPost = async (metadataJson, message) => {
@@ -192,7 +192,7 @@ const renderTwitterPost = async (metadataJson, message) => {
             // await replyMsg.delete(); // don't even need to do this anymore
             await sendVideoReply(message, successFilePath, localWorkingPath);
         } catch (err) {
-            // await cleanup([], [localWorkingPath]);
+            await cleanup([], [localWorkingPath]);
         }
 
     } else {

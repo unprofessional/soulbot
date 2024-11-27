@@ -299,6 +299,14 @@ function bakeImageAsFilterIntoVideo(
                     `[frame][video]overlay=${overlayX + widthPadding/2}:${overlayY}[out]`
                 ])
                 .outputOptions(['-c:v libx264', '-map [out]']);
+                // .complexFilter([
+                //     `[0:v]scale=${adjustedCanvasWidth + widthPadding}:${adjustedCanvasHeight}[frame]`,
+                //     // Scale video to fit within the canvas placeholder
+                //     `[1:v]scale=${adjustedCanvasWidth + widthPadding}:${adjustedCanvasHeight}[scaledvideo]`,
+                //     // Overlay the canvas on top of the video
+                //     `[scaledvideo][frame]overlay=${overlayX + widthPadding/2}:${overlayY}[out]`
+                // ])
+                // .outputOptions(['-map [out]', '-c:v libx264', '-crf 23'])
 
             if (hasAudio) {
                 command.outputOptions(['-map 1:a', '-c:a copy']);
