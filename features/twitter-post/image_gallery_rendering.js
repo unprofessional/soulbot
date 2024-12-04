@@ -234,22 +234,33 @@ const renderImageGallery = async (
     }
     /** Three images */
     if(metadata.mediaUrls.length === 3) {
+        console.log('>>> renderImageGallery > calculatedCanvasHeightFromDescLines: ', calculatedCanvasHeightFromDescLines);
+        console.log('>>> renderImageGallery > heightShim: ', heightShim);
         const mainMedia1Url = metadata.mediaUrls[0];
         const mainMedia1 = await loadImage(mainMedia1Url);
         const firstXPosition = 20;
         const firstYPosition = calculatedCanvasHeightFromDescLines - heightShim - 50;
+        console.log('>>> renderImageGallery > mainMedia1Url: ', mainMedia1Url);
+        console.log('>>> renderImageGallery > firstXPosition: ', firstXPosition);
+        console.log('>>> renderImageGallery > firstYPosition: ', firstYPosition);
         cropSingleImage(ctx, mainMedia1, scaledMediaDimensions1.height, mediaMaxWidth / 2, firstXPosition, firstYPosition);
 
         const mainMedia2Url = metadata.mediaUrls[1];
         const mainMedia2 = await loadImage(mainMedia2Url);
         const secondXPosition = mediaMaxWidth / 2 + 25;
         const secondYPosition = calculatedCanvasHeightFromDescLines - heightShim - 50;
+        console.log('>>> renderImageGallery > mainMedia2Url: ', mainMedia2Url);
+        console.log('>>> renderImageGallery > secondXPosition: ', secondXPosition);
+        console.log('>>> renderImageGallery > secondYPosition: ', secondYPosition);
         cropSingleImage(ctx, mainMedia2, scaledMediaDimensions1.height / 2, mediaMaxWidth / 2, secondXPosition, secondYPosition);
 
         const mainMedia3Url = metadata.mediaUrls[2];
         const mainMedia3 = await loadImage(mainMedia3Url);
         const thirdXPosition = mediaMaxWidth / 2 + 25;
         const thirdYPosition = scaledMediaDimensions1.height / 2 + defaultYPosition - 5;
+        console.log('>>> renderImageGallery > mainMedia3Url: ', mainMedia3Url);
+        console.log('>>> renderImageGallery > thirdXPosition: ', thirdXPosition);
+        console.log('>>> renderImageGallery > thirdYPosition: ', thirdYPosition);
         cropSingleImage(ctx, mainMedia3, scaledMediaDimensions1.height / 2, mediaMaxWidth / 2, thirdXPosition, thirdYPosition);
     }
     /** Four images */
