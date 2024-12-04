@@ -38,6 +38,65 @@ const filterVideoUrls = (mediaUrls) => {
     });
 };
 
+/**
+ * 
+ * @param {*} message 
+ */
+const sendWebhookProxyMsg = async (message, content, files = []) => {
+
+    console.log('>>> sendWebhookProxyMsg reached!');
+
+    const embed = {
+        color: 0x0099ff,
+        author: {
+            name: `${message.author.username}`,
+            icon_url: message.author.displayAvatarURL(),
+        },
+        description: 'This is a test embed',
+        footer: {
+            text: 'Test footer text',
+        },
+    };
+
+    // Save user details for the webhook
+    const nickname = message.member?.nickname;
+    const displayName = nickname || message.author.globalName || message.author.username;
+    // console.log('>>> sendWebhookProxyMsg > displayName: ', displayName);
+    const avatarURL = message.author.avatarURL({ dynamic: true }) || message.author.displayAvatarURL(); // Call displayAvatarURL as a function to get the URL
+    // console.log('>>> sendWebhookProxyMsg > avatarURL: ', avatarURL);
+
+    // console.log('>>> sendWebhookProxyMsg > content: ', content);
+
+    // Create and use a webhook in the same channel
+    const webhook = await message.channel.createWebhook({
+        name: displayName,
+        avatar: avatarURL,
+    });
+
+    // console.log('>>> sendWebhookProxyMsg webhook created!');
+
+    // const modifiedContent = message.content.replace(/(https:\/\/\S+)/, '$1\u200B');
+    const modifiedContent = message.content.replace(/(https:\/\/\S+)/, '<$1>');
+
+
+    // Send the message through the webhook
+    await webhook.send({
+        content: modifiedContent,
+        // embeds: [embed],
+        username: displayName,
+        avatarURL: avatarURL,
+        files: files,
+    });
+
+    // console.log('>>> sendWebhookProxyMsg sent!');
+
+    await message.delete();
+    // Delete the webhook to keep the channel clean
+    await webhook.delete();
+
+    // console.log('>>> sendWebhookProxyMsg deleted!');
+};
+
 const sendVideoReply = async (message, successFilePath, localWorkingPath) => {
     console.log('Sending video reply');
     const files = [{
@@ -46,7 +105,15 @@ const sendVideoReply = async (message, successFilePath, localWorkingPath) => {
     }];
 
     try {
-        await message.reply({ files });
+        // await message.reply({ files });
+
+        try {
+            await sendWebhookProxyMsg(message, 'Here’s the Twitter canvas:', files);
+        } catch (err) {
+            await sendWebhookProxyMsg(message, `File(s) too large to attach! err: ${err}`);
+        }
+
+
     } catch (err) {
         console.error('!!! err: ', err);
         const errorName = err?.name;
@@ -62,6 +129,7 @@ const sendVideoReply = async (message, successFilePath, localWorkingPath) => {
                     content: `Encountered error trying to reply... the sender probably deleted the original message: ${err}`,
                 }
             );
+            
         }
         await message.channel.send(
             {
@@ -141,21 +209,17 @@ const renderTwitterPost = async (metadataJson, message) => {
             name: 'image.png',
         }];
 
-        // Create a MessageAttachment and send it
+        // Use the webhook proxy to send the message with the file
         try {
-            await message.reply(
-                {
-                    files,
-                }
-            );
+            await sendWebhookProxyMsg(message, 'Here’s the Twitter canvas:', files);
         } catch (err) {
-            await message.reply(
-                {
-                    content: `File(s) too large to attach! err: ${err}`,
-                }
-            );
+            await sendWebhookProxyMsg(message, `File(s) too large to attach! err: ${err}`);
         }
     }
+
+    // await sendWebhookProxyMsg(message); // TESTING
+    console.log('>>> renderTwitterPost proxy msg sent!');
+
 };
 
 module.exports = {

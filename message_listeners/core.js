@@ -6,10 +6,8 @@ const {
     removeGuild,
 } = require("../store/guilds.js");
 const {
-    members,
     addMember,
     getMembers,
-    // removeMember,
     nickNameIsAlreadySet,
 } = require("../store/members.js");
 const {
@@ -64,7 +62,7 @@ const isOwner = (message) => {
     return false;
 };
 
-const initializeListeners = (client) => {
+const initializeListeners = async (client) => {
 
     /**
      * Listen to every message...
@@ -75,7 +73,7 @@ const initializeListeners = (client) => {
         // THIS IS SPAMMY, ONLY USE FOR DEBUGGING!
         // console.log(`${message.guildId}: ${message.author.globalName}: ${message.content}`);
 
-        if(!isSelf(message)) { // not self, but can be anyone else
+        if(!isSelf(message) && !isABot(message)) { // not self or a bot, but can be anyone else
 
             await enforceGoldyRole(message);
 
@@ -119,7 +117,7 @@ const initializeListeners = (client) => {
             }
         }
 
-        if(!isSelf(message) && isOwner(message)) {
+        if(!isSelf(message) && !isABot(message) && isOwner(message)) {
 
             // console.log('>>>>> NOT self!!! Reading message!!');
 
@@ -173,7 +171,7 @@ const initializeListeners = (client) => {
                     message.channel.send(`You need to mention ONE user.`);
                     return;
                 }
-                const name = user.username;
+                // const name = user.username;
 
                 const contentArr = message.content.split('`');
                 let prefix = contentArr[1];
@@ -207,7 +205,7 @@ const initializeListeners = (client) => {
             }
 
             if(message.content.includes('!!! nicklist') && validationChecksHook(message)) {
-                const memberList = getMembers(client, guildId);
+                const memberList = await getMembers(client, guildId);
                 if(memberList.length > 0) {
                     message.channel.send(`Current controlled users: ${memberList}`);
                 } else {

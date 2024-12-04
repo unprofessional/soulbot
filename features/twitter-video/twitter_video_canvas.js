@@ -1,61 +1,11 @@
 const { existsSync, mkdirSync, writeFileSync } = require('node:fs');
 const {
-    // registerFont,
+    registerFont,
     createCanvas,
     loadImage,
 } = require('canvas');
 const { buildPathsAndStuff } = require('../twitter-core/path_builder.js');
-const TimeAgo = require('javascript-time-ago');
-const en = require('javascript-time-ago/locale/en');
-TimeAgo.addDefaultLocale(en);
-const timeAgo = new TimeAgo('en-US');
-
-function getWrappedText(ctx, text, maxWidth, hasVids) {
-    const lines = [];
-    const paragraphs = hasVids
-        ? [text.replace(/\n/g, ' ')]
-        : text.split('\n'); // Conditionally handle newlines
-
-    const shortTwitterUrlPattern = /https:\/\/t\.co\/\S+/g; // Ensure global match
-
-    paragraphs.forEach(paragraph => {
-        let matches = paragraph.match(shortTwitterUrlPattern); // Get the URL matches
-
-        if (matches) {
-            matches.forEach(url => {
-                paragraph = paragraph.replace(url, '').trim();
-            });
-        }
-
-        if (paragraph === '') {
-            lines.push(''); // Handle blank lines (paragraph breaks)
-        } else {
-            const words = paragraph.split(' ');
-            let currentLine = words[0];
-
-            for (let i = 1; i < words.length; i++) {
-                const word = words[i];
-                const width = ctx.measureText(currentLine + " " + word).width;
-
-                if (width < maxWidth) {
-                    currentLine += " " + word;
-                } else {
-                    lines.push(currentLine);
-                    currentLine = word;
-                }
-            }
-            lines.push(currentLine); // Push the last line of the paragraph
-        }
-    });
-
-    return lines;
-}
-
-const formatTwitterDate = (twitterDate) => {
-    // Parse the date string and create a Date object
-    const date = new Date(twitterDate);
-    return timeAgo.format(date); 
-};
+const { getWrappedText, drawBasicElements, getAdjustedAspectRatios } = require('../twitter-core/canvas_utils.js');
 
 const createTwitterVideoCanvas = async (metadataJson) => {
     const metadata = {
@@ -69,7 +19,21 @@ const createTwitterVideoCanvas = async (metadataJson) => {
     };
     // console.log('>>>>> createTwitterVideoCanvas > metadata: ', metadata);
 
-    const globalFont = 'Arial';
+    // const baseFontUrl = '/Users/power/dev/devcru/soulbot/fonts';
+    const baseFontUrl = '/usr/share/fonts';
+
+    // Unnecessary if the font is loaded in the local OS
+    // TODO: Investigate if `fonts/` is even necessary...
+    registerFont(`${baseFontUrl}/truetype/noto/NotoColorEmoji.ttf`, { family: 'Noto Color Emoji' });
+
+    // // For Gothic etc
+    registerFont(`${baseFontUrl}/truetype/noto/NotoSansMath-Regular.ttf`, { family: 'Noto Sans Math' });
+
+    // // Register Noto Sans CJK Regular and Bold
+    registerFont(`${baseFontUrl}/opentype/noto/NotoSansCJK-VF.ttf.ttc`, { family: 'Noto Sans CJK' });
+
+    const globalFont = '"Noto Color Emoji", "Noto Sans CJK", "Noto Sans Math"';
+
     const maxCanvasWidth = 600;
     let canvasHeight = 650;
     const canvas = createCanvas(maxCanvasWidth, canvasHeight);
@@ -78,15 +42,11 @@ const createTwitterVideoCanvas = async (metadataJson) => {
     // Fill background color
     ctx.fillStyle = '#000';
 
-    const numOfImgs = 1;//filterMediaUrls(metadata, ['jpg', 'jpeg', 'png']).length;
-    // console.log('>>>>> createTwitterCanvas > numOfImgs', numOfImgs);
-    const numOfVideos = 1;//filterMediaUrls(metadata, ['mp4']).length;
-    // console.log('>>>>> createTwitterCanvas > numOfVideos', numOfVideos);
-    let mediaMaxHeight = 600;//getMaxHeight(numOfImgs);
+    // Grants emoji color
+    ctx.textDrawingMode = "glyph";
+
+    let mediaMaxHeight = 600; // getMaxHeight(numOfImgs);
     let mediaMaxWidth = 560;
-    const hasImgs = numOfImgs > 0;
-    const hasVids = numOfVideos > 0;
-    const hasOnlyVideos = numOfVideos > 0 && !hasImgs;
 
     // Default media embed dimensions
     let mediaObject = {
@@ -94,81 +54,58 @@ const createTwitterVideoCanvas = async (metadataJson) => {
         width: 0,
     };
 
-    let heightShim = 0;
+    let heightShim = mediaMaxHeight;
 
-    if(hasImgs) {
-        // console.log('>>>>> has images!');
-        mediaObject = {
-            height: metadata.mediaExtended[0].size.height,
-            width: metadata.mediaExtended[0].size.width,
-        };
-        // console.log('>>>>> hasImgs > mediaObject: ', mediaObject);
-        if(metadata.mediaExtended.length < 2 && mediaObject.width > mediaObject.height) {
-            const newWidthRatio = mediaMaxWidth / mediaObject.width;
-            // console.log('>>>>> newWidthRatio: ', newWidthRatio);
-            const adjustedHeight = mediaObject.height * newWidthRatio;
-            // console.log('>>>>> adjustedHeight: ', adjustedHeight);
-            heightShim = adjustedHeight;    
-        } else {
-            heightShim = mediaMaxHeight;
-        }
+    // console.log('>>>>> has images!');
+    mediaObject = {
+        height: metadata.mediaExtended[0].size.height,
+        width: metadata.mediaExtended[0].size.width,
+    };
+
+    // if more wide than tall, heightShim should be scaled down with width ratio
+    if(mediaObject.width > mediaObject.height) {
+        const newWidthRatio = mediaMaxWidth / mediaObject.width;
+        const adjustedHeight = mediaObject.height * newWidthRatio;
+        heightShim = adjustedHeight;    
     }
 
     // Pre-process description with text wrapping
-    const maxCharLength = hasOnlyVideos ? 120 : 220; // Maximum width for text
-    const descLines = getWrappedText(ctx, metadata.description, maxCharLength, hasOnlyVideos);
+    ctx.font = '18px "Noto Color Emoji"'; // we need to set the intended font here first before calcing it
+    const descLines = getWrappedText(ctx, metadata.description, 420);
     let defaultYPosition = 110; // Starting Y position for description text
 
     // New height calcs
     const descLinesLength = descLines.length;
-    const calculatedCanvasHeightFromDescLines = hasVids && !hasImgs
-        ? maxCanvasWidth // Has vids, make square
-        : (descLinesLength * 30) + defaultYPosition + 40 + heightShim;
+    const calculatedCanvasHeightFromDescLines = (descLinesLength * 30) + defaultYPosition + 40 + heightShim;
 
     // console.log('>>>>> calculatedCanvasHeightFromDescLines: ', calculatedCanvasHeightFromDescLines);
 
     // Re-calc canvas
     ctx.canvas.height = calculatedCanvasHeightFromDescLines;
     ctx.fillRect(0, 0, maxCanvasWidth, calculatedCanvasHeightFromDescLines);
-
-    const drawBasicElements = (metadata, favicon, pfp) => {
-        // Load and draw favicon
-        ctx.drawImage(favicon, 550, 20, 32, 32);
-
-        // Draw nickname elements
-        ctx.fillStyle = 'white';
-        ctx.font = 'bold 18px ' + globalFont;
-        ctx.fillText(metadata.authorUsername, 100, 40);
-
-        // Draw username elements
-        ctx.fillStyle = 'gray';
-        ctx.font = '18px ' + globalFont;
-        ctx.fillText(`@${metadata.authorNick}`, 100, 60);
-  
-        // Draw description (post text wrap handling)
-        ctx.fillStyle = 'white';
-        ctx.font = !hasImgs && hasVids ? '36px ' + globalFont : '24px ' + globalFont;
-        const lineHeight = hasOnlyVideos ? 50 : 30;
-        const descXPosition = !hasImgs && hasVids ? 80 : 30;
-        descLines.forEach(line => {
-            ctx.fillText(line, descXPosition, defaultYPosition);
-            defaultYPosition += lineHeight;
-        });
-
-        // Draw date elements
-        ctx.fillStyle = 'gray';
-        ctx.font = '18px ' + globalFont;
-        ctx.fillText(`${formatTwitterDate(metadata.date)} from this posting`, 30, calculatedCanvasHeightFromDescLines - 20);
-  
-        // Draw pfp image
-        ctx.drawImage(pfp, 20, 20, 50, 50);
-    };
   
     const favIconUrl = 'https://abs.twimg.com/favicons/twitter.3.ico';
     const favicon = await loadImage(favIconUrl);
     const pfpUrl = metadata.pfpUrl;
     const pfp = await loadImage(pfpUrl);
-    drawBasicElements(metadata, favicon, pfp);
+
+    // Standard Post
+    drawBasicElements(ctx, globalFont, metadata, favicon, pfp, descLines, {
+        hasImgs: true, hasVids: true,
+        yOffset: defaultYPosition,
+        canvasHeightOffset: calculatedCanvasHeightFromDescLines,
+    });
+
+    // Alpha layer mask attempt... uncomment when implementing!
+    // const {
+    //     adjustedCanvasWidth, adjustedCanvasHeight,
+    //     scaledDownObjectWidth, scaledDownObjectHeight,
+    //     overlayX, overlayY
+    // } = getAdjustedAspectRatios(
+    //     maxCanvasWidth, canvasHeight,
+    //     mediaObject.width, mediaObject.height,
+    //     heightShim
+    // );
 
     // TODO: Utility function
     const videoUrl = metadata.mediaUrls[0];
@@ -179,7 +116,7 @@ const createTwitterVideoCanvas = async (metadataJson) => {
 
     // Write the buffer to a file
     /**
-     * TODO TODO TODO — use temp filename first
+     * TODO TODO TODO — use temp filename first... UUID? then track state
      */
     const processingDir = '/tempdata';
     const pathObj = buildPathsAndStuff(processingDir, videoUrl);

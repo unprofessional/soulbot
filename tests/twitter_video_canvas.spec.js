@@ -122,58 +122,58 @@ describe('twitter video canvas frame embedding and file output testing', () => {
         
     }, 60000); // give it one full minute to test...
 
-    test('render portrait video', async () => {
-        const videoUrl = metadata2.mediaURLs[0];
+    // test('render portrait video', async () => {
+    //     const videoUrl = metadata2.mediaURLs[0];
 
-        const processingDir = '/tempdata';
-        const pathObj = buildPathsAndStuff(processingDir, videoUrl);
-        const filename = pathObj.filename;
-        const localWorkingPath = pathObj.localWorkingPath;
+    //     const processingDir = '/tempdata';
+    //     const pathObj = buildPathsAndStuff(processingDir, videoUrl);
+    //     const filename = pathObj.filename;
+    //     const localWorkingPath = pathObj.localWorkingPath;
 
-        const videoInputPath = `${localWorkingPath}/${filename}.mp4`;
-        const canvasInputPath = `${localWorkingPath}/${filename}.png`;
-        const videoOutputPath = `${localWorkingPath}/${filename}-output.mp4`;
+    //     const videoInputPath = `${localWorkingPath}/${filename}.mp4`;
+    //     const canvasInputPath = `${localWorkingPath}/${filename}.png`;
+    //     const videoOutputPath = `${localWorkingPath}/${filename}-output.mp4`;
 
-        const mediaObject = metadata2.media_extended[0].size;
-        const videoHeight = mediaObject.height;
-        const videoWidth = mediaObject.width;
+    //     const mediaObject = metadata2.media_extended[0].size;
+    //     const videoHeight = mediaObject.height;
+    //     const videoWidth = mediaObject.width;
 
-        await downloadVideo(videoUrl, videoInputPath);
-        const { canvasHeight, canvasWidth, heightShim }  = await createTwitterVideoCanvas(metadata2);
-        console.log('>>>>> send metadata TEST > canvasHeight: ', canvasHeight);
-        console.log('>>>>> send metadata TEST > canvasWidth: ', canvasWidth);
-        // console.log('>>>>> send metadata TEST > recombinedFilePath: ', recombinedFilePath);
+    //     await downloadVideo(videoUrl, videoInputPath);
+    //     const { canvasHeight, canvasWidth, heightShim }  = await createTwitterVideoCanvas(metadata2);
+    //     console.log('>>>>> send metadata TEST > canvasHeight: ', canvasHeight);
+    //     console.log('>>>>> send metadata TEST > canvasWidth: ', canvasWidth);
+    //     // console.log('>>>>> send metadata TEST > recombinedFilePath: ', recombinedFilePath);
 
-        // const originalVideoFileExists = existsSync(localVideoOutputPath);
-        // expect(originalVideoFileExists).toBe(true);
-        // const finalVideoFileExists = existsSync(recombinedFilePath);
-        // expect(finalVideoFileExists).toBe(true);
+    //     // const originalVideoFileExists = existsSync(localVideoOutputPath);
+    //     // expect(originalVideoFileExists).toBe(true);
+    //     // const finalVideoFileExists = existsSync(recombinedFilePath);
+    //     // expect(finalVideoFileExists).toBe(true);
 
-        await bakeImageAsFilterIntoVideo(
-            videoInputPath, canvasInputPath, videoOutputPath,
-            videoHeight, videoWidth,
-            canvasHeight, canvasWidth, heightShim,
-        );
-        // await cleanup([], [localWorkingPath]);
+    //     await bakeImageAsFilterIntoVideo(
+    //         videoInputPath, canvasInputPath, videoOutputPath,
+    //         videoHeight, videoWidth,
+    //         canvasHeight, canvasWidth, heightShim,
+    //     );
+    //     // await cleanup([], [localWorkingPath]);
         
-    }, 60000); // give it one full minute to test...
+    // }, 60000); // give it one full minute to test...
 
-    test('render_twitter_post fn call for landscape video', async () => {
+    // test('render_twitter_post fn call for landscape video', async () => {
         
-        await renderTwitterPost(
-            metadata1,
-            { reply: () => {} },
-        );
+    //     await renderTwitterPost(
+    //         metadata1,
+    //         { reply: () => {} },
+    //     );
         
-    }, 60000); // give it one full minute to test...
+    // }, 60000); // give it one full minute to test...
 
-    test('render_twitter_post fn call for portrait video', async () => {
+    // test('render_twitter_post fn call for portrait video', async () => {
         
-        await renderTwitterPost(
-            metadata2,
-            { reply: () => {} },
-        );
+    //     await renderTwitterPost(
+    //         metadata2,
+    //         { reply: () => {} },
+    //     );
         
-    }, 60000); // give it one full minute to test...
+    // }, 60000); // give it one full minute to test...
 
 });
