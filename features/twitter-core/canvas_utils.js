@@ -244,6 +244,7 @@ const drawQtBasicElements = (
     const qtMediaYPos = canvasHeightOffset + 80;
     // console.log('>>>>> canvas_utils > drawQtBasicElements > qtMediaYPos: ', qtMediaYPos);
 
+    console.log('>>>>> canvas_utils > drawQtBasicElements > mainMedia1: ', mainMedia1);
     // or if (mainMedia1 !== undefined)
     if (mainMedia1.height && mainMedia1.width) {
         console.log('>>>>> canvas_utils > drawQtBasicElements > HAS IMGS BUT NO VIDS');
