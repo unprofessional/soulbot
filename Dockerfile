@@ -30,7 +30,7 @@
 # # cmd to start service
 # CMD ["npm", "start"]
 
-FROM nvidia/cuda:11.8-runtime-bullseye
+FROM nvidia/cuda:11.8.0-runtime-ubuntu20.04
 
 # Install Node.js
 RUN apt-get update && apt-get install -y curl
