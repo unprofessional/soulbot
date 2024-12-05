@@ -5,7 +5,7 @@ const {
 } = require('canvas');
 const { renderImageGallery } = require('./image_gallery_rendering.js');
 const { scaleDownToFitAspectRatio } = require('./scale_down.js');
-const { getWrappedText, drawBasicElements, drawQtBasicElements } = require('../twitter-core/canvas_utils.js');
+const { getWrappedText, drawBasicElements, drawQtBasicElements, getYPosFromLineHeight } = require('../twitter-core/canvas_utils.js');
 const { filterMediaUrls, removeTCOLink } = require('../twitter-core/utils.js');
 
 const createTwitterCanvas = async (metadataJson, isImage) => {
@@ -165,7 +165,9 @@ const createTwitterCanvas = async (metadataJson, isImage) => {
     // Pre-process description with text wrapping
     const maxCharLength = hasOnlyVideos ? 120 : 240; // Maximum width for text
     const descLines = getWrappedText(ctx, metadata.description, maxCharLength);
-    let defaultYPosition = 110; // Starting Y position for description text
+    const defaultYPosition = 110; // Starting Y position for description text
+    const calculatedYPos = getYPosFromLineHeight(descLines, defaultYPosition);
+    console.log('>>>>> twitter_canvas > defaultYPosition: ', defaultYPosition);
 
     // New height calcs
     const descLinesLength = descLines.length;
@@ -173,11 +175,11 @@ const createTwitterCanvas = async (metadataJson, isImage) => {
     let calculatedCanvasHeightFromDescLines = hasVids && !hasImgs
         ? maxCanvasWidth // Has vids, make square
         : (descLinesLength * 30) + defaultYPosition + 40 + heightShim;
-    // console.log('>>>>> twitter_canvas > calculatedCanvasHeightFromDescLines[1]: ', calculatedCanvasHeightFromDescLines);
+    console.log('>>>>> twitter_canvas > calculatedCanvasHeightFromDescLines[1]: ', calculatedCanvasHeightFromDescLines);
     if(!metadata.description) {
         calculatedCanvasHeightFromDescLines = calculatedCanvasHeightFromDescLines - 40;
     }
-    // console.log('>>>>> twitter_canvas > calculatedCanvasHeightFromDescLines[2]: ', calculatedCanvasHeightFromDescLines);
+    console.log('>>>>> twitter_canvas > calculatedCanvasHeightFromDescLines[2]: ', calculatedCanvasHeightFromDescLines);
 
     let qtCalculatedCanvasHeightFromDescLines = 0;
     if(qtMetadata) {
@@ -268,7 +270,7 @@ const createTwitterCanvas = async (metadataJson, isImage) => {
             heightShim,
             mediaMaxHeight,
             mediaMaxWidth,
-            defaultYPosition,
+            calculatedYPos,
         );
     }
 

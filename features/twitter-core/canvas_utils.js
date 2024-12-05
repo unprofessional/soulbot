@@ -56,6 +56,15 @@ function getWrappedText(ctx, text, maxWidth) {
     return lines;
 }
 
+// TODO: Refactor with the below drawDescription...
+const getYPosFromLineHeight = (descLines, y) => {
+    const lineHeight = 30;
+    descLines.forEach(line => {
+        y += lineHeight;
+    });
+    return y;
+};
+
 // ....hasOnlyVideos might be the wrong descriptor... could be QTVideo?????
 const drawDescription = (ctx, hasImgs, hasVids, descLines, font, x, y, isQt) => {
     // console.log('>>>>> canvas_utils > drawDescription > descLines: ', descLines);
@@ -168,8 +177,8 @@ const drawQtBasicElements = (
     // console.log('>>>>> canvas_utils > drawQtBasicElements > numOfQtVideos', numOfQtVideos);
     const hasMedia = numOfQtImgs > 0 || numOfQtVideos > 0;
     
-    const minHeight = 100;
-    let mediaQtMaxHeight = hasMedia ? 300 : minHeight;
+    // const minHeight = 100;
+    // let mediaQtMaxHeight = hasMedia ? 300 : minHeight;
     let mediaQtMaxWidth = 560;
     
     // Pre-process description with text wrapping
@@ -289,6 +298,7 @@ const getAdjustedAspectRatios = (
 
 module.exports = {
     getWrappedText,
+    getYPosFromLineHeight, // TODO: See method docs... refactor with drawDescription
     drawDescription,
     drawTextWithSpacing,
     drawBasicElements,
