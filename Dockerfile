@@ -41,8 +41,11 @@ RUN apt-get update && apt-get install -y curl
 RUN curl -fsSL https://deb.nodesource.com/setup_18.x | bash -
 RUN apt-get install -y nodejs
 
-# Install build tools and dependencies for Canvas
+# Install necessary libraries and dependencies
 RUN apt-get update && apt-get install -y \
+    wget \
+    software-properties-common \
+    nvidia-cuda-toolkit \
     build-essential \
     libcairo2-dev \
     libpango1.0-dev \
@@ -61,13 +64,16 @@ RUN apt-get update && apt-get install -y \
     libx265-dev \
     libnuma-dev \
     nasm \
-    git
+    git \
+    unzip
 
-# Install dependencies for FFmpeg and NVENC
-RUN apt-get install -y \
-    wget \
-    software-properties-common \
-    nvidia-cuda-toolkit
+# Download and install the NVIDIA Video Codec SDK
+WORKDIR /tmp
+RUN wget https://developer.nvidia.com/video-sdk-12-0-16 \
+    -O Video_Codec_SDK.zip && \
+    unzip Video_Codec_SDK.zip && \
+    cp Video_Codec_SDK_12.0.16/Interfaces/* /usr/local/cuda/include/ && \
+    rm -rf /tmp/*
 
 # Build FFmpeg with NVENC support
 WORKDIR /ffmpeg
@@ -88,8 +94,8 @@ RUN ./configure \
     --enable-libmp3lame \
     --enable-libvorbis \
     --enable-libtheora \
-    --enable-libass
-RUN make -j$(nproc) && make install
+    --enable-libass && \
+    make -j$(nproc) && make install
 
 # Verify FFmpeg installation
 RUN ffmpeg -codecs | grep nvenc
