@@ -1,3 +1,62 @@
+# apiVersion: apps/v1
+# kind: Deployment
+# metadata:
+#   name: soulbot
+# spec:
+#   replicas: 1
+#   selector:
+#     matchLabels:
+#       app: soulbot
+#   template:
+#     metadata:
+#       labels:
+#         app: soulbot
+#     spec:
+#       containers:
+#       - name: soulbot
+#         image: unprofessional/soulbot:rc-0.0.1
+#         imagePullPolicy: Never
+#         ports:
+#         - containerPort: 80  # HTTP
+#         # - containerPort: 443 # HTTPS
+#         # only uncomment above if using soulbot-ingress.yaml service as a
+#         # Kubernetes ingress controller
+#         env:
+#         - name: DISCORD_BOT_TOKEN
+#           valueFrom:
+#             secretKeyRef:
+#               name: discord-bot-secret
+#               key: DISCORD_BOT_TOKEN
+#         - name: STORE_PATH
+#           value: "/data"
+#         - name: GUILD_STORE_FILE
+#           value: "guild.store.json"
+#         - name: CHANNEL_STORE_FILE
+#           value: "channel.store.json"
+#         - name: MEMBER_STORE_FILE
+#           value: "member.store.json"
+#         - name: FEATURE_STORE_FILE
+#           value: "feature.store.json"
+#         - name: HOST
+#           value: "localhost"
+#         - name: PORT
+#           value: "5432"
+#         - name: PG_USER
+#           value: "postgres"
+#         # PG_PASS should be a secret
+#         volumeMounts:
+#         - name: data-volume
+#           mountPath: /data
+#         - name: temp-data-volume
+#           mountPath: /tempdata
+#       volumes:
+#       - name: data-volume
+#         persistentVolumeClaim:
+#           claimName: soulbot-pvc
+#       - name: temp-data-volume
+#         emptyDir:
+#           medium: Memory
+
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -18,9 +77,6 @@ spec:
         imagePullPolicy: Never
         ports:
         - containerPort: 80  # HTTP
-        # - containerPort: 443 # HTTPS
-        # only uncomment above if using soulbot-ingress.yaml service as a
-        # Kubernetes ingress controller
         env:
         - name: DISCORD_BOT_TOKEN
           valueFrom:
@@ -43,12 +99,14 @@ spec:
           value: "5432"
         - name: PG_USER
           value: "postgres"
-        # PG_PASS should be a secret
         volumeMounts:
         - name: data-volume
           mountPath: /data
         - name: temp-data-volume
           mountPath: /tempdata
+        resources:
+          limits:
+            nvidia.com/gpu: 2 # Request 1 GPU
       volumes:
       - name: data-volume
         persistentVolumeClaim:

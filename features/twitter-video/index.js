@@ -243,6 +243,96 @@ const applyRoundedCornersToVideo = (inputVideo, maskImage, outputVideo) => {
     });
 };
 
+// function bakeImageAsFilterIntoVideo(
+//     videoInputPath, canvasInputPath, videoOutputPath,
+//     videoHeight, videoWidth,
+//     canvasHeight, canvasWidth, heightShim,
+// ) {
+//     return new Promise((resolve, reject) => {
+//         // Check if input files exist
+//         if (!existsSync(videoInputPath)) {
+//             return reject(new Error(`Video input file does not exist: ${videoInputPath}`));
+//         }
+//         if (!existsSync(canvasInputPath)) {
+//             return reject(new Error(`Canvas input file does not exist: ${canvasInputPath}`));
+//         }
+
+//         const {
+//             adjustedCanvasWidth, adjustedCanvasHeight,
+//             scaledDownObjectWidth, scaledDownObjectHeight,
+//             overlayX, overlayY
+//         } = getAdjustedAspectRatios(
+//             canvasWidth, canvasHeight,
+//             videoWidth, videoHeight,
+//             heightShim
+//         );
+
+//         // Check if video has an audio stream
+//         ffmpeg.ffprobe(videoInputPath, (err, metadata) => {
+//             if (err) {
+//                 return reject(new Error(`Failed to probe video: ${err.message}`));
+//             }
+
+//             const hasAudio = metadata.streams.some(stream => stream.codec_type === 'audio');
+//             // console.log('>>> bakeImageAsFilterIntoVideo > hasAudio: ', hasAudio);
+
+//             // console.log(`>>>>> bakeImageAsFilterIntoVideo > adjustedCanvasWidth:adjustedCanvasHeight: ${adjustedCanvasWidth}:${adjustedCanvasHeight}`);
+//             // console.log(`>>>>> bakeImageAsFilterIntoVideo > scaledDownObject.width:scaledDownObject.height: ${scaledDownObjectWidth}:${scaledDownObjectHeight}`);
+
+//             // const videoAspectRatio = videoWidth / videoHeight;
+//             // const canvasAspectRatio = canvasWidth / canvasHeight;
+//             // console.log('>>>>> bakeImageAsFilterIntoVideo > Video Aspect Ratio:', videoAspectRatio);
+//             // console.log('>>>>> bakeImageAsFilterIntoVideo > Canvas Aspect Ratio:', canvasAspectRatio);
+            
+//             // const adjustedVideoAspectRatio = adjustedCanvasWidth / adjustedCanvasHeight;
+//             // const adjustedCanvasAspectRatio = adjustedCanvasWidth / adjustedCanvasHeight;
+//             // console.log('>>>>> bakeImageAsFilterIntoVideo > Adjusted Video Aspect Ratio:', adjustedVideoAspectRatio);
+//             // console.log('>>>>> bakeImageAsFilterIntoVideo > Adjusted Canvas Aspect Ratio:', adjustedCanvasAspectRatio);
+
+//             const widthPadding  = 40; // This is possibly what's screwing us up with the "squish" effect
+//             const command = ffmpeg()
+//                 .input(canvasInputPath)
+//                 .input(videoInputPath)
+//                 .complexFilter([
+//                     `[0:v]scale=${adjustedCanvasWidth + widthPadding}:${adjustedCanvasHeight}[frame]`,
+//                     `[1:v]scale=${scaledDownObjectWidth}:${scaledDownObjectHeight}[video]`,
+//                     `[frame][video]overlay=${overlayX + widthPadding/2}:${overlayY}[out]`
+//                 ])
+//                 .outputOptions(['-c:v libx264', '-map [out]']);
+//                 // .complexFilter([
+//                 //     `[0:v]scale=${adjustedCanvasWidth + widthPadding}:${adjustedCanvasHeight}[frame]`,
+//                 //     // Scale video to fit within the canvas placeholder
+//                 //     `[1:v]scale=${adjustedCanvasWidth + widthPadding}:${adjustedCanvasHeight}[scaledvideo]`,
+//                 //     // Overlay the canvas on top of the video
+//                 //     `[scaledvideo][frame]overlay=${overlayX + widthPadding/2}:${overlayY}[out]`
+//                 // ])
+//                 // .outputOptions(['-map [out]', '-c:v libx264', '-crf 23'])
+
+//             if (hasAudio) {
+//                 command.outputOptions(['-map 1:a', '-c:a copy']);
+//             }
+
+//             command.output(videoOutputPath)
+//                 .on('start', commandLine => {
+//                     console.log('@@@@@ Spawned FFmpeg with command: ' + commandLine);
+//                 })
+//                 // .on('stderr', stderrLine => {
+//                 //     console.log('@@@@@ FFmpeg stderr: ' + stderrLine);
+//                 // })
+//                 .on('end', function() {
+//                     console.log('Overlay process completed.');
+//                     const successFilePath = videoOutputPath;
+//                     resolve(successFilePath); // Resolve the promise when the process is completed
+//                 })
+//                 .on('error', function(err) {
+//                     console.error('An error occurred: ' + err.message);
+//                     reject(err); // Reject the promise on error
+//                 })
+//                 .run();
+//         });
+//     });
+// }
+
 function bakeImageAsFilterIntoVideo(
     videoInputPath, canvasInputPath, videoOutputPath,
     videoHeight, videoWidth,
@@ -274,20 +364,6 @@ function bakeImageAsFilterIntoVideo(
             }
 
             const hasAudio = metadata.streams.some(stream => stream.codec_type === 'audio');
-            // console.log('>>> bakeImageAsFilterIntoVideo > hasAudio: ', hasAudio);
-
-            // console.log(`>>>>> bakeImageAsFilterIntoVideo > adjustedCanvasWidth:adjustedCanvasHeight: ${adjustedCanvasWidth}:${adjustedCanvasHeight}`);
-            // console.log(`>>>>> bakeImageAsFilterIntoVideo > scaledDownObject.width:scaledDownObject.height: ${scaledDownObjectWidth}:${scaledDownObjectHeight}`);
-
-            // const videoAspectRatio = videoWidth / videoHeight;
-            // const canvasAspectRatio = canvasWidth / canvasHeight;
-            // console.log('>>>>> bakeImageAsFilterIntoVideo > Video Aspect Ratio:', videoAspectRatio);
-            // console.log('>>>>> bakeImageAsFilterIntoVideo > Canvas Aspect Ratio:', canvasAspectRatio);
-            
-            // const adjustedVideoAspectRatio = adjustedCanvasWidth / adjustedCanvasHeight;
-            // const adjustedCanvasAspectRatio = adjustedCanvasWidth / adjustedCanvasHeight;
-            // console.log('>>>>> bakeImageAsFilterIntoVideo > Adjusted Video Aspect Ratio:', adjustedVideoAspectRatio);
-            // console.log('>>>>> bakeImageAsFilterIntoVideo > Adjusted Canvas Aspect Ratio:', adjustedCanvasAspectRatio);
 
             const widthPadding  = 40; // This is possibly what's screwing us up with the "squish" effect
             const command = ffmpeg()
@@ -298,15 +374,8 @@ function bakeImageAsFilterIntoVideo(
                     `[1:v]scale=${scaledDownObjectWidth}:${scaledDownObjectHeight}[video]`,
                     `[frame][video]overlay=${overlayX + widthPadding/2}:${overlayY}[out]`
                 ])
-                .outputOptions(['-c:v libx264', '-map [out]']);
-                // .complexFilter([
-                //     `[0:v]scale=${adjustedCanvasWidth + widthPadding}:${adjustedCanvasHeight}[frame]`,
-                //     // Scale video to fit within the canvas placeholder
-                //     `[1:v]scale=${adjustedCanvasWidth + widthPadding}:${adjustedCanvasHeight}[scaledvideo]`,
-                //     // Overlay the canvas on top of the video
-                //     `[scaledvideo][frame]overlay=${overlayX + widthPadding/2}:${overlayY}[out]`
-                // ])
-                // .outputOptions(['-map [out]', '-c:v libx264', '-crf 23'])
+                // Use NVIDIA's NVENC for encoding
+                .outputOptions(['-c:v h264_nvenc', '-preset fast', '-map [out]']);
 
             if (hasAudio) {
                 command.outputOptions(['-map 1:a', '-c:a copy']);
@@ -316,9 +385,6 @@ function bakeImageAsFilterIntoVideo(
                 .on('start', commandLine => {
                     console.log('@@@@@ Spawned FFmpeg with command: ' + commandLine);
                 })
-                // .on('stderr', stderrLine => {
-                //     console.log('@@@@@ FFmpeg stderr: ' + stderrLine);
-                // })
                 .on('end', function() {
                     console.log('Overlay process completed.');
                     const successFilePath = videoOutputPath;
@@ -332,6 +398,7 @@ function bakeImageAsFilterIntoVideo(
         });
     });
 }
+
 
 module.exports = {
     downloadVideo,
