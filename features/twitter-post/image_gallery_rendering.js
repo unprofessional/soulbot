@@ -261,6 +261,8 @@ const renderImageGallery = async (
         console.log('>>> renderImageGallery > mainMedia3Url: ', mainMedia3Url);
         console.log('>>> renderImageGallery > thirdXPosition: ', thirdXPosition);
         console.log('>>> renderImageGallery > thirdYPosition: ', thirdYPosition);
+        console.log('>>> renderImageGallery > scaledMediaDimensions1: ', scaledMediaDimensions1);
+        console.log('>>> renderImageGallery > defaultYPosition: ', defaultYPosition);
         cropSingleImage(ctx, mainMedia3, scaledMediaDimensions1.height / 2, mediaMaxWidth / 2, thirdXPosition, thirdYPosition);
     }
     /** Four images */
