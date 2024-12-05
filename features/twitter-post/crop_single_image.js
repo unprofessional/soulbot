@@ -19,20 +19,20 @@ const cropSingleImage = (ctx, mainMedia1, maxHeight, maxWidth, xPosition, yPosit
     const sy = (mainMedia1.height - cropHeight) / 2;
 
     // Create a clipping path with rounded corners
-    const cornerRadius = 25;
-    ctx.save(); // Save the current context state
-    ctx.beginPath();
-    ctx.moveTo(xPosition + cornerRadius, yPosition); // Start at the top-left corner
-    ctx.lineTo(xPosition + maxWidth - cornerRadius, yPosition); // Top-right corner
-    ctx.quadraticCurveTo(xPosition + maxWidth, yPosition, xPosition + maxWidth, yPosition + cornerRadius); // Top-right curve
-    ctx.lineTo(xPosition + maxWidth, yPosition + maxHeight - cornerRadius); // Bottom-right corner
-    ctx.quadraticCurveTo(xPosition + maxWidth, yPosition + maxHeight, xPosition + maxWidth - cornerRadius, yPosition + maxHeight); // Bottom-right curve
-    ctx.lineTo(xPosition + cornerRadius, yPosition + maxHeight); // Bottom-left corner
-    ctx.quadraticCurveTo(xPosition, yPosition + maxHeight, xPosition, yPosition + maxHeight - cornerRadius); // Bottom-left curve
-    ctx.lineTo(xPosition, yPosition + cornerRadius); // Top-left corner
-    ctx.quadraticCurveTo(xPosition, yPosition, xPosition + cornerRadius, yPosition); // Top-left curve
-    ctx.closePath();
-    ctx.clip(); // Apply the clipping path
+    // const cornerRadius = 25;
+    // ctx.save(); // Save the current context state
+    // ctx.beginPath();
+    // ctx.moveTo(xPosition + cornerRadius, yPosition); // Start at the top-left corner
+    // ctx.lineTo(xPosition + maxWidth - cornerRadius, yPosition); // Top-right corner
+    // ctx.quadraticCurveTo(xPosition + maxWidth, yPosition, xPosition + maxWidth, yPosition + cornerRadius); // Top-right curve
+    // ctx.lineTo(xPosition + maxWidth, yPosition + maxHeight - cornerRadius); // Bottom-right corner
+    // ctx.quadraticCurveTo(xPosition + maxWidth, yPosition + maxHeight, xPosition + maxWidth - cornerRadius, yPosition + maxHeight); // Bottom-right curve
+    // ctx.lineTo(xPosition + cornerRadius, yPosition + maxHeight); // Bottom-left corner
+    // ctx.quadraticCurveTo(xPosition, yPosition + maxHeight, xPosition, yPosition + maxHeight - cornerRadius); // Bottom-left curve
+    // ctx.lineTo(xPosition, yPosition + cornerRadius); // Top-left corner
+    // ctx.quadraticCurveTo(xPosition, yPosition, xPosition + cornerRadius, yPosition); // Top-left curve
+    // ctx.closePath();
+    // ctx.clip(); // Apply the clipping path
 
     // Draw the cropped image on the canvas
     ctx.drawImage(
