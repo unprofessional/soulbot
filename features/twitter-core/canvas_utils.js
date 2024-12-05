@@ -246,11 +246,12 @@ const drawQtBasicElements = (
 
     // or if (mainMedia1 !== undefined)
     if(numOfQtImgs > 0 && numOfQtVideos === 0) {
+        console.log('>>>>> canvas_utils > drawQtBasicElements > HAS IMGS BUT NO VIDS');
         const maxHeight = 175;
         const maxWidth = 175;
         const qtXPosFinal = qtXPosition + 20;
         // Create a clipping path with rounded corners
-        const cornerRadius = 25;
+        const cornerRadius = 15;
         ctx.save(); // Save the current context state
         ctx.beginPath();
         ctx.moveTo(qtXPosFinal + cornerRadius, qtMediaYPos); // Start at the top-left corner
@@ -270,6 +271,7 @@ const drawQtBasicElements = (
 
     // or if (qtVidThumbnail)
     if(numOfQtVideos > 0) {
+        console.log('>>>>> canvas_utils > drawQtBasicElements > HAS VIDS BUT IMGS DONT MATTER');
         const maxHeight = 175;
         const maxWidth = 175;
         const qtXPosFinal = qtXPosition + 20;
