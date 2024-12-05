@@ -223,7 +223,7 @@ const createTwitterCanvas = async (metadataJson, isImage) => {
         // console.log('>>>> twitter_canvas > qtCalculatedCanvasHeightFromDescLines[2]: ', qtCalculatedCanvasHeightFromDescLines);
 
         // Quote-Tweet Post has images, but no videos
-        if(numOfQtImgs > 0 && numOfQtVideos === 0) {
+        if(qtMetadata?.mediaUrls[0]?.height && qtMetadata?.mediaUrls[0]?.width) {
             const qtMainMedia1Url = qtMetadata.mediaUrls[0];
             const qtMainMedia1 = await loadImage(qtMainMedia1Url);
             drawQtBasicElements(ctx, globalFont, qtMetadata, qtPfp, qtMainMedia1, undefined, {
@@ -236,18 +236,18 @@ const createTwitterCanvas = async (metadataJson, isImage) => {
             });
         }
         // Quote-Tweet Post has videos, but no images
-        if (numOfQtVideos > 0 && numOfQtImgs === 0) {
-            const qtVidThumbnailUrl = qtMetadata.mediaExtended[0].thumbnail_url;
-            const qtVidThumbnail = await loadImage(qtVidThumbnailUrl);
-            drawQtBasicElements(ctx, globalFont, qtMetadata, qtPfp, undefined, qtVidThumbnail, {
-                canvasHeightOffset: calculatedCanvasHeightFromDescLines,
-                qtCanvasHeightOffset: qtCalculatedCanvasHeightFromDescLines,
-                hasImgs,
-                hasVids,
-                hasOnlyVideos,
-                qtDescLines
-            });
-        }
+        // if (numOfQtVideos > 0 && numOfQtImgs === 0) {
+        //     const qtVidThumbnailUrl = qtMetadata.mediaExtended[0].thumbnail_url;
+        //     const qtVidThumbnail = await loadImage(qtVidThumbnailUrl);
+        //     drawQtBasicElements(ctx, globalFont, qtMetadata, qtPfp, undefined, qtVidThumbnail, {
+        //         canvasHeightOffset: calculatedCanvasHeightFromDescLines,
+        //         qtCanvasHeightOffset: qtCalculatedCanvasHeightFromDescLines,
+        //         hasImgs,
+        //         hasVids,
+        //         hasOnlyVideos,
+        //         qtDescLines
+        //     });
+        // }
         // Quote-Tweet Post is text only
         if (numOfQtVideos === 0 && numOfQtImgs === 0) {
             drawQtBasicElements(ctx, globalFont, qtMetadata, qtPfp, undefined, undefined, {
