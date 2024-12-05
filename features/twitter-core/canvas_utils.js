@@ -274,7 +274,7 @@ const drawQtBasicElements = (
         const maxWidth = 175;
         const qtXPosFinal = qtXPosition + 20;
         // Create a clipping path with rounded corners
-        const cornerRadius = 25;
+        const cornerRadius = 15;
         ctx.save(); // Save the current context state
         ctx.beginPath();
         ctx.moveTo(qtXPosFinal + cornerRadius, qtMediaYPos); // Start at the top-left corner
