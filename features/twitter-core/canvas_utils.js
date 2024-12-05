@@ -248,44 +248,48 @@ const drawQtBasicElements = (
     if(numOfQtImgs > 0 && numOfQtVideos === 0) {
         const maxHeight = 175;
         const maxWidth = 175;
-        // // Create a clipping path with rounded corners
-        // const cornerRadius = 25;
-        // ctx.save(); // Save the current context state
-        // ctx.beginPath();
-        // ctx.moveTo(qtXPosition + cornerRadius, qtMediaYPos); // Start at the top-left corner
-        // ctx.lineTo(qtXPosition + maxWidth - cornerRadius, qtMediaYPos); // Top-right corner
-        // ctx.quadraticCurveTo(qtXPosition + maxWidth, qtMediaYPos, qtXPosition + maxWidth, qtMediaYPos + cornerRadius); // Top-right curve
-        // ctx.lineTo(qtXPosition + maxWidth, qtMediaYPos + maxHeight - cornerRadius); // Bottom-right corner
-        // ctx.quadraticCurveTo(qtXPosition + maxWidth, qtMediaYPos + maxHeight, qtXPosition + maxWidth - cornerRadius, qtMediaYPos + maxHeight); // Bottom-right curve
-        // ctx.lineTo(qtXPosition + cornerRadius, qtMediaYPos + maxHeight); // Bottom-left corner
-        // ctx.quadraticCurveTo(qtXPosition, qtMediaYPos + maxHeight, qtXPosition, qtMediaYPos + maxHeight - cornerRadius); // Bottom-left curve
-        // ctx.lineTo(qtXPosition, qtMediaYPos + cornerRadius); // Top-left corner
-        // ctx.quadraticCurveTo(qtXPosition, qtMediaYPos, qtXPosition + cornerRadius, qtMediaYPos); // Top-left curve
-        // ctx.closePath();
-        // ctx.clip(); // Apply the clipping path
-        cropSingleImage(ctx, mainMedia1, maxHeight, maxWidth, qtXPosition + 20, qtMediaYPos);
+        const qtXPosFinal = qtXPosition + 20;
+        // Create a clipping path with rounded corners
+        const cornerRadius = 25;
+        ctx.save(); // Save the current context state
+        ctx.beginPath();
+        ctx.moveTo(qtXPosFinal + cornerRadius, qtMediaYPos); // Start at the top-left corner
+        ctx.lineTo(qtXPosFinal + maxWidth - cornerRadius, qtMediaYPos); // Top-right corner
+        ctx.quadraticCurveTo(qtXPosFinal + maxWidth, qtMediaYPos, qtXPosFinal + maxWidth, qtMediaYPos + cornerRadius); // Top-right curve
+        ctx.lineTo(qtXPosFinal + maxWidth, qtMediaYPos + maxHeight - cornerRadius); // Bottom-right corner
+        ctx.quadraticCurveTo(qtXPosFinal + maxWidth, qtMediaYPos + maxHeight, qtXPosFinal + maxWidth - cornerRadius, qtMediaYPos + maxHeight); // Bottom-right curve
+        ctx.lineTo(qtXPosFinal + cornerRadius, qtMediaYPos + maxHeight); // Bottom-left corner
+        ctx.quadraticCurveTo(qtXPosFinal, qtMediaYPos + maxHeight, qtXPosFinal, qtMediaYPos + maxHeight - cornerRadius); // Bottom-left curve
+        ctx.lineTo(qtXPosFinal, qtMediaYPos + cornerRadius); // Top-left corner
+        ctx.quadraticCurveTo(qtXPosFinal, qtMediaYPos, qtXPosFinal + cornerRadius, qtMediaYPos); // Top-left curve
+        ctx.closePath();
+        ctx.clip(); // Apply the clipping path
+        cropSingleImage(ctx, mainMedia1, maxHeight, maxWidth, qtXPosFinal, qtMediaYPos);
+        ctx.restore();
     }
 
     // or if (qtVidThumbnail)
     if(numOfQtVideos > 0) {
         const maxHeight = 175;
         const maxWidth = 175;
-        // // Create a clipping path with rounded corners
-        // const cornerRadius = 25;
-        // ctx.save(); // Save the current context state
-        // ctx.beginPath();
-        // ctx.moveTo(qtXPosition + cornerRadius, qtMediaYPos); // Start at the top-left corner
-        // ctx.lineTo(qtXPosition + maxWidth - cornerRadius, qtMediaYPos); // Top-right corner
-        // ctx.quadraticCurveTo(qtXPosition + maxWidth, qtMediaYPos, qtXPosition + maxWidth, qtMediaYPos + cornerRadius); // Top-right curve
-        // ctx.lineTo(qtXPosition + maxWidth, qtMediaYPos + maxHeight - cornerRadius); // Bottom-right corner
-        // ctx.quadraticCurveTo(qtXPosition + maxWidth, qtMediaYPos + maxHeight, qtXPosition + maxWidth - cornerRadius, qtMediaYPos + maxHeight); // Bottom-right curve
-        // ctx.lineTo(qtXPosition + cornerRadius, qtMediaYPos + maxHeight); // Bottom-left corner
-        // ctx.quadraticCurveTo(qtXPosition, qtMediaYPos + maxHeight, qtXPosition, qtMediaYPos + maxHeight - cornerRadius); // Bottom-left curve
-        // ctx.lineTo(qtXPosition, qtMediaYPos + cornerRadius); // Top-left corner
-        // ctx.quadraticCurveTo(qtXPosition, qtMediaYPos, qtXPosition + cornerRadius, qtMediaYPos); // Top-left curve
-        // ctx.closePath();
-        // ctx.clip(); // Apply the clipping path
-        cropSingleImage(ctx, qtVidThumbnail, maxHeight, maxWidth, qtXPosition + 20, qtMediaYPos);
+        const qtXPosFinal = qtXPosition + 20;
+        // Create a clipping path with rounded corners
+        const cornerRadius = 25;
+        ctx.save(); // Save the current context state
+        ctx.beginPath();
+        ctx.moveTo(qtXPosFinal + cornerRadius, qtMediaYPos); // Start at the top-left corner
+        ctx.lineTo(qtXPosFinal + maxWidth - cornerRadius, qtMediaYPos); // Top-right corner
+        ctx.quadraticCurveTo(qtXPosFinal + maxWidth, qtMediaYPos, qtXPosFinal + maxWidth, qtMediaYPos + cornerRadius); // Top-right curve
+        ctx.lineTo(qtXPosFinal + maxWidth, qtMediaYPos + maxHeight - cornerRadius); // Bottom-right corner
+        ctx.quadraticCurveTo(qtXPosFinal + maxWidth, qtMediaYPos + maxHeight, qtXPosFinal + maxWidth - cornerRadius, qtMediaYPos + maxHeight); // Bottom-right curve
+        ctx.lineTo(qtXPosFinal + cornerRadius, qtMediaYPos + maxHeight); // Bottom-left corner
+        ctx.quadraticCurveTo(qtXPosFinal, qtMediaYPos + maxHeight, qtXPosFinal, qtMediaYPos + maxHeight - cornerRadius); // Bottom-left curve
+        ctx.lineTo(qtXPosFinal, qtMediaYPos + cornerRadius); // Top-left corner
+        ctx.quadraticCurveTo(qtXPosFinal, qtMediaYPos, qtXPosFinal + cornerRadius, qtMediaYPos); // Top-left curve
+        ctx.closePath();
+        ctx.clip(); // Apply the clipping path
+        cropSingleImage(ctx, qtVidThumbnail, maxHeight, maxWidth, qtXPosFinal, qtMediaYPos);
+        // ctx.restore();
     }
     
 };
