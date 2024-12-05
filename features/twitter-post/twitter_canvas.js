@@ -223,7 +223,9 @@ const createTwitterCanvas = async (metadataJson, isImage) => {
         // console.log('>>>> twitter_canvas > qtCalculatedCanvasHeightFromDescLines[2]: ', qtCalculatedCanvasHeightFromDescLines);
 
         // Quote-Tweet Post has images, but no videos
-        if(qtMetadata?.mediaUrls[0]?.height && qtMetadata?.mediaUrls[0]?.width) {
+        const qtMedia1 = qtMetadata?.mediaUrls[0];
+        console.log('>>>> twitter_canvas > qtMedia1[2]: ', qtMedia1);
+        if(qtMedia1?.height && qtMedia1[0]?.width) {
             const qtMainMedia1Url = qtMetadata.mediaUrls[0];
             const qtMainMedia1 = await loadImage(qtMainMedia1Url);
             drawQtBasicElements(ctx, globalFont, qtMetadata, qtPfp, qtMainMedia1, undefined, {
