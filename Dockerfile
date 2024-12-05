@@ -32,6 +32,10 @@
 
 FROM nvidia/cuda:11.8.0-runtime-ubuntu20.04
 
+# Set timezone to non-interactive to avoid tzdata prompts
+ENV DEBIAN_FRONTEND=noninteractive
+ENV TZ=Etc/UTC
+
 # Install Node.js
 RUN apt-get update && apt-get install -y curl
 RUN curl -fsSL https://deb.nodesource.com/setup_18.x | bash -
