@@ -152,7 +152,7 @@ const renderTwitterPost = async (metadataJson, message) => {
     // is first item in list a video?
     let firstMediaItem, firstMediaItemExt;
     if(metadataJson.mediaURLs.length > 0) {
-        firstMediaItem = metadataJson?.mediaExtended[0];
+        firstMediaItem = metadataJson?.media_extended[0];
         firstMediaItemExt = getExtensionFromMediaUrl(firstMediaItem?.thumbnail_url);
     }
 
