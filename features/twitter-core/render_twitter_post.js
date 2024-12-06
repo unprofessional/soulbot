@@ -150,8 +150,11 @@ const renderTwitterPost = async (metadataJson, message) => {
     await createDirectoryIfNotExists(processingDir);
 
     // is first item in list a video?
-    const firstMediaItem = metadataJson?.mediaExtended[0];
-    const firstMediaItemExt = getExtensionFromMediaUrl(firstMediaItem?.thumbnail_url);
+    let firstMediaItem, firstMediaItemExt;
+    if(metadataJson.mediaURLs.length > 0) {
+        firstMediaItem = metadataJson?.mediaExtended[0];
+        firstMediaItemExt = getExtensionFromMediaUrl(firstMediaItem?.thumbnail_url);
+    }
 
     // FIXME: redundant.... if firstMediaItemExt is indeed mp4 then of course it hasVids
     if (hasVids && firstMediaItemExt === 'mp4') {
