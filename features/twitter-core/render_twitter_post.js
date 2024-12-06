@@ -5,6 +5,7 @@ const { cleanup } = require('../twitter-video/cleanup.js');
 const { buildPathsAndStuff } = require('../twitter-core/path_builder.js');
 
 const { downloadVideo, bakeImageAsFilterIntoVideo } = require('../twitter-video/index.js');
+const { getExtensionFromMediaUrl } = require('./utils.js');
 
 const MAX_CONCURRENT_REQUESTS = 3;
 const processingDir = '/tempdata';
@@ -149,14 +150,8 @@ const renderTwitterPost = async (metadataJson, message) => {
     await createDirectoryIfNotExists(processingDir);
 
     // is first item in list a video?
-    const firstMediaItem = metadataJson.mediaURLs[0];
-    console.log('>>>>> renderTwitterPost > firstMediaItem: ', firstMediaItem);
-    const mediaUrlParts = firstMediaItem.split('.');
-    console.log('>>>>> renderTwitterPost > mediaUrlParts: ', mediaUrlParts);
-    const fileExtensionWithQueryParams = mediaUrlParts[mediaUrlParts.length - 1];
-    console.log('>>>>> renderTwitterPost > fileExtensionWithQueryParams: ', fileExtensionWithQueryParams);
-    const firstMediaItemExt = fileExtensionWithQueryParams.split('?')[0];
-    console.log('>>>>> renderTwitterPost > firstMediaItemExt: ', firstMediaItemExt);
+    const firstMediaItem = metadataJson.mediaExtended[0];
+    const firstMediaItemExt = getExtensionFromMediaUrl(firstMediaItem.thumbnail_url);
 
     if (hasVids && firstMediaItemExt === 'mp4') {
         const currentDirCount = await countDirectoriesInDirectory(processingDir);
