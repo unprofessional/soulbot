@@ -224,8 +224,9 @@ const createTwitterCanvas = async (metadataJson, isImage) => {
 
         // Quote-Tweet Post has images, but no videos
         const qtMedia1 = qtMetadata?.mediaUrls[0];
-        console.log('>>>> twitter_canvas > qtMedia1[2]: ', qtMedia1);
+        console.log('>>>>> twitter_canvas > qtMedia1[1]: ', qtMedia1);
         if(numOfQtImgs > 0 || numOfQtVideos > 0) {
+            console.log('>>>>> twitter_canvas > Quote-Tweet Post has images, but no videos');
             const qtMainMedia1Url = qtMetadata.mediaUrls[0];
             const qtMainMedia1 = await loadImage(qtMainMedia1Url);
             drawQtBasicElements(ctx, globalFont, qtMetadata, qtPfp, qtMainMedia1, undefined, {
@@ -239,6 +240,7 @@ const createTwitterCanvas = async (metadataJson, isImage) => {
         }
         // Quote-Tweet Post has videos, but no images
         if (numOfQtVideos > 0 && numOfQtImgs === 0) {
+            console.log('>>>>> twitter_canvas > Quote-Tweet Post has videos, but no images');
             const qtVidThumbnailUrl = qtMetadata.mediaExtended[0].thumbnail_url;
             const qtVidThumbnail = await loadImage(qtVidThumbnailUrl);
             drawQtBasicElements(ctx, globalFont, qtMetadata, qtPfp, undefined, qtVidThumbnail, {
@@ -252,6 +254,7 @@ const createTwitterCanvas = async (metadataJson, isImage) => {
         }
         // Quote-Tweet Post is text only
         if (numOfQtVideos === 0 && numOfQtImgs === 0) {
+            console.log('>>>>> twitter_canvas > Quote-Tweet Post is text only');
             drawQtBasicElements(ctx, globalFont, qtMetadata, qtPfp, undefined, undefined, {
                 canvasHeightOffset: calculatedCanvasHeightFromDescLines,
                 qtCanvasHeightOffset: qtCalculatedCanvasHeightFromDescLines,
