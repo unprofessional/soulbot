@@ -8,6 +8,9 @@ const { buildPathsAndStuff } = require('../twitter-core/path_builder.js');
 const { getWrappedText, drawBasicElements, getAdjustedAspectRatios } = require('../twitter-core/canvas_utils.js');
 
 const createTwitterVideoCanvas = async (metadataJson) => {
+
+    console.log('>>>>> createTwitterVideoCanvas reached!');
+
     const metadata = {
         authorNick: metadataJson.user_screen_name,
         authorUsername: metadataJson.user_name,

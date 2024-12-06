@@ -10,6 +10,8 @@ const { filterMediaUrls, removeTCOLink } = require('../twitter-core/utils.js');
 
 const createTwitterCanvas = async (metadataJson, isImage) => {
 
+    console.log('>>>>> createTwitterCanvas reached!');
+
     const metadata = {
         authorNick: metadataJson.user_screen_name,
         authorUsername: metadataJson.user_name,
