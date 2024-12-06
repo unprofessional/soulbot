@@ -6,7 +6,7 @@ const {
 const { renderImageGallery } = require('./image_gallery_rendering.js');
 const { scaleDownToFitAspectRatio } = require('./scale_down.js');
 const { getWrappedText, drawBasicElements, drawQtBasicElements, getYPosFromLineHeight } = require('../twitter-core/canvas_utils.js');
-const { filterMediaUrls, removeTCOLink } = require('../twitter-core/utils.js');
+const { filterMediaUrls, removeTCOLink, getExtensionFromMediaUrl } = require('../twitter-core/utils.js');
 
 const createTwitterCanvas = async (metadataJson, isImage) => {
 
@@ -257,7 +257,10 @@ const createTwitterCanvas = async (metadataJson, isImage) => {
 
     // Draw the image, if one exists
     // this also handles if mixed-media gallary
-    if (numOfImgs > 0 && numOfVideos > 0) {
+    const firstMediaItem = metadata.mediaExtended[0];
+    const firstMediaItemExt = getExtensionFromMediaUrl(firstMediaItem.thumbnail_url);
+    const acceptedExtensions = ['jpg', 'jpeg', 'png'];
+    if (acceptedExtensions.includes(firstMediaItemExt) && numOfImgs > 0 && numOfVideos > 0) {
         await renderImageGallery(
             ctx,
             metadata,

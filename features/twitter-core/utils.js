@@ -67,6 +67,12 @@ const filterMediaUrls = (metadata, extensions) => {
     });
 };
 
+const getExtensionFromMediaUrl = (mediaUrl) {
+    const mediaUrlParts = mediaUrl.split('.');
+    const fileExtensionWithQueryParams = mediaUrlParts[mediaUrlParts.length - 1];
+    return fileExtensionWithQueryParams.split('?')[0];
+}
+
 const removeTCOLink = (text) => {
     if(!text) {
         return '';
@@ -79,5 +85,6 @@ const removeTCOLink = (text) => {
 module.exports = {
     formatTwitterDate,
     filterMediaUrls,
+    getExtensionFromMediaUrl,
     removeTCOLink,
 };
