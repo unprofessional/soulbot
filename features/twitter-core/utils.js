@@ -53,7 +53,9 @@ const formatTwitterDate = (twitterDate) => {
 
 // Find number of associated media
 const filterMediaUrls = (metadata, extensions) => {
+    console.log('!!! filterMediaUrls > metadata.mediaUrls: ', metadata.mediaUrls);
     return metadata.mediaUrls.filter((mediaUrl) => {
+        console.log('!!! filterMediaUrls > mediaUrl: ', mediaUrl);
         const mediaUrlParts = mediaUrl.split('.');
         console.log('!!! filterMediaUrls > mediaUrlParts: ', mediaUrlParts);
         const fileExtensionWithQueryParams = mediaUrlParts[mediaUrlParts.length - 1];
