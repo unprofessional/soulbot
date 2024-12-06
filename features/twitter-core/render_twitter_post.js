@@ -153,11 +153,14 @@ const renderTwitterPost = async (metadataJson, message) => {
     let firstMediaItem, firstMediaItemExt;
     if(metadataJson.mediaURLs.length > 0) {
         firstMediaItem = metadataJson?.media_extended[0];
-        firstMediaItemExt = getExtensionFromMediaUrl(firstMediaItem?.thumbnail_url);
+        firstMediaItemExt = getExtensionFromMediaUrl(firstMediaItem?.url);
     }
+    console.log('>>>>> renderTwitterPost > firstMediaItem: ', firstMediaItem);
+    console.log('>>>>> renderTwitterPost > firstMediaItemExt: ', firstMediaItemExt);
 
     // FIXME: redundant.... if firstMediaItemExt is indeed mp4 then of course it hasVids
     if (hasVids && firstMediaItemExt === 'mp4') {
+        console.log('>>>>> renderTwitterPost > first item is VIDEO');
         const currentDirCount = await countDirectoriesInDirectory(processingDir);
         if (currentDirCount >= MAX_CONCURRENT_REQUESTS) {
             return message.reply({
@@ -206,7 +209,7 @@ const renderTwitterPost = async (metadataJson, message) => {
 
     } else {
         // Handle non-video processing
-        // console.log('>>>>> renderTwitterPost > DOES NOT have videos!!!');
+        console.log('>>>>> renderTwitterPost > first item is NOT VIDEO');
         const buffer = await createTwitterCanvas(metadataJson);
         await message.suppressEmbeds(true);
 
