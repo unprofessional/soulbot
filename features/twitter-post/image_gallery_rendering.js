@@ -194,6 +194,8 @@ const renderImageGallery = async (
     defaultYPosition,
 ) => {
 
+    console.log('>>>>> renderImageGallery reached!');
+
     /**
      * TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO 
      * 

@@ -255,8 +255,9 @@ const createTwitterCanvas = async (metadataJson, isImage) => {
         }
     }
 
-    // Draw the image, if one exists...
-    if (hasImgs && !hasVids) {
+    // Draw the image, if one exists
+    // this also handles if mixed-media gallary
+    if (numOfImgs > 0 && numOfVideos > 0) {
         await renderImageGallery(
             ctx,
             metadata,
