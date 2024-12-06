@@ -260,7 +260,7 @@ const createTwitterCanvas = async (metadataJson, isImage) => {
     const firstMediaItem = metadata.mediaExtended[0];
     const firstMediaItemExt = getExtensionFromMediaUrl(firstMediaItem.thumbnail_url);
     const acceptedExtensions = ['jpg', 'jpeg', 'png'];
-    if (acceptedExtensions.includes(firstMediaItemExt) && numOfImgs > 0 && numOfVideos > 0) {
+    if (acceptedExtensions.includes(firstMediaItemExt)) {
         await renderImageGallery(
             ctx,
             metadata,
