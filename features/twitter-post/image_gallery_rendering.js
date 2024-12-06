@@ -194,15 +194,33 @@ const renderImageGallery = async (
     defaultYPosition,
 ) => {
 
+    /**
+     * TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO 
+     * 
+     * replace any instance of a media item in a list from the raw mp4 file
+     * to the media_extended.video_thumbnail
+     * 
+     * TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO 
+     */
+    // If we've hit this point then we know all media items should be images
+    // but in case they're not, then we must convert them all to it....
+    // FIXME: this logic might have to happen before we call this, then, but for now
+    // ... we can just fix it here
+    const mediaItems = metadata.mediaExtended;
+    const fixedMediaItems = mediaItems.map(mediaItem => {
+        // Each mediaItem should have an associated JPG even if the source is a mp4 video...
+        return mediaItem.thumbnail_url;
+    });
+
     let mediaObject1 = {
-        height: metadata.mediaExtended[0].size.height,
-        width: metadata.mediaExtended[0].size.width,
+        height: mediaItems[0].size.height,
+        width: mediaItems[0].size.width,
     };
     const scaledMediaDimensions1 = scaleDownToFitAspectRatio(mediaObject1, mediaMaxHeight, mediaMaxWidth);
     // console.log('>>> scaledMediaDimensions1: ', scaledMediaDimensions1);
 
     /** Single Image */
-    if(metadata.mediaUrls.length === 1) {
+    if(fixedMediaItems.length === 1) {
         await singleImage(
             ctx,
             metadata,
@@ -213,14 +231,14 @@ const renderImageGallery = async (
         );
     }
     /** Two images */
-    if(metadata.mediaUrls.length === 2) {
-        const mainMedia1Url = metadata.mediaUrls[0];
+    if(fixedMediaItems.length === 2) {
+        const mainMedia1Url = fixedMediaItems[0];
         const mainMedia1 = await loadImage(mainMedia1Url);
         const firstXPosition = 20;
         const firstYPosition = calculatedCanvasHeightFromDescLines - heightShim - 50;
         cropSingleImage(ctx, mainMedia1, scaledMediaDimensions1.height, mediaMaxWidth / 2, firstXPosition, firstYPosition);
 
-        const mainMedia2Url = metadata.mediaUrls[1];
+        const mainMedia2Url = fixedMediaItems[1];
         const mainMedia2 = await loadImage(mainMedia2Url);
         const secondXPosition = mediaMaxWidth / 2 + 25;
         const secondYPosition = calculatedCanvasHeightFromDescLines - heightShim - 50;
@@ -233,10 +251,10 @@ const renderImageGallery = async (
         cropSingleImage(ctx, mainMedia2, scaledMediaDimensions1.height, mediaMaxWidth / 2, secondXPosition, secondYPosition);
     }
     /** Three images */
-    if(metadata.mediaUrls.length === 3) {
+    if(fixedMediaItems.length === 3) {
         console.log('>>> renderImageGallery > calculatedCanvasHeightFromDescLines: ', calculatedCanvasHeightFromDescLines);
         console.log('>>> renderImageGallery > heightShim: ', heightShim);
-        const mainMedia1Url = metadata.mediaUrls[0];
+        const mainMedia1Url = fixedMediaItems[0];
         const mainMedia1 = await loadImage(mainMedia1Url);
         const firstXPosition = 20;
         const firstYPosition = calculatedCanvasHeightFromDescLines - heightShim - 50;
@@ -245,7 +263,7 @@ const renderImageGallery = async (
         console.log('>>> renderImageGallery > firstYPosition: ', firstYPosition);
         cropSingleImage(ctx, mainMedia1, scaledMediaDimensions1.height, mediaMaxWidth / 2, firstXPosition, firstYPosition);
 
-        const mainMedia2Url = metadata.mediaUrls[1];
+        const mainMedia2Url = fixedMediaItems[1];
         const mainMedia2 = await loadImage(mainMedia2Url);
         const secondXPosition = mediaMaxWidth / 2 + 25;
         const secondYPosition = calculatedCanvasHeightFromDescLines - heightShim - 50;
@@ -254,7 +272,7 @@ const renderImageGallery = async (
         console.log('>>> renderImageGallery > secondYPosition: ', secondYPosition);
         cropSingleImage(ctx, mainMedia2, scaledMediaDimensions1.height / 2, mediaMaxWidth / 2, secondXPosition, secondYPosition);
 
-        const mainMedia3Url = metadata.mediaUrls[2];
+        const mainMedia3Url = fixedMediaItems[2];
         const mainMedia3 = await loadImage(mainMedia3Url);
         const thirdXPosition = mediaMaxWidth / 2 + 25;
         const thirdYPosition = scaledMediaDimensions1.height / 2 + defaultYPosition - 5;
@@ -266,26 +284,26 @@ const renderImageGallery = async (
         cropSingleImage(ctx, mainMedia3, scaledMediaDimensions1.height / 2, mediaMaxWidth / 2, thirdXPosition, thirdYPosition);
     }
     /** Four images */
-    if(metadata.mediaUrls.length === 4) {
-        const mainMedia1Url = metadata.mediaUrls[0];
+    if(fixedMediaItems.length === 4) {
+        const mainMedia1Url = fixedMediaItems[0];
         const mainMedia1 = await loadImage(mainMedia1Url);
         const firstXPosition = 20;
         const firstYPosition = calculatedCanvasHeightFromDescLines - heightShim - 50;
         cropSingleImage(ctx, mainMedia1, scaledMediaDimensions1.height / 2, mediaMaxWidth / 2, firstXPosition, firstYPosition);
 
-        const mainMedia2Url = metadata.mediaUrls[1];
+        const mainMedia2Url = fixedMediaItems[1];
         const mainMedia2 = await loadImage(mainMedia2Url);
         const secondXPosition = mediaMaxWidth / 2 + 25;
         const secondYPosition = calculatedCanvasHeightFromDescLines - heightShim - 50;
         cropSingleImage(ctx, mainMedia2, scaledMediaDimensions1.height / 2, mediaMaxWidth / 2, secondXPosition, secondYPosition);
 
-        const mainMedia3Url = metadata.mediaUrls[2];
+        const mainMedia3Url = fixedMediaItems[2];
         const mainMedia3 = await loadImage(mainMedia3Url);
         const thirdXPosition = 20;
         const thirdYPosition = scaledMediaDimensions1.height / 2 + defaultYPosition - 5;
         cropSingleImage(ctx, mainMedia3, scaledMediaDimensions1.height / 2, mediaMaxWidth / 2, thirdXPosition, thirdYPosition);
 
-        const mainMedia4Url = metadata.mediaUrls[3];
+        const mainMedia4Url = fixedMediaItems[3];
         const mainMedia4 = await loadImage(mainMedia4Url);
         const fourthXPosition = mediaMaxWidth / 2 + 25;
         const fourthYPosition = scaledMediaDimensions1.height / 2 + defaultYPosition - 5;
