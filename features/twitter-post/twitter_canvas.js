@@ -257,8 +257,11 @@ const createTwitterCanvas = async (metadataJson, isImage) => {
 
     // Draw the image, if one exists
     // this also handles if mixed-media gallary
-    const firstMediaItem = metadata.mediaExtended[0];
-    const firstMediaItemExt = getExtensionFromMediaUrl(firstMediaItem.thumbnail_url);
+    let firstMediaItem, firstMediaItemExt;
+    if(metadataJson.mediaURLs.length > 0) {
+        firstMediaItem = metadata.mediaExtended[0];
+        firstMediaItemExt = getExtensionFromMediaUrl(firstMediaItem.thumbnail_url);
+    }
     const acceptedExtensions = ['jpg', 'jpeg', 'png'];
     if (acceptedExtensions.includes(firstMediaItemExt)) {
         await renderImageGallery(
