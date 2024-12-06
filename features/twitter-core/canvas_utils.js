@@ -154,7 +154,7 @@ const drawBasicElements = (
 };
 
 const drawQtBasicElements = (
-    ctx, globalFont, metadata, pfp, mainMedia1, qtVidThumbnail, options
+    ctx, globalFont, metadata, pfp, mainMedia1, options
 ) => {
 
     const {
@@ -272,29 +272,29 @@ const drawQtBasicElements = (
         console.error('>>>>> canvas_utils > drawQtBasicElements > mainMedia1 does not have either height, width, or neither!!!');
     }
 
-    if(qtVidThumbnail) {
-        console.log('>>>>> canvas_utils > drawQtBasicElements > HAS VIDS BUT IMGS DONT MATTER');
-        const maxHeight = 175;
-        const maxWidth = 175;
-        const qtXPosFinal = qtXPosition + 20;
-        // Create a clipping path with rounded corners
-        const cornerRadius = 15;
-        ctx.save(); // Save the current context state
-        ctx.beginPath();
-        ctx.moveTo(qtXPosFinal + cornerRadius, qtMediaYPos); // Start at the top-left corner
-        ctx.lineTo(qtXPosFinal + maxWidth - cornerRadius, qtMediaYPos); // Top-right corner
-        ctx.quadraticCurveTo(qtXPosFinal + maxWidth, qtMediaYPos, qtXPosFinal + maxWidth, qtMediaYPos + cornerRadius); // Top-right curve
-        ctx.lineTo(qtXPosFinal + maxWidth, qtMediaYPos + maxHeight - cornerRadius); // Bottom-right corner
-        ctx.quadraticCurveTo(qtXPosFinal + maxWidth, qtMediaYPos + maxHeight, qtXPosFinal + maxWidth - cornerRadius, qtMediaYPos + maxHeight); // Bottom-right curve
-        ctx.lineTo(qtXPosFinal + cornerRadius, qtMediaYPos + maxHeight); // Bottom-left corner
-        ctx.quadraticCurveTo(qtXPosFinal, qtMediaYPos + maxHeight, qtXPosFinal, qtMediaYPos + maxHeight - cornerRadius); // Bottom-left curve
-        ctx.lineTo(qtXPosFinal, qtMediaYPos + cornerRadius); // Top-left corner
-        ctx.quadraticCurveTo(qtXPosFinal, qtMediaYPos, qtXPosFinal + cornerRadius, qtMediaYPos); // Top-left curve
-        ctx.closePath();
-        ctx.clip(); // Apply the clipping path
-        cropSingleImage(ctx, qtVidThumbnail, maxHeight, maxWidth, qtXPosFinal, qtMediaYPos);
-        // ctx.restore();
-    }
+    // if(qtVidThumbnail) {
+    //     console.log('>>>>> canvas_utils > drawQtBasicElements > HAS VIDS BUT IMGS DONT MATTER');
+    //     const maxHeight = 175;
+    //     const maxWidth = 175;
+    //     const qtXPosFinal = qtXPosition + 20;
+    //     // Create a clipping path with rounded corners
+    //     const cornerRadius = 15;
+    //     ctx.save(); // Save the current context state
+    //     ctx.beginPath();
+    //     ctx.moveTo(qtXPosFinal + cornerRadius, qtMediaYPos); // Start at the top-left corner
+    //     ctx.lineTo(qtXPosFinal + maxWidth - cornerRadius, qtMediaYPos); // Top-right corner
+    //     ctx.quadraticCurveTo(qtXPosFinal + maxWidth, qtMediaYPos, qtXPosFinal + maxWidth, qtMediaYPos + cornerRadius); // Top-right curve
+    //     ctx.lineTo(qtXPosFinal + maxWidth, qtMediaYPos + maxHeight - cornerRadius); // Bottom-right corner
+    //     ctx.quadraticCurveTo(qtXPosFinal + maxWidth, qtMediaYPos + maxHeight, qtXPosFinal + maxWidth - cornerRadius, qtMediaYPos + maxHeight); // Bottom-right curve
+    //     ctx.lineTo(qtXPosFinal + cornerRadius, qtMediaYPos + maxHeight); // Bottom-left corner
+    //     ctx.quadraticCurveTo(qtXPosFinal, qtMediaYPos + maxHeight, qtXPosFinal, qtMediaYPos + maxHeight - cornerRadius); // Bottom-left curve
+    //     ctx.lineTo(qtXPosFinal, qtMediaYPos + cornerRadius); // Top-left corner
+    //     ctx.quadraticCurveTo(qtXPosFinal, qtMediaYPos, qtXPosFinal + cornerRadius, qtMediaYPos); // Top-left curve
+    //     ctx.closePath();
+    //     ctx.clip(); // Apply the clipping path
+    //     cropSingleImage(ctx, qtVidThumbnail, maxHeight, maxWidth, qtXPosFinal, qtMediaYPos);
+    //     // ctx.restore();
+    // }
     
 };
 
