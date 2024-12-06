@@ -208,12 +208,14 @@ const createTwitterCanvas = async (metadataJson, isImage) => {
     // console.log('>>>>> twitter_canvas > qtMetadata: ', qtMetadata);
     // if has quote tweet reference
     if(qtMetadata) {
-        // console.log('>>>>> if(qtMetadata) > qtMetadata EXISTS!!!');
+        console.log('>>>>> if(qtMetadata) > qtMetadata EXISTS!!!');
+        const qtMedia1 = qtMetadata?.mediaUrls[0];
+        console.log('>>>>> twitter_canvas > qtMedia1[1]: ', qtMedia1);
         // Pre-process media
         const numOfQtImgs = filterMediaUrls(qtMetadata, ['jpg', 'jpeg', 'png']).length;
-        // console.log('>>>>> if(qtMetadata) > numOfQtImgs', numOfQtImgs);
+        console.log('>>>>> if(qtMetadata) > numOfQtImgs', numOfQtImgs);
         const numOfQtVideos = filterMediaUrls(qtMetadata, ['mp4']).length;
-        // console.log('>>>>> if(qtMetadata) > numOfQtVideos', numOfQtVideos);
+        console.log('>>>>> if(qtMetadata) > numOfQtVideos', numOfQtVideos);
 
         // load media
         const qtPfpUrl = qtMetadata.pfpUrl;
@@ -223,8 +225,6 @@ const createTwitterCanvas = async (metadataJson, isImage) => {
         // console.log('>>>> twitter_canvas > qtCalculatedCanvasHeightFromDescLines[2]: ', qtCalculatedCanvasHeightFromDescLines);
 
         // Quote-Tweet Post has images, but no videos
-        const qtMedia1 = qtMetadata?.mediaUrls[0];
-        console.log('>>>>> twitter_canvas > qtMedia1[1]: ', qtMedia1);
         if(numOfQtImgs > 0 || numOfQtVideos > 0) {
             console.log('>>>>> twitter_canvas > Quote-Tweet Post has images, but no videos');
             const qtMainMedia1Url = qtMetadata.mediaUrls[0];
