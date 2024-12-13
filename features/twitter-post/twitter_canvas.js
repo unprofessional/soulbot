@@ -187,7 +187,8 @@ const createTwitterCanvas = async (metadataJson, isImage) => {
     // REFACTOR REFACTOR REFACTOR
     /////////////////////////////
     const communityNote = metadata.communityNote;
-    let communityNoteLines, communityNoteHeight;
+    let communityNoteLines = [];
+    let communityNoteHeight = 0;
     console.log('>>> communityNote: ', communityNote);
     if(communityNote) {
         ctx.fillStyle = 'white'; // Text color for description
