@@ -196,7 +196,7 @@ const createTwitterCanvas = async (metadataJson, isImage) => {
         ctx.font = '24px Arial';
         communityNoteLines = getWrappedText(ctx, communityNote, 530, false);
         console.log('>>> communityNoteLines.length: ', communityNoteLines.length);
-        communityNoteHeight = communityNoteLines.length > 0 ? (communityNoteLines.length * 30) : 0;
+        communityNoteHeight = (communityNoteLines.length * 30) + 60;
     }
    
     /////////////////////////////
@@ -212,12 +212,11 @@ const createTwitterCanvas = async (metadataJson, isImage) => {
   
     // Re-calc canvas
     ctx.canvas.height = calculatedCanvasHeightFromDescLines
-        + communityNoteHeight + 60
+        + communityNoteHeight
         + qtCalculatedCanvasHeightFromDescLines;
     // console.log('>>>>> twitter_canvas > ctx.canvas.height: ',  ctx.canvas.height);
     ctx.fillRect(0, 0, maxCanvasWidth, calculatedCanvasHeightFromDescLines
         + communityNoteHeight
-        + communityNoteHeight + 60
         + qtCalculatedCanvasHeightFromDescLines);
     
     const favIconUrl = 'https://abs.twimg.com/favicons/twitter.3.ico';
