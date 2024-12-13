@@ -274,6 +274,21 @@ const drawQtBasicElements = (
     
 };
 
+const drawCommunityNote = (ctx, xCoord = 30, yCoord, communityNoteLines) => {
+    const lineHeight = 30;
+    // Reassign new var here because "yCoord / calculatedCanvasHeightFromDescLines" is mutable...
+    let communityNoteCanvasHeightFillTextHeight = yCoord;
+    ctx.fillStyle = 'white';
+    ctx.font = 'bold 24px Arial';
+    ctx.fillText('Readers added context:', xCoord, communityNoteCanvasHeightFillTextHeight + lineHeight);
+    ctx.fillStyle = 'gray';
+    ctx.font = '24px Arial';
+    communityNoteLines.forEach(line => {
+        ctx.fillText(line, xCoord, 30 + communityNoteCanvasHeightFillTextHeight + lineHeight);
+        communityNoteCanvasHeightFillTextHeight += lineHeight;
+    });
+};
+
 const getAdjustedAspectRatios = (
     canvasWidth, canvasHeight,
     videoWidth, videoHeight,
@@ -321,5 +336,6 @@ module.exports = {
     drawTextWithSpacing,
     drawBasicElements,
     drawQtBasicElements,
+    drawCommunityNote,
     getAdjustedAspectRatios,
 };

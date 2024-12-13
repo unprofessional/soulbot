@@ -5,7 +5,7 @@ const {
 } = require('canvas');
 const { renderImageGallery } = require('./image_gallery_rendering.js');
 const { scaleDownToFitAspectRatio } = require('./scale_down.js');
-const { getWrappedText, drawBasicElements, drawQtBasicElements, getYPosFromLineHeight } = require('../twitter-core/canvas_utils.js');
+const { getWrappedText, drawBasicElements, drawQtBasicElements, getYPosFromLineHeight, drawCommunityNote } = require('../twitter-core/canvas_utils.js');
 const { filterMediaUrls, removeTCOLink, getExtensionFromMediaUrl } = require('../twitter-core/utils.js');
 
 const createTwitterCanvas = async (metadataJson, isImage) => {
@@ -183,6 +183,21 @@ const createTwitterCanvas = async (metadataJson, isImage) => {
     }
     console.log('>>>>> twitter_canvas > calculatedCanvasHeightFromDescLines[2]: ', calculatedCanvasHeightFromDescLines);
 
+    /////////////////////////////
+    // REFACTOR REFACTOR REFACTOR
+    /////////////////////////////
+    const communityNote = metadata.communityNote;
+    // null check here?
+    console.log('>>> communityNote: ', communityNote);
+    ctx.fillStyle = 'white'; // Text color for description
+    ctx.font = '24px Arial';
+    const communityNoteLines = getWrappedText(ctx, communityNote, 530, false);
+    console.log('>>> communityNoteLines.length: ', communityNoteLines.length);
+    const communityNoteHeight = communityNoteLines.length > 0 ? (communityNoteLines.length * 30) : 0;
+    /////////////////////////////
+    // REFACTOR REFACTOR REFACTOR
+    /////////////////////////////
+
     let qtCalculatedCanvasHeightFromDescLines = 0;
     if(qtMetadata) {
         qtCalculatedCanvasHeightFromDescLines = calcQtHeight(qtMetadata) + 100; 
@@ -191,9 +206,14 @@ const createTwitterCanvas = async (metadataJson, isImage) => {
     // console.log('>>>>> twitter_canvas > qtCalculatedCanvasHeightFromDescLines[1]: ', qtCalculatedCanvasHeightFromDescLines);
   
     // Re-calc canvas
-    ctx.canvas.height = calculatedCanvasHeightFromDescLines + qtCalculatedCanvasHeightFromDescLines;
+    ctx.canvas.height = calculatedCanvasHeightFromDescLines
+        + communityNoteHeight + 60
+        + qtCalculatedCanvasHeightFromDescLines;
     // console.log('>>>>> twitter_canvas > ctx.canvas.height: ',  ctx.canvas.height);
-    ctx.fillRect(0, 0, maxCanvasWidth, calculatedCanvasHeightFromDescLines + qtCalculatedCanvasHeightFromDescLines);
+    ctx.fillRect(0, 0, maxCanvasWidth, calculatedCanvasHeightFromDescLines
+        + communityNoteHeight
+        + communityNoteHeight + 60
+        + qtCalculatedCanvasHeightFromDescLines);
     
     const favIconUrl = 'https://abs.twimg.com/favicons/twitter.3.ico';
     const favicon = await loadImage(favIconUrl);
@@ -274,6 +294,9 @@ const createTwitterCanvas = async (metadataJson, isImage) => {
             calculatedYPos,
         );
     }
+
+    // Draw the Community Note, if exists
+    drawCommunityNote(ctx, 30, calculatedCanvasHeightFromDescLines, communityNoteLines)
 
     // Convert the canvas to a Buffer and return it
     return isImage ? canvas.toBuffer('image/png') : canvas.toBuffer();
