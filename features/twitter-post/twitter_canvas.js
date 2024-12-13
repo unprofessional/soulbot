@@ -187,13 +187,17 @@ const createTwitterCanvas = async (metadataJson, isImage) => {
     // REFACTOR REFACTOR REFACTOR
     /////////////////////////////
     const communityNote = metadata.communityNote;
+    let communityNoteLines, communityNoteHeight;
     // null check here?
     console.log('>>> communityNote: ', communityNote);
-    ctx.fillStyle = 'white'; // Text color for description
-    ctx.font = '24px Arial';
-    const communityNoteLines = getWrappedText(ctx, communityNote, 530, false);
-    console.log('>>> communityNoteLines.length: ', communityNoteLines.length);
-    const communityNoteHeight = communityNoteLines.length > 0 ? (communityNoteLines.length * 30) : 0;
+    if(communityNote) {
+        ctx.fillStyle = 'white'; // Text color for description
+        ctx.font = '24px Arial';
+        communityNoteLines = getWrappedText(ctx, communityNote, 530, false);
+        console.log('>>> communityNoteLines.length: ', communityNoteLines.length);
+        communityNoteHeight = communityNoteLines.length > 0 ? (communityNoteLines.length * 30) : 0;
+    }
+   
     /////////////////////////////
     // REFACTOR REFACTOR REFACTOR
     /////////////////////////////
