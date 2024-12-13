@@ -188,7 +188,6 @@ const createTwitterCanvas = async (metadataJson, isImage) => {
     /////////////////////////////
     const communityNote = metadata.communityNote;
     let communityNoteLines, communityNoteHeight;
-    // null check here?
     console.log('>>> communityNote: ', communityNote);
     if(communityNote) {
         ctx.fillStyle = 'white'; // Text color for description
@@ -300,7 +299,7 @@ const createTwitterCanvas = async (metadataJson, isImage) => {
     }
 
     // Draw the Community Note, if exists
-    drawCommunityNote(ctx, 30, calculatedCanvasHeightFromDescLines, communityNoteLines)
+    communityNote && drawCommunityNote(ctx, 30, calculatedCanvasHeightFromDescLines, communityNoteLines);
 
     // Convert the canvas to a Buffer and return it
     return isImage ? canvas.toBuffer('image/png') : canvas.toBuffer();
