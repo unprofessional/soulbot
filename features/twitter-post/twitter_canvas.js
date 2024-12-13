@@ -20,6 +20,7 @@ const createTwitterCanvas = async (metadataJson, isImage) => {
         description: removeTCOLink(metadataJson.text),
         mediaUrls: metadataJson.mediaURLs,
         mediaExtended: metadataJson.media_extended,
+        communityNote: metadataJson.communityNote,
     };
 
     let qtMetadata = null;
