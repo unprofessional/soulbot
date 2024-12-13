@@ -301,7 +301,9 @@ const createTwitterCanvas = async (metadataJson, isImage) => {
 
     // Draw the Community Note, if exists
     if(communityNote) {
+        console.log('>>>>> twitter_canvas > drawing community note text...');
         drawCommunityNote(ctx, 30, calculatedCanvasHeightFromDescLines, communityNoteLines);
+        ctx.restore();
     }
 
     // Convert the canvas to a Buffer and return it
