@@ -20,7 +20,7 @@ const createTwitterCanvas = async (metadataJson, isImage) => {
         description: removeTCOLink(metadataJson.text),
         mediaUrls: metadataJson.mediaURLs,
         mediaExtended: metadataJson.media_extended,
-        communityNote: metadataJson.communityNote,
+        communityNote: removeTCOLink(metadataJson.communityNote),
     };
 
     let qtMetadata = null;
@@ -303,7 +303,6 @@ const createTwitterCanvas = async (metadataJson, isImage) => {
     if(communityNote) {
         console.log('>>>>> twitter_canvas > drawing community note text...');
         drawCommunityNote(ctx, 30, calculatedCanvasHeightFromDescLines, communityNoteLines);
-        ctx.restore();
     }
 
     // Convert the canvas to a Buffer and return it

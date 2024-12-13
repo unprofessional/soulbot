@@ -287,7 +287,6 @@ const drawCommunityNote = (ctx, xCoord = 30, yCoord, communityNoteLines) => {
         ctx.fillText(line, xCoord, 30 + communityNoteCanvasHeightFillTextHeight + lineHeight);
         communityNoteCanvasHeightFillTextHeight += lineHeight;
     });
-    ctx.save();
 };
 
 const getAdjustedAspectRatios = (
