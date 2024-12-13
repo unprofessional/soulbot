@@ -278,6 +278,7 @@ const drawCommunityNote = (ctx, xCoord = 30, yCoord, communityNoteLines) => {
     const lineHeight = 30;
     // Reassign new var here because "yCoord / calculatedCanvasHeightFromDescLines" is mutable...
     let communityNoteCanvasHeightFillTextHeight = yCoord;
+    ctx.save(); // Save the current context state
     ctx.fillStyle = 'white';
     ctx.font = 'bold 24px Arial';
     ctx.fillText('Readers added context:', xCoord, communityNoteCanvasHeightFillTextHeight + lineHeight);
@@ -287,6 +288,7 @@ const drawCommunityNote = (ctx, xCoord = 30, yCoord, communityNoteLines) => {
         ctx.fillText(line, xCoord, 30 + communityNoteCanvasHeightFillTextHeight + lineHeight);
         communityNoteCanvasHeightFillTextHeight += lineHeight;
     });
+    ctx.restore();
 };
 
 const getAdjustedAspectRatios = (
