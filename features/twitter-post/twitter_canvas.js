@@ -187,18 +187,17 @@ const createTwitterCanvas = async (metadataJson, isImage) => {
     /////////////////////////////
     // REFACTOR REFACTOR REFACTOR
     /////////////////////////////
-    const communityNote = metadata.communityNote;
-    let communityNoteLines = [];
-    let communityNoteHeight = 0;
-    console.log('>>> communityNote: ', communityNote);
-    if(communityNote) {
-        ctx.fillStyle = 'white'; // Text color for description
-        ctx.font = '24px Arial';
-        communityNoteLines = getWrappedText(ctx, communityNote, 530, false);
-        console.log('>>> communityNoteLines.length: ', communityNoteLines.length);
-        communityNoteHeight = (communityNoteLines.length * 30) + 60;
-    }
-   
+    // const communityNote = metadata.communityNote;
+    // let communityNoteLines = [];
+    // let communityNoteHeight = 0;
+    // console.log('>>> communityNote: ', communityNote);
+    // if(communityNote) {
+    //     ctx.fillStyle = 'white'; // Text color for description
+    //     ctx.font = '24px Arial';
+    //     communityNoteLines = getWrappedText(ctx, communityNote, 530, false);
+    //     console.log('>>> communityNoteLines.length: ', communityNoteLines.length);
+    //     communityNoteHeight = (communityNoteLines.length * 30) + 60;
+    // }
     /////////////////////////////
     // REFACTOR REFACTOR REFACTOR
     /////////////////////////////
@@ -212,11 +211,11 @@ const createTwitterCanvas = async (metadataJson, isImage) => {
   
     // Re-calc canvas
     ctx.canvas.height = calculatedCanvasHeightFromDescLines
-        + communityNoteHeight
+        // + communityNoteHeight
         + qtCalculatedCanvasHeightFromDescLines;
     // console.log('>>>>> twitter_canvas > ctx.canvas.height: ',  ctx.canvas.height);
     ctx.fillRect(0, 0, maxCanvasWidth, calculatedCanvasHeightFromDescLines
-        + communityNoteHeight
+        // + communityNoteHeight
         + qtCalculatedCanvasHeightFromDescLines);
     
     const favIconUrl = 'https://abs.twimg.com/favicons/twitter.3.ico';
@@ -280,10 +279,10 @@ const createTwitterCanvas = async (metadataJson, isImage) => {
     }
 
     // Draw the Community Note, if exists
-    if(communityNote) {
-        console.log('>>>>> twitter_canvas > drawing community note text...');
-        drawCommunityNote(ctx, 30, calculatedCanvasHeightFromDescLines, communityNoteLines);
-    }
+    // if(communityNote) {
+    //     console.log('>>>>> twitter_canvas > drawing community note text...');
+    //     drawCommunityNote(ctx, 30, calculatedCanvasHeightFromDescLines, communityNoteLines);
+    // }
 
     // Draw the image, if one exists
     // this also handles if mixed-media gallary

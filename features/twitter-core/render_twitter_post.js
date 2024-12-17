@@ -5,7 +5,7 @@ const { cleanup } = require('../twitter-video/cleanup.js');
 const { buildPathsAndStuff } = require('../twitter-core/path_builder.js');
 
 const { downloadVideo, bakeImageAsFilterIntoVideo } = require('../twitter-video/index.js');
-const { getExtensionFromMediaUrl } = require('./utils.js');
+const { getExtensionFromMediaUrl, removeTCOLink } = require('./utils.js');
 const { embedCommunityNote } = require('./canvas_utils.js');
 
 const MAX_CONCURRENT_REQUESTS = 3;
@@ -138,6 +138,8 @@ const renderTwitterPost = async (metadataJson, message) => {
     const videoUrl = videoUrls[0];
     const hasVids = videoUrls.length > 0;
 
+    const communityNoteText = removeTCOLink(metadataJson.communityNote);
+
     await createDirectoryIfNotExists(processingDir);
 
     // is first item in list a video?
@@ -214,7 +216,7 @@ const renderTwitterPost = async (metadataJson, message) => {
 
         // Use the webhook proxy to send the message with the file
         try {
-            await sendWebhookProxyMsg(message, 'Here’s the Twitter canvas:', files);
+            await sendWebhookProxyMsg(message, 'Here’s the Twitter canvas:', files, communityNoteText);
         } catch (err) {
             await sendWebhookProxyMsg(message, `File(s) too large to attach! err: ${err}`);
         }
