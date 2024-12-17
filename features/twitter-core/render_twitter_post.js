@@ -6,6 +6,7 @@ const { buildPathsAndStuff } = require('../twitter-core/path_builder.js');
 
 const { downloadVideo, bakeImageAsFilterIntoVideo } = require('../twitter-video/index.js');
 const { getExtensionFromMediaUrl } = require('./utils.js');
+const { embedCommunityNote } = require('./canvas_utils.js');
 
 const MAX_CONCURRENT_REQUESTS = 3;
 const processingDir = '/tempdata';
@@ -43,21 +44,11 @@ const filterVideoUrls = (mediaUrls) => {
  * 
  * @param {*} message 
  */
-const sendWebhookProxyMsg = async (message, content, files = []) => {
+const sendWebhookProxyMsg = async (message, content, files = [], communityNoteText) => {
 
     console.log('>>> sendWebhookProxyMsg reached!');
 
-    const embed = {
-        color: 0x0099ff,
-        author: {
-            name: `${message.author.username}`,
-            icon_url: message.author.displayAvatarURL(),
-        },
-        description: 'This is a test embed',
-        footer: {
-            text: 'Test footer text',
-        },
-    };
+    const embed = embedCommunityNote(message, communityNoteText);
 
     // Save user details for the webhook
     const nickname = message.member?.nickname;
@@ -83,7 +74,7 @@ const sendWebhookProxyMsg = async (message, content, files = []) => {
     // Send the message through the webhook
     await webhook.send({
         content: modifiedContent,
-        // embeds: [embed],
+        embeds: [embed],
         username: displayName,
         avatarURL: avatarURL,
         files: files,

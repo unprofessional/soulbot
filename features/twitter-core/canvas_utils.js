@@ -274,19 +274,52 @@ const drawQtBasicElements = (
     
 };
 
-const drawCommunityNote = (ctx, xCoord = 30, yCoord, communityNoteLines) => {
-    const lineHeight = 30;
-    // Reassign new var here because "yCoord / calculatedCanvasHeightFromDescLines" is mutable...
-    let communityNoteCanvasHeightFillTextHeight = yCoord;
-    ctx.fillStyle = 'white';
-    ctx.font = 'bold 24px Arial';
-    ctx.fillText('Readers added context:', xCoord, communityNoteCanvasHeightFillTextHeight + lineHeight);
-    ctx.fillStyle = 'gray';
-    ctx.font = '24px Arial';
-    communityNoteLines.forEach(line => {
-        ctx.fillText(line, xCoord, 30 + communityNoteCanvasHeightFillTextHeight + lineHeight);
-        communityNoteCanvasHeightFillTextHeight += lineHeight;
-    });
+const embedCommunityNote = (message, communityNoteText) => {
+// const drawCommunityNote = (ctx, xCoord = 30, yCoord, communityNoteLines) => {
+    // // Community Note Stroke
+    // ctx.strokeStyle = '#4d4d4d';
+    // ctx.lineWidth = 1;  // Set the stroke width (optional)
+    // const cornerRadius = 15; // Adjust corner radius as needed
+    // // console.log('>>>>> canvas_utils > drawQtBasicElements > mediaQtMaxHeight: ', mediaQtMaxHeight);
+    // // console.log('>>>>> canvas_utils > drawQtBasicElements > qtCanvasHeightOffset: ', qtCanvasHeightOffset);
+    // const minMediaHeight = 80 + 175 + 30; // qtMediaOffset + qtMediaStaticHeight + qtBottomPadding
+    // // console.log('>>>>> canvas_utils > drawQtBasicElements > minMediaHeight: ', minMediaHeight);
+    // const determinedHeight = minMediaHeight > yCoord ? minMediaHeight : yCoord;
+    // // console.log('>>>>> canvas_utils > drawQtBasicElements > determinedHeight: ', determinedHeight);
+    // const maxWidth = 600;
+    // const borderOffset = 20;
+    // ctx.beginPath();
+    // ctx.roundRect(xCoord, yCoord - borderOffset, maxWidth, determinedHeight - 20, cornerRadius);
+    // ctx.stroke();
+
+    // const lineHeight = 30;
+    // // Reassign new var here because "yCoord / calculatedCanvasHeightFromDescLines" is mutable...
+    // let communityNoteCanvasHeightFillTextHeight = yCoord;
+    // ctx.fillStyle = 'white';
+    // ctx.font = 'bold 24px Arial';
+    // ctx.fillText('Readers added context:', xCoord, communityNoteCanvasHeightFillTextHeight + lineHeight);
+    // ctx.fillStyle = 'gray';
+    // ctx.font = '24px Arial';
+    // communityNoteLines.forEach(line => {
+    //     ctx.fillText(line, xCoord, 30 + communityNoteCanvasHeightFillTextHeight + lineHeight);
+    //     communityNoteCanvasHeightFillTextHeight += lineHeight;
+    // });
+
+    /**
+     * TODO: Use embed...
+     */
+    const embed = {
+        color: 0x0099ff,
+        author: {
+            name: `${message.author.username}`,
+            icon_url: message.author.displayAvatarURL(),
+        },
+        description: communityNoteText,
+        footer: {
+            text: 'Test footer text',
+        },
+    };
+    return embed;
 };
 
 const getAdjustedAspectRatios = (
@@ -336,6 +369,6 @@ module.exports = {
     drawTextWithSpacing,
     drawBasicElements,
     drawQtBasicElements,
-    drawCommunityNote,
+    embedCommunityNote,
     getAdjustedAspectRatios,
 };
