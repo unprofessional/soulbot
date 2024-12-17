@@ -74,7 +74,7 @@ const sendWebhookProxyMsg = async (message, content, files = [], communityNoteTe
     // Send the message through the webhook
     await webhook.send({
         content: modifiedContent,
-        embeds: [embed],
+        ...(embed && { embeds: [embed] }),
         username: displayName,
         avatarURL: avatarURL,
         files: files,
@@ -137,8 +137,7 @@ const renderTwitterPost = async (metadataJson, message) => {
     const videoUrls = filterVideoUrls(metadataJson.mediaURLs);
     const videoUrl = videoUrls[0];
     const hasVids = videoUrls.length > 0;
-
-    const communityNoteText = removeTCOLink(metadataJson.communityNote);
+    const communityNoteText = metadataJson.communityNote;
 
     await createDirectoryIfNotExists(processingDir);
 
