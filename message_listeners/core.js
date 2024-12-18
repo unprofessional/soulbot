@@ -26,6 +26,7 @@ const {
     renderTwitterPost,
 } = require('../features/twitter-core/render_twitter_post.js');
 const { enforceGoldyRole } = require('../features/role-enforcement/role-enforcement.js');
+const { sendPromptToOllama } = require('../features/ollama/index.js');
 
 // TODO: Move to "Message Validation"?
 const validationChecksHook = (message) => {
@@ -138,6 +139,15 @@ const initializeListeners = async (client) => {
 
             if (message.content === '!!! toggleTwitter') {
                 toggleTwitter(message);
+            }
+
+            if (message.content === '!!! llm') {
+                const content = message.content;
+                console.log('>>>>> core > if !!! llm > content: ', content);
+                const prompt = content.split('!!! llm')[1];
+                console.log('>>>>> core > if !!! llm > prompt: ', prompt);
+                // const response = sendPromptToOllama(prompt);
+                // console.log('>>>>> core > if !!! llm > response: ', response);
             }
 
             /**
