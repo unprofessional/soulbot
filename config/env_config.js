@@ -10,7 +10,7 @@ const featureFile = process.env.FEATURE_STORE_FILE;
 const runMode = process.env.RUN_MODE || 'development';
 
 // ollama
-const ollamaHost = process.env.OLLAMA_HOST || 'localhost';
+const ollamaHost = process.env.OLLAMA_HOST || '192.168.7.73';
 const ollamaPort = process.env.OLLAMA_PORT || '11434';
 const ollamaChatEndpoint = process.env.OLLAMA_CHAT_ENDPOINT || 'api/chat';
 const ollamaModel = process.env.OLLAMA_MODEL || 'llama3.1:70b';
