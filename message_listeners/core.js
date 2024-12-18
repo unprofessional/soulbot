@@ -141,7 +141,7 @@ const initializeListeners = async (client) => {
                 toggleTwitter(message);
             }
 
-            if (message.content === '!!! llm') {
+            if (message.content.includes('!!! llm') && validationChecksHook(message)) {
                 const content = message.content;
                 console.log('>>>>> core > if !!! llm > content: ', content);
                 const prompt = content.split('!!! llm')[1];
