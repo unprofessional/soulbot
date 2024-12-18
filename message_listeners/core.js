@@ -146,7 +146,7 @@ const initializeListeners = async (client) => {
                 console.log('>>>>> core > if !!! llm > content: ', content);
                 const prompt = content.split('!!! llm')[1];
                 console.log('>>>>> core > if !!! llm > prompt: ', prompt);
-                const response = sendPromptToOllama(prompt);
+                const response = await sendPromptToOllama(prompt);
                 console.log('>>>>> core > if !!! llm > response: ', response);
             }
 
