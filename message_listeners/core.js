@@ -148,6 +148,7 @@ const initializeListeners = async (client) => {
                 console.log('>>>>> core > if !!! llm > prompt: ', prompt);
                 const response = await sendPromptToOllama(prompt);
                 console.log('>>>>> core > if !!! llm > response: ', response);
+                message.channel.reply(response);
             }
 
             /**
