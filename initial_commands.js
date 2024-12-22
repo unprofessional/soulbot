@@ -93,6 +93,7 @@
 const path = require('node:path');
 const fs = require('node:fs');
 const { Collection, REST, Routes, Events } = require('discord.js');
+require('dotenv').config();
 
 const initializeCommands = async (client) => {
     client.commands = new Collection();
@@ -126,8 +127,8 @@ const initializeCommands = async (client) => {
 
     try {
         console.log('Refreshing application (/) commands...');
-        const clientId = process.env.DISCORD_CLIENT_ID;
-        const guildId = process.env.DISCORD_GUILD_ID; // Optional: For guild-specific commands
+        const clientId = process.env.CLIENT_ID;
+        const guildId = process.env.DEV_GUILD_ID; // Optional: For guild-specific commands
 
         if (guildId) {
             // Register commands for a specific guild (useful for development)
