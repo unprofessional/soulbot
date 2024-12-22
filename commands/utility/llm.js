@@ -27,10 +27,12 @@ module.exports = {
         try {
             const response = await sendPromptToOllama(userMessage);
 
-            if (response.length <= 2000) {
-                await interaction.editReply(response);
+            const messageToShow = `**You asked:**\n${userMessage}\n\n**The LLM replied:**\n${response}`;
+
+            if (messageToShow.length <= 2000) {
+                await interaction.editReply(messageToShow);
             } else {
-                const chunks = response.match(/(.|[\r\n]){1,1990}(?=\s|$)/g);
+                const chunks = messageToShow.match(/(.|[\r\n]){1,1990}(?=\s|$)/g);
                 await interaction.editReply(chunks.shift()); // Send the first chunk
 
                 for (const chunk of chunks) {
