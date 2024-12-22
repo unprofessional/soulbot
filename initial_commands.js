@@ -130,8 +130,8 @@ const initializeCommands = async (client) => {
         const clientId = process.env.DISCORD_CLIENT_ID;
         const guildId = process.env.DISCORD_GUILD_ID; // Optional: For guild-specific commands
 
-        console.log('>>>>> initial_commands > clientId: ', clientId);
-        console.log('>>>>> initial_commands > guildId: ', guildId);
+        // console.log('>>>>> initial_commands > clientId: ', clientId);
+        // console.log('>>>>> initial_commands > guildId: ', guildId);
 
         if (guildId) {
             // Register commands for a specific guild (useful for development)
