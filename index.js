@@ -16,6 +16,9 @@ const memberFile = process.env.MEMBER_STORE_FILE;
 const featureFile = process.env.FEATURE_STORE_FILE;
 const runMode = process.env.RUN_MODE || 'development';
 
+const clientId = process.env.CLIENT_ID;
+console.log('>>>>> THE_INDEX > clientId: ', clientId);
+
 const initializeApp = async () => {
     // CI/Build/Function test
     if (runMode === 'test') {

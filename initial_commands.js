@@ -130,6 +130,9 @@ const initializeCommands = async (client) => {
         const clientId = process.env.CLIENT_ID;
         const guildId = process.env.DEV_GUILD_ID; // Optional: For guild-specific commands
 
+        console.log('>>>>> initial_commands > clientId: ', clientId);
+        console.log('>>>>> initial_commands > guildId: ', guildId);
+
         if (guildId) {
             // Register commands for a specific guild (useful for development)
             await rest.put(
