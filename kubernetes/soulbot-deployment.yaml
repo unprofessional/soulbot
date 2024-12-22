@@ -31,12 +31,12 @@ spec:
           valueFrom:
             secretKeyRef:
               name: discord-client-id
-              key: DISCORD_CLIENT_ID
+              key: CLIENT_ID
         - name: DISCORD_GUILD_ID
           valueFrom:
             secretKeyRef:
               name: discord-dev-guild-id
-              key: DISCORD_GUILD_ID
+              key: DEV_GUILD_ID
         - name: STORE_PATH
           value: "/data"
         - name: GUILD_STORE_FILE
