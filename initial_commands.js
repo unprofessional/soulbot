@@ -127,8 +127,8 @@ const initializeCommands = async (client) => {
 
     try {
         console.log('Refreshing application (/) commands...');
-        const clientId = process.env.CLIENT_ID;
-        const guildId = process.env.DEV_GUILD_ID; // Optional: For guild-specific commands
+        const clientId = process.env.DISCORD_CLIENT_ID;
+        const guildId = process.env.DISCORD_GUILD_ID; // Optional: For guild-specific commands
 
         console.log('>>>>> initial_commands > clientId: ', clientId);
         console.log('>>>>> initial_commands > guildId: ', guildId);

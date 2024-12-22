@@ -27,6 +27,16 @@ spec:
             secretKeyRef:
               name: discord-bot-secret
               key: DISCORD_BOT_TOKEN
+        - name: DISCORD_CLIENT_ID
+          valueFrom:
+            secretKeyRef:
+              name: discord-client-id
+              key: DISCORD_CLIENT_ID
+        - name: DISCORD_GUILD_ID
+          valueFrom:
+            secretKeyRef:
+              name: discord-guild-id
+              key: DISCORD_GUILD_ID
         - name: STORE_PATH
           value: "/data"
         - name: GUILD_STORE_FILE
