@@ -35,7 +35,7 @@ spec:
         - name: DISCORD_GUILD_ID
           valueFrom:
             secretKeyRef:
-              name: discord-guild-id
+              name: discord-dev-guild-id
               key: DISCORD_GUILD_ID
         - name: STORE_PATH
           value: "/data"
