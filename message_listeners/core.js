@@ -234,4 +234,7 @@ const initializeListeners = async (client) => {
     return client;
 };
 
-module.exports = { initializeListeners };
+module.exports = {
+    validationChecksHook,
+    initializeListeners,
+};
