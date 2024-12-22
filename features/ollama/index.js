@@ -6,7 +6,16 @@ async function sendPromptToOllama(prompt) {
     const url = `http://${ollamaHost}:${ollamaPort}/${ollamaChatEndpoint}`;
     const requestBody = {
         model: ollamaModel,
-        messages: [{ role: 'user', content: prompt }]
+        messages: [
+            {
+                role: 'system',
+                content: 'Provide concise responses that do not exceed 2000 characters. Avoid asking questions or prompting further interactions, as you do not retain context between requests.',
+            },
+            {
+                role: 'user',
+                content: prompt,
+            }
+        ]
     };
 
     try {
