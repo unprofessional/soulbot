@@ -16,12 +16,12 @@ module.exports = {
                 .setRequired(true)
         ),
     async execute(interaction) {
-        if (interaction.user.id !== BOT_OWNER_ID) {
-            return await interaction.reply({
-                content: 'You do not have permission to use this command.',
-                ephemeral: true,
-            });
-        }
+        // if (interaction.user.id !== BOT_OWNER_ID) {
+        //     return await interaction.reply({
+        //         content: 'You do not have permission to use this command.',
+        //         ephemeral: true,
+        //     });
+        // }
 
         // Check if the queue length exceeds the limit
         if (queue.queue.length >= queueLimit) {
