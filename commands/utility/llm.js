@@ -3,7 +3,7 @@ const { sendPromptToOllama } = require('../../features/ollama');
 const PromiseQueue = require('../../lib/promise_queue');
 
 const BOT_OWNER_ID = process.env.BOT_OWNER_ID || '818606180095885332';
-const queue = new PromiseQueue(1, 5000); // Max 3 concurrent tasks, 5 seconds timeout
+const queue = new PromiseQueue(1, 20000); // Max 3 concurrent tasks, 5 seconds timeout
 
 module.exports = {
     data: new SlashCommandBuilder()
