@@ -14,8 +14,9 @@ async function sendPromptToOllama(prompt) {
             {
                 role: 'user',
                 content: prompt,
-            }
-        ]
+            },
+        ],
+        keepAlive: -1, // Keep model in memory
     };
 
     try {
