@@ -3,7 +3,7 @@ const { sendPromptToOllama } = require('../../features/ollama');
 const PromiseQueue = require('../../lib/promise_queue');
 
 const BOT_OWNER_ID = process.env.BOT_OWNER_ID || '818606180095885332';
-const queue = new PromiseQueue(1, 20000); // Max 3 concurrent tasks, 5 seconds timeout
+const queue = new PromiseQueue(1, 20000); // Max 1 concurrent task, 20 seconds timeout
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -27,10 +27,8 @@ module.exports = {
         const userMessage = interaction.options.getString('message');
 
         try {
-            // Add the task to the queue
-            const response = await queue.add(() =>
-                sendPromptToOllama(userMessage)
-            );
+            console.log('Adding task to queue...');
+            const response = await queue.add(() => sendPromptToOllama(userMessage));
 
             const messageToShow = `**Request:**\n> ${userMessage}\n\n**Response:**\n${response}`;
 
@@ -46,7 +44,6 @@ module.exports = {
             }
         } catch (error) {
             if (error.name === 'TimeoutError') {
-                // Inform the user that the queue is full
                 await interaction.editReply(
                     'The bot is currently handling too many requests. Please try again later.'
                 );
