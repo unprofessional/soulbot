@@ -1,6 +1,8 @@
 const { SlashCommandBuilder } = require('discord.js');
+const { PromptTemplate } = require('langchain/prompts');
 const { sendPromptToOllama } = require('../../features/ollama');
 const PromiseQueue = require('../../lib/promise_queue');
+const cheerio = require('cheerio');
 
 const BOT_OWNER_ID = process.env.BOT_OWNER_ID || '818606180095885332';
 const queue = new PromiseQueue(1, 20000); // Max 1 concurrent task, 20 seconds timeout
@@ -16,12 +18,12 @@ module.exports = {
                 .setRequired(true)
         ),
     async execute(interaction) {
-        // if (interaction.user.id !== BOT_OWNER_ID) {
-        //     return await interaction.reply({
-        //         content: 'You do not have permission to use this command.',
-        //         ephemeral: true,
-        //     });
-        // }
+        if (interaction.user.id !== BOT_OWNER_ID) {
+            return await interaction.reply({
+                content: 'You do not have permission to use this command.',
+                ephemeral: true,
+            });
+        }
 
         // Check if the queue length exceeds the limit
         if (queue.queue.length >= queueLimit) {
@@ -31,24 +33,53 @@ module.exports = {
             });
         }
 
+        const userMessage = interaction.options.getString('message');
+        const urlRegex = /(https?:\/\/[^\s]+)/g;
+        const urls = userMessage.match(urlRegex);
+
         await interaction.deferReply();
 
-        const userMessage = interaction.options.getString('message');
-
         try {
-            console.log('Adding task to queue...');
-            const response = await queue.add(() => sendPromptToOllama(userMessage));
+            if(urls) {
+                const urlContent = await fetchWebPageContent(urls[0]);
 
-            const messageToShow = `**Request:**\n> ${userMessage}\n\n**Response:**\n${response}`;
+                // Create a structured summarization prompt
+                const prompt = new PromptTemplate({
+                    inputVariables: ['content'],
+                    template: `Summarize the following webpage content:\n\n{content}`,
+                });
 
-            if (messageToShow.length <= 2000) {
-                await interaction.editReply(messageToShow);
+                const formattedPrompt = await prompt.format({ content: urlContent });
+
+                const response = await queue.add(() => sendPromptToOllama(formattedPrompt));
+
+                const messageToShow = `**Request:**\n> ${userMessage}\n\n**Response:**\n${response}`;
+
+                if (messageToShow.length <= 2000) {
+                    await interaction.editReply(messageToShow);
+                } else {
+                    const chunks = messageToShow.match(/(.|[\r\n]){1,1990}(?=\s|$)/g);
+                    await interaction.editReply(chunks.shift()); // Send the first chunk
+
+                    for (const chunk of chunks) {
+                        await interaction.followUp(chunk);
+                    }
+                }
             } else {
-                const chunks = messageToShow.match(/(.|[\r\n]){1,1990}(?=\s|$)/g);
-                await interaction.editReply(chunks.shift()); // Send the first chunk
+                console.log('Adding task to queue...');
+                const response = await queue.add(() => sendPromptToOllama(userMessage));
 
-                for (const chunk of chunks) {
-                    await interaction.followUp(chunk);
+                const messageToShow = `**Request:**\n> ${userMessage}\n\n**Response:**\n${response}`;
+
+                if (messageToShow.length <= 2000) {
+                    await interaction.editReply(messageToShow);
+                } else {
+                    const chunks = messageToShow.match(/(.|[\r\n]){1,1990}(?=\s|$)/g);
+                    await interaction.editReply(chunks.shift()); // Send the first chunk
+
+                    for (const chunk of chunks) {
+                        await interaction.followUp(chunk);
+                    }
                 }
             }
         } catch (error) {
@@ -68,3 +99,24 @@ module.exports = {
         }
     },
 };
+
+// Helper function to fetch webpage content using `fetch`
+async function fetchWebPageContent(url) {
+    try {
+        const response = await fetch(url);
+
+        if (!response.ok) {
+            throw new Error(`Failed to fetch URL: ${response.statusText}`);
+        }
+
+        const html = await response.text();
+
+        // Use Cheerio to parse HTML and extract content
+        const $ = cheerio.load(html);
+        const paragraphs = $('p').map((_, el) => $(el).text()).get();
+        return paragraphs.join('\n').trim().substring(0, 5000); // Limit content to 5000 characters
+    } catch (error) {
+        console.error('Error fetching webpage content:', error);
+        throw new Error('Could not fetch the webpage content.');
+    }
+}
