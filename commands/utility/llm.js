@@ -118,8 +118,12 @@ async function fetchWebPageContent(url) {
 
         // Use Cheerio to parse HTML and extract content
         const $ = cheerio.load(html);
-        const paragraphs = $('p').map((_, el) => $(el).text()).get();
-        return paragraphs.join('\n').trim().substring(0, 5000); // Limit content to 5000 characters
+
+        // Select both <p> and <span> tags
+        const elements = $('p, span').map((_, el) => $(el).text()).get();
+
+        // Join and clean up text content
+        return elements.join('\n').trim().substring(0, 5000); // Limit content to 5000 characters
     } catch (error) {
         console.error('Error fetching webpage content:', error);
         throw new Error('Could not fetch the webpage content.');
