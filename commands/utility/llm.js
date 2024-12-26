@@ -125,7 +125,7 @@ async function fetchWebPageContent(url) {
             .get();
 
         // Join and clean up text content
-        return elements.join('\n').trim().substring(0, 5000); // Limit content to 5000 characters
+        return elements.join('\n').trim().substring(0, 20000); // Limit content to 20000 characters
     } catch (error) {
         console.error('Error fetching webpage content:', error);
         throw new Error('Could not fetch the webpage content.');
