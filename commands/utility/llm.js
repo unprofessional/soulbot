@@ -1,5 +1,5 @@
 const { SlashCommandBuilder } = require('discord.js');
-const { PromptTemplate } = require('langchain/prompts');
+const { PromptTemplate } = require('@langchain/core/prompts');
 const { sendPromptToOllama } = require('../../features/ollama');
 const PromiseQueue = require('../../lib/promise_queue');
 const cheerio = require('cheerio');
