@@ -41,7 +41,9 @@ module.exports = {
 
         try {
             if(urls) {
+                console.log('>>>>> llm > TEXT CONTAINS URL!!!');
                 const urlContent = await fetchWebPageContent(urls[0]);
+                console.log('>>>>> llm > urlContent: ', urlContent);
 
                 // Create a structured summarization prompt
                 const prompt = new PromptTemplate({
@@ -50,6 +52,8 @@ module.exports = {
                 });
 
                 const formattedPrompt = await prompt.format({ content: urlContent });
+
+                console.log('>>>>> llm > formattedPrompt: ', formattedPrompt);
 
                 const response = await queue.add(() => sendPromptToOllama(formattedPrompt));
 
@@ -66,6 +70,7 @@ module.exports = {
                     }
                 }
             } else {
+                console.log('>>>>> llm > NORMAL TEXT-BASED REQUEST!');
                 console.log('Adding task to queue...');
                 const response = await queue.add(() => sendPromptToOllama(userMessage));
 
