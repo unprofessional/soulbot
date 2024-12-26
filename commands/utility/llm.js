@@ -47,7 +47,7 @@ module.exports = {
 
                 // Create a structured summarization prompt
                 const prompt = new PromptTemplate({
-                    inputVariables: ['content, userPrompt'],
+                    inputVariables: ['content', 'userPrompt'],
                     template: `Summarize the following webpage content:\`\`\`\n\n{content}\n\n\`\`\` and also obey the user prompt (if any): \`\`\`\n\n{userPrompt}\n\n\`\`\``,
                 });
 
