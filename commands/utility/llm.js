@@ -4,7 +4,7 @@ const { sendPromptToOllama } = require('../../features/ollama');
 const PromiseQueue = require('../../lib/promise_queue');
 const cheerio = require('cheerio');
 
-const BOT_OWNER_ID = process.env.BOT_OWNER_ID || '818606180095885332';
+// const BOT_OWNER_ID = process.env.BOT_OWNER_ID || '818606180095885332';
 const queue = new PromiseQueue(1, 20000); // Max 1 concurrent task, 20 seconds timeout
 const queueLimit = 3;
 
@@ -18,12 +18,12 @@ module.exports = {
                 .setRequired(true)
         ),
     async execute(interaction) {
-        if (interaction.user.id !== BOT_OWNER_ID) {
-            return await interaction.reply({
-                content: 'You do not have permission to use this command.',
-                ephemeral: true,
-            });
-        }
+        // if (interaction.user.id !== BOT_OWNER_ID) {
+        //     return await interaction.reply({
+        //         content: 'You do not have permission to use this command.',
+        //         ephemeral: true,
+        //     });
+        // }
 
         // Check if the queue length exceeds the limit
         if (queue.queue.length >= queueLimit) {
@@ -43,7 +43,7 @@ module.exports = {
             if(urls) {
                 console.log('>>>>> llm > TEXT CONTAINS URL!!!');
                 const urlContent = await fetchWebPageContent(urls[0]);
-                console.log('>>>>> llm > urlContent: ', urlContent);
+                // console.log('>>>>> llm > urlContent: ', urlContent);
 
                 // Create a structured summarization prompt
                 const prompt = new PromptTemplate({
