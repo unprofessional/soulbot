@@ -120,7 +120,7 @@ async function fetchWebPageContent(url) {
         const $ = cheerio.load(html);
 
         // Select desired HTML elements
-        const elements = $('p, span, h1, h2, h3, h4, h5, h6')
+        const elements = $('p, h1, h2, h3, h4, h5, h6')
             .map((_, el) => $(el).text())
             .get();
 
