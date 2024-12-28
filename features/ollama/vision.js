@@ -14,7 +14,7 @@ const downloadImage = async (url, filePath) => {
 };
 
 const sendImageToOllama = async (imagePath, userPrompt) => {
-    const response = await fetch('http://localhost:11434/api/completion', {
+    const response = await fetch(`http://${ollamaHost}:${ollamaPort}/api/completion`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
