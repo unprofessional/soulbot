@@ -1,5 +1,8 @@
 const fs = require('fs');
 const fetch = require('node-fetch');
+const {
+    ollamaHost, ollamaPort,
+} = require('../../config/env_config.js');
 
 const downloadImage = async (url, filePath) => {
     const res = await fetch(url);

@@ -72,7 +72,7 @@ const initializeListeners = async (client) => {
     client.on(Events.MessageCreate, async (message) => {
 
         if(isOwner) {
-/**
+            /**
              * Ollama Vision
              */
             const images = message.attachments.filter(att => att.contentType?.startsWith('image/'));
