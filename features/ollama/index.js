@@ -9,7 +9,9 @@ async function sendPromptToOllama(prompt) {
         messages: [
             {
                 role: 'system',
-                content: 'Provide concise responses that do not exceed 2000 characters. Avoid asking questions or prompting further interactions, as you do not retain context between requests.',
+                content: 'Provide concise responses that do not exceed 2000 characters. ' + 
+                'Avoid asking questions or prompting further interactions, as you do not retain context between requests. ' +
+                'If you do not know, just say you do not know.',
             },
             {
                 role: 'user',
