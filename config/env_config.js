@@ -13,7 +13,7 @@ const runMode = process.env.RUN_MODE || 'development';
 const ollamaHost = process.env.OLLAMA_HOST || '192.168.7.73';
 const ollamaPort = process.env.OLLAMA_PORT || '11434';
 const ollamaChatEndpoint = process.env.OLLAMA_CHAT_ENDPOINT || 'api/chat';
-const ollamaModel = process.env.OLLAMA_MODEL || 'llama3.1:8b';
+const ollamaModel = process.env.OLLAMA_MODEL || 'llama3.2-vision:11b';
 
 module.exports = {
     token, path, guildFile, channelFile, memberFile, featureFile, runMode,
