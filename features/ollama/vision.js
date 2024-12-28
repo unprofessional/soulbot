@@ -1,7 +1,7 @@
 const fs = require('fs');
 const fetch = require('node-fetch');
 const {
-    ollamaHost, ollamaPort,
+    ollamaHost, ollamaPort, ollamaChatEndpoint, ollamaModel,
 } = require('../../config/env_config.js');
 
 const downloadImage = async (url, filePath) => {
@@ -17,13 +17,14 @@ const downloadImage = async (url, filePath) => {
 };
 
 const sendImageToOllama = async (imagePath, userPrompt) => {
-    const response = await fetch(`http://${ollamaHost}:${ollamaPort}/api/completion`, {
+    const response = await fetch(`http://${ollamaHost}:${ollamaPort}/${ollamaChatEndpoint}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-            model: 'llama3.2-vision:11b',
+            model: ollamaModel,
             image: imagePath, // Provide the local file path
             prompt: userPrompt,
+            keepAlive: -1, // Keep model in memory
         }),
     });
 
