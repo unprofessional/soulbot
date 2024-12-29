@@ -83,7 +83,7 @@ const initializeListeners = async (client) => {
                         const localPath = `/tmp/${image.name}`;
                         await downloadImage(image.url, localPath);
                         const userPrompt = message.content || 'Analyze this image.';
-                        const response = await sendImageToOllama(localPath, userPrompt);
+                        const response = await sendPromptToOllama(userPrompt, localPath);
                         console.log('>>>>> core.js > image attached! analysis response: ', response);
                         await message.reply(`Ollama response:\n${response}`);
                     } catch (error) {
