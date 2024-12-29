@@ -10,6 +10,7 @@ const initializeCommands = async (client) => {
     const commandFolders = fs.readdirSync(foldersPath);
 
     const commands = []; // For registering commands via Discord REST API
+    const clientId = process.env.DISCORD_CLIENT_ID;
 
     // Dynamically load command files
     for (const folder of commandFolders) {
@@ -19,6 +20,11 @@ const initializeCommands = async (client) => {
         for (const file of commandFiles) {
             const filePath = path.join(commandsPath, file);
             const command = require(filePath);
+
+            if (command.name === 'llm') { // Replace 'llm' with the command you want to remove
+                console.log(`Deleting command: ${command.name}`);
+                await rest.delete(`${Routes.applicationCommands(clientId)}/${command.id}`);
+            }
 
             // Add the command to the client.commands Collection
             if ('data' in command && 'execute' in command) {
@@ -35,7 +41,6 @@ const initializeCommands = async (client) => {
 
     try {
         console.log('Refreshing application (/) commands...');
-        const clientId = process.env.DISCORD_CLIENT_ID;
         // const guildId = process.env.DISCORD_GUILD_ID; // Optional: For guild-specific commands
 
         // console.log('>>>>> initial_commands > clientId: ', clientId);
