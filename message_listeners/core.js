@@ -152,7 +152,7 @@ const initializeListeners = async (client) => {
                 }
             }
 
-            if (message.content === '!!! vision2' && validationChecksHook(message)) {
+            if (message.content === '!!! catvision' && validationChecksHook(message)) {
                 /**
                  * Ollama Vision
                  */
