@@ -52,6 +52,8 @@ async function sendPromptToOllama(prompt, imagePath) {
         keepAlive: -1, // Keep model in memory
     };
 
+    console.log('>>>>> ollama > sendPromptToOllama > requestBody: ', requestBody);
+
     try {
         const response = await fetch(url, {
             method: 'POST',
