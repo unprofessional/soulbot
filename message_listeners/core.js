@@ -131,6 +131,7 @@ const initializeListeners = async (client) => {
                     for (const [_, image] of images) {
                         try {
                             const localPath = `/tempdata/${image.name}`;
+                            console.log('>>>>> core.js > image attached! analysis localPath: ', localPath);
                             await downloadImage(image.url, localPath);
                             const userPrompt = message.content || 'Analyze this image.';
                             const response = await sendPromptToOllama(userPrompt, localPath);

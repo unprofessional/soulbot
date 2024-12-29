@@ -6,6 +6,7 @@ const fetch = require('node-fetch');
 
 const downloadImage = async (url, filePath) => {
     const res = await fetch(url);
+    console.log('>>>>> vision.js > downloadImage > res: ', res);
     if (!res.ok) throw new Error(`Failed to fetch image: ${res.statusText}`);
     const fileStream = fs.createWriteStream(filePath);
     await new Promise((resolve, reject) => {
