@@ -132,7 +132,7 @@ const initializeListeners = async (client) => {
                     for (const [_, image] of images) {
                         try {
                             // const localPath = `/tempdata/${image.name}`;
-                            console.log('>>>>> core.js > image attached! analysis localPath: ', localPath);
+                            console.log('>>>>> core.js > image attached! analysis localPath: ', image.url);
                             // await downloadImage(image.url, localPath);
                             // if (!fs.existsSync(localPath)) {
                             //     console.error(`File not found at path: ${localPath}`);
