@@ -1,3 +1,4 @@
+const fs = require('node:fs');
 const { Events } = require('discord.js');
 const {
     guilds,
@@ -130,11 +131,15 @@ const initializeListeners = async (client) => {
                     await message.channel.send('Processing your image, please wait...');
                     for (const [_, image] of images) {
                         try {
-                            const localPath = `/tempdata/${image.name}`;
+                            // const localPath = `/tempdata/${image.name}`;
                             console.log('>>>>> core.js > image attached! analysis localPath: ', localPath);
-                            await downloadImage(image.url, localPath);
+                            // await downloadImage(image.url, localPath);
+                            // if (!fs.existsSync(localPath)) {
+                            //     console.error(`File not found at path: ${localPath}`);
+                            //     throw new Error('Image download failed');
+                            // }
                             const userPrompt = message.content || 'Analyze this image.';
-                            const response = await sendPromptToOllama(userPrompt, localPath);
+                            const response = await sendPromptToOllama(userPrompt, image.url);
                             console.log('>>>>> core.js > image attached! analysis response: ', response);
                             await message.reply(`Ollama response:\n${response}`);
                         } catch (error) {
