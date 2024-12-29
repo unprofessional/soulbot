@@ -141,8 +141,9 @@ const initializeListeners = async (client) => {
 
                             // Convert the image to Base64
                             const base64Image = await fetchImageAsBase64(image.url);
+                            console.log("Base64 Image String Preview:", base64Image.slice(0, 100));
 
-                            const userPrompt = message.content || 'Analyze this image.';
+                            const userPrompt = message.content || 'Analyze this image. Please be brief and concise. If you do not know what it is, then just say so.';
                             const response = await sendPromptToOllama(userPrompt, base64Image);
                             console.log('>>>>> core.js > image attached! analysis response: ', response);
                             await message.reply(`Ollama response:\n${response}`);
