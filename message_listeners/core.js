@@ -143,7 +143,7 @@ const initializeListeners = async (client) => {
                             const userPrompt = message.content || 'Analyze this image. Please be brief and concise. If you do not know what it is, then just say so.';
                             const response = await sendPromptToOllama(userPrompt, base64Image);
                             console.log('>>>>> core.js > image attached! analysis response: ', response);
-                            await message.reply(`Ollama response:\n${response}`);
+                            await message.reply(`Response:\n\n${response}`);
                         } catch (error) {
                             console.error(error);
                             await message.reply('An error occurred while processing your image.');
@@ -176,7 +176,7 @@ const initializeListeners = async (client) => {
                             const userPrompt = 'Categorize this image with suggested meta tags. Do not infer further semantic meaning, just categorize it by tags based on what you see.';
                             const response = await sendPromptToOllama(userPrompt, base64Image);
                             console.log('>>>>> core.js > image attached! analysis response: ', response);
-                            await message.reply(`Response:\n${response}`);
+                            await message.reply(`Response:\n\n${response}`);
                         } catch (error) {
                             console.error(error);
                             await message.reply('An error occurred while processing your image.');
