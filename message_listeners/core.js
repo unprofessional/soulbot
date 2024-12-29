@@ -27,7 +27,7 @@ const {
 } = require('../features/twitter-core/render_twitter_post.js');
 const { enforceGoldyRole } = require('../features/role-enforcement/role-enforcement.js');
 const { sendPromptToOllama } = require('../features/ollama/index.js');
-const { downloadImage, sendImageToOllama } = require('../features/ollama/vision.js');
+const { downloadImage } = require('../features/ollama/vision.js');
 
 // TODO: Move to "Message Validation"?
 const validationChecksHook = (message) => {
@@ -70,29 +70,6 @@ const initializeListeners = async (client) => {
      * Listen to every message...
      */
     client.on(Events.MessageCreate, async (message) => {
-
-        if(isOwner) {
-            /**
-             * Ollama Vision
-             */
-            const images = message.attachments.filter(att => att.contentType?.startsWith('image/'));
-            if (images.size > 0) {
-                await message.channel.send('Processing your image, please wait...');
-                for (const [_, image] of images) {
-                    try {
-                        const localPath = `/tmp/${image.name}`;
-                        await downloadImage(image.url, localPath);
-                        const userPrompt = message.content || 'Analyze this image.';
-                        const response = await sendPromptToOllama(userPrompt, localPath);
-                        console.log('>>>>> core.js > image attached! analysis response: ', response);
-                        await message.reply(`Ollama response:\n${response}`);
-                    } catch (error) {
-                        console.error(error);
-                        await message.reply('An error occurred while processing your image.');
-                    }
-                }
-            }
-        }
 
         // Logger
         // THIS IS SPAMMY, ONLY USE FOR DEBUGGING!
@@ -143,6 +120,29 @@ const initializeListeners = async (client) => {
         }
 
         if(!isSelf(message) && !isABot(message) && isOwner(message)) {
+
+            if (message.content === '!!! vision' && validationChecksHook(message)) {
+                /**
+                 * Ollama Vision
+                 */
+                const images = message.attachments.filter(att => att.contentType?.startsWith('image/'));
+                if (images.size > 0) {
+                    await message.channel.send('Processing your image, please wait...');
+                    for (const [_, image] of images) {
+                        try {
+                            const localPath = `/tmp/${image.name}`;
+                            await downloadImage(image.url, localPath);
+                            const userPrompt = message.content || 'Analyze this image.';
+                            const response = await sendPromptToOllama(userPrompt, localPath);
+                            console.log('>>>>> core.js > image attached! analysis response: ', response);
+                            await message.reply(`Ollama response:\n${response}`);
+                        } catch (error) {
+                            console.error(error);
+                            await message.reply('An error occurred while processing your image.');
+                        }
+                    }
+                }
+            }
 
             // console.log('>>>>> NOT self!!! Reading message!!');
 
