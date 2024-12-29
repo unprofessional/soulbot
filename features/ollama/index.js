@@ -34,6 +34,7 @@ const processChunks = async (response) => {
 
 async function sendPromptToOllama(prompt, imagePath) {
     const url = `http://${ollamaHost}:${ollamaPort}/${ollamaChatEndpoint}`;
+    const catvisionprompt = 'Categorize this image with suggested meta tags. Do not infer further semantic meaning, just categorize it by tags based on what you see.';
     const requestBody = {
         model: ollamaModel,
         messages: [
@@ -45,7 +46,7 @@ async function sendPromptToOllama(prompt, imagePath) {
             },
             {
                 role: 'user',
-                content: imagePath ? 'Analyze this image.' : prompt,
+                content: imagePath ? catvisionprompt : prompt,
                 ...(imagePath && { images: [imagePath] }), // Conditionally add 'images' property
             },
         ],
