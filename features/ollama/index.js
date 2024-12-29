@@ -36,7 +36,6 @@ async function sendPromptToOllama(prompt, imagePath) {
     const url = `http://${ollamaHost}:${ollamaPort}/${ollamaChatEndpoint}`;
     const requestBody = {
         model: ollamaModel,
-        ...(imagePath && { images: [imagePath] }), // Conditionally add 'images' property
         messages: [
             {
                 role: 'system',
@@ -47,6 +46,7 @@ async function sendPromptToOllama(prompt, imagePath) {
             {
                 role: 'user',
                 content: imagePath ? 'Analyze this image.' : prompt,
+                ...(imagePath && { images: [imagePath] }), // Conditionally add 'images' property
             },
         ],
         keepAlive: -1, // Keep model in memory
