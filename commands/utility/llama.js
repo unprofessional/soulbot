@@ -10,7 +10,7 @@ const queueLimit = 3;
 
 module.exports = {
     data: new SlashCommandBuilder()
-        .setName('llm')
+        .setName('llama')
         .setDescription('Talks to the LLM, and has it talk back.')
         .addStringOption(option =>
             option.setName('message')

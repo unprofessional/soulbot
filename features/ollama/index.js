@@ -46,7 +46,7 @@ async function sendPromptToOllama(prompt, imagePath) {
             },
             {
                 role: 'user',
-                content: prompt,
+                content: imagePath ? 'Analyze this image.' : prompt,
             },
         ],
         keepAlive: -1, // Keep model in memory
