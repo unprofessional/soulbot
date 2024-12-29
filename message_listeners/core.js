@@ -118,9 +118,6 @@ const initializeListeners = async (client) => {
                     }
                 }
             }
-        }
-
-        if(!isSelf(message) && !isABot(message) && isOwner(message)) {
 
             if (message.content === '!!! vision' && validationChecksHook(message)) {
                 /**
@@ -154,6 +151,9 @@ const initializeListeners = async (client) => {
                     }
                 }
             }
+        }
+
+        if(!isSelf(message) && !isABot(message) && isOwner(message)) {
 
             // console.log('>>>>> NOT self!!! Reading message!!');
 
