@@ -140,8 +140,10 @@ const initializeListeners = async (client) => {
                             const base64Image = await fetchImageAsBase64(image.url);
                             console.log("Base64 Image String Preview:", base64Image.slice(0, 100));
 
-                            const userPrompt = message.content || 'Analyze this image. Please be brief and concise. If you do not know what it is, then just say so.';
-                            const response = await sendPromptToOllama(userPrompt, base64Image);
+                            const catvisionprompt = 'You are assisting with categorizing images into categories for a database. ' +
+                            'Categorize this image with suggested meta tags based on what you see with single word or single phrase tags. ' +
+                            ' Return only the tags.';
+                            const response = await sendPromptToOllama(catvisionprompt, base64Image);
                             console.log('>>>>> core.js > image attached! analysis response: ', response);
                             await message.reply(`Response:\n\n${response}`);
                         } catch (error) {
@@ -152,38 +154,38 @@ const initializeListeners = async (client) => {
                 }
             }
 
-            if (message.content === '!!! catvision' && validationChecksHook(message)) {
-                /**
-                 * Ollama Vision
-                 */
-                const images = message.attachments.filter(att => att.contentType?.startsWith('image/'));
-                if (images.size > 0) {
-                    await message.channel.send('Processing your image, please wait...');
-                    for (const [_, image] of images) {
-                        try {
-                            // const localPath = `/tempdata/${image.name}`;
-                            console.log('>>>>> core.js > image attached! analysis localPath: ', image.url);
-                            // await downloadImage(image.url, localPath);
-                            // if (!fs.existsSync(localPath)) {
-                            //     console.error(`File not found at path: ${localPath}`);
-                            //     throw new Error('Image download failed');
-                            // }
+            // if (message.content === '!!! catvision' && validationChecksHook(message)) {
+            //     /**
+            //      * Ollama Vision
+            //      */
+            //     const images = message.attachments.filter(att => att.contentType?.startsWith('image/'));
+            //     if (images.size > 0) {
+            //         await message.channel.send('Processing your image, please wait...');
+            //         for (const [_, image] of images) {
+            //             try {
+            //                 // const localPath = `/tempdata/${image.name}`;
+            //                 console.log('>>>>> core.js > image attached! analysis localPath: ', image.url);
+            //                 // await downloadImage(image.url, localPath);
+            //                 // if (!fs.existsSync(localPath)) {
+            //                 //     console.error(`File not found at path: ${localPath}`);
+            //                 //     throw new Error('Image download failed');
+            //                 // }
 
-                            // Convert the image to Base64
-                            const base64Image = await fetchImageAsBase64(image.url);
-                            console.log("Base64 Image String Preview:", base64Image.slice(0, 100));
+            //                 // Convert the image to Base64
+            //                 const base64Image = await fetchImageAsBase64(image.url);
+            //                 console.log("Base64 Image String Preview:", base64Image.slice(0, 100));
 
-                            const userPrompt = 'Categorize this image with suggested meta tags. Do not infer further semantic meaning, just categorize it by tags based on what you see.';
-                            const response = await sendPromptToOllama(userPrompt, base64Image);
-                            console.log('>>>>> core.js > image attached! analysis response: ', response);
-                            await message.reply(`Response:\n\n${response}`);
-                        } catch (error) {
-                            console.error(error);
-                            await message.reply('An error occurred while processing your image.');
-                        }
-                    }
-                }
-            }
+            //                 const userPrompt = 'Categorize this image with suggested meta tags. Do not infer further semantic meaning, just categorize it by tags based on what you see.';
+            //                 const response = await sendPromptToOllama(userPrompt, base64Image);
+            //                 console.log('>>>>> core.js > image attached! analysis response: ', response);
+            //                 await message.reply(`Response:\n\n${response}`);
+            //             } catch (error) {
+            //                 console.error(error);
+            //                 await message.reply('An error occurred while processing your image.');
+            //             }
+            //         }
+            //     }
+            // }
         }
 
         if(!isSelf(message) && !isABot(message) && isOwner(message)) {
