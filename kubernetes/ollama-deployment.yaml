@@ -1,0 +1,29 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ollama
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ollama
+  template:
+    metadata:
+      labels:
+        app: ollama
+    spec:
+      containers:
+      - name: ollama
+        image: ollama/ollama:latest # Replace with the correct Ollama image
+        ports:
+        - containerPort: 11434 # Default Ollama API port
+        env:
+        - name: MODEL_PATH
+          value: "/models" # Example, adjust based on Ollama's requirements
+        volumeMounts:
+        - name: shared-data-volume
+          mountPath: /shared # Mount the shared PVC
+      volumes:
+      - name: shared-data-volume
+        persistentVolumeClaim:
+          claimName: soulbot-pvc # Reference the existing PVC

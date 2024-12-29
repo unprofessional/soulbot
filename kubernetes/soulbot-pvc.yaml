@@ -4,7 +4,7 @@ metadata:
   name: soulbot-pvc
 spec:
   accessModes:
-    - ReadWriteOnce # Must match the PV's access mode
+    - ReadWriteMany # Must match the PV's access mode
   storageClassName: manual # Should match the PV's storageClassName
   resources:
     requests:

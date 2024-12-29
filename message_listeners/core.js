@@ -28,7 +28,7 @@ const {
 } = require('../features/twitter-core/render_twitter_post.js');
 const { enforceGoldyRole } = require('../features/role-enforcement/role-enforcement.js');
 const { sendPromptToOllama } = require('../features/ollama/index.js');
-const { downloadImage } = require('../features/ollama/vision.js');
+const { downloadImage, fetchImageAsBase64 } = require('../features/ollama/vision.js');
 
 // TODO: Move to "Message Validation"?
 const validationChecksHook = (message) => {
@@ -138,8 +138,12 @@ const initializeListeners = async (client) => {
                             //     console.error(`File not found at path: ${localPath}`);
                             //     throw new Error('Image download failed');
                             // }
+
+                            // Convert the image to Base64
+                            const base64Image = await fetchImageAsBase64(image.url);
+
                             const userPrompt = message.content || 'Analyze this image.';
-                            const response = await sendPromptToOllama(userPrompt, image.url);
+                            const response = await sendPromptToOllama(userPrompt, base64Image);
                             console.log('>>>>> core.js > image attached! analysis response: ', response);
                             await message.reply(`Ollama response:\n${response}`);
                         } catch (error) {

@@ -59,6 +59,8 @@ spec:
           mountPath: /data
         - name: temp-data-volume
           mountPath: /tempdata
+        - name: shared-data-volume # Create a shared volume
+          mountPath: /shared
       volumes:
       - name: data-volume
         persistentVolumeClaim:
@@ -66,6 +68,9 @@ spec:
       - name: temp-data-volume
         emptyDir:
           medium: Memory
+      - name: shared-data-volume # Reference the shared PVC
+        persistentVolumeClaim:
+          claimName: soulbot-pvc
 
 ##############################################################################
 ############# ALTERNATE FOR GPU — TODO: REFACTOR INTO SEPARATE DOCKERFILE ####

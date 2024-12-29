@@ -7,7 +7,7 @@ spec:
     storage: 1Gi # Specify the desired storage capacity
   volumeMode: Filesystem
   accessModes:
-    - ReadWriteOnce # Access mode for a single node
+    - ReadWriteMany # Access mode for a single node
   persistentVolumeReclaimPolicy: Delete # What to do with data when PV is deleted
   storageClassName: manual
   hostPath:
