@@ -42,11 +42,14 @@ async function sendPromptToOllama(prompt, imagePath, intent) {
 Analyze the provided image and return suggested meta tags in JSON format. 
 
 The tags should be single words or short phrases. 
-Output the tags in the following schema and nothing else:
+Output the tags in the following JSON schema **and nothing else**:
 
 {
   "suggestedTags": ["category1", "category2", "category3"]
 }
+
+Do not include explanations, descriptions, or any additional text. 
+Your output should only contain valid JSON in the format provided.
 
 Example input: An image of a dog playing in a park.
 Example output:
@@ -54,7 +57,8 @@ Example output:
   "suggestedTags": ["dog", "park", "play", "outdoor"]
 }
 
-Categorize the image now and follow the schema strictly.`;
+Categorize the image now and follow the JSON schema strictly.
+`;
     }
     const requestBody = {
         model: ollamaModel,
