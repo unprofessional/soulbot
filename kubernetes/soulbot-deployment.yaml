@@ -37,6 +37,33 @@ spec:
             secretKeyRef:
               name: discord-dev-guild-id
               key: DEV_GUILD_ID
+        # Postgres
+        - name: PG_HOST
+          valueFrom:
+            secretKeyRef:
+              name: pg-host
+              key: PG_HOST
+        - name: PG_PORT
+          valueFrom:
+            secretKeyRef:
+              name: pg-port
+              key: PG_PORT
+        - name: PG_USER
+          valueFrom:
+            secretKeyRef:
+              name: pg-user
+              key: PG_USER
+        - name: PG_PASS
+          valueFrom:
+            secretKeyRef:
+              name: pg-pass
+              key: PG_PASS
+        - name: PG_DB
+          valueFrom:
+            secretKeyRef:
+              name: pg-db
+              key: PG_DB
+        # TODO: Ollama Config
         - name: STORE_PATH
           value: "/data"
         - name: GUILD_STORE_FILE
@@ -47,13 +74,6 @@ spec:
           value: "member.store.json"
         - name: FEATURE_STORE_FILE
           value: "feature.store.json"
-        - name: HOST
-          value: "localhost"
-        - name: PORT
-          value: "5432"
-        - name: PG_USER
-          value: "postgres"
-        # PG_PASS should be a secret
         volumeMounts:
         - name: data-volume
           mountPath: /data

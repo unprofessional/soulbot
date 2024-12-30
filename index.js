@@ -6,6 +6,7 @@ const { initializeCommands } = require('./initial_commands.js');
 const { initializeGuildMemberUpdate } = require('./events/guild_member_update.js');
 const { initializeGuildMemberAdd } = require('./events/guild_member_add.js');
 const { initializeGuildMemberRemove } = require('./events/guild_member_remove.js');
+const { testPgConnection } = require('./store/db/db.js');
 require('dotenv').config();
 
 const token = process.env.DISCORD_BOT_TOKEN;
@@ -102,6 +103,7 @@ const initializeApp = async () => {
     client.login(token);
 };
 
+testPgConnection();
 initializeApp().catch((error) => {
     console.error('Error during initialization:', error);
 });

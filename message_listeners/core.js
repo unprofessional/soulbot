@@ -170,7 +170,7 @@ const initializeListeners = async (client) => {
                             // catvision prompt always gets overwritten anyway
                             const response = await sendPromptToOllama(undefined, base64Image, 'catvision');
                             console.log('>>>>> core.js > image attached! analysis response: ', response);
-                            await message.reply(`Response:\n\n${response}`);
+                            await message.reply(response);
                         } catch (error) {
                             console.error(error);
                             await message.reply('An error occurred while processing your image.');

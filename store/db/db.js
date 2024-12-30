@@ -1,18 +1,24 @@
 const { Pool } = require('pg');
 
-/**
- * TODO TODO TODO
- * use ENV config....
- */
+const {
+    pgHost, pgPort, pgUser, pgPass, pgDb,
+} = require('../../config/env_config.js');
+
 const pool = new Pool({
-    user: 'postgres',
-    host: 'localhost',
-    database: 'soulbot',
-    password: 'pass1234',
-    port: 5432,
+    user: pgUser,
+    host: pgHost,
+    database: pgDb,
+    password: pgPass,
+    port: pgPort,
 });
 
-pool.query('SELECT NOW()', (err, res) => {
-    console.log(err, res);
-    pool.end();
-});
+const testPgConnection = async () => {
+    return pool.query('SELECT NOW()', (err, res) => {
+        console.log(err, res);
+        pool.end();
+    });
+};
+
+module.exports = {
+    testPgConnection,
+};
