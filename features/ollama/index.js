@@ -32,11 +32,30 @@ const processChunks = async (response) => {
     return fullContent;
 };
 
-async function sendPromptToOllama(prompt, imagePath) {
+async function sendPromptToOllama(prompt, imagePath, intent) {
     const url = `http://${ollamaHost}:${ollamaPort}/${ollamaChatEndpoint}`;
-    const catvisionprompt = 'You are assisting with categorizing images into categories for a database. ' +
-    'Categorize this image with suggested meta tags based on what you see with single word or single phrase tags. ' +
-    ' Return only the tags.';
+    let finalUserPrompt = imagePath
+        ? 'Analyze this image. Please be brief and concise. If you do not know what it is, then just say so.'
+        : prompt;
+    if(intent === 'catvision') {
+        finalUserPrompt = `You are assisting with categorizing images into categories for a database. 
+Analyze the provided image and return suggested meta tags in JSON format. 
+
+The tags should be single words or short phrases. 
+Output the tags in the following schema and nothing else:
+
+{
+  "suggestedTags": ["category1", "category2", "category3"]
+}
+
+Example input: An image of a dog playing in a park.
+Example output:
+{
+  "suggestedTags": ["dog", "park", "play", "outdoor"]
+}
+
+Categorize the image now and follow the schema strictly.`;
+    }
     const requestBody = {
         model: ollamaModel,
         messages: [
@@ -48,7 +67,7 @@ async function sendPromptToOllama(prompt, imagePath) {
             },
             {
                 role: 'user',
-                content: imagePath ? catvisionprompt : prompt,
+                content: finalUserPrompt,
                 ...(imagePath && { images: [imagePath] }), // Conditionally add 'images' property
             },
         ],
