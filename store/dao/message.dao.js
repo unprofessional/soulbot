@@ -51,6 +51,7 @@ class MessageDAO {
         }
 
         try {
+            console.log('>>>>> MessageDAO > findAll > sql: ', sql);
             const result = await pool.query(sql, params);
             return result.rows;
         } catch (err) {
