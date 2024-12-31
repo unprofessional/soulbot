@@ -106,7 +106,10 @@ Categorize the image now and follow the JSON schema strictly.
 
 async function summarizeChatOllama(messages) {
     const url = `http://${ollamaHost}:${ollamaPort}/${ollamaChatEndpoint}`;
-    let finalUserPrompt = `Summarize this Discord chat log, be brief: ${messages}`;
+    const formattedMessages = messages.map(msg => {
+        return `(${msg.created_at.toISOString()}) [${msg.user_id}]: ${msg.content}`;
+    }).join('\n');
+    let finalUserPrompt = `Summarize this Discord chat log, be brief: ${formattedMessages}`;
     const requestBody = {
         model: ollamaModel,
         messages: [
