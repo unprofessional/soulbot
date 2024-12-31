@@ -1,4 +1,4 @@
-const DAO = require('./store.dao.js');
+const DAO = require('./dao/store.dao.js');
 require('dotenv').config();
 const path = process.env.STORE_PATH;
 const file = process.env.MEMBER_STORE_FILE;
