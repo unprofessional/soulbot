@@ -21,10 +21,10 @@ const initializeCommands = async (client) => {
             const filePath = path.join(commandsPath, file);
             const command = require(filePath);
 
-            if (command.name === 'llm') { // Replace 'llm' with the command you want to remove
-                console.log(`Deleting command: ${command.name}`);
-                await rest.delete(`${Routes.applicationCommands(clientId)}/${command.id}`);
-            }
+            // if (command.name === 'llm') { // Replace 'llm' with the command you want to remove
+            //     console.log(`Deleting command: ${command.name}`);
+            //     await rest.delete(`${Routes.applicationCommands(clientId)}/${command.id}`);
+            // }
 
             // Add the command to the client.commands Collection
             if ('data' in command && 'execute' in command) {

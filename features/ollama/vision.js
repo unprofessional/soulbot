@@ -1,8 +1,5 @@
 const fs = require('fs');
 const fetch = require('node-fetch');
-// const {
-//     ollamaHost, ollamaPort, ollamaChatEndpoint, ollamaModel,
-// } = require('../../config/env_config.js');
 
 const downloadImage = async (url, filePath) => {
     const res = await fetch(url);
@@ -31,23 +28,6 @@ const fetchImageAsBase64 = async (url) => {
         throw error;
     }
 };
-
-// const sendImageToOllama = async (imagePath, userPrompt) => {
-//     const response = await fetch(`http://${ollamaHost}:${ollamaPort}/${ollamaChatEndpoint}`, {
-//         method: 'POST',
-//         headers: { 'Content-Type': 'application/json' },
-//         body: JSON.stringify({
-//             model: ollamaModel,
-//             image: imagePath, // Provide the local file path
-//             prompt: userPrompt,
-//             keepAlive: -1, // Keep model in memory
-//         }),
-//     });
-
-//     if (!response.ok) throw new Error(`Ollama API error: ${response.statusText}`);
-//     const data = await response.json();
-//     return data.response;
-// };
 
 module.exports = {
     downloadImage,

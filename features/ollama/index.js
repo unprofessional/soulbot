@@ -104,6 +104,53 @@ Categorize the image now and follow the JSON schema strictly.
     }
 }
 
+async function summarizeChatOllama(messages) {
+    const url = `http://${ollamaHost}:${ollamaPort}/${ollamaChatEndpoint}`;
+    let finalUserPrompt = `Summarize this Discord chat log, be brief: ${messages}`;
+    const requestBody = {
+        model: ollamaModel,
+        messages: [
+            {
+                role: 'system',
+                content: 'Provide concise responses that do not exceed 2000 characters. ' + 
+                'Avoid asking questions or prompting further interactions, as you do not retain context between requests. ' +
+                'If you do not know, just say you do not know.',
+            },
+            {
+                role: 'user',
+                content: finalUserPrompt,
+            },
+        ],
+        keepAlive: -1, // Keep model in memory
+    };
+
+    console.log('>>>>> ollama > summarizeChatOllama > requestBody: ', requestBody);
+
+    try {
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(requestBody)
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`HTTP error! Status: ${response.status} - ${errorText}`);
+        }
+
+        let fullContent = await processChunks(response);
+
+        console.log('Full concatenated content:', fullContent);
+        return fullContent; // Return the fully concatenated response
+    } catch (error) {
+        console.error('Error communicating with Ollama API:', error);
+        throw error;
+    }
+}
+
 module.exports = {
     sendPromptToOllama,
+    summarizeChatOllama,
 };
