@@ -24,7 +24,7 @@ class MessageDAO {
     async findAll(options = {}) {
         const { userId, guildId, channelId, limit = 50 } = options;
         const params = [];
-        let sql = `SELECT * FROM messages`;
+        let sql = `SELECT * FROM message`;
 
         // Dynamically build WHERE clause
         const conditions = [];
@@ -73,7 +73,7 @@ class MessageDAO {
         const { userId, guildId, channelId, content, attachments } = structuredMessage;
 
         const sql = `
-            INSERT INTO messages (user_id, guild_id, channel_id, content, attachments)
+            INSERT INTO message (user_id, guild_id, channel_id, content, attachments)
             VALUES ($1, $2, $3, $4, $5)
         `;
 
