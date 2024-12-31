@@ -7,7 +7,7 @@ const renderProfileCanvas = async (guildMember, channel) => {
     /**
      * Pull image and add it as a separate image/file
      */
-    console.log('>>>>> renderProfileCanvas > guildMember: ', guildMember);
+    // console.log('>>>>> renderProfileCanvas > guildMember: ', guildMember);
     let files = [{
         attachment: buffer,
         name: 'image.png',
