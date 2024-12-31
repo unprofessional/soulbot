@@ -29,6 +29,7 @@ const {
 const { enforceGoldyRole } = require('../features/role-enforcement/role-enforcement.js');
 const { sendPromptToOllama } = require('../features/ollama/index.js');
 const { downloadImage, fetchImageAsBase64 } = require('../features/ollama/vision.js');
+const { logMessage } = require('../logger/logger.js');
 
 // TODO: Move to "Message Validation"?
 const validationChecksHook = (message) => {
@@ -75,6 +76,7 @@ const initializeListeners = async (client) => {
         // Logger
         // THIS IS SPAMMY, ONLY USE FOR DEBUGGING!
         // console.log(`${message.guildId}: ${message.author.globalName}: ${message.content}`);
+        await logMessage(message);
 
         if(!isSelf(message) && !isABot(message)) { // not self or a bot, but can be anyone else
 

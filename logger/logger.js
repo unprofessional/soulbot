@@ -1,4 +1,5 @@
 const { createLogger, format, transports } = require('winston');
+const { addMessage } = require('../store/messages.service');
 
 // Message formatter for Discord messages
 const formatLog = (message) => {
@@ -26,9 +27,10 @@ const logger = createLogger({
 });
 
 // Helper function for logging Discord messages
-const logMessage = (message, level = 'info') => {
+const logMessage = async (message, level = 'info') => {
     const formattedMessage = formatLog(message);
     logger.log(level, JSON.stringify(formattedMessage));
+    await addMessage(message);
 };
 
 module.exports = {
