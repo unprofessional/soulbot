@@ -1,6 +1,6 @@
 const { SlashCommandBuilder } = require('discord.js');
 const PromiseQueue = require('../../lib/promise_queue');
-const { getMessages } = require('../../store/messages.service');
+const { getMessages } = require('../../store/services/messages.service');
 const { summarizeChatOllama } = require('../../features/ollama');
 const queue = new PromiseQueue(1, 20000); // Max 1 concurrent task, 20 seconds timeout
 const queueLimit = 3;
@@ -20,7 +20,7 @@ module.exports = {
         await interaction.deferReply();
         const channelId = interaction.channel.id;
         const messages = await getMessages({ channelId, limit: 50 });
-        console.log('>>>>> summary > execute > messages: ', messages);
+        // console.log('>>>>> summary > execute > messages: ', messages);
 
         try {
             const response = await queue.add(() => summarizeChatOllama(messages));

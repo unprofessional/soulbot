@@ -1,4 +1,4 @@
-const MessageDAO = require('./dao/message.dao.js');
+const MessageDAO = require('../dao/message.dao.js');
 require('dotenv').config();
 
 const messageDAO = new MessageDAO();
@@ -41,7 +41,8 @@ const getMessages = async (options = {}) => {
     try {
         const messages = await messageDAO.findAll(options);
         console.log('Messages retrieved successfully:', messages);
-        return messages;
+        // reverse these for the sake of readability for the LLM
+        return messages.reverse();
     } catch (err) {
         console.error('Error in getMessages service:', err);
         throw err;

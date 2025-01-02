@@ -1,5 +1,5 @@
 const { createLogger, format, transports } = require('winston');
-const { addMessage } = require('../store/messages.service');
+const { addMessage } = require('../store/services/messages.service');
 
 // Message formatter for Discord messages
 const formatLog = (message) => {
