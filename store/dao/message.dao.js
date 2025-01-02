@@ -45,14 +45,30 @@ class MessageDAO {
             sql += ` WHERE ` + conditions.join(' AND ');
         }
 
-        if (limit) {
-            sql += ` LIMIT $${params.length + 1}`;
-            params.push(limit);
-        }
+        // Add ORDER BY and LIMIT (<--always enforce!)
+        sql += ` ORDER BY created_at DESC LIMIT $${params.length + 1}`;
+        params.push(limit);
 
         try {
             console.log('>>>>> MessageDAO > findAll > sql: ', sql);
             const result = await pool.query(sql, params);
+            return result.rows;
+        } catch (err) {
+            console.error('Error fetching messages:', err);
+            throw err;
+        }
+    }
+
+    /**
+     * !!! DANGEROUS !!!
+     * use only for testing archive purposes!
+     * @returns 
+     */
+    async getAllMessagesToArchive() {
+        let sql = `SELECT * FROM message`;
+        try {
+            console.log('>>>>> MessageDAO > getAllMessagesToArchive > sql: ', sql);
+            const result = await pool.query(sql);
             return result.rows;
         } catch (err) {
             console.error('Error fetching messages:', err);

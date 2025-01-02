@@ -20,6 +20,7 @@ module.exports = {
         await interaction.deferReply();
         const channelId = interaction.channel.id;
         const messages = await getMessages({ channelId, limit: 50 });
+        console.log('>>>>> summary > execute > messages: ', messages);
 
         try {
             const response = await queue.add(() => summarizeChatOllama(messages));
