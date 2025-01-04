@@ -105,11 +105,16 @@ async function queryChromaDb(queryText, metadataFilters = {}, numResults = 5) {
         // Retrieve the collection
         const collection = await client.getCollection({ name: collectionName });
 
+        // Convert metadata filters into a single operator clause
+        const whereClause = Object.keys(metadataFilters).length
+            ? { $and: Object.entries(metadataFilters).map(([key, value]) => ({ [key]: value })) }
+            : undefined;
+
         // Perform a similarity search
         const results = await collection.query({
             queryEmbeddings: [queryEmbedding], // Search using the query embedding
             nResults: numResults, // Number of results to return
-            where: metadataFilters, // Optional metadata filters (e.g., guild_id, channel_id)
+            where: whereClause, // Optional metadata filters with explicit operator
         });
 
         console.log('>>>>> queryChromaDb > results: ', results);
