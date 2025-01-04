@@ -1,4 +1,10 @@
+const { ChromaClient } = require('chromadb');
 const net = require('node:net');
+
+const url = `http://${chromaHost}:${chromaPort}`;
+const client = new ChromaClient({
+    path: url,
+});
 
 const {
     ollamaHost, ollamaPort, ollamaEmbeddingEndpoint, ollamaEmbedModel,
@@ -17,7 +23,7 @@ async function generateEmbedding(text) {
         body: JSON.stringify({ model: ollamaEmbedModel, input: text }),
     });
 
-    console.log('>>>>> embed > generateEmbedding > response status: ', response.status);
+    // console.log('>>>>> embed > generateEmbedding > response status: ', response.status);
 
     if (!response.ok) {
         throw new Error(`Failed to generate embedding: ${await response.text()}`);
@@ -35,25 +41,22 @@ async function generateEmbedding(text) {
 }
 
 async function pushToChromaDb(id, embedding, metadata) {
-    const url = `http://${chromaHost}:${chromaPort}/${chromaUpsertEndpoint}`;
-    console.log('>>>>> embed > pushToChromaDb > url: ', url);
-    const response = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+    try {
+        // Create or retrieve the collection
+        const collectionName = 'discord_messages';
+        let collection = await client.getOrCreateCollection(collectionName);
+
+        // Add the embedding and metadata to the collection
+        await collection.add({
             ids: [id],
             embeddings: [embedding],
-            metadata: [metadata],
-        }),
-    });
+            metadatas: [metadata],
+        });
 
-    console.log('>>>>> embed > pushToChromaDb > response: ', response);
-
-    if (!response.ok) {
-        throw new Error(`Failed to push to ChromaDB: ${await response.text()}`);
+        console.log(`Message ${id} embedded and stored in ChromaDB.`);
+    } catch (err) {
+        throw new Error(`Failed to push to ChromaDB: ${err.message}`);
     }
-
-    console.log(`Message ${id} embedded and stored in ChromaDB.`);
 }
 
 async function archiveHistoryToChromaDb() {
@@ -64,7 +67,7 @@ async function archiveHistoryToChromaDb() {
 
     for (const message of filteredMessages) {
         const { id, content, user_id, guild_id, channel_id, attachments, created_at } = message;
-
+        // console.log('!!! embed > archiveHistoryToChromaDb > message: ', message);
         try {
             console.log('!!! embed > archiveHistoryToChromaDb > content: ', content);
             const embedding = await generateEmbedding(content);
