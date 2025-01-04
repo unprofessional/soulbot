@@ -8,6 +8,7 @@ const MessageDAO = require('../../store/dao/message.dao.js');
 
 async function generateEmbedding(text) {
     const url = `http://${ollamaHost}:${ollamaPort}/${ollamaEmbeddingEndpoint}`;
+    console.log('>>>>> embed > generateEmbedding > url: ', url);
     const response = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -44,6 +45,8 @@ async function pushToChromaDb(id, embedding, metadata) {
 async function archiveHistoryToChromaDb() {
     const messages = await new MessageDAO().getAllMessagesToArchive();
 
+    let hasError = false; // Track if any errors occurred
+
     for (const message of messages) {
         const { id, content, user_id, guild_id, channel_id, attachments, created_at } = message;
 
@@ -57,12 +60,18 @@ async function archiveHistoryToChromaDb() {
                 created_at,
             });
         } catch (err) {
-            console.error(`Error embedding message ${id}:`, err);
+            hasError = true; // Flag an error occurred
+            console.error(`Error embedding message ${id}:`, err.message);
         }
+    }
+
+    if (hasError) {
+        throw new Error('One or more messages failed to archive to ChromaDB.');
     }
 
     console.log('Finished embedding historical data.');
 }
+
 
 /**
  * Test ChromaDB connection using pure Node.js

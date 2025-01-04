@@ -13,7 +13,7 @@ const runMode = process.env.RUN_MODE || 'development';
 const ollamaHost = process.env.OLLAMA_HOST || '192.168.7.73';
 const ollamaPort = process.env.OLLAMA_PORT || '11434';
 const ollamaChatEndpoint = process.env.OLLAMA_CHAT_ENDPOINT || 'api/chat';
-const ollamaEmbeddingEndpoint = process.env.OLLAMA_EMBEDDING_ENDPOINT || 'api/embedding';
+const ollamaEmbeddingEndpoint = process.env.OLLAMA_EMBEDDING_ENDPOINT || 'api/embeddings';
 const ollamaModel = process.env.OLLAMA_MODEL || 'llama3.2-vision:11b';
 const ollamaEmbedModel = process.env.OLLAMA_EMBED_MODEL || 'avr/sfr-embedding-mistral:q4_k_m';
 
