@@ -1,5 +1,5 @@
 const { SlashCommandBuilder } = require('discord.js');
-const { queryWithRAG } = require('../../features/ollama/llama');
+const { queryWithRAG } = require('../../features/ollama/index.js');
 
 const BOT_OWNER_ID = process.env.BOT_OWNER_ID || '818606180095885332';
 module.exports = {
