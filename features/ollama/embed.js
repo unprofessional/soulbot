@@ -45,8 +45,6 @@ async function pushToChromaDb(id, embedding, metadata) {
 async function archiveHistoryToChromaDb() {
     const messages = await new MessageDAO().getAllMessagesToArchive();
 
-    let hasError = false; // Track if any errors occurred
-
     for (const message of messages) {
         const { id, content, user_id, guild_id, channel_id, attachments, created_at } = message;
 
@@ -60,18 +58,13 @@ async function archiveHistoryToChromaDb() {
                 created_at,
             });
         } catch (err) {
-            hasError = true; // Flag an error occurred
             console.error(`Error embedding message ${id}:`, err.message);
+            throw new Error(`Failed to process message ${id}: ${err.message}`);
         }
-    }
-
-    if (hasError) {
-        throw new Error('One or more messages failed to archive to ChromaDB.');
     }
 
     console.log('Finished embedding historical data.');
 }
-
 
 /**
  * Test ChromaDB connection using pure Node.js
