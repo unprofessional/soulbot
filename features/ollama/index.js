@@ -166,10 +166,17 @@ async function queryWithRAG(userQuery, metadataFilters = {}, numResults = 5) {
         // Step 1: Query ChromaDB for relevant context
         const results = await queryChromaDb(userQuery, metadataFilters, numResults);
 
-        // Step 2: Format results into a context string
-        const context = results.ids
-            .map((id, index) => `${results.metadatas[index].created_at}: ${results.metadatas[index].content}`)
-            .join('\n');
+        // Step 2: Extract and format context from results
+        const contextArray = results.metadatas[0] // Access the first (and only) array in `metadatas`
+            .map((metadata) => {
+                if (metadata && metadata.content && metadata.created_at) {
+                    return `${metadata.created_at}: ${metadata.content}`;
+                }
+                return null; // Skip invalid metadata entries
+            })
+            .filter(Boolean); // Remove null entries
+
+        const context = contextArray.join('\n');
 
         console.log('>>>>> queryWithRAG > context: ', context);
 
