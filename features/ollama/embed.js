@@ -16,6 +16,8 @@ async function generateEmbedding(text) {
         body: JSON.stringify({ model: ollamaEmbedModel, input: text }),
     });
 
+    console.log('>>>>> embed > generateEmbedding > response: ', response);
+
     if (!response.ok) {
         throw new Error(`Failed to generate embedding: ${await response.text()}`);
     }
