@@ -1,16 +1,15 @@
 const { ChromaClient } = require('chromadb');
 const net = require('node:net');
+const {
+    ollamaHost, ollamaPort, ollamaEmbeddingEndpoint, ollamaEmbedModel,
+    chromaHost, chromaPort,
+} = require('../../config/env_config.js');
+const MessageDAO = require('../../store/dao/message.dao.js');
 
 const url = `http://${chromaHost}:${chromaPort}`;
 const client = new ChromaClient({
     path: url,
 });
-
-const {
-    ollamaHost, ollamaPort, ollamaEmbeddingEndpoint, ollamaEmbedModel,
-    chromaHost, chromaPort, chromaUpsertEndpoint,
-} = require('../../config/env_config.js');
-const MessageDAO = require('../../store/dao/message.dao.js');
 
 async function generateEmbedding(text) {
     const url = `http://${ollamaHost}:${ollamaPort}/${ollamaEmbeddingEndpoint}`;
