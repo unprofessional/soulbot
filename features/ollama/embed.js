@@ -25,6 +25,7 @@ async function generateEmbedding(text) {
 
 async function pushToChromaDb(id, embedding, metadata) {
     const url = `http://${chromaHost}:${chromaPort}/${chromaUpsertEndpoint}`;
+    console.log('>>>>> embed > pushToChromaDb > url: ', url);
     const response = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -50,6 +51,7 @@ async function archiveHistoryToChromaDb() {
 
         try {
             const embedding = await generateEmbedding(content);
+            console.log('>>>>> embed > archiveHistoryToChromaDb > embedding: ', embedding);
             await pushToChromaDb(id, embedding, {
                 user_id,
                 guild_id,
