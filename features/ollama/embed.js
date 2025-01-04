@@ -9,10 +9,11 @@ const MessageDAO = require('../../store/dao/message.dao.js');
 async function generateEmbedding(text) {
     const url = `http://${ollamaHost}:${ollamaPort}/${ollamaEmbeddingEndpoint}`;
     console.log('>>>>> embed > generateEmbedding > url: ', url);
+    console.log('>>>>> embed > generateEmbedding > ollamaEmbedModel: ', ollamaEmbedModel);
     const response = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ model: ollamaEmbedModel, prompt: text }),
+        body: JSON.stringify({ model: ollamaEmbedModel, input: text }),
     });
 
     if (!response.ok) {
