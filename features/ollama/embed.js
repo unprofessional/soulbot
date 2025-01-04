@@ -10,20 +10,28 @@ async function generateEmbedding(text) {
     const url = `http://${ollamaHost}:${ollamaPort}/${ollamaEmbeddingEndpoint}`;
     console.log('>>>>> embed > generateEmbedding > url: ', url);
     console.log('>>>>> embed > generateEmbedding > ollamaEmbedModel: ', ollamaEmbedModel);
+
     const response = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ model: ollamaEmbedModel, input: text }),
     });
 
-    console.log('>>>>> embed > generateEmbedding > response: ', response);
+    console.log('>>>>> embed > generateEmbedding > response status: ', response.status);
 
     if (!response.ok) {
         throw new Error(`Failed to generate embedding: ${await response.text()}`);
     }
 
-    const { embedding } = await response.json();
-    return embedding;
+    const responseBody = await response.json(); // Parse JSON body
+    console.log('>>>>> embed > generateEmbedding > response body: ', responseBody);
+
+    const { embeddings } = responseBody;
+    if (!embeddings || embeddings.length === 0) {
+        throw new Error('Embedding data is missing or empty');
+    }
+
+    return embeddings[0]; // Assuming single embedding per input
 }
 
 async function pushToChromaDb(id, embedding, metadata) {
