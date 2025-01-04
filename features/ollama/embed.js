@@ -41,6 +41,9 @@ async function generateEmbedding(text) {
 
 async function pushToChromaDb(id, embedding, metadata) {
     try {
+        // Convert id to string
+        const stringId = id.toString();
+
         // Specify a name for the collection
         const collectionName = 'discord_messages'; // Change this to your desired collection name
 
@@ -51,7 +54,7 @@ async function pushToChromaDb(id, embedding, metadata) {
 
         // Add the embedding and metadata to the collection
         await collection.add({
-            ids: [id],
+            ids: [stringId],
             embeddings: [embedding],
             metadatas: [metadata],
         });
