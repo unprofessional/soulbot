@@ -7,6 +7,7 @@ const { initializeGuildMemberUpdate } = require('./events/guild_member_update.js
 const { initializeGuildMemberAdd } = require('./events/guild_member_add.js');
 const { initializeGuildMemberRemove } = require('./events/guild_member_remove.js');
 const { testPgConnection, initializeDB } = require('./store/db/db.js');
+const { testChromaConnection } = require('./features/ollama/embed.js');
 require('dotenv').config();
 
 const token = process.env.DISCORD_BOT_TOKEN;
@@ -104,6 +105,7 @@ const initializeApp = async () => {
 };
 
 testPgConnection();
+testChromaConnection();
 initializeDB();
 initializeApp().catch((error) => {
     console.error('Error during initialization:', error);

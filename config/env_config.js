@@ -18,23 +18,20 @@ const ollamaModel = process.env.OLLAMA_MODEL || 'llama3.2-vision:11b';
 const ollamaEmbedModel = process.env.OLLAMA_EMBED_MODEL || 'avr/sfr-embedding-mistral:q4_k_m';
 
 // postgres
-const pgHost = process.env.PG_HOST; // TODO: move to kubectl secrets
-const pgPort = process.env.PG_PORT; // TODO: move to kubectl secrets
-const pgUser = process.env.PG_USER; // TODO: move to kubectl secrets
-const pgPass = process.env.PG_PASS; // TODO: move to kubectl secrets
-const pgDb = process.env.PG_DB; // TODO: move to kubectl secrets
+const pgHost = process.env.PG_HOST;
+const pgPort = process.env.PG_PORT;
+const pgUser = process.env.PG_USER;
+const pgPass = process.env.PG_PASS;
+const pgDb = process.env.PG_DB;
 
 // chroma
-const chromaHost = process.env.CHROMA_HOST; // TODO: move to kubectl secrets
-const chromaPort = process.env.CHROMA_PORT; // TODO: move to kubectl secrets
-const chromaUser = process.env.CHROMA_USER; // TODO: move to kubectl secrets
-const chromaPass = process.env.CHROMA_PASS; // TODO: move to kubectl secrets
-const chromaDb = process.env.CHROMA_DB; // TODO: move to kubectl secrets
+const chromaHost = process.env.CHROMA_HOST || '192.168.7.210';
+const chromaPort = process.env.CHROMA_PORT || '8085';
 const chromaUpsertEndpoint = process.env.CHROMA_UPSERT_ENDPOINT || 'api/v1/upsert';
 
 module.exports = {
     token, path, guildFile, channelFile, memberFile, featureFile, runMode,
     ollamaHost, ollamaPort, ollamaChatEndpoint, ollamaEmbeddingEndpoint, ollamaModel, ollamaEmbedModel,
     pgHost, pgPort, pgUser, pgPass, pgDb,
-    chromaHost, chromaPort, chromaUser, chromaPass, chromaDb, chromaUpsertEndpoint,
+    chromaHost, chromaPort, chromaUpsertEndpoint,
 };

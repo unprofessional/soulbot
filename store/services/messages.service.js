@@ -41,7 +41,7 @@ const getMessages = async (options = {}) => {
     try {
         const messages = await messageDAO.findAll(options);
         console.log('Messages retrieved successfully:', messages);
-        // reverse these for the sake of readability for the LLM
+        // Reverse the list for the sake of chronological readability for the LLM
         return messages.reverse();
     } catch (err) {
         console.error('Error in getMessages service:', err);
