@@ -167,18 +167,24 @@ async function queryWithRAG(userQuery, metadataFilters = {}, numResults = 5) {
         const results = await queryChromaDb(userQuery, metadataFilters, numResults);
 
         // Step 2: Extract and format context from results
-        const contextArray = results.metadatas[0] // Access the first (and only) array in `metadatas`
+        const contextArray = results.metadatas[0]
             .map((metadata) => {
-                if (metadata && metadata.content && metadata.created_at) {
+                if (metadata?.content && metadata?.created_at) {
                     return `${metadata.created_at}: ${metadata.content}`;
                 }
-                return null; // Skip invalid metadata entries
+                return null; // Skip invalid metadata
             })
             .filter(Boolean); // Remove null entries
 
         const context = contextArray.join('\n');
 
         console.log('>>>>> queryWithRAG > context: ', context);
+
+        // Fallback for empty context
+        if (!context) {
+            console.warn('No valid context retrieved from ChromaDB.');
+            return 'I could not retrieve any relevant context from the database.';
+        }
 
         // Step 3: Combine context with the user query
         const prompt = `Here is the context:\n\n${context}\n\nUser Query: ${userQuery}\n\nProvide a response based on the context.`;
