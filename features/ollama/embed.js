@@ -12,7 +12,7 @@ async function generateEmbedding(text) {
     const response = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ model: ollamaEmbedModel, text }),
+        body: JSON.stringify({ model: ollamaEmbedModel, prompt: text }),
     });
 
     if (!response.ok) {
