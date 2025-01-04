@@ -87,7 +87,7 @@ async function testChromaConnection() {
             reject(new Error(`ChromaDB connection failed: ${err.message}`));
         };
 
-        socket.setTimeout(timeout, () => handleError(new Error('Connection timed out')));
+        socket.setTimeout(timeout, () => handleError(new Error('ChromaDB Connection timed out')));
         socket.on('error', handleError);
 
         // Attempt to connect to ChromaDB host and port

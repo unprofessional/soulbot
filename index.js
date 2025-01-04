@@ -102,7 +102,13 @@ const initializeApp = async () => {
     initializeGuildMemberRemove(client);
 
     await testPgConnection();
-    await testChromaConnection();
+    try {
+        const result = await testChromaConnection();
+        console.log(result);
+    } catch (error) {
+        console.error('ChromaDB connection test failed:', error.message);
+        // process.exit(1); // Exit if ChromaDB is not reachable
+    }
     await initializeDB();
 
     client.login(token);
