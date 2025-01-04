@@ -94,6 +94,33 @@ async function archiveHistoryToChromaDb() {
     console.log('Finished embedding historical data.');
 }
 
+async function queryChromaDb(queryText, metadataFilters = {}, numResults = 5) {
+    try {
+        // Generate embedding for the query
+        const queryEmbedding = await generateEmbedding(queryText);
+
+        // Specify the collection name
+        const collectionName = 'discord_messages';
+
+        // Retrieve the collection
+        const collection = await client.getCollection({ name: collectionName });
+
+        // Perform a similarity search
+        const results = await collection.query({
+            queryEmbeddings: [queryEmbedding], // Search using the query embedding
+            nResults: numResults, // Number of results to return
+            where: metadataFilters, // Optional metadata filters (e.g., guild_id, channel_id)
+        });
+
+        console.log('>>>>> queryChromaDb > results: ', results);
+
+        return results;
+    } catch (err) {
+        console.error('Error querying ChromaDB:', err);
+        throw new Error(`Failed to query ChromaDB: ${err.message}`);
+    }
+}
+
 /**
  * Test ChromaDB connection using pure Node.js
  * @returns {Promise<string>} - A success message or throws an error
@@ -129,5 +156,6 @@ module.exports = {
     generateEmbedding,
     pushToChromaDb,
     archiveHistoryToChromaDb,
+    queryChromaDb,
     testChromaConnection,
 };

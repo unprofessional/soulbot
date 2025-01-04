@@ -1,6 +1,7 @@
 const {
     ollamaHost, ollamaPort, ollamaChatEndpoint, ollamaModel,
 } = require('../../config/env_config.js');
+const { queryChromaDb } = require('./embed.js');
 
 const processChunks = async (response) => {
     const reader = response.body.getReader();
@@ -153,7 +154,41 @@ async function summarizeChatOllama(messages) {
     }
 }
 
+/**
+ * Queries ChromaDB for relevant context and sends a RAG-enhanced query to the LLM.
+ * @param {string} userQuery - The user's query.
+ * @param {Object} metadataFilters - Optional filters for ChromaDB (e.g., guild_id, channel_id).
+ * @param {number} numResults - The number of relevant results to retrieve from ChromaDB.
+ * @returns {Promise<string>} - The response from the LLM.
+ */
+async function queryWithRAG(userQuery, metadataFilters = {}, numResults = 5) {
+    try {
+        // Step 1: Query ChromaDB for relevant context
+        const results = await queryChromaDb(userQuery, metadataFilters, numResults);
+
+        // Step 2: Format results into a context string
+        const context = results.ids
+            .map((id, index) => `${results.metadatas[index].created_at}: ${results.metadatas[index].content}`)
+            .join('\n');
+
+        console.log('>>>>> queryWithRAG > context: ', context);
+
+        // Step 3: Combine context with the user query
+        const prompt = `Here is the context:\n\n${context}\n\nUser Query: ${userQuery}\n\nProvide a response based on the context.`;
+
+        // Step 4: Send the prompt to the LLM
+        const response = await sendPromptToOllama(prompt);
+
+        console.log('>>>>> queryWithRAG > LLM response: ', response);
+        return response;
+    } catch (error) {
+        console.error('Error performing RAG query with LLM:', error);
+        throw error;
+    }
+}
+
 module.exports = {
     sendPromptToOllama,
     summarizeChatOllama,
+    queryWithRAG,
 };
