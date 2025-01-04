@@ -37,6 +37,8 @@ async function pushToChromaDb(id, embedding, metadata) {
         }),
     });
 
+    console.log('>>>>> embed > pushToChromaDb > response: ', response);
+
     if (!response.ok) {
         throw new Error(`Failed to push to ChromaDB: ${await response.text()}`);
     }
