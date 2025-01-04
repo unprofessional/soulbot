@@ -53,8 +53,9 @@ async function archiveHistoryToChromaDb() {
         const { id, content, user_id, guild_id, channel_id, attachments, created_at } = message;
 
         try {
+            console.log('!!! embed > archiveHistoryToChromaDb > content: ', content);
             const embedding = await generateEmbedding(content);
-            console.log('>>>>> embed > archiveHistoryToChromaDb > embedding: ', embedding);
+            console.log('!!! embed > archiveHistoryToChromaDb > embedding: ', embedding);
             await pushToChromaDb(id, embedding, {
                 user_id,
                 guild_id,
