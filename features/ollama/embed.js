@@ -69,6 +69,7 @@ async function archiveHistoryToChromaDb() {
  * @returns {Promise<string>} - A success message or throws an error
  */
 async function testChromaConnection() {
+    console.log('Testing ChromaDB connection...');
     const timeout = 5000; // 5 seconds timeout
 
     return new Promise((resolve, reject) => {

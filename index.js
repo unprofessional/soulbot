@@ -101,12 +101,13 @@ const initializeApp = async () => {
     initializeGuildMemberAdd(client);
     initializeGuildMemberRemove(client);
 
+    await testPgConnection();
+    await testChromaConnection();
+    await initializeDB();
+
     client.login(token);
 };
 
-testPgConnection();
-testChromaConnection();
-initializeDB();
 initializeApp().catch((error) => {
     console.error('Error during initialization:', error);
 });

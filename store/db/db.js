@@ -16,9 +16,9 @@ const pool = new Pool({
 const testPgConnection = async () => {
     try {
         const res = await pool.query('SELECT NOW()');
-        console.log('Database connected:', res.rows[0].now);
+        console.log('PG Database connected:', res.rows[0].now);
     } catch (err) {
-        console.error('Error connecting to the database:', err);
+        console.error('Error connecting to the PG database:', err);
     }
 };
 
@@ -29,9 +29,9 @@ const initializeDB = async () => {
 
         // Execute SQL commands
         await pool.query(sql);
-        console.log('Database initialized successfully.');
+        console.log('PG Database initialized successfully.');
     } catch (err) {
-        console.error('Error initializing the database:', err);
+        console.error('Error initializing the PG database:', err);
     }
 };
 
