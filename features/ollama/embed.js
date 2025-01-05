@@ -133,7 +133,8 @@ async function queryChromaDb(queryText, metadataFilters = {}, numResults = 5) {
         // Combine metadata filters with a valid operator
         const whereClause = Object.keys(metadataFilters).length
             ? { $and: Object.entries(metadataFilters).map(([key, value]) => ({ [key]: value })) }
-            : undefined;
+            : {}; // Pass an empty object to disable filtering
+
 
         console.log('>>>>> queryChromaDb > whereClause:', JSON.stringify(whereClause, null, 2));
 
