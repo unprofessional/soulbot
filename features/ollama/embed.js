@@ -97,6 +97,7 @@ async function archiveHistoryToChromaDb() {
                 user_id,
                 guild_id,
                 channel_id,
+                content,
                 attachments,
                 created_at,
             });
