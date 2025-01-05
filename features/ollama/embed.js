@@ -130,11 +130,12 @@ async function queryChromaDb(queryText, metadataFilters = {}, numResults = 5) {
         // Retrieve the collection
         const collection = await client.getCollection({ name: collectionName });
 
-        // Convert metadata filters into a single operator clause
+        // Combine metadata filters with a valid operator
         const whereClause = Object.keys(metadataFilters).length
-            ? metadataFilters // Use metadataFilters directly, ChromaDB will handle it
+            ? { $and: Object.entries(metadataFilters).map(([key, value]) => ({ [key]: value })) }
             : undefined;
 
+        console.log('>>>>> queryChromaDb > whereClause:', JSON.stringify(whereClause, null, 2));
 
         // Perform a similarity search
         const results = await collection.query({
