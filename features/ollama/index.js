@@ -116,7 +116,8 @@ async function summarizeChatOllama(messages) {
         messages: [
             {
                 role: 'system',
-                content: 'Provide concise responses that do not exceed 2000 characters. ' + 
+                content: 'You are summarizing Discord chat logs. If you cite a user, then remember to use properly formatted Discord user tagging. ' +
+                'Provide concise responses that do not exceed 2000 characters. ' + 
                 'Avoid asking questions or prompting further interactions, as you do not retain context between requests. ' +
                 'If you do not know, just say you do not know.',
             },
@@ -195,7 +196,7 @@ async function queryWithRAG(userQuery, metadataFilters = {}, numResults = 20) {
         // Step 4: Send the prompt to the LLM
         const response = await sendPromptToOllama(prompt);
         console.log('>>>>> queryWithRAG > LLM response:', response);
-        return response;
+        return `Request: ${userQuery}\n\nResponse: ${response}`;
     } catch (error) {
         console.error('Error performing RAG query with LLM:', error);
         throw error;
