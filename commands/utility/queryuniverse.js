@@ -32,7 +32,8 @@ module.exports = {
             const channelId = interaction.channel?.id || null;
 
             // Perform the RAG-enhanced query
-            const response = await queryWithRAG(userPrompt, { guild_id: guildId, channel_id: channelId });
+            // const response = await queryWithRAG(userPrompt, { guild_id: guildId, channel_id: channelId });
+            const response = await queryWithRAG(userPrompt, {}); // No metadata filters for universal search
 
             // Send the LLM's response to the user
             if (response.length <= 2000) {

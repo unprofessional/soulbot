@@ -161,7 +161,7 @@ async function summarizeChatOllama(messages) {
  * @param {number} numResults - The number of relevant results to retrieve from ChromaDB.
  * @returns {Promise<string>} - The response from the LLM.
  */
-async function queryWithRAG(userQuery, metadataFilters = {}, numResults = 5) {
+async function queryWithRAG(userQuery, metadataFilters = {}, numResults = 20) {
     try {
         // Step 1: Query ChromaDB for relevant context
         const results = await queryChromaDb(userQuery, metadataFilters, numResults);
