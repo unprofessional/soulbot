@@ -13,8 +13,8 @@ const client = new ChromaClient({
 
 async function generateEmbedding(text) {
     const url = `http://${ollamaHost}:${ollamaPort}/${ollamaEmbeddingEndpoint}`;
-    console.log('>>>>> embed > generateEmbedding > url: ', url);
-    console.log('>>>>> embed > generateEmbedding > ollamaEmbedModel: ', ollamaEmbedModel);
+    // console.log('>>>>> embed > generateEmbedding > url: ', url);
+    // console.log('>>>>> embed > generateEmbedding > ollamaEmbedModel: ', ollamaEmbedModel);
 
     const response = await fetch(url, {
         method: 'POST',
@@ -29,7 +29,7 @@ async function generateEmbedding(text) {
     }
 
     const responseBody = await response.json(); // Parse JSON body
-    console.log('>>>>> embed > generateEmbedding > response body: ', responseBody);
+    // console.log('>>>>> embed > generateEmbedding > response body: ', responseBody);
 
     const { embeddings } = responseBody;
     if (!embeddings || embeddings.length === 0) {
@@ -52,11 +52,21 @@ async function pushToChromaDb(id, embedding, metadata) {
             name: collectionName,
         });
 
-        // Add the embedding and metadata to the collection
+        // Ensure all necessary fields are included in metadata
+        const enrichedMetadata = {
+            content: metadata.content || '[No content]', // Default if content is missing
+            created_at: metadata.created_at || new Date().toISOString(),
+            user_id: metadata.user_id || null,
+            guild_id: metadata.guild_id || null,
+            channel_id: metadata.channel_id || null,
+            attachments: metadata.attachments || [],
+        };
+
+        // Add the embedding and enriched metadata to the collection
         await collection.add({
             ids: [stringId],
             embeddings: [embedding],
-            metadatas: [metadata],
+            metadatas: [enrichedMetadata],
         });
 
         console.log(`Message ${id} embedded and stored in ChromaDB.`);
@@ -67,17 +77,15 @@ async function pushToChromaDb(id, embedding, metadata) {
 
 async function archiveHistoryToChromaDb() {
     const messages = await new MessageDAO().getAllMessagesToArchive();
-    const filteredMessages = messages.filter((msg) => {
-        return msg.content !== '[Non-text message]'; // FIXME: Do this at the SQL level!!!!
-    });
+    const filteredMessages = messages.filter((msg) => msg.content !== '[Non-text message]'); // TODO: Move to SQL filter
+    const totalResults = filteredMessages.length;
 
-    for (const message of filteredMessages) {
+    for (let currentNumber = 0; currentNumber < totalResults; currentNumber++) {
+        const message = filteredMessages[currentNumber];
         const { id, content, user_id, guild_id, channel_id, attachments, created_at } = message;
-        console.log('!!! embed > archiveHistoryToChromaDb > message: ', message);
+
         try {
-            // console.log('!!! embed > archiveHistoryToChromaDb > content: ', content);
             const embedding = await generateEmbedding(content);
-            // console.log('!!! embed > archiveHistoryToChromaDb > embedding: ', embedding);
             await pushToChromaDb(id, embedding, {
                 user_id,
                 guild_id,
@@ -85,6 +93,9 @@ async function archiveHistoryToChromaDb() {
                 attachments,
                 created_at,
             });
+
+            // Print progress
+            console.log(`${currentNumber + 1} of ${totalResults}`);
         } catch (err) {
             console.error(`Error embedding message ${id}:`, err.message);
             throw new Error(`Failed to process message ${id}: ${err.message}`);
@@ -93,6 +104,7 @@ async function archiveHistoryToChromaDb() {
 
     console.log('Finished embedding historical data.');
 }
+
 
 async function queryChromaDb(queryText, metadataFilters = {}, numResults = 5) {
     try {
@@ -123,6 +135,37 @@ async function queryChromaDb(queryText, metadataFilters = {}, numResults = 5) {
     } catch (err) {
         console.error('Error querying ChromaDB:', err);
         throw new Error(`Failed to query ChromaDB: ${err.message}`);
+    }
+}
+
+/**
+ * Clears all collections or a specific collection in ChromaDB.
+ * @param {string} [collectionName] - Optional name of the collection to delete.
+ *                                     If omitted, all collections are deleted.
+ * @returns {Promise<void>} Resolves when the collections are deleted.
+ */
+async function clearChromaDb(collectionName = null) {
+    try {
+        if (collectionName) {
+            // Delete a specific collection
+            console.log(`Deleting collection: ${collectionName}`);
+            await client.deleteCollection({ name: collectionName });
+            console.log(`Collection "${collectionName}" deleted successfully.`);
+        } else {
+            // Get all collections
+            const collections = await client.listCollections();
+            console.log('Existing collections:', collections);
+
+            // Delete all collections
+            for (const collection of collections) {
+                console.log(`Deleting collection: ${collection.name}`);
+                await client.deleteCollection({ name: collection.name });
+            }
+            console.log('All collections deleted successfully.');
+        }
+    } catch (error) {
+        console.error('Error clearing ChromaDB:', error);
+        throw new Error(`Failed to clear ChromaDB: ${error.message}`);
     }
 }
 
@@ -162,5 +205,6 @@ module.exports = {
     pushToChromaDb,
     archiveHistoryToChromaDb,
     queryChromaDb,
+    clearChromaDb,
     testChromaConnection,
 };
