@@ -1,5 +1,5 @@
 const { SlashCommandBuilder } = require('discord.js');
-const { clearChromaDb } = require('../../features/ollama/clearChromaDb');
+const { clearChromaDb } = require('../../features/ollama/embed');
 
 const BOT_OWNER_ID = process.env.BOT_OWNER_ID || '818606180095885332';
 
