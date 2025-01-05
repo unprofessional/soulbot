@@ -118,7 +118,6 @@ async function archiveHistoryToChromaDb() {
     console.log('Finished embedding historical data.');
 }
 
-
 async function queryChromaDb(queryText, metadataFilters = {}, numResults = 5) {
     try {
         // Generate embedding for the query
@@ -133,17 +132,23 @@ async function queryChromaDb(queryText, metadataFilters = {}, numResults = 5) {
         // Combine metadata filters with a valid operator
         const whereClause = Object.keys(metadataFilters).length
             ? { $and: Object.entries(metadataFilters).map(([key, value]) => ({ [key]: value })) }
-            : {}; // Pass an empty object to disable filtering
-
+            : undefined; // Use undefined to omit the where clause for universal search
 
         console.log('>>>>> queryChromaDb > whereClause:', JSON.stringify(whereClause, null, 2));
 
-        // Perform a similarity search
-        const results = await collection.query({
+        // Prepare the query object
+        const queryOptions = {
             queryEmbeddings: [queryEmbedding], // Search using the query embedding
             nResults: numResults, // Number of results to return
-            where: whereClause, // Optional metadata filters with explicit operator
-        });
+        };
+
+        // Add the where clause only if it exists
+        if (whereClause) {
+            queryOptions.where = whereClause;
+        }
+
+        // Perform a similarity search
+        const results = await collection.query(queryOptions);
 
         console.log('>>>>> queryChromaDb > results: ', results);
 
