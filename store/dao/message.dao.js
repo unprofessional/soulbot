@@ -59,13 +59,14 @@ class MessageDAO {
         }
     }
 
-    /**
-     * !!! DANGEROUS !!!
-     * use only for testing archive purposes!
-     * @returns 
-     */
     async getAllMessagesToArchive() {
-        let sql = `SELECT * FROM message`;
+        // SQL query to exclude messages with content '[Non-text message]'
+        let sql = `
+            SELECT * 
+            FROM message
+            WHERE content != '[Non-text message]'
+        `;
+    
         try {
             console.log('>>>>> MessageDAO > getAllMessagesToArchive > sql: ', sql);
             const result = await pool.query(sql);

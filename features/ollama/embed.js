@@ -86,11 +86,10 @@ async function pushToChromaDb(id, embedding, metadata) {
 
 async function archiveHistoryToChromaDb() {
     const messages = await new MessageDAO().getAllMessagesToArchive();
-    const filteredMessages = messages.filter((msg) => msg.content !== '[Non-text message]'); // TODO: Move to SQL filter
-    const totalResults = filteredMessages.length;
+    const totalResults = messages.length;
 
     for (let currentNumber = 0; currentNumber < totalResults; currentNumber++) {
-        const message = filteredMessages[currentNumber];
+        const message = messages[currentNumber];
         const { id, content, user_id, guild_id, channel_id, attachments, created_at } = message;
 
         try {
