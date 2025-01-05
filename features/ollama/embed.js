@@ -43,6 +43,7 @@ async function pushToChromaDb(id, embedding, metadata) {
     try {
         // Skip rows where content is non-text or missing
         if (!metadata.content || metadata.content === '[Non-text message]') {
+            console.log('metadata.content: ', metadata.content);
             console.log(`Skipping message ${id} due to invalid content.`);
             return;
         }
