@@ -41,6 +41,12 @@ async function generateEmbedding(text) {
 
 async function pushToChromaDb(id, embedding, metadata) {
     try {
+        // Skip rows where content is non-text or missing
+        if (!metadata.content || metadata.content === '[Non-text message]') {
+            console.log(`Skipping message ${id} due to invalid content.`);
+            return;
+        }
+
         // Convert id to string
         const stringId = id.toString();
 
@@ -54,7 +60,7 @@ async function pushToChromaDb(id, embedding, metadata) {
 
         // Ensure all necessary fields are included in metadata
         const enrichedMetadata = {
-            content: metadata.content || '[No content]', // Default if content is missing
+            content: metadata.content.trim(), // Trim whitespace from content
             created_at: metadata.created_at || new Date().toISOString(),
             user_id: metadata.user_id || null,
             guild_id: metadata.guild_id || null,

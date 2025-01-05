@@ -168,13 +168,8 @@ async function queryWithRAG(userQuery, metadataFilters = {}, numResults = 5) {
 
         // Step 2: Extract and format context from results
         const contextArray = results.metadatas[0]
-            .map((metadata) => {
-                if (metadata?.content && metadata?.created_at) {
-                    return `${metadata.created_at}: ${metadata.content}`;
-                }
-                return null; // Skip invalid metadata
-            })
-            .filter(Boolean); // Remove null entries
+            .filter((metadata) => metadata?.content && metadata?.created_at) // Exclude invalid entries
+            .map((metadata) => `${metadata.created_at}: ${metadata.content}`);
 
         const context = contextArray.join('\n');
 
