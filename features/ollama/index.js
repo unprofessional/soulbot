@@ -196,7 +196,7 @@ async function queryWithRAG(userQuery, metadataFilters = {}, numResults = 20) {
         // Step 4: Send the prompt to the LLM
         const response = await sendPromptToOllama(prompt);
         console.log('>>>>> queryWithRAG > LLM response:', response);
-        return `Request: ${userQuery}\n\nResponse: ${response}`;
+        return response;
     } catch (error) {
         console.error('Error performing RAG query with LLM:', error);
         throw error;

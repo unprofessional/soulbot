@@ -35,9 +35,11 @@ module.exports = {
             // const response = await queryWithRAG(userPrompt, { guild_id: guildId, channel_id: channelId });
             const response = await queryWithRAG(userPrompt, {}); // No metadata filters for universal search
 
+            const messageToShow = `**Request:**\n> ${userPrompt}\n\n**Response:**\n${response}`;
+
             // Send the LLM's response to the user
             if (response.length <= 2000) {
-                await interaction.editReply(response);
+                await interaction.editReply(messageToShow);
             } else {
                 // Handle responses longer than 2000 characters (Discord's limit)
                 const chunks = response.match(/[\s\S]{1,1990}(?=\s|$)|[\s\S]{1,1990}/g);
