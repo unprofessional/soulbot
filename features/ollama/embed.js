@@ -61,7 +61,9 @@ async function pushToChromaDb(id, embedding, metadata) {
 
         // Ensure all necessary fields are included in metadata
         const enrichedMetadata = {
-            content: metadata.content.trim(), // Trim whitespace from content
+            content: metadata.content.includes('Member not in the controlled list!')
+                ? '[Irrelevant content removed]'
+                : metadata.content.trim(),
             created_at: metadata.created_at || new Date().toISOString(),
             user_id: metadata.user_id || null,
             guild_id: metadata.guild_id || null,
@@ -92,7 +94,10 @@ async function archiveHistoryToChromaDb() {
         const { id, content, user_id, guild_id, channel_id, attachments, created_at } = message;
 
         try {
+            // Ollama embedder
             const embedding = await generateEmbedding(content);
+
+            // ChromaDB
             await pushToChromaDb(id, embedding, {
                 user_id,
                 guild_id,
@@ -127,8 +132,9 @@ async function queryChromaDb(queryText, metadataFilters = {}, numResults = 5) {
 
         // Convert metadata filters into a single operator clause
         const whereClause = Object.keys(metadataFilters).length
-            ? { $and: Object.entries(metadataFilters).map(([key, value]) => ({ [key]: value })) }
+            ? metadataFilters // Use metadataFilters directly, ChromaDB will handle it
             : undefined;
+
 
         // Perform a similarity search
         const results = await collection.query({

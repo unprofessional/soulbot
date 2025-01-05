@@ -166,14 +166,22 @@ async function queryWithRAG(userQuery, metadataFilters = {}, numResults = 5) {
         // Step 1: Query ChromaDB for relevant context
         const results = await queryChromaDb(userQuery, metadataFilters, numResults);
 
-        // Step 2: Extract and format context from results
+        // Step 2: Extract and filter context
         const contextArray = results.metadatas[0]
-            .filter((metadata) => metadata?.content && metadata?.created_at) // Exclude invalid entries
-            .map((metadata) => `${metadata.created_at}: ${metadata.content}`);
+            .map((metadata) => {
+                if (
+                    metadata?.content &&
+                    metadata?.created_at &&
+                    !metadata.content.includes('Member not in the controlled list!')
+                ) {
+                    return `${metadata.created_at}: ${metadata.content}`;
+                }
+                return null; // Skip invalid or irrelevant metadata
+            })
+            .filter(Boolean); // Remove null entries
 
         const context = contextArray.join('\n');
-
-        console.log('>>>>> queryWithRAG > context: ', context);
+        console.log('>>>>> queryWithRAG > context:', context);
 
         // Fallback for empty context
         if (!context) {
@@ -186,8 +194,7 @@ async function queryWithRAG(userQuery, metadataFilters = {}, numResults = 5) {
 
         // Step 4: Send the prompt to the LLM
         const response = await sendPromptToOllama(prompt);
-
-        console.log('>>>>> queryWithRAG > LLM response: ', response);
+        console.log('>>>>> queryWithRAG > LLM response:', response);
         return response;
     } catch (error) {
         console.error('Error performing RAG query with LLM:', error);
