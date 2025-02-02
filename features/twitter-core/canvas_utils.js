@@ -274,7 +274,7 @@ const drawQtMissingStatus = (ctx, globalFont, errorMsg, options) => {
 
     const {
         canvasHeightOffset = 0,
-        qtCanvasHeightOffset = -40,
+        qtCanvasHeightOffset = 0,
     } = options;
 
     // Pre-process description with text wrapping
@@ -292,7 +292,7 @@ const drawQtMissingStatus = (ctx, globalFont, errorMsg, options) => {
     const cornerRadius = 15; // Adjust corner radius as needed
 
     ctx.beginPath();
-    ctx.roundRect(qtXPosition, qtYPosition, mediaQtMaxWidth, qtCanvasHeightOffset - 20, cornerRadius);
+    ctx.roundRect(qtXPosition, qtYPosition - 40, mediaQtMaxWidth, qtCanvasHeightOffset - 20, cornerRadius);
     ctx.stroke();
 
     // Draw description (post text wrap handling)
