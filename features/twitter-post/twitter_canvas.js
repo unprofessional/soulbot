@@ -237,6 +237,9 @@ const createTwitterCanvas = async (metadataJson, isImage) => {
 
     // console.log('>>>>> twitter_canvas > qtMetadata: ', qtMetadata);
     // if has quote tweet reference
+
+    console.log('>>>>> twitter_canvas > qtMetadata[X]: ', qtMetadata);
+
     if(qtMetadata && !qtMetadata.error) {
         console.log('>>>>> if(qtMetadata) > qtMetadata EXISTS!!!');
         const qtMedia1 = qtMetadata?.mediaUrls[0];
