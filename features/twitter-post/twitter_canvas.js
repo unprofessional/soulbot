@@ -36,7 +36,7 @@ const createTwitterCanvas = async (metadataJson, isImage) => {
             mediaExtended: metadataJson.qtMetadata.media_extended,
         };
     }
-    if(metadataJson.qtMetadata.error) {
+    if(metadataJson?.qtMetadata?.error) {
         qtMetadata = metadataJson;
     }
     console.log('>>>>> createTwitterCanvas > metadataJson.qtMetadata[2]: ', metadataJson.qtMetadata);
