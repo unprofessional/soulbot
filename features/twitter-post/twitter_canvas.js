@@ -24,7 +24,7 @@ const createTwitterCanvas = async (metadataJson, isImage) => {
     };
 
     let qtMetadata = null;
-    console.log('>>>>> createTwitterCanvas > qtMetadata: ', qtMetadata);
+    console.log('>>>>> createTwitterCanvas > metadataJson.qtMetadata: ', metadataJson.qtMetadata);
     if(metadataJson.qtMetadata) {
         qtMetadata = {
             authorNick: metadataJson?.qtMetadata.user_screen_name,
@@ -39,6 +39,7 @@ const createTwitterCanvas = async (metadataJson, isImage) => {
     if(metadataJson.error) {
         qtMetadata = metadataJson;
     }
+    console.log('>>>>> createTwitterCanvas > metadataJson.qtMetadata: ', metadataJson.qtMetadata);
 
     // console.log('>>>>> twitter_canvas > createTwitterCanvas >  > metadata: ', metadata);
 
