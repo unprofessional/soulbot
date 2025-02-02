@@ -46,9 +46,9 @@ const fetchQTMetadata = async (url, message) => {
         resultJson = await result.json();
         console.log(`>>>>> fetchQTMetadata > resultJson: ${resultJson}`);
     } catch (err) {
-        console.error(`>>>>> fetchQTMetadata > err: ${err}`);
-        // message.reply(`${err}`);
+        console.error('>>>>> fetchQTMetadata > err: ', err);
         if(err === 'SyntaxError: Unexpected token < in JSON at position 0') {
+            console.error(`>>>>> fetchQTMetadata > err: ${err}`);
             // This is the best we get with result.json()...
             // Most likely scenario
             resultJson = {
