@@ -42,6 +42,7 @@ const fetchQTMetadata = async (url, message) => {
 
     let resultJson = {};
     try {
+        console.log(`>>>>> fetchQTMetadata > resultJson (before async/await): ${resultJson}`);
         resultJson = await result.json();
         console.log(`>>>>> fetchQTMetadata > resultJson: ${resultJson}`);
         if(resultJson.errors) {
@@ -57,7 +58,7 @@ const fetchQTMetadata = async (url, message) => {
             }
         }
     } catch (err) {
-        console.error(`>>>>> fetch (quote-tweet url: ${url}) > err: ${err}`);
+        console.error(`>>>>> fetchQTMetadata > err: ${err}`);
         message.reply(`${err}`);
     }
 
