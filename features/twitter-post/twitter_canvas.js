@@ -37,7 +37,7 @@ const createTwitterCanvas = async (metadataJson, isImage) => {
         };
     }
     if(metadataJson?.qtMetadata?.error) {
-        qtMetadata = metadataJson;
+        qtMetadata = metadataJson.qtMetadata;
     }
     console.log('>>>>> createTwitterCanvas > qtMetadata: ', qtMetadata);
 
