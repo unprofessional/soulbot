@@ -299,7 +299,7 @@ const drawQtMissingStatus = (ctx, globalFont, errorMsg, options) => {
     ctx.fillStyle = 'white'; // Text color for description
     ctx.font = '24px ' + globalFont;
     const qtTextXAxisStart = 100;
-    drawDescription(ctx, false, false, qtDescLines, globalFont, qtTextXAxisStart, qtYPosition, true);
+    drawDescription(ctx, false, false, qtDescLines, globalFont, qtTextXAxisStart, qtYPosition - 40, true);
 };
 
 const embedCommunityNote = (message, communityNoteText) => {
