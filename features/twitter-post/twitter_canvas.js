@@ -212,7 +212,7 @@ const createTwitterCanvas = async (metadataJson, isImage) => {
     // REFACTOR REFACTOR REFACTOR
     /////////////////////////////
 
-    let qtCalculatedCanvasHeightFromDescLines = 0;
+    let qtCalculatedCanvasHeightFromDescLines = qtMetadata.error ? -40 : 0;
     if(qtMetadata) {
         qtCalculatedCanvasHeightFromDescLines = calcQtHeight(qtMetadata) + 100; 
         // qtCalculatedCanvasHeightFromDescLines = calcQtHeight(ctx, qtMetadata, maxCharLength); 
@@ -221,11 +221,9 @@ const createTwitterCanvas = async (metadataJson, isImage) => {
   
     // Re-calc canvas
     ctx.canvas.height = calculatedCanvasHeightFromDescLines
-        // + communityNoteHeight
         + qtCalculatedCanvasHeightFromDescLines;
     // console.log('>>>>> twitter_canvas > ctx.canvas.height: ',  ctx.canvas.height);
     ctx.fillRect(0, 0, maxCanvasWidth, calculatedCanvasHeightFromDescLines
-        // + communityNoteHeight
         + qtCalculatedCanvasHeightFromDescLines);
     
     const favIconUrl = 'https://abs.twimg.com/favicons/twitter.3.ico';
