@@ -158,14 +158,10 @@ const drawQtBasicElements = (
 ) => {
 
     const {
-        // isQuoteTweet = false,
-        // mediaElements = {},
-        // yOffset = 0,
         canvasHeightOffset = 0,
         qtCanvasHeightOffset = 0,
         hasImgs = false,
         hasVids = false,
-        // qtDescLines = [],
     } = options;
 
     // console.log('>>>>> canvas_utils > drawQtBasicElements > qtMeta: ', metadata);
@@ -274,6 +270,38 @@ const drawQtBasicElements = (
     
 };
 
+const drawQtMissingStatus = (ctx, globalFont, errorMsg, options) => {
+
+    const {
+        canvasHeightOffset = 0,
+        qtCanvasHeightOffset = 0,
+    } = options;
+
+    // Pre-process description with text wrapping
+    ctx.font = '24px ' + globalFont; // gotta set this here before getWrappedText for size calcs
+    const qtDescLines = getWrappedText(ctx, errorMsg, 420);
+
+    let mediaQtMaxWidth = 560;
+    
+    const qtXPosition = 20;
+    let qtYPosition = canvasHeightOffset;
+    
+    // QT Canvas Stroke
+    ctx.strokeStyle = '#4d4d4d';
+    ctx.lineWidth = 1;  // Set the stroke width (optional)
+    const cornerRadius = 15; // Adjust corner radius as needed
+
+    ctx.beginPath();
+    ctx.roundRect(qtXPosition, qtYPosition, mediaQtMaxWidth, qtCanvasHeightOffset - 20, cornerRadius);
+    ctx.stroke();
+
+    // Draw description (post text wrap handling)
+    ctx.fillStyle = 'white'; // Text color for description
+    ctx.font = '24px ' + globalFont;
+    const qtTextXAxisStart = 100;
+    drawDescription(ctx, false, false, qtDescLines, globalFont, qtTextXAxisStart, qtYPosition, true);
+};
+
 const embedCommunityNote = (message, communityNoteText) => {
     const embed = {
         color: 0x0099ff,
@@ -337,6 +365,7 @@ module.exports = {
     drawTextWithSpacing,
     drawBasicElements,
     drawQtBasicElements,
+    drawQtMissingStatus,
     embedCommunityNote,
     getAdjustedAspectRatios,
 };

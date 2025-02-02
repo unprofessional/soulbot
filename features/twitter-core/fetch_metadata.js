@@ -45,21 +45,17 @@ const fetchQTMetadata = async (url, message) => {
         console.log('>>>>> fetchQTMetadata > result (before async/await): ', result);
         resultJson = await result.json();
         console.log(`>>>>> fetchQTMetadata > resultJson: ${resultJson}`);
-        if(resultJson.errors) {
-            // console.log(`>>>>> fetchQTMetadata > resultJson: ${resultJson}`);
-            const missingPostErrorMsg = resultJson.errors.find((error) => {
-                return error.message = '_Missing: No status found with that ID.';
-            });
-            if(missingPostErrorMsg) {
-                resultJson = {
-                    error: 'No status found with that ID.',
-                    message: 'This post is unavailable.'
-                };
-            }
-        }
     } catch (err) {
         console.error(`>>>>> fetchQTMetadata > err: ${err}`);
-        message.reply(`${err}`);
+        // message.reply(`${err}`);
+        if(err === 'Unexpected token < in JSON at position 0') {
+            // This is the best we get with result.json()...
+            // Most likely scenario
+            resultJson = {
+                error: 'No status found with that ID.',
+                message: 'This post is unavailable.'
+            };
+        }
     }
 
     return resultJson;

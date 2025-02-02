@@ -5,7 +5,7 @@ const {
 } = require('canvas');
 const { renderImageGallery } = require('./image_gallery_rendering.js');
 const { scaleDownToFitAspectRatio } = require('./scale_down.js');
-const { getWrappedText, drawBasicElements, drawQtBasicElements, getYPosFromLineHeight, drawCommunityNote } = require('../twitter-core/canvas_utils.js');
+const { getWrappedText, drawBasicElements, drawQtBasicElements, getYPosFromLineHeight, drawCommunityNote, drawQtMissingStatus } = require('../twitter-core/canvas_utils.js');
 const { filterMediaUrls, removeTCOLink, getExtensionFromMediaUrl } = require('../twitter-core/utils.js');
 
 const createTwitterCanvas = async (metadataJson, isImage) => {
@@ -36,7 +36,7 @@ const createTwitterCanvas = async (metadataJson, isImage) => {
             mediaExtended: metadataJson.qtMetadata.media_extended,
         };
     }
-    if(metadataJson?.qtMetadata?.error) {
+    if(metadataJson?.qtMetadata?.error === 'No status found with that ID.') {
         qtMetadata = metadataJson;
     }
     console.log('>>>>> createTwitterCanvas > metadataJson.qtMetadata[2]: ', metadataJson.qtMetadata);
@@ -237,7 +237,7 @@ const createTwitterCanvas = async (metadataJson, isImage) => {
 
     // console.log('>>>>> twitter_canvas > qtMetadata: ', qtMetadata);
     // if has quote tweet reference
-    if(qtMetadata) {
+    if(qtMetadata && !qtMetadata.error) {
         console.log('>>>>> if(qtMetadata) > qtMetadata EXISTS!!!');
         const qtMedia1 = qtMetadata?.mediaUrls[0];
         console.log('>>>>> twitter_canvas > qtMedia1[1]: ', qtMedia1);
@@ -265,8 +265,6 @@ const createTwitterCanvas = async (metadataJson, isImage) => {
                 qtCanvasHeightOffset: qtCalculatedCanvasHeightFromDescLines,
                 hasImgs,
                 hasVids,
-                hasOnlyVideos,
-                qtDescLines
             });
         }
         // Quote-Tweet Post is text only
@@ -277,10 +275,20 @@ const createTwitterCanvas = async (metadataJson, isImage) => {
                 qtCanvasHeightOffset: qtCalculatedCanvasHeightFromDescLines,
                 hasImgs,
                 hasVids,
-                hasOnlyVideos,
-                qtDescLines
             });
         }
+    }
+
+    if(qtMetadata.error) {
+        console.log('>>>>> twitter_canvas > Quote-Tweet Post is MISSING!');
+        drawQtMissingStatus(
+            ctx, globalFont, qtMetadata.message, {
+                canvasHeightOffset: calculatedCanvasHeightFromDescLines,
+                qtCanvasHeightOffset: qtCalculatedCanvasHeightFromDescLines,
+                hasImgs: false,
+                hasVids: false,
+            }
+        );
     }
 
     // Draw the Community Note, if exists
