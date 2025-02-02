@@ -284,6 +284,7 @@ const createTwitterCanvas = async (metadataJson, isImage) => {
 
     if(qtMetadata?.error) {
         console.log('>>>>> twitter_canvas > Quote-Tweet Post is MISSING!');
+        console.log('>>>>> twitter_canvas > Quote-Tweet Post is MISSING! qtMetadata: ', qtMetadata);
         drawQtMissingStatus(
             ctx, globalFont, qtMetadata.message, {
                 canvasHeightOffset: calculatedCanvasHeightFromDescLines,
