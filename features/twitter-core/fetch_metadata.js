@@ -42,7 +42,7 @@ const fetchQTMetadata = async (url, message) => {
 
     let resultJson = {};
     try {
-        console.log('>>>>> fetchQTMetadata > resultJson (before async/await): ', resultJson);
+        console.log('>>>>> fetchQTMetadata > result (before async/await): ', result);
         resultJson = await result.json();
         console.log(`>>>>> fetchQTMetadata > resultJson: ${resultJson}`);
         if(resultJson.errors) {
