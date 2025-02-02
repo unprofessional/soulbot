@@ -43,8 +43,9 @@ const fetchQTMetadata = async (url, message) => {
     let resultJson = {};
     try {
         resultJson = await result.json();
-        // console.log(`>>>>> fetch (quote-tweet url: ${url}) > resultJson: ${resultJson}`);
+        console.log(`>>>>> fetchQTMetadata > resultJson: ${resultJson}`);
         if(resultJson.errors) {
+            // console.log(`>>>>> fetchQTMetadata > resultJson: ${resultJson}`);
             const missingPostErrorMsg = resultJson.errors.find((error) => {
                 return error.message = '_Missing: No status found with that ID.';
             });

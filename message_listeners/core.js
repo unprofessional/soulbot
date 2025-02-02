@@ -104,6 +104,7 @@ const initializeListeners = async (client) => {
                     let metadata = await fetchMetadata(firstUrl, message, containsXDotComUrl);
                     if(metadata.qrtURL) {
                         const qtMetadata = await fetchQTMetadata(metadata.qrtURL, message, containsXDotComUrl);
+                        console.log('>>>>> core > qtMetadata: ', qtMetadata);
                         metadata.qtMetadata = qtMetadata;
                     }
     
