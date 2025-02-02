@@ -279,7 +279,7 @@ const createTwitterCanvas = async (metadataJson, isImage) => {
         }
     }
 
-    if(qtMetadata.error) {
+    if(qtMetadata?.error) {
         console.log('>>>>> twitter_canvas > Quote-Tweet Post is MISSING!');
         drawQtMissingStatus(
             ctx, globalFont, qtMetadata.message, {
