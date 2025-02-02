@@ -118,7 +118,6 @@ const createTwitterCanvas = async (metadataJson, isImage) => {
             // console.log('>>>>> twitter_canvas > createTwitterCanvas > adjustedHeight: ', adjustedHeight);
             heightShim = adjustedHeight;    
         } else {
-            // heightShim = mediaMaxHeight;
             // console.log('>>>>> twitter_canvas > createTwitterCanvas > mediaObject.height: ', mediaObject.height);
             // console.log('>>>>> twitter_canvas > createTwitterCanvas > mediaMaxHeight: ', mediaMaxHeight);
             heightShim = mediaObject.height < mediaMaxHeight ? mediaObject.height : mediaMaxHeight;
@@ -156,24 +155,6 @@ const createTwitterCanvas = async (metadataJson, isImage) => {
             return totalQtDescLinesHeight;
         }
     };
-
-    // const calcQtHeight = (ctx, qtMetadata, maxCharLength) => {
-    //     const qtDescLines = getWrappedText(ctx, qtMetadata.description, maxCharLength);
-    
-    //     // Dynamically calculate description height
-    //     const descHeight = qtDescLines.length * 30; // Assuming line height of 30
-    //     const minHeight = 180; // Minimum height for quote tweet box
-    //     const padding = 60; // Additional padding for avatar, margins
-    
-    //     let totalHeight = descHeight + padding;
-    
-    //     // Account for media height
-    //     if (qtMetadata.mediaUrls.length > 0) {
-    //         totalHeight += 300; // Approximate media height
-    //     }
-    
-    //     return Math.max(totalHeight, minHeight);
-    // };
   
     // Pre-process description with text wrapping
     const maxCharLength = hasOnlyVideos ? 120 : 240; // Maximum width for text
@@ -194,29 +175,11 @@ const createTwitterCanvas = async (metadataJson, isImage) => {
     }
     console.log('>>>>> twitter_canvas > calculatedCanvasHeightFromDescLines[2]: ', calculatedCanvasHeightFromDescLines);
 
-    /////////////////////////////
-    // REFACTOR REFACTOR REFACTOR
-    /////////////////////////////
-    // const communityNote = metadata.communityNote;
-    // let communityNoteLines = [];
-    // let communityNoteHeight = 0;
-    // console.log('>>> communityNote: ', communityNote);
-    // if(communityNote) {
-    //     ctx.fillStyle = 'white'; // Text color for description
-    //     ctx.font = '24px Arial';
-    //     communityNoteLines = getWrappedText(ctx, communityNote, 530, false);
-    //     console.log('>>> communityNoteLines.length: ', communityNoteLines.length);
-    //     communityNoteHeight = (communityNoteLines.length * 30) + 60;
-    // }
-    /////////////////////////////
-    // REFACTOR REFACTOR REFACTOR
-    /////////////////////////////
-
-    let qtCalculatedCanvasHeightFromDescLines = qtMetadata.error ? -40 : 0;
+    let qtCalculatedCanvasHeightFromDescLines = 0;
     console.log('>>>>> twitter_canvas > qtCalculatedCanvasHeightFromDescLines: ', qtCalculatedCanvasHeightFromDescLines);
     if(qtMetadata) {
-        qtCalculatedCanvasHeightFromDescLines = calcQtHeight(qtMetadata) + 100; 
-        // qtCalculatedCanvasHeightFromDescLines = calcQtHeight(ctx, qtMetadata, maxCharLength); 
+        const recalcedQtHeight = calcQtHeight(qtMetadata) + 100;
+        qtCalculatedCanvasHeightFromDescLines = qtMetadata.error ? recalcedQtHeight - 40 : recalcedQtHeight;
     }
     // console.log('>>>>> twitter_canvas > qtCalculatedCanvasHeightFromDescLines[1]: ', qtCalculatedCanvasHeightFromDescLines);
   
@@ -254,7 +217,7 @@ const createTwitterCanvas = async (metadataJson, isImage) => {
         const numOfQtVideos = filterMediaUrls(qtMetadata, ['mp4']).length;
         console.log('>>>>> if(qtMetadata) > numOfQtVideos: ', numOfQtVideos);
 
-        // load media
+        // Load media
         const qtPfpUrl = qtMetadata.pfpUrl;
         const qtPfp = await loadImage(qtPfpUrl);
 
@@ -298,12 +261,6 @@ const createTwitterCanvas = async (metadataJson, isImage) => {
             }
         );
     }
-
-    // Draw the Community Note, if exists
-    // if(communityNote) {
-    //     console.log('>>>>> twitter_canvas > drawing community note text...');
-    //     drawCommunityNote(ctx, 30, calculatedCanvasHeightFromDescLines, communityNoteLines);
-    // }
 
     // Draw the image, if one exists
     // this also handles if mixed-media gallary
