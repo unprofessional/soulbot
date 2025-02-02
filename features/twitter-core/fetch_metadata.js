@@ -47,14 +47,18 @@ const fetchQTMetadata = async (url, message) => {
         console.log(`>>>>> fetchQTMetadata > resultJson: ${resultJson}`);
     } catch (err) {
         console.error('>>>>> fetchQTMetadata > err: ', err);
+        console.error('>>>>> fetchQTMetadata > typeof err: ', typeof err);
         if(err === 'SyntaxError: Unexpected token < in JSON at position 0') {
-            console.error(`>>>>> fetchQTMetadata > err: ${err}`);
+            console.error('>>>>> fetchQTMetadata > SyntaxError STRING!');
             // This is the best we get with result.json()...
             // Most likely scenario
             resultJson = {
                 error: 'No status found with that ID.',
                 message: 'This post is unavailable.'
             };
+        }
+        if(typeof err === SyntaxError) {
+            console.error('>>>>> fetchQTMetadata > SyntaxError TYPE!');
         }
     }
 
