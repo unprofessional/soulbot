@@ -27,13 +27,13 @@ const createTwitterCanvas = async (metadataJson, isImage) => {
     console.log('>>>>> createTwitterCanvas > metadataJson.qtMetadata[1]: ', metadataJson.qtMetadata);
     if(metadataJson.qtMetadata) {
         qtMetadata = {
-            authorNick: metadataJson?.qtMetadata.user_screen_name,
-            authorUsername: metadataJson.qtMetadata.user_name,
-            pfpUrl: metadataJson.qtMetadata.user_profile_image_url,
-            date: metadataJson.qtMetadata.date,
-            description: metadataJson.qtMetadata.text || '', // TODO: truncate
-            mediaUrls: metadataJson.qtMetadata.mediaURLs,
-            mediaExtended: metadataJson.qtMetadata.media_extended,
+            authorNick: metadataJson?.qtMetadata.user_screen_name || '',
+            authorUsername: metadataJson.qtMetadata.user_name || '',
+            pfpUrl: metadataJson.qtMetadata.user_profile_image_url || '',
+            date: metadataJson.qtMetadata.date || '',
+            description: metadataJson.qtMetadata.text || '',
+            mediaUrls: metadataJson.qtMetadata.mediaURLs || [],
+            mediaExtended: metadataJson.qtMetadata.media_extended || [],
         };
     }
     if(metadataJson?.qtMetadata?.error === 'No status found with that ID.') {
