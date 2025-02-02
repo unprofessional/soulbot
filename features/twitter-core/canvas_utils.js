@@ -274,7 +274,7 @@ const drawQtMissingStatus = (ctx, globalFont, errorMsg, options) => {
 
     const {
         canvasHeightOffset = 0,
-        qtCanvasHeightOffset = 0,
+        qtCanvasHeightOffset = -40,
     } = options;
 
     // Pre-process description with text wrapping
@@ -284,7 +284,7 @@ const drawQtMissingStatus = (ctx, globalFont, errorMsg, options) => {
     let mediaQtMaxWidth = 560;
     
     const qtXPosition = 20;
-    const qtYPosition = canvasHeightOffset - 40;
+    const qtYPosition = canvasHeightOffset;
     
     // QT Canvas Stroke
     ctx.strokeStyle = '#4d4d4d';
