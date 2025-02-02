@@ -24,9 +24,10 @@ const createTwitterCanvas = async (metadataJson, isImage) => {
     };
 
     let qtMetadata = null;
+    console.log('>>>>> createTwitterCanvas > qtMetadata: ', qtMetadata);
     if(metadataJson.qtMetadata) {
         qtMetadata = {
-            authorNick: metadataJson.qtMetadata.user_screen_name,
+            authorNick: metadataJson?.qtMetadata.user_screen_name,
             authorUsername: metadataJson.qtMetadata.user_name,
             pfpUrl: metadataJson.qtMetadata.user_profile_image_url,
             date: metadataJson.qtMetadata.date,
@@ -34,6 +35,9 @@ const createTwitterCanvas = async (metadataJson, isImage) => {
             mediaUrls: metadataJson.qtMetadata.mediaURLs,
             mediaExtended: metadataJson.qtMetadata.media_extended,
         };
+    }
+    if(metadataJson.error) {
+        qtMetadata = metadataJson;
     }
 
     // console.log('>>>>> twitter_canvas > createTwitterCanvas >  > metadata: ', metadata);
