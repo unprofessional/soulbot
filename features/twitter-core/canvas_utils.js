@@ -284,7 +284,7 @@ const drawQtMissingStatus = (ctx, globalFont, errorMsg, options) => {
     let mediaQtMaxWidth = 560;
     
     const qtXPosition = 20;
-    let qtYPosition = canvasHeightOffset;
+    const qtYPosition = canvasHeightOffset - 40;
     
     // QT Canvas Stroke
     ctx.strokeStyle = '#4d4d4d';
