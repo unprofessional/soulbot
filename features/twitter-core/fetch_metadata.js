@@ -57,7 +57,7 @@ const fetchQTMetadata = async (url, message) => {
                 message: 'This post is unavailable.'
             };
         }
-        if(typeof err === SyntaxError) {
+        if(err.name === 'SyntaxError') {
             console.error('>>>>> fetchQTMetadata > SyntaxError TYPE!');
         }
     }
