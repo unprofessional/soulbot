@@ -292,14 +292,14 @@ const drawQtMissingStatus = (ctx, globalFont, errorMsg, options) => {
     const cornerRadius = 15; // Adjust corner radius as needed
 
     ctx.beginPath();
-    ctx.roundRect(qtXPosition, qtYPosition, mediaQtMaxWidth, qtCanvasHeightOffset - 60, cornerRadius);
+    ctx.roundRect(qtXPosition, qtYPosition, mediaQtMaxWidth, qtCanvasHeightOffset - 20, cornerRadius);
     ctx.stroke();
 
     // Draw description (post text wrap handling)
     ctx.fillStyle = 'white'; // Text color for description
     ctx.font = '24px ' + globalFont;
     const qtTextXAxisStart = 100;
-    drawDescription(ctx, false, false, qtDescLines, globalFont, qtTextXAxisStart, qtYPosition - 40, true);
+    drawDescription(ctx, false, false, qtDescLines, globalFont, qtTextXAxisStart, qtYPosition, true);
 };
 
 const embedCommunityNote = (message, communityNoteText) => {
