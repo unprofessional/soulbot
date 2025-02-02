@@ -292,7 +292,7 @@ const drawQtMissingStatus = (ctx, globalFont, errorMsg, options) => {
     const cornerRadius = 15; // Adjust corner radius as needed
 
     ctx.beginPath();
-    ctx.roundRect(qtXPosition, qtYPosition - 40, mediaQtMaxWidth, qtCanvasHeightOffset - 20, cornerRadius);
+    ctx.roundRect(qtXPosition, qtYPosition, mediaQtMaxWidth, qtCanvasHeightOffset - 60, cornerRadius);
     ctx.stroke();
 
     // Draw description (post text wrap handling)
