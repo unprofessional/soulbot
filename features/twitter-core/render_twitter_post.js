@@ -40,54 +40,115 @@ const filterVideoUrls = (mediaUrls) => {
     });
 };
 
-/**
- * 
- * @param {*} message 
- */
+// /**
+//  * 
+//  * @param {*} message 
+//  */
+// const sendWebhookProxyMsg = async (message, content, files = [], communityNoteText) => {
+
+//     // TODO: Delete all owned webhooks here...
+
+//     console.log('>>> sendWebhookProxyMsg reached!');
+
+//     const embed = embedCommunityNote(message, communityNoteText);
+
+//     // Save user details for the webhook
+//     const nickname = message.member?.nickname;
+//     const displayName = nickname || message.author.globalName || message.author.username;
+//     console.log('>>> sendWebhookProxyMsg > displayName: ', displayName);
+//     const avatarURL = message.author.avatarURL({ dynamic: true }) || message.author.displayAvatarURL(); // Call displayAvatarURL as a function to get the URL
+//     console.log('>>> sendWebhookProxyMsg > avatarURL: ', avatarURL);
+
+//     console.log('>>> sendWebhookProxyMsg > content: ', content);
+
+//     // Create and use a webhook in the same channel
+//     const webhook = await message.channel.createWebhook({
+//         name: displayName,
+//         avatar: avatarURL,
+//     });
+
+//     console.log('>>> sendWebhookProxyMsg webhook created!');
+
+//     // const modifiedContent = message.content.replace(/(https:\/\/\S+)/, '$1\u200B');
+//     const modifiedContent = message.content.replace(/(https:\/\/\S+)/, '<$1>');
+
+//     // Send the message through the webhook
+//     await webhook.send({
+//         content: modifiedContent,
+//         ...(embed && { embeds: [embed] }),
+//         username: displayName,
+//         avatarURL: avatarURL,
+//         files: files,
+//     });
+
+//     console.log('>>> sendWebhookProxyMsg sent!');
+
+//     await message.delete();
+
+//     console.log('>>> sendWebhookProxyMsg message deleted!');
+
+//     // Delete the webhook to keep the channel clean
+//     await webhook.delete();
+
+//     console.log('>>> sendWebhookProxyMsg deleted!');
+// };
+
 const sendWebhookProxyMsg = async (message, content, files = [], communityNoteText) => {
+    try {
+        console.log('>>> sendWebhookProxyMsg reached!');
 
-    console.log('>>> sendWebhookProxyMsg reached!');
+        // Delete all existing webhooks created by the bot in this channel
+        const webhooks = await message.channel.fetchWebhooks();
+        const botWebhooks = webhooks.filter(wh => wh.owner.id === message.client.user.id);
 
-    const embed = embedCommunityNote(message, communityNoteText);
+        console.log(`>>> Deleting ${botWebhooks.size} existing webhooks`);
+        for (const webhook of botWebhooks.values()) {
+            await webhook.delete().catch(err => console.warn(`Failed to delete webhook: ${err}`));
+        }
 
-    // Save user details for the webhook
-    const nickname = message.member?.nickname;
-    const displayName = nickname || message.author.globalName || message.author.username;
-    // console.log('>>> sendWebhookProxyMsg > displayName: ', displayName);
-    const avatarURL = message.author.avatarURL({ dynamic: true }) || message.author.displayAvatarURL(); // Call displayAvatarURL as a function to get the URL
-    // console.log('>>> sendWebhookProxyMsg > avatarURL: ', avatarURL);
+        const embed = embedCommunityNote(message, communityNoteText);
+        const nickname = message.member?.nickname;
+        const displayName = nickname || message.author.globalName || message.author.username;
+        console.log('>>> sendWebhookProxyMsg > displayName: ', displayName);
+        const avatarURL = message.author.avatarURL({ dynamic: true }) || message.author.displayAvatarURL();
+        console.log('>>> sendWebhookProxyMsg > avatarURL: ', avatarURL);
 
-    // console.log('>>> sendWebhookProxyMsg > content: ', content);
+        console.log('>>> sendWebhookProxyMsg > content: ', content);
 
-    // Create and use a webhook in the same channel
-    const webhook = await message.channel.createWebhook({
-        name: displayName,
-        avatar: avatarURL,
-    });
+        // Create and use a webhook
+        const webhook = await message.channel.createWebhook({
+            name: displayName,
+            avatar: avatarURL,
+        });
 
-    // console.log('>>> sendWebhookProxyMsg webhook created!');
+        console.log('>>> sendWebhookProxyMsg webhook created!');
 
-    // const modifiedContent = message.content.replace(/(https:\/\/\S+)/, '$1\u200B');
-    const modifiedContent = message.content.replace(/(https:\/\/\S+)/, '<$1>');
+        const modifiedContent = message.content.replace(/(https:\/\/\S+)/, '<$1>');
 
+        // Send the message through the webhook
+        await webhook.send({
+            content: modifiedContent,
+            ...(embed && { embeds: [embed] }),
+            username: displayName,
+            avatarURL: avatarURL,
+            files: files,
+        });
 
-    // Send the message through the webhook
-    await webhook.send({
-        content: modifiedContent,
-        ...(embed && { embeds: [embed] }),
-        username: displayName,
-        avatarURL: avatarURL,
-        files: files,
-    });
+        console.log('>>> sendWebhookProxyMsg sent!');
 
-    // console.log('>>> sendWebhookProxyMsg sent!');
+        await message.delete();
 
-    await message.delete();
-    // Delete the webhook to keep the channel clean
-    await webhook.delete();
+        console.log('>>> sendWebhookProxyMsg message deleted!');
 
-    // console.log('>>> sendWebhookProxyMsg deleted!');
+        // Delete the webhook to prevent accumulation
+        await webhook.delete();
+
+        console.log('>>> sendWebhookProxyMsg webhook deleted!');
+    } catch (error) {
+        console.error('>>> sendWebhookProxyMsg error: ', error);
+    }
 };
+
 
 const sendVideoReply = async (message, successFilePath, localWorkingPath) => {
     console.log('Sending video reply');
