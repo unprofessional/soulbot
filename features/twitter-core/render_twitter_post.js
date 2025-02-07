@@ -40,59 +40,6 @@ const filterVideoUrls = (mediaUrls) => {
     });
 };
 
-// /**
-//  * 
-//  * @param {*} message 
-//  */
-// const sendWebhookProxyMsg = async (message, content, files = [], communityNoteText) => {
-
-//     // TODO: Delete all owned webhooks here...
-
-//     console.log('>>> sendWebhookProxyMsg reached!');
-
-//     const embed = embedCommunityNote(message, communityNoteText);
-
-//     // Save user details for the webhook
-//     const nickname = message.member?.nickname;
-//     const displayName = nickname || message.author.globalName || message.author.username;
-//     console.log('>>> sendWebhookProxyMsg > displayName: ', displayName);
-//     const avatarURL = message.author.avatarURL({ dynamic: true }) || message.author.displayAvatarURL(); // Call displayAvatarURL as a function to get the URL
-//     console.log('>>> sendWebhookProxyMsg > avatarURL: ', avatarURL);
-
-//     console.log('>>> sendWebhookProxyMsg > content: ', content);
-
-//     // Create and use a webhook in the same channel
-//     const webhook = await message.channel.createWebhook({
-//         name: displayName,
-//         avatar: avatarURL,
-//     });
-
-//     console.log('>>> sendWebhookProxyMsg webhook created!');
-
-//     // const modifiedContent = message.content.replace(/(https:\/\/\S+)/, '$1\u200B');
-//     const modifiedContent = message.content.replace(/(https:\/\/\S+)/, '<$1>');
-
-//     // Send the message through the webhook
-//     await webhook.send({
-//         content: modifiedContent,
-//         ...(embed && { embeds: [embed] }),
-//         username: displayName,
-//         avatarURL: avatarURL,
-//         files: files,
-//     });
-
-//     console.log('>>> sendWebhookProxyMsg sent!');
-
-//     await message.delete();
-
-//     console.log('>>> sendWebhookProxyMsg message deleted!');
-
-//     // Delete the webhook to keep the channel clean
-//     await webhook.delete();
-
-//     console.log('>>> sendWebhookProxyMsg deleted!');
-// };
-
 const sendWebhookProxyMsg = async (message, content, files = [], communityNoteText) => {
     try {
         console.log('>>> sendWebhookProxyMsg reached!');

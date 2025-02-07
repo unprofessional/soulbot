@@ -101,7 +101,15 @@ const initializeListeners = async (client) => {
                     // message.channel.send(`Twitter/X URL(s) found! urls: ${urls}`);
     
                     const firstUrl = urls[0];
-                    let metadata = await fetchMetadata(firstUrl, message, containsXDotComUrl);
+                    let metadata = {};
+
+                    try {
+                        metadata = await fetchMetadata(firstUrl, message, containsXDotComUrl);
+                    }
+                    catch(err) {
+                        console.log('>>>>> containsTwitterUrl > call-fetchMetadata > err ', err);
+                    }
+                    
                     if(metadata.qrtURL) {
                         const qtMetadata = await fetchQTMetadata(metadata.qrtURL, message, containsXDotComUrl);
                         console.log('>>>>> core > qtMetadata: ', qtMetadata);
