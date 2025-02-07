@@ -105,11 +105,12 @@ const initializeListeners = async (client) => {
 
                     try {
                         metadata = await fetchMetadata(firstUrl, message, containsXDotComUrl);
+                        console.log('>>>>> containsTwitterUrl > CALL-fetchMetadata > metadata: ', metadata);
                     }
                     catch(err) {
-                        console.log('>>>>> containsTwitterUrl > call-fetchMetadata > err ', err);
+                        console.log('>>>>> containsTwitterUrl > CALL-fetchMetadata > err: ', err);
                     }
-                    
+
                     if(metadata.qrtURL) {
                         const qtMetadata = await fetchQTMetadata(metadata.qrtURL, message, containsXDotComUrl);
                         console.log('>>>>> core > qtMetadata: ', qtMetadata);
