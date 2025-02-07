@@ -111,22 +111,26 @@ const initializeListeners = async (client) => {
                         console.log('>>>>> containsTwitterUrl > CALL-fetchMetadata > err: ', err);
                     }
 
-                    if(metadata.qrtURL) {
-                        const qtMetadata = await fetchQTMetadata(metadata.qrtURL, message, containsXDotComUrl);
-                        console.log('>>>>> core > qtMetadata: ', qtMetadata);
-                        metadata.qtMetadata = qtMetadata;
-                    }
-    
-                    if (metadata.error) {
-                        message.reply(`Server 500!
-    \`\`\`HTML
-    ${metadata.errorMsg}
-    \`\`\``
-                        );
+                    if(Object.keys(metadata).length === 0) {
+                        message.reply('Post unavailable: maybe deleted or made protected');
                     } else {
-                        // console.log('>>>>> fetchMetadata > metadata: ', JSON.stringify(metadata, null, 2));
-                        await renderTwitterPost(metadata, message, containsTwitterUrl);
-                        // await message.suppressEmbeds(true);
+                        if(metadata.qrtURL) {
+                            const qtMetadata = await fetchQTMetadata(metadata.qrtURL, message, containsXDotComUrl);
+                            console.log('>>>>> core > qtMetadata: ', qtMetadata);
+                            metadata.qtMetadata = qtMetadata;
+                        }
+        
+                        if (metadata.error) {
+                            message.reply(`Server 500!
+        \`\`\`HTML
+        ${metadata.errorMsg}
+        \`\`\``
+                            );
+                        } else {
+                            // console.log('>>>>> fetchMetadata > metadata: ', JSON.stringify(metadata, null, 2));
+                            await renderTwitterPost(metadata, message, containsTwitterUrl);
+                            // await message.suppressEmbeds(true);
+                        }
                     }
                 }
             }
