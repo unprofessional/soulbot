@@ -111,8 +111,8 @@ const initializeListeners = async (client) => {
                         console.log('>>>>> containsTwitterUrl > CALL-fetchMetadata > err: ', err);
                     }
 
-                    if(Object.keys(metadata).length === 0) {
-                        message.reply('Post unavailable: maybe deleted or made protected');
+                    if(metadata?.error) {
+                        message.reply('Post unavailable! Deleted or protected mode?');
                     } else {
                         if(metadata.qrtURL) {
                             const qtMetadata = await fetchQTMetadata(metadata.qrtURL, message, containsXDotComUrl);
