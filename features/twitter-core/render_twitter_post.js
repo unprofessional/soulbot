@@ -8,6 +8,8 @@ const { downloadVideo, getVideoFileSize, bakeImageAsFilterIntoVideo } = require(
 const { getExtensionFromMediaUrl, removeTCOLink } = require('./utils.js');
 const { embedCommunityNote } = require('./canvas_utils.js');
 
+const { client } = require('../../initial_client.js');
+
 const MAX_CONCURRENT_REQUESTS = 3;
 const processingDir = '/tempdata';
 
@@ -200,8 +202,9 @@ const renderTwitterPost = async (metadataJson, message) => {
              */
             const fileSize = await getVideoFileSize(videoInputPath);
             console.log('>>> TODO: renderTwitterPost > fileSize: ', fileSize);
-            const guild = message.cache.guild;
-            console.log('>>> TODO: renderTwitterPost > guild: ', guild);
+            const guildId = message.guildId;
+            console.log('>>> TODO: renderTwitterPost > guildId: ', guildId);
+            const guild = client.guilds.cache.get(guildId);
             const boostTier = guild.premiumTier;
             console.log('>>> TODO: renderTwitterPost > boostTier: ', boostTier);
 
@@ -218,6 +221,7 @@ const renderTwitterPost = async (metadataJson, message) => {
             // await replyMsg.delete(); // don't even need to do this anymore
             await sendVideoReply(message, successFilePath, localWorkingPath);
         } catch (err) {
+            console.error('>>> ERROR: renderTwitterPost > err: ', err);
             await cleanup([], [localWorkingPath]);
         }
 
