@@ -1,4 +1,3 @@
-const fs = require('node:fs');
 const { Events } = require('discord.js');
 const {
     guilds,
@@ -28,7 +27,7 @@ const {
 } = require('../features/twitter-core/render_twitter_post.js');
 const { enforceGoldyRole } = require('../features/role-enforcement/role-enforcement.js');
 const { sendPromptToOllama } = require('../features/ollama/index.js');
-const { downloadImage, fetchImageAsBase64 } = require('../features/ollama/vision.js');
+const { fetchImageAsBase64 } = require('../features/ollama/vision.js');
 const { logMessage } = require('../logger/logger.js');
 
 // TODO: Move to "Message Validation"?
