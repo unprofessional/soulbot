@@ -4,7 +4,7 @@ const { createTwitterVideoCanvas } = require('../twitter-video/twitter_video_can
 const { cleanup } = require('../twitter-video/cleanup.js');
 const { buildPathsAndStuff } = require('../twitter-core/path_builder.js');
 
-const { downloadVideo, bakeImageAsFilterIntoVideo } = require('../twitter-video/index.js');
+const { downloadVideo, getVideoFileSize, bakeImageAsFilterIntoVideo } = require('../twitter-video/index.js');
 const { getExtensionFromMediaUrl, removeTCOLink } = require('./utils.js');
 const { embedCommunityNote } = require('./canvas_utils.js');
 
@@ -193,6 +193,14 @@ const renderTwitterPost = async (metadataJson, message) => {
 
         try {
             await downloadVideo(videoUrl, videoInputPath);
+
+
+            /**
+             * 
+             */
+            const fileSize = getVideoFileSize(videoInputPath);
+            console.log('>>> TODO: renderTwitterPost > fileSize: ', fileSize);
+
             const { canvasHeight, canvasWidth, heightShim } = await createTwitterVideoCanvas(metadataJson);
             const successFilePath = await bakeImageAsFilterIntoVideo(
                 videoInputPath, canvasInputPath, videoOutputPath,

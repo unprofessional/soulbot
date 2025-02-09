@@ -213,6 +213,20 @@ function getVideoDuration(filePath) {
     });
 }
 
+// Function to get video file size
+function getVideoFileSize(filePath) {
+    return new Promise((resolve, reject) => {
+        ffmpeg.ffprobe(filePath, (err, metadata) => {
+            if (err) {
+                reject(err);
+            } else {
+                const fileSize = metadata.format.size;
+                resolve(fileSize);
+            }
+        });
+    });
+}
+
 const applyRoundedCornersToVideo = (inputVideo, maskImage, outputVideo) => {
     return new Promise((resolve, reject) => {
         ffmpeg()
@@ -409,5 +423,6 @@ module.exports = {
     recombineFramesToVideo,
     combineAudioWithVideo,
     getVideoDuration,
+    getVideoFileSize,
     bakeImageAsFilterIntoVideo,
 };
