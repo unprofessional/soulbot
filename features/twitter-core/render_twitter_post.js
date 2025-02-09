@@ -196,9 +196,9 @@ const renderTwitterPost = async (metadataJson, message) => {
 
 
             /**
-             * 
+             * UNCOMMENT WHEN READY
              */
-            const fileSize = getVideoFileSize(videoInputPath);
+            const fileSize = await getVideoFileSize(videoInputPath);
             console.log('>>> TODO: renderTwitterPost > fileSize: ', fileSize);
             const guild = message.cache.guild; // Get the guild (server) where the command is run
             const boostTier = guild.premiumTier; // Get the server's boost tier
