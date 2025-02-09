@@ -200,6 +200,9 @@ const renderTwitterPost = async (metadataJson, message) => {
              */
             const fileSize = getVideoFileSize(videoInputPath);
             console.log('>>> TODO: renderTwitterPost > fileSize: ', fileSize);
+            const guild = message.cache.guild; // Get the guild (server) where the command is run
+            const boostTier = guild.premiumTier; // Get the server's boost tier
+            console.log('>>> TODO: renderTwitterPost > boostTier: ', boostTier);
 
             const { canvasHeight, canvasWidth, heightShim } = await createTwitterVideoCanvas(metadataJson);
             const successFilePath = await bakeImageAsFilterIntoVideo(
