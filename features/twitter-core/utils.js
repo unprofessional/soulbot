@@ -53,12 +53,24 @@ const formatTwitterDate = (twitterDate) => {
 
 // Find number of associated media
 const filterMediaUrls = (metadata, extensions) => {
+    console.log('!!! filterMediaUrls > metadata.mediaUrls: ', metadata.mediaUrls);
     return metadata.mediaUrls.filter((mediaUrl) => {
+        console.log('!!! filterMediaUrls > mediaUrl: ', mediaUrl);
         const mediaUrlParts = mediaUrl.split('.');
+        console.log('!!! filterMediaUrls > mediaUrlParts: ', mediaUrlParts);
         const fileExtensionWithQueryParams = mediaUrlParts[mediaUrlParts.length - 1];
+        console.log('!!! filterMediaUrls > fileExtensionWithQueryParams: ', fileExtensionWithQueryParams);
         const fileExtension = fileExtensionWithQueryParams.split('?')[0];
+        console.log('!!! filterMediaUrls > fileExtension: ', fileExtension);
+        console.log('!!! ================================================');
         return extensions.includes(fileExtension);
     });
+};
+
+const getExtensionFromMediaUrl = (mediaUrl) => {
+    const mediaUrlParts = mediaUrl.split('.');
+    const fileExtensionWithQueryParams = mediaUrlParts[mediaUrlParts.length - 1];
+    return fileExtensionWithQueryParams.split('?')[0];
 };
 
 const removeTCOLink = (text) => {
@@ -73,5 +85,6 @@ const removeTCOLink = (text) => {
 module.exports = {
     formatTwitterDate,
     filterMediaUrls,
+    getExtensionFromMediaUrl,
     removeTCOLink,
 };

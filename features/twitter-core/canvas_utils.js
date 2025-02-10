@@ -56,6 +56,15 @@ function getWrappedText(ctx, text, maxWidth) {
     return lines;
 }
 
+// TODO: Refactor with the below drawDescription...
+const getYPosFromLineHeight = (descLines, y) => {
+    const lineHeight = 30;
+    descLines.forEach(line => {
+        y += lineHeight;
+    });
+    return y;
+};
+
 // ....hasOnlyVideos might be the wrong descriptor... could be QTVideo?????
 const drawDescription = (ctx, hasImgs, hasVids, descLines, font, x, y, isQt) => {
     // console.log('>>>>> canvas_utils > drawDescription > descLines: ', descLines);
@@ -145,18 +154,14 @@ const drawBasicElements = (
 };
 
 const drawQtBasicElements = (
-    ctx, globalFont, metadata, pfp, mainMedia1, qtVidThumbnail, options
+    ctx, globalFont, metadata, pfp, mediaObject, options
 ) => {
 
     const {
-        // isQuoteTweet = false,
-        // mediaElements = {},
-        // yOffset = 0,
         canvasHeightOffset = 0,
         qtCanvasHeightOffset = 0,
         hasImgs = false,
         hasVids = false,
-        // qtDescLines = [],
     } = options;
 
     // console.log('>>>>> canvas_utils > drawQtBasicElements > qtMeta: ', metadata);
@@ -168,8 +173,8 @@ const drawQtBasicElements = (
     // console.log('>>>>> canvas_utils > drawQtBasicElements > numOfQtVideos', numOfQtVideos);
     const hasMedia = numOfQtImgs > 0 || numOfQtVideos > 0;
     
-    const minHeight = 100;
-    let mediaQtMaxHeight = hasMedia ? 300 : minHeight;
+    // const minHeight = 100;
+    // let mediaQtMaxHeight = hasMedia ? 300 : minHeight;
     let mediaQtMaxWidth = 560;
     
     // Pre-process description with text wrapping
@@ -235,16 +240,82 @@ const drawQtBasicElements = (
     const qtMediaYPos = canvasHeightOffset + 80;
     // console.log('>>>>> canvas_utils > drawQtBasicElements > qtMediaYPos: ', qtMediaYPos);
 
+    console.log('>>>>> canvas_utils > drawQtBasicElements > mainMedia1: ', mediaObject);
     // or if (mainMedia1 !== undefined)
-    if(numOfQtImgs > 0 && numOfQtVideos === 0) {
-        cropSingleImage(ctx, mainMedia1, 175, 175, qtXPosition + 20, qtMediaYPos);
-    }
-
-    // or if (qtVidThumbnail)
-    if(numOfQtVideos > 0) {
-        cropSingleImage(ctx, qtVidThumbnail, 175, 175, qtXPosition + 20, qtMediaYPos);
+    if (mediaObject) {
+        console.log('>>>>> canvas_utils > drawQtBasicElements > has a mediaUrl!');
+        const maxHeight = 175;
+        const maxWidth = 175;
+        const qtXPosFinal = qtXPosition + 20;
+        // Create a clipping path with rounded corners
+        const cornerRadius = 15;
+        ctx.save(); // Save the current context state
+        ctx.beginPath();
+        ctx.moveTo(qtXPosFinal + cornerRadius, qtMediaYPos); // Start at the top-left corner
+        ctx.lineTo(qtXPosFinal + maxWidth - cornerRadius, qtMediaYPos); // Top-right corner
+        ctx.quadraticCurveTo(qtXPosFinal + maxWidth, qtMediaYPos, qtXPosFinal + maxWidth, qtMediaYPos + cornerRadius); // Top-right curve
+        ctx.lineTo(qtXPosFinal + maxWidth, qtMediaYPos + maxHeight - cornerRadius); // Bottom-right corner
+        ctx.quadraticCurveTo(qtXPosFinal + maxWidth, qtMediaYPos + maxHeight, qtXPosFinal + maxWidth - cornerRadius, qtMediaYPos + maxHeight); // Bottom-right curve
+        ctx.lineTo(qtXPosFinal + cornerRadius, qtMediaYPos + maxHeight); // Bottom-left corner
+        ctx.quadraticCurveTo(qtXPosFinal, qtMediaYPos + maxHeight, qtXPosFinal, qtMediaYPos + maxHeight - cornerRadius); // Bottom-left curve
+        ctx.lineTo(qtXPosFinal, qtMediaYPos + cornerRadius); // Top-left corner
+        ctx.quadraticCurveTo(qtXPosFinal, qtMediaYPos, qtXPosFinal + cornerRadius, qtMediaYPos); // Top-left curve
+        ctx.closePath();
+        ctx.clip(); // Apply the clipping path
+        cropSingleImage(ctx, mediaObject, maxHeight, maxWidth, qtXPosFinal, qtMediaYPos);
+        ctx.restore();
+    } else {
+        console.error('>>>>> canvas_utils > drawQtBasicElements > mainMedia1 does not have either height, width, or neither!!!');
     }
     
+};
+
+const drawQtMissingStatus = (ctx, globalFont, errorMsg, options) => {
+
+    const {
+        canvasHeightOffset = 0,
+        qtCanvasHeightOffset = 0,
+    } = options;
+
+    // Pre-process description with text wrapping
+    ctx.font = '24px ' + globalFont; // gotta set this here before getWrappedText for size calcs
+    const qtDescLines = getWrappedText(ctx, errorMsg, 420);
+
+    let mediaQtMaxWidth = 560;
+    
+    const qtXPosition = 20;
+    const qtYPosition = canvasHeightOffset;
+    
+    // QT Canvas Stroke
+    ctx.strokeStyle = '#4d4d4d';
+    ctx.lineWidth = 1;  // Set the stroke width (optional)
+    const cornerRadius = 15; // Adjust corner radius as needed
+
+    ctx.beginPath();
+    ctx.roundRect(qtXPosition, qtYPosition, mediaQtMaxWidth, qtCanvasHeightOffset - 20, cornerRadius);
+    ctx.stroke();
+
+    // Draw description (post text wrap handling)
+    ctx.fillStyle = 'white'; // Text color for description
+    ctx.font = '24px ' + globalFont;
+    const qtTextXAxisStart = 100;
+    drawDescription(ctx, false, false, qtDescLines, globalFont, qtTextXAxisStart, qtYPosition - 40, true);
+};
+
+const embedCommunityNote = (message, communityNoteText) => {
+    const embed = {
+        color: 0x0099ff,
+        // author: {
+        //     name: `${message.author.username}`,
+        //     icon_url: message.author.displayAvatarURL(),
+        // },
+        title: 'Community Note. Readers added context:',
+        description: communityNoteText,
+        // footer: {
+        //     text: 'Test footer text',
+        // },
+    };
+    return communityNoteText ? embed : undefined;
 };
 
 const getAdjustedAspectRatios = (
@@ -289,9 +360,12 @@ const getAdjustedAspectRatios = (
 
 module.exports = {
     getWrappedText,
+    getYPosFromLineHeight, // TODO: See method docs... refactor with drawDescription
     drawDescription,
     drawTextWithSpacing,
     drawBasicElements,
     drawQtBasicElements,
+    drawQtMissingStatus,
+    embedCommunityNote,
     getAdjustedAspectRatios,
 };

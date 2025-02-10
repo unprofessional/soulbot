@@ -10,11 +10,11 @@ const initializeGuildMemberAdd = (client) => {
 
         const unprofessionals = client.guilds.cache.get('818606858780147712');
 
-        console.log('>>>> guildMemberAdd > unprofessionals: ', unprofessionals);
+        // console.log('>>>> guildMemberAdd > unprofessionals: ', unprofessionals);
 
         if(unprofessionals) {
             const channel = client.channels.cache.get("917909802485678143");
-            console.log('>>> guildMember: ', guildMember);
+            // console.log('>>> guildMember: ', guildMember);
             // channel.send(`\`${guildMember.user.username}\` joined the server!`);
             await renderProfileCanvas(guildMember, channel);
         }

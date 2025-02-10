@@ -6,6 +6,8 @@ const { initializeCommands } = require('./initial_commands.js');
 const { initializeGuildMemberUpdate } = require('./events/guild_member_update.js');
 const { initializeGuildMemberAdd } = require('./events/guild_member_add.js');
 const { initializeGuildMemberRemove } = require('./events/guild_member_remove.js');
+const { testPgConnection, initializeDB } = require('./store/db/db.js');
+const { testChromaConnection } = require('./features/ollama/embed.js');
 require('dotenv').config();
 
 const token = process.env.DISCORD_BOT_TOKEN;
@@ -15,6 +17,10 @@ const channelFile = process.env.CHANNEL_STORE_FILE;
 const memberFile = process.env.MEMBER_STORE_FILE;
 const featureFile = process.env.FEATURE_STORE_FILE;
 const runMode = process.env.RUN_MODE || 'development';
+
+// const clientId = process.env.DISCORD_CLIENT_ID;
+// console.log('>>>>> THE_INDEX > token: ', token);
+// console.log('>>>>> THE_INDEX > clientId: ', clientId);
 
 const initializeApp = async () => {
     // CI/Build/Function test
@@ -94,6 +100,16 @@ const initializeApp = async () => {
     initializeGuildMemberUpdate(client);
     initializeGuildMemberAdd(client);
     initializeGuildMemberRemove(client);
+
+    await testPgConnection();
+    try {
+        const result = await testChromaConnection();
+        console.log(result);
+    } catch (error) {
+        console.error('ChromaDB connection test failed:', error.message);
+        // process.exit(1); // Exit if ChromaDB is not reachable
+    }
+    await initializeDB();
 
     client.login(token);
 };

@@ -26,6 +26,9 @@ const {
     renderTwitterPost,
 } = require('../features/twitter-core/render_twitter_post.js');
 const { enforceGoldyRole } = require('../features/role-enforcement/role-enforcement.js');
+const { sendPromptToOllama } = require('../features/ollama/index.js');
+const { fetchImageAsBase64 } = require('../features/ollama/vision.js');
+const { logMessage } = require('../logger/logger.js');
 
 // TODO: Move to "Message Validation"?
 const validationChecksHook = (message) => {
@@ -72,6 +75,7 @@ const initializeListeners = async (client) => {
         // Logger
         // THIS IS SPAMMY, ONLY USE FOR DEBUGGING!
         // console.log(`${message.guildId}: ${message.author.globalName}: ${message.content}`);
+        await logMessage(message);
 
         if(!isSelf(message) && !isABot(message)) { // not self or a bot, but can be anyone else
 
@@ -96,22 +100,96 @@ const initializeListeners = async (client) => {
                     // message.channel.send(`Twitter/X URL(s) found! urls: ${urls}`);
     
                     const firstUrl = urls[0];
-                    let metadata = await fetchMetadata(firstUrl, message, containsXDotComUrl);
-                    if(metadata.qrtURL) {
-                        const qtMetadata = await fetchQTMetadata(metadata.qrtURL, message, containsXDotComUrl);
-                        metadata.qtMetadata = qtMetadata;
+                    let metadata = {};
+
+                    try {
+                        metadata = await fetchMetadata(firstUrl, message, containsXDotComUrl);
+                        console.log('>>>>> containsTwitterUrl > CALL-fetchMetadata > metadata: ', metadata);
                     }
-    
-                    if (metadata.error) {
-                        message.reply(`Server 500!
-    \`\`\`HTML
-    ${metadata.errorMsg}
-    \`\`\``
-                        );
+                    catch(err) {
+                        console.log('>>>>> containsTwitterUrl > CALL-fetchMetadata > err: ', err);
+                    }
+
+                    if(metadata?.error) {
+                        message.reply('Post unavailable! Deleted or protected mode?');
                     } else {
-                        // console.log('>>>>> fetchMetadata > metadata: ', JSON.stringify(metadata, null, 2));
-                        await renderTwitterPost(metadata, message, containsTwitterUrl);
-                        // await message.suppressEmbeds(true);
+                        if(metadata.qrtURL) {
+                            const qtMetadata = await fetchQTMetadata(metadata.qrtURL, message, containsXDotComUrl);
+                            console.log('>>>>> core > qtMetadata: ', qtMetadata);
+                            metadata.qtMetadata = qtMetadata;
+                        }
+        
+                        if (metadata.error) {
+                            message.reply(`Server 500!
+        \`\`\`HTML
+        ${metadata.errorMsg}
+        \`\`\``
+                            );
+                        } else {
+                            // console.log('>>>>> fetchMetadata > metadata: ', JSON.stringify(metadata, null, 2));
+                            await renderTwitterPost(metadata, message, containsTwitterUrl);
+                            // await message.suppressEmbeds(true);
+                        }
+                    }
+                }
+            }
+
+            if (message.content === '!!! vision' && validationChecksHook(message)) {
+                /**
+                 * Ollama Vision
+                 */
+                const images = message.attachments.filter(att => att.contentType?.startsWith('image/'));
+                if (images.size > 0) {
+                    await message.channel.send('Processing your image, please wait...');
+                    for (const [_, image] of images) {
+                        try {
+                            // const localPath = `/tempdata/${image.name}`;
+                            console.log('>>>>> core.js > image attached! analysis localPath: ', image.url);
+                            // await downloadImage(image.url, localPath);
+                            // if (!fs.existsSync(localPath)) {
+                            //     console.error(`File not found at path: ${localPath}`);
+                            //     throw new Error('Image download failed');
+                            // }
+                            // Convert the image to Base64
+                            const base64Image = await fetchImageAsBase64(image.url);
+                            console.log("Base64 Image String Preview:", base64Image.slice(0, 100));
+
+                            const userPrompt = message.content || 'Analyze this image. Please be brief and concise. If you do not know what it is, then just say so.';
+                            const response = await sendPromptToOllama(userPrompt, base64Image);
+                            console.log('>>>>> core.js > image attached! analysis response: ', response);
+                            await message.reply(`Response:\n\n${response}`);
+                        } catch (error) {
+                            console.error(error);
+                            await message.reply('An error occurred while processing your image.');
+                        }
+                    }
+                }
+            }
+
+            if (message.content === '!!! catvision' && validationChecksHook(message)) {
+                /**
+                 * Ollama Vision
+                 */
+                const images = message.attachments.filter(att => att.contentType?.startsWith('image/'));
+                if (images.size > 0) {
+                    await message.channel.send('Processing your image, please wait...');
+                    for (const [_, image] of images) {
+                        try {
+                            // const localPath = `/tempdata/${image.name}`;
+                            console.log('>>>>> core.js > image attached! analysis localPath: ', image.url);
+
+                            // Convert the image to Base64
+                            const base64Image = await fetchImageAsBase64(image.url);
+                            console.log("Base64 Image String Preview:", base64Image.slice(0, 100));
+
+                            // catvision prompt always gets overwritten anyway
+                            const response = await sendPromptToOllama(undefined, base64Image, 'catvision');
+                            console.log('>>>>> core.js > image attached! analysis response: ', response);
+                            await message.reply(response);
+                        } catch (error) {
+                            console.error(error);
+                            await message.reply('An error occurred while processing your image.');
+                        }
                     }
                 }
             }
@@ -138,6 +216,16 @@ const initializeListeners = async (client) => {
 
             if (message.content === '!!! toggleTwitter') {
                 toggleTwitter(message);
+            }
+
+            if (message.content.includes('!!! llm') && validationChecksHook(message)) {
+                const content = message.content;
+                console.log('>>>>> core > if !!! llm > content: ', content);
+                const prompt = content.split('!!! llm')[1];
+                console.log('>>>>> core > if !!! llm > prompt: ', prompt);
+                const response = await sendPromptToOllama(prompt);
+                console.log('>>>>> core > if !!! llm > response: ', response);
+                message.reply(response);
             }
 
             /**
@@ -223,4 +311,7 @@ const initializeListeners = async (client) => {
     return client;
 };
 
-module.exports = { initializeListeners };
+module.exports = {
+    validationChecksHook,
+    initializeListeners,
+};

@@ -213,6 +213,20 @@ function getVideoDuration(filePath) {
     });
 }
 
+// Function to get video file size
+function getVideoFileSize(filePath) {
+    return new Promise((resolve, reject) => {
+        ffmpeg.ffprobe(filePath, (err, metadata) => {
+            if (err) {
+                reject(err);
+            } else {
+                const fileSize = metadata.format.size;
+                resolve(fileSize);
+            }
+        });
+    });
+}
+
 const applyRoundedCornersToVideo = (inputVideo, maskImage, outputVideo) => {
     return new Promise((resolve, reject) => {
         ffmpeg()
@@ -333,6 +347,75 @@ function bakeImageAsFilterIntoVideo(
     });
 }
 
+/**
+ * GPU Acceleration attempt...
+ */
+// function bakeImageAsFilterIntoVideo(
+//     videoInputPath, canvasInputPath, videoOutputPath,
+//     videoHeight, videoWidth,
+//     canvasHeight, canvasWidth, heightShim,
+// ) {
+//     return new Promise((resolve, reject) => {
+//         // Check if input files exist
+//         if (!existsSync(videoInputPath)) {
+//             return reject(new Error(`Video input file does not exist: ${videoInputPath}`));
+//         }
+//         if (!existsSync(canvasInputPath)) {
+//             return reject(new Error(`Canvas input file does not exist: ${canvasInputPath}`));
+//         }
+
+//         const {
+//             adjustedCanvasWidth, adjustedCanvasHeight,
+//             scaledDownObjectWidth, scaledDownObjectHeight,
+//             overlayX, overlayY
+//         } = getAdjustedAspectRatios(
+//             canvasWidth, canvasHeight,
+//             videoWidth, videoHeight,
+//             heightShim
+//         );
+
+//         // Check if video has an audio stream
+//         ffmpeg.ffprobe(videoInputPath, (err, metadata) => {
+//             if (err) {
+//                 return reject(new Error(`Failed to probe video: ${err.message}`));
+//             }
+
+//             const hasAudio = metadata.streams.some(stream => stream.codec_type === 'audio');
+
+//             const widthPadding  = 40; // This is possibly what's screwing us up with the "squish" effect
+//             const command = ffmpeg()
+//                 .input(canvasInputPath)
+//                 .input(videoInputPath)
+//                 .complexFilter([
+//                     `[0:v]scale=${adjustedCanvasWidth + widthPadding}:${adjustedCanvasHeight}[frame]`,
+//                     `[1:v]scale=${scaledDownObjectWidth}:${scaledDownObjectHeight}[video]`,
+//                     `[frame][video]overlay=${overlayX + widthPadding/2}:${overlayY}[out]`
+//                 ])
+//                 // Use NVIDIA's NVENC for encoding
+//                 .outputOptions(['-c:v h264_nvenc', '-preset fast', '-map [out]']);
+
+//             if (hasAudio) {
+//                 command.outputOptions(['-map 1:a', '-c:a copy']);
+//             }
+
+//             command.output(videoOutputPath)
+//                 .on('start', commandLine => {
+//                     console.log('@@@@@ Spawned FFmpeg with command: ' + commandLine);
+//                 })
+//                 .on('end', function() {
+//                     console.log('Overlay process completed.');
+//                     const successFilePath = videoOutputPath;
+//                     resolve(successFilePath); // Resolve the promise when the process is completed
+//                 })
+//                 .on('error', function(err) {
+//                     console.error('An error occurred: ' + err.message);
+//                     reject(err); // Reject the promise on error
+//                 })
+//                 .run();
+//         });
+//     });
+// }
+
 module.exports = {
     downloadVideo,
     extractAudioFromVideo,
@@ -340,5 +423,6 @@ module.exports = {
     recombineFramesToVideo,
     combineAudioWithVideo,
     getVideoDuration,
+    getVideoFileSize,
     bakeImageAsFilterIntoVideo,
 };

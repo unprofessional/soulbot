@@ -4,7 +4,11 @@ const { createTwitterVideoCanvas } = require('../twitter-video/twitter_video_can
 const { cleanup } = require('../twitter-video/cleanup.js');
 const { buildPathsAndStuff } = require('../twitter-core/path_builder.js');
 
-const { downloadVideo, bakeImageAsFilterIntoVideo } = require('../twitter-video/index.js');
+const { downloadVideo, getVideoFileSize, bakeImageAsFilterIntoVideo } = require('../twitter-video/index.js');
+const { getExtensionFromMediaUrl } = require('./utils.js');
+const { embedCommunityNote } = require('./canvas_utils.js');
+// FIXME: 
+// const { client } = require('../../initial_client.js');
 
 const MAX_CONCURRENT_REQUESTS = 3;
 const processingDir = '/tempdata';
@@ -38,64 +42,68 @@ const filterVideoUrls = (mediaUrls) => {
     });
 };
 
-/**
- * 
- * @param {*} message 
- */
-const sendWebhookProxyMsg = async (message, content, files = []) => {
+const sendWebhookProxyMsg = async (message, content, files = [], communityNoteText) => {
+    try {
+        console.log('>>> sendWebhookProxyMsg reached!');
 
-    console.log('>>> sendWebhookProxyMsg reached!');
+        // Delete all existing webhooks created by the bot in this channel
+        const webhooks = await message.channel.fetchWebhooks();
+        const botWebhooks = webhooks.filter(wh => wh.owner.id === message.client.user.id);
 
-    const embed = {
-        color: 0x0099ff,
-        author: {
-            name: `${message.author.username}`,
-            icon_url: message.author.displayAvatarURL(),
-        },
-        description: 'This is a test embed',
-        footer: {
-            text: 'Test footer text',
-        },
-    };
+        console.log(`>>> Deleting ${botWebhooks.size} existing webhooks`);
+        for (const webhook of botWebhooks.values()) {
+            await webhook.delete().catch(err => console.warn(`Failed to delete webhook: ${err}`));
+        }
 
-    // Save user details for the webhook
-    const nickname = message.member?.nickname;
-    const displayName = nickname || message.author.globalName || message.author.username;
-    // console.log('>>> sendWebhookProxyMsg > displayName: ', displayName);
-    const avatarURL = message.author.avatarURL({ dynamic: true }) || message.author.displayAvatarURL(); // Call displayAvatarURL as a function to get the URL
-    // console.log('>>> sendWebhookProxyMsg > avatarURL: ', avatarURL);
+        const embed = embedCommunityNote(message, communityNoteText);
+        const nickname = message.member?.nickname;
+        const displayName = nickname || message.author.globalName || message.author.username;
+        console.log('>>> sendWebhookProxyMsg > displayName: ', displayName);
+        const avatarURL = message.author.avatarURL({ dynamic: true }) || message.author.displayAvatarURL();
+        console.log('>>> sendWebhookProxyMsg > avatarURL: ', avatarURL);
 
-    // console.log('>>> sendWebhookProxyMsg > content: ', content);
+        console.log('>>> sendWebhookProxyMsg > content: ', content);
 
-    // Create and use a webhook in the same channel
-    const webhook = await message.channel.createWebhook({
-        name: displayName,
-        avatar: avatarURL,
-    });
+        // Create and use a webhook
+        const webhook = await message.channel.createWebhook({
+            name: displayName,
+            avatar: avatarURL,
+        });
 
-    // console.log('>>> sendWebhookProxyMsg webhook created!');
+        console.log('>>> sendWebhookProxyMsg webhook created!');
 
-    // const modifiedContent = message.content.replace(/(https:\/\/\S+)/, '$1\u200B');
-    const modifiedContent = message.content.replace(/(https:\/\/\S+)/, '<$1>');
+        const modifiedContent = message.content.replace(/(https:\/\/\S+)/, '<$1>');
 
+        // Send the message through the webhook
+        await webhook.send({
+            content: modifiedContent,
+            ...(embed && { embeds: [embed] }),
+            username: displayName,
+            avatarURL: avatarURL,
+            files: files,
+        });
 
-    // Send the message through the webhook
-    await webhook.send({
-        content: modifiedContent,
-        // embeds: [embed],
-        username: displayName,
-        avatarURL: avatarURL,
-        files: files,
-    });
+        console.log('>>> sendWebhookProxyMsg sent!');
 
-    // console.log('>>> sendWebhookProxyMsg sent!');
+        await message.delete();
 
-    await message.delete();
-    // Delete the webhook to keep the channel clean
-    await webhook.delete();
+        console.log('>>> sendWebhookProxyMsg message deleted!');
 
-    // console.log('>>> sendWebhookProxyMsg deleted!');
+        // Delete the webhook to prevent accumulation
+        await webhook.delete();
+
+        console.log('>>> sendWebhookProxyMsg webhook deleted!');
+    } catch (error) {
+        console.error('>>> sendWebhookProxyMsg error: ', error);
+        console.error('>>> sendWebhookProxyMsg typeof error: ', typeof error);
+        const tooLargeErrorStr = 'DiscordAPIError[40005]: Request entity too large';
+        if(error.name === 'DiscordAPIError[40005]') {
+            console.log('!!!!!! DiscordAPIError[40005] CAUGHT!!!!!!');
+            message.reply(`${tooLargeErrorStr}: video file size was likely too large for this server's tier...`);
+        }
+    }
 };
+
 
 const sendVideoReply = async (message, successFilePath, localWorkingPath) => {
     console.log('Sending video reply');
@@ -108,8 +116,10 @@ const sendVideoReply = async (message, successFilePath, localWorkingPath) => {
         // await message.reply({ files });
 
         try {
+            console.log('>>> sendVideoReply > TRYING WEBHOOK...');
             await sendWebhookProxyMsg(message, 'Here’s the Twitter canvas:', files);
         } catch (err) {
+            console.log('>>> sendVideoReply > WEBHOOK FAILED!!!');
             await sendWebhookProxyMsg(message, `File(s) too large to attach! err: ${err}`);
         }
 
@@ -145,10 +155,22 @@ const renderTwitterPost = async (metadataJson, message) => {
     const videoUrls = filterVideoUrls(metadataJson.mediaURLs);
     const videoUrl = videoUrls[0];
     const hasVids = videoUrls.length > 0;
+    const communityNoteText = metadataJson.communityNote;
 
     await createDirectoryIfNotExists(processingDir);
 
-    if (hasVids) {
+    // is first item in list a video?
+    let firstMediaItem, firstMediaItemExt;
+    if(metadataJson.mediaURLs.length > 0) {
+        firstMediaItem = metadataJson?.media_extended[0];
+        firstMediaItemExt = getExtensionFromMediaUrl(firstMediaItem?.url);
+    }
+    console.log('>>>>> renderTwitterPost > firstMediaItem: ', firstMediaItem);
+    console.log('>>>>> renderTwitterPost > firstMediaItemExt: ', firstMediaItemExt);
+
+    // FIXME: redundant.... if firstMediaItemExt is indeed mp4 then of course it hasVids
+    if (hasVids && firstMediaItemExt === 'mp4') {
+        console.log('>>>>> renderTwitterPost > first item is VIDEO');
         const currentDirCount = await countDirectoriesInDirectory(processingDir);
         if (currentDirCount >= MAX_CONCURRENT_REQUESTS) {
             return message.reply({
@@ -179,6 +201,19 @@ const renderTwitterPost = async (metadataJson, message) => {
 
         try {
             await downloadVideo(videoUrl, videoInputPath);
+
+
+            /**
+             * UNCOMMENT WHEN READY
+             */
+            const fileSize = await getVideoFileSize(videoInputPath);
+            console.log('>>> TODO: renderTwitterPost > fileSize: ', fileSize);
+            const guildId = message.guildId;
+            console.log('>>> TODO: renderTwitterPost > guildId: ', guildId);
+            const guild = message.client.guilds.cache.get(guildId);
+            const boostTier = guild.premiumTier;
+            console.log('>>> TODO: renderTwitterPost > boostTier: ', boostTier);
+
             const { canvasHeight, canvasWidth, heightShim } = await createTwitterVideoCanvas(metadataJson);
             const successFilePath = await bakeImageAsFilterIntoVideo(
                 videoInputPath, canvasInputPath, videoOutputPath,
@@ -192,12 +227,13 @@ const renderTwitterPost = async (metadataJson, message) => {
             // await replyMsg.delete(); // don't even need to do this anymore
             await sendVideoReply(message, successFilePath, localWorkingPath);
         } catch (err) {
+            console.error('>>> ERROR: renderTwitterPost > err: ', err);
             await cleanup([], [localWorkingPath]);
         }
 
     } else {
         // Handle non-video processing
-        // console.log('>>>>> renderTwitterPost > DOES NOT have videos!!!');
+        console.log('>>>>> renderTwitterPost > first item is NOT VIDEO');
         const buffer = await createTwitterCanvas(metadataJson);
         await message.suppressEmbeds(true);
 
@@ -211,13 +247,14 @@ const renderTwitterPost = async (metadataJson, message) => {
 
         // Use the webhook proxy to send the message with the file
         try {
-            await sendWebhookProxyMsg(message, 'Here’s the Twitter canvas:', files);
+            console.log('>>> renderTwitterPost > TRYING WEBHOOK...');
+            await sendWebhookProxyMsg(message, 'Here’s the Twitter canvas:', files, communityNoteText);
         } catch (err) {
+            console.log('>>> renderTwitterPost > WEBHOOK FAILED!!!');
             await sendWebhookProxyMsg(message, `File(s) too large to attach! err: ${err}`);
         }
     }
 
-    // await sendWebhookProxyMsg(message); // TESTING
     console.log('>>> renderTwitterPost proxy msg sent!');
 
 };
