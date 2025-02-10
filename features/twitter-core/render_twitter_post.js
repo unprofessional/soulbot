@@ -99,7 +99,7 @@ const sendWebhookProxyMsg = async (message, content, files = [], communityNoteTe
         const tooLargeErrorStr = 'DiscordAPIError[40005]: Request entity too large';
         if(error.name === 'DiscordAPIError[40005]') {
             console.log('!!!!!! DiscordAPIError[40005] CAUGHT!!!!!!');
-            message.reply(`${tooLargeErrorStr}: the video was likely too big for this server's tier...`);
+            message.reply(`${tooLargeErrorStr}: video file size was likely too large for this server's tier...`);
         }
     }
 };
