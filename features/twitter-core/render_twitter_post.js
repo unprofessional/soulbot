@@ -5,10 +5,10 @@ const { cleanup } = require('../twitter-video/cleanup.js');
 const { buildPathsAndStuff } = require('../twitter-core/path_builder.js');
 
 const { downloadVideo, getVideoFileSize, bakeImageAsFilterIntoVideo } = require('../twitter-video/index.js');
-const { getExtensionFromMediaUrl, removeTCOLink } = require('./utils.js');
+const { getExtensionFromMediaUrl } = require('./utils.js');
 const { embedCommunityNote } = require('./canvas_utils.js');
-
-const { client } = require('../../initial_client.js');
+// FIXME: 
+// const { client } = require('../../initial_client.js');
 
 const MAX_CONCURRENT_REQUESTS = 3;
 const processingDir = '/tempdata';
@@ -204,7 +204,7 @@ const renderTwitterPost = async (metadataJson, message) => {
             console.log('>>> TODO: renderTwitterPost > fileSize: ', fileSize);
             const guildId = message.guildId;
             console.log('>>> TODO: renderTwitterPost > guildId: ', guildId);
-            const guild = client.guilds.cache.get(guildId);
+            const guild = message.client.guilds.cache.get(guildId);
             const boostTier = guild.premiumTier;
             console.log('>>> TODO: renderTwitterPost > boostTier: ', boostTier);
 
