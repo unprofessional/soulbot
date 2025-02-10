@@ -95,6 +95,11 @@ const sendWebhookProxyMsg = async (message, content, files = [], communityNoteTe
         console.log('>>> sendWebhookProxyMsg webhook deleted!');
     } catch (error) {
         console.error('>>> sendWebhookProxyMsg error: ', error);
+        console.error('>>> sendWebhookProxyMsg typeof error: ', typeof error);
+        const tooLargeErrorStr = 'DiscordAPIError[40005]: Request entity too large';
+        if(error.name === 'DiscordAPIError[40005]') {
+            console.log('!!!!!! DiscordAPIError[40005] CAUGHT!!!!!!');
+        }
     }
 };
 
