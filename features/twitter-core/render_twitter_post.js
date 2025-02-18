@@ -43,6 +43,7 @@ const filterVideoUrls = (mediaUrls) => {
 };
 
 const sendWebhookProxyMsg = async (message, content, files = [], communityNoteText, originalLink) => {
+    console.log('>>>>> sendWebhookProxyMsg > originalLink: ', originalLink);
     try {
         console.log('>>> sendWebhookProxyMsg reached!');
 
@@ -156,6 +157,7 @@ const sendVideoReply = async (message, successFilePath, localWorkingPath, origin
 };
 
 const renderTwitterPost = async (metadataJson, message, originalLink) => {
+    console.log('>>>>> renderTwitterPost > originalLink: ', originalLink);
     const videoUrls = filterVideoUrls(metadataJson.mediaURLs);
     const videoUrl = videoUrls[0];
     const hasVids = videoUrls.length > 0;
@@ -217,6 +219,9 @@ const renderTwitterPost = async (metadataJson, message, originalLink) => {
             const guild = message.client.guilds.cache.get(guildId);
             const boostTier = guild.premiumTier;
             console.log('>>> TODO: renderTwitterPost > boostTier: ', boostTier);
+            /**
+             * UNCOMMENT WHEN READY
+             */
 
             const { canvasHeight, canvasWidth, heightShim } = await createTwitterVideoCanvas(metadataJson);
             const successFilePath = await bakeImageAsFilterIntoVideo(
