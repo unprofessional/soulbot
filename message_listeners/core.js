@@ -127,7 +127,7 @@ const initializeListeners = async (client) => {
                             );
                         } else {
                             // console.log('>>>>> fetchMetadata > metadata: ', JSON.stringify(metadata, null, 2));
-                            await renderTwitterPost(metadata, message, containsTwitterUrl);
+                            await renderTwitterPost(metadata, message, containsTwitterUrl, firstUrl);
                             // await message.suppressEmbeds(true);
                         }
                     }

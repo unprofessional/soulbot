@@ -42,7 +42,7 @@ const filterVideoUrls = (mediaUrls) => {
     });
 };
 
-const sendWebhookProxyMsg = async (message, content, files = [], communityNoteText) => {
+const sendWebhookProxyMsg = async (message, content, files = [], communityNoteText, originalLink) => {
     try {
         console.log('>>> sendWebhookProxyMsg reached!');
 
@@ -99,13 +99,17 @@ const sendWebhookProxyMsg = async (message, content, files = [], communityNoteTe
         const tooLargeErrorStr = 'DiscordAPIError[40005]: Request entity too large';
         if(error.name === 'DiscordAPIError[40005]') {
             console.log('!!!!!! DiscordAPIError[40005] CAUGHT!!!!!!');
-            message.reply(`${tooLargeErrorStr}: video file size was likely too large for this server's tier...`);
+            // message.reply(`${tooLargeErrorStr}: video file size was likely too large for this server's tier...`);
+
+            const fixuptLink = originalLink.replace('https://x.com', 'https://fixupx.com');
+
+            message.reply(`${tooLargeErrorStr}: video file size was likely too large for this server's tier... defaulting to FIXUPX link: ${fixuptLink}`);
         }
     }
 };
 
 
-const sendVideoReply = async (message, successFilePath, localWorkingPath) => {
+const sendVideoReply = async (message, successFilePath, localWorkingPath, originalLink) => {
     console.log('Sending video reply');
     const files = [{
         attachment: await readFile(successFilePath),
@@ -117,10 +121,10 @@ const sendVideoReply = async (message, successFilePath, localWorkingPath) => {
 
         try {
             console.log('>>> sendVideoReply > TRYING WEBHOOK...');
-            await sendWebhookProxyMsg(message, 'Here’s the Twitter canvas:', files);
+            await sendWebhookProxyMsg(message, 'Here’s the Twitter canvas:', files, undefined, originalLink);
         } catch (err) {
             console.log('>>> sendVideoReply > WEBHOOK FAILED!!!');
-            await sendWebhookProxyMsg(message, `File(s) too large to attach! err: ${err}`);
+            await sendWebhookProxyMsg(message, `File(s) too large to attach! err: ${err}`, undefined, undefined, originalLink);
         }
 
 
@@ -151,7 +155,7 @@ const sendVideoReply = async (message, successFilePath, localWorkingPath) => {
     await cleanup([], [localWorkingPath]);
 };
 
-const renderTwitterPost = async (metadataJson, message) => {
+const renderTwitterPost = async (metadataJson, message, originalLink) => {
     const videoUrls = filterVideoUrls(metadataJson.mediaURLs);
     const videoUrl = videoUrls[0];
     const hasVids = videoUrls.length > 0;
@@ -248,10 +252,10 @@ const renderTwitterPost = async (metadataJson, message) => {
         // Use the webhook proxy to send the message with the file
         try {
             console.log('>>> renderTwitterPost > TRYING WEBHOOK...');
-            await sendWebhookProxyMsg(message, 'Here’s the Twitter canvas:', files, communityNoteText);
+            await sendWebhookProxyMsg(message, 'Here’s the Twitter canvas:', files, communityNoteText, originalLink);
         } catch (err) {
             console.log('>>> renderTwitterPost > WEBHOOK FAILED!!!');
-            await sendWebhookProxyMsg(message, `File(s) too large to attach! err: ${err}`);
+            await sendWebhookProxyMsg(message, `File(s) too large to attach! err: ${err}`, undefined, undefined, originalLink);
         }
     }
 
