@@ -111,7 +111,8 @@ const sendWebhookProxyMsg = async (message, content, files = [], communityNoteTe
 
 
 const sendVideoReply = async (message, successFilePath, localWorkingPath, originalLink) => {
-    console.log('Sending video reply');
+    // console.log('>>> sendVideoReply reached!');
+    console.log('>>> sendVideoReply > originalLink: ', originalLink);
     const files = [{
         attachment: await readFile(successFilePath),
         name: 'video.mp4',
@@ -234,7 +235,7 @@ const renderTwitterPost = async (metadataJson, message, originalLink) => {
              * DO something with the video!!!!
              */
             // await replyMsg.delete(); // don't even need to do this anymore
-            await sendVideoReply(message, successFilePath, localWorkingPath);
+            await sendVideoReply(message, successFilePath, localWorkingPath, originalLink);
         } catch (err) {
             console.error('>>> ERROR: renderTwitterPost > err: ', err);
             await cleanup([], [localWorkingPath]);
