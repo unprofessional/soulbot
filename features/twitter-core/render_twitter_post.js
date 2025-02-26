@@ -5,7 +5,7 @@ const { cleanup } = require('../twitter-video/cleanup.js');
 const { buildPathsAndStuff } = require('../twitter-core/path_builder.js');
 
 const { downloadVideo, getVideoFileSize, bakeImageAsFilterIntoVideo } = require('../twitter-video/index.js');
-const { getExtensionFromMediaUrl } = require('./utils.js');
+const { getExtensionFromMediaUrl, stripQueryParams } = require('./utils.js');
 const { embedCommunityNote } = require('./canvas_utils.js');
 // FIXME: 
 // const { client } = require('../../initial_client.js');
@@ -43,10 +43,8 @@ const filterVideoUrls = (mediaUrls) => {
 };
 
 const sendWebhookProxyMsg = async (message, content, files = [], communityNoteText, originalLink) => {
-    console.log('>>>>> sendWebhookProxyMsg > originalLink: ', originalLink);
+    // console.log('>>>>> sendWebhookProxyMsg > originalLink: ', originalLink);
     try {
-        console.log('>>> sendWebhookProxyMsg reached!');
-
         // Delete all existing webhooks created by the bot in this channel
         const webhooks = await message.channel.fetchWebhooks();
         const botWebhooks = webhooks.filter(wh => wh.owner.id === message.client.user.id);
@@ -59,11 +57,11 @@ const sendWebhookProxyMsg = async (message, content, files = [], communityNoteTe
         const embed = embedCommunityNote(message, communityNoteText);
         const nickname = message.member?.nickname;
         const displayName = nickname || message.author.globalName || message.author.username;
-        console.log('>>> sendWebhookProxyMsg > displayName: ', displayName);
+        // console.log('>>> sendWebhookProxyMsg > displayName: ', displayName);
         const avatarURL = message.author.avatarURL({ dynamic: true }) || message.author.displayAvatarURL();
-        console.log('>>> sendWebhookProxyMsg > avatarURL: ', avatarURL);
+        // console.log('>>> sendWebhookProxyMsg > avatarURL: ', avatarURL);
 
-        console.log('>>> sendWebhookProxyMsg > content: ', content);
+        // console.log('>>> sendWebhookProxyMsg > content: ', content);
 
         // Create and use a webhook
         const webhook = await message.channel.createWebhook({
@@ -71,7 +69,14 @@ const sendWebhookProxyMsg = async (message, content, files = [], communityNoteTe
             avatar: avatarURL,
         });
 
-        console.log('>>> sendWebhookProxyMsg webhook created!');
+        // console.log('>>> sendWebhookProxyMsg webhook created!');
+
+        const twitterOrXUrlPattern = /https?:\/\/(?:twitter\.com|x\.com)\/[a-zA-Z0-9_]+\/status\/\d+/g;
+
+        const urlWithQueryParams = message.content.match(twitterOrXUrlPattern);
+        console.log('>>> sendWebhookProxyMsg > urlWithQueryParams: ', urlWithQueryParams);
+        const strippedUrl = stripQueryParams(urlWithQueryParams[0]);
+        console.log('>>> sendWebhookProxyMsg > strippedUrl: ', strippedUrl);
 
         const modifiedContent = message.content.replace(/(https:\/\/\S+)/, '<$1>');
 
@@ -84,19 +89,18 @@ const sendWebhookProxyMsg = async (message, content, files = [], communityNoteTe
             files: files,
         });
 
-        console.log('>>> sendWebhookProxyMsg sent!');
+        // console.log('>>> sendWebhookProxyMsg sent!');
 
         await message.delete();
 
-        console.log('>>> sendWebhookProxyMsg message deleted!');
+        // console.log('>>> sendWebhookProxyMsg message deleted!');
 
         // Delete the webhook to prevent accumulation
         await webhook.delete();
-
-        console.log('>>> sendWebhookProxyMsg webhook deleted!');
+        // console.log('>>> sendWebhookProxyMsg webhook deleted!');
     } catch (error) {
-        console.error('>>> sendWebhookProxyMsg error: ', error);
-        console.error('>>> sendWebhookProxyMsg typeof error: ', typeof error);
+        // console.error('>>> sendWebhookProxyMsg error: ', error);
+        // console.error('>>> sendWebhookProxyMsg typeof error: ', typeof error);
         const tooLargeErrorStr = 'DiscordAPIError[40005]: Request entity too large';
         if(error.name === 'DiscordAPIError[40005]') {
             console.log('!!!!!! DiscordAPIError[40005] CAUGHT!!!!!!');
@@ -111,8 +115,7 @@ const sendWebhookProxyMsg = async (message, content, files = [], communityNoteTe
 
 
 const sendVideoReply = async (message, successFilePath, localWorkingPath, originalLink) => {
-    // console.log('>>> sendVideoReply reached!');
-    console.log('>>> sendVideoReply > originalLink: ', originalLink);
+    // console.log('>>> sendVideoReply > originalLink: ', originalLink);
     const files = [{
         attachment: await readFile(successFilePath),
         name: 'video.mp4',

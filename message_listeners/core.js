@@ -29,6 +29,7 @@ const { enforceGoldyRole } = require('../features/role-enforcement/role-enforcem
 const { sendPromptToOllama } = require('../features/ollama/index.js');
 const { fetchImageAsBase64 } = require('../features/ollama/vision.js');
 const { logMessage } = require('../logger/logger.js');
+const { stripQueryParams } = require('../features/twitter-core/utils.js');
 
 // TODO: Move to "Message Validation"?
 const validationChecksHook = (message) => {
@@ -97,20 +98,7 @@ const initializeListeners = async (client) => {
                         ? message.content.match(xDotComUrlPattern)
                         : message.content.match(twitterUrlPattern);
                     // console.log('>>>>> urls: ', urls);
-                    // message.channel.send(`Twitter/X URL(s) found! urls: ${urls}`);
-
-                    const stripQueryParams = (url) => {
-                        try {
-                            const urlOrigin = new URL(url).origin;
-                            console.log('>>>>> urlOrigin: ', urlOrigin);
-                            const urlPathname = new URL(url).pathname;
-                            console.log('>>>>> urlPathname: ', urlPathname);
-                            return urlOrigin + urlPathname;
-                        } catch (e) {
-                            return url; // Fallback for invalid URLs
-                        }
-                    };
-                    
+                    // message.channel.send(`Twitter/X URL(s) found! urls: ${urls}`);                    
     
                     const firstUrl = stripQueryParams(urls[0]);
                     let metadata = {};

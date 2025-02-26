@@ -82,9 +82,22 @@ const removeTCOLink = (text) => {
     return filteredText;
 };
 
+const stripQueryParams = (url) => {
+    try {
+        const urlOrigin = new URL(url).origin;
+        console.log('>>>>> urlOrigin: ', urlOrigin);
+        const urlPathname = new URL(url).pathname;
+        console.log('>>>>> urlPathname: ', urlPathname);
+        return urlOrigin + urlPathname;
+    } catch (e) {
+        return url; // Fallback for invalid URLs
+    }
+};
+
 module.exports = {
     formatTwitterDate,
     filterMediaUrls,
     getExtensionFromMediaUrl,
     removeTCOLink,
+    stripQueryParams,
 };
