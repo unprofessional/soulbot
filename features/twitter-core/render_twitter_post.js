@@ -80,10 +80,11 @@ const sendWebhookProxyMsg = async (message, content, files = [], communityNoteTe
         const strippedUrl = stripQueryParams(urlWithQueryParams[0]);
         console.log('>>> sendWebhookProxyMsg > strippedUrl: ', strippedUrl);
 
-        const trimmedContent = message.content.replace(twitterOrXUrlWithQueryParamPattern, strippedUrl);
-        console.log('>>> sendWebhookProxyMsg > trimmedContent: ', trimmedContent);
+        const urlTrimmedContent = message.content.replace(twitterOrXUrlWithQueryParamPattern, strippedUrl);
+        console.log('>>> sendWebhookProxyMsg > urlTrimmedContent: ', urlTrimmedContent);
 
-        const modifiedContent = message.content.replace(/(https:\/\/\S+)/, '<$1>');
+        const modifiedContent = urlTrimmedContent.replace(/(https:\/\/\S+)/, '<$1>');
+        console.log('>>> sendWebhookProxyMsg > modifiedContent: ', modifiedContent);
 
         // Send the message through the webhook
         await webhook.send({
