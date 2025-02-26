@@ -105,10 +105,10 @@ const initializeListeners = async (client) => {
 
                     try {
                         metadata = await fetchMetadata(firstUrl, message, containsXDotComUrl);
-                        console.log('>>>>> containsTwitterUrl > CALL-fetchMetadata > metadata: ', metadata);
+                        // console.log('>>>>> containsTwitterUrl > CALL-fetchMetadata > metadata: ', metadata);
                     }
                     catch(err) {
-                        console.log('>>>>> containsTwitterUrl > CALL-fetchMetadata > err: ', err);
+                        // console.log('>>>>> containsTwitterUrl > CALL-fetchMetadata > err: ', err);
                     }
 
                     if(metadata?.error) {
@@ -116,7 +116,7 @@ const initializeListeners = async (client) => {
                     } else {
                         if(metadata.qrtURL) {
                             const qtMetadata = await fetchQTMetadata(metadata.qrtURL, message, containsXDotComUrl);
-                            console.log('>>>>> core > qtMetadata: ', qtMetadata);
+                            // console.log('>>>>> core > qtMetadata: ', qtMetadata);
                             metadata.qtMetadata = qtMetadata;
                         }
         

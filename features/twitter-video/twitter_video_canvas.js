@@ -9,7 +9,7 @@ const { getWrappedText, drawBasicElements, getAdjustedAspectRatios } = require('
 
 const createTwitterVideoCanvas = async (metadataJson) => {
 
-    console.log('>>>>> createTwitterVideoCanvas reached!');
+    // console.log('>>>>> createTwitterVideoCanvas reached!');
 
     const metadata = {
         authorNick: metadataJson.user_screen_name,

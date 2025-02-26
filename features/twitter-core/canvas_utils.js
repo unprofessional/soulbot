@@ -240,10 +240,10 @@ const drawQtBasicElements = (
     const qtMediaYPos = canvasHeightOffset + 80;
     // console.log('>>>>> canvas_utils > drawQtBasicElements > qtMediaYPos: ', qtMediaYPos);
 
-    console.log('>>>>> canvas_utils > drawQtBasicElements > mainMedia1: ', mediaObject);
+    // console.log('>>>>> canvas_utils > drawQtBasicElements > mainMedia1: ', mediaObject);
     // or if (mainMedia1 !== undefined)
     if (mediaObject) {
-        console.log('>>>>> canvas_utils > drawQtBasicElements > has a mediaUrl!');
+        // console.log('>>>>> canvas_utils > drawQtBasicElements > has a mediaUrl!');
         const maxHeight = 175;
         const maxWidth = 175;
         const qtXPosFinal = qtXPosition + 20;

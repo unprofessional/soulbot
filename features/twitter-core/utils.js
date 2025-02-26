@@ -53,16 +53,16 @@ const formatTwitterDate = (twitterDate) => {
 
 // Find number of associated media
 const filterMediaUrls = (metadata, extensions) => {
-    console.log('!!! filterMediaUrls > metadata.mediaUrls: ', metadata.mediaUrls);
+    // console.log('!!! filterMediaUrls > metadata.mediaUrls: ', metadata.mediaUrls);
     return metadata.mediaUrls.filter((mediaUrl) => {
-        console.log('!!! filterMediaUrls > mediaUrl: ', mediaUrl);
+        // console.log('!!! filterMediaUrls > mediaUrl: ', mediaUrl);
         const mediaUrlParts = mediaUrl.split('.');
-        console.log('!!! filterMediaUrls > mediaUrlParts: ', mediaUrlParts);
+        // console.log('!!! filterMediaUrls > mediaUrlParts: ', mediaUrlParts);
         const fileExtensionWithQueryParams = mediaUrlParts[mediaUrlParts.length - 1];
-        console.log('!!! filterMediaUrls > fileExtensionWithQueryParams: ', fileExtensionWithQueryParams);
+        // console.log('!!! filterMediaUrls > fileExtensionWithQueryParams: ', fileExtensionWithQueryParams);
         const fileExtension = fileExtensionWithQueryParams.split('?')[0];
-        console.log('!!! filterMediaUrls > fileExtension: ', fileExtension);
-        console.log('!!! ================================================');
+        // console.log('!!! filterMediaUrls > fileExtension: ', fileExtension);
+        // console.log('!!! ================================================');
         return extensions.includes(fileExtension);
     });
 };
