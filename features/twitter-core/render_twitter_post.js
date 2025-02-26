@@ -61,7 +61,7 @@ const sendWebhookProxyMsg = async (message, content, files = [], communityNoteTe
         const avatarURL = message.author.avatarURL({ dynamic: true }) || message.author.displayAvatarURL();
         // console.log('>>> sendWebhookProxyMsg > avatarURL: ', avatarURL);
 
-        // console.log('>>> sendWebhookProxyMsg > content: ', content);
+        console.log('>>> sendWebhookProxyMsg > content: ', content);
 
         // Create and use a webhook
         const webhook = await message.channel.createWebhook({
