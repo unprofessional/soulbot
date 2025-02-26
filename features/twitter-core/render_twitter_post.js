@@ -5,7 +5,7 @@ const { cleanup } = require('../twitter-video/cleanup.js');
 const { buildPathsAndStuff } = require('../twitter-core/path_builder.js');
 
 const { downloadVideo, getVideoFileSize, bakeImageAsFilterIntoVideo } = require('../twitter-video/index.js');
-const { getExtensionFromMediaUrl, stripQueryParams } = require('./utils.js');
+const { getExtensionFromMediaUrl, stripQueryParams, randomNameGenerator } = require('./utils.js');
 const { embedCommunityNote } = require('./canvas_utils.js');
 // FIXME: 
 // const { client } = require('../../initial_client.js');
@@ -256,12 +256,14 @@ const renderTwitterPost = async (metadataJson, message, originalLink) => {
         const buffer = await createTwitterCanvas(metadataJson);
         await message.suppressEmbeds(true);
 
+        const randomName = randomNameGenerator();
+
         /**
          * Pull image and add it as a separate image/file
          */
         let files = [{
             attachment: buffer,
-            name: 'image.png',
+            name: `${randomName}.png`,
         }];
 
         // Use the webhook proxy to send the message with the file

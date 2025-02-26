@@ -227,35 +227,35 @@ function getVideoFileSize(filePath) {
     });
 }
 
-const applyRoundedCornersToVideo = (inputVideo, maskImage, outputVideo) => {
-    return new Promise((resolve, reject) => {
-        ffmpeg()
-            .input(inputVideo) // Input video
-            .input(maskImage)  // Input mask
-            .complexFilter([
-                // Extract alpha from the mask
-                '[1:v]format=rgba,alphaextract[maskalpha]',
-                // Merge the mask with the video
-                '[0:v][maskalpha]alphamerge[roundedvideo]',
-                // Output the final video
-                '[roundedvideo]format=yuv420p[out]'
-            ])
-            .outputOptions(['-map [out]', '-c:v libx264', '-crf 23'])
-            .output(outputVideo)
-            .on('start', (command) => {
-                console.log(`FFmpeg started with command: ${command}`);
-            })
-            .on('end', () => {
-                console.log('Rounded corners applied successfully.');
-                resolve();
-            })
-            .on('error', (err) => {
-                console.error('Error applying rounded corners:', err.message);
-                reject(err);
-            })
-            .run();
-    });
-};
+// const applyRoundedCornersToVideo = (inputVideo, maskImage, outputVideo) => {
+//     return new Promise((resolve, reject) => {
+//         ffmpeg()
+//             .input(inputVideo) // Input video
+//             .input(maskImage)  // Input mask
+//             .complexFilter([
+//                 // Extract alpha from the mask
+//                 '[1:v]format=rgba,alphaextract[maskalpha]',
+//                 // Merge the mask with the video
+//                 '[0:v][maskalpha]alphamerge[roundedvideo]',
+//                 // Output the final video
+//                 '[roundedvideo]format=yuv420p[out]'
+//             ])
+//             .outputOptions(['-map [out]', '-c:v libx264', '-crf 23'])
+//             .output(outputVideo)
+//             .on('start', (command) => {
+//                 console.log(`FFmpeg started with command: ${command}`);
+//             })
+//             .on('end', () => {
+//                 console.log('Rounded corners applied successfully.');
+//                 resolve();
+//             })
+//             .on('error', (err) => {
+//                 console.error('Error applying rounded corners:', err.message);
+//                 reject(err);
+//             })
+//             .run();
+//     });
+// };
 
 function bakeImageAsFilterIntoVideo(
     videoInputPath, canvasInputPath, videoOutputPath,

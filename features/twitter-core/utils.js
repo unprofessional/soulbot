@@ -1,3 +1,5 @@
+const crypto = require("crypto");
+
 const formatTwitterDate = (twitterDate) => {
 
     // console.log('>>>>> formatTwitterDate > twitterDate: ', twitterDate);
@@ -94,10 +96,32 @@ const stripQueryParams = (url) => {
     }
 };
 
+const randomNameGenerator = () => {
+    // Word lists
+    const adjectives = [
+        "happy", "bold", "brave", "cool", "eager", "fierce", "gentle",
+        "jolly", "keen", "lucky", "mighty", "noble", "quirky", "swift",
+        "vibrant", "witty", "zealous"
+    ];
+    
+    const nouns = [
+        "turing", "curie", "einstein", "hawking", "newton", "tesla",
+        "lovelace", "hopper", "fermat", "feynman", "bohr", "galileo",
+        "kepler", "gauss", "noether", "darwin"
+    ];
+    const adjective = adjectives[Math.floor(Math.random() * adjectives.length)];
+    const noun = nouns[Math.floor(Math.random() * nouns.length)];
+    const uniqueId = crypto.randomBytes(2).toString("hex"); // 4-char hex
+
+    return `${adjective}-${noun}-${uniqueId}`;
+};
+
 module.exports = {
     formatTwitterDate,
     filterMediaUrls,
     getExtensionFromMediaUrl,
     removeTCOLink,
     stripQueryParams,
+    randomNameGenerator,
 };
+
