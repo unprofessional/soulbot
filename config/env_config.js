@@ -25,7 +25,7 @@ const pgPass = process.env.PG_PASS;
 const pgDb = process.env.PG_DB;
 
 // chroma
-const chromaHost = process.env.CHROMA_HOST || 'http://host.minikube.internal';
+const chromaHost = process.env.CHROMA_HOST || '0.0.0.0';
 const chromaPort = process.env.CHROMA_PORT || '8085';
 const chromaUpsertEndpoint = process.env.CHROMA_UPSERT_ENDPOINT || 'api/v1/upsert';
 
