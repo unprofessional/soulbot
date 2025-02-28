@@ -113,7 +113,7 @@ async function summarizeChatOllama(messages) {
     }).join('\n');
     let finalUserPrompt = `${formattedMessages}`;
     const requestBody = {
-        model: ollamaModel,
+        model: ollamaModel, // `llama3.2-vision:11b`
         messages: [
             {
                 role: 'system',
@@ -129,6 +129,7 @@ async function summarizeChatOllama(messages) {
             },
         ],
         keepAlive: -1, // Keep model in memory
+        context_size: 8000,  // Increase context size to 8k tokens
     };
 
     console.log('>>>>> ollama > summarizeChatOllama > requestBody: ', requestBody);
