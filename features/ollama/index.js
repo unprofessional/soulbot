@@ -111,7 +111,7 @@ async function summarizeChatOllama(messages) {
     const formattedMessages = messages.map(msg => {
         return `(${msg.created_at.toISOString()}) [${msg.user_id}]: ${msg.content}`;
     }).join('\n');
-    let finalUserPrompt = `Summarize this Discord chat log, be brief: ${formattedMessages}`;
+    let finalUserPrompt = `${formattedMessages}`;
     const requestBody = {
         model: ollamaModel,
         messages: [
@@ -125,7 +125,11 @@ async function summarizeChatOllama(messages) {
             },
             {
                 role: 'user',
-                content: finalUserPrompt,
+                content: 'Summarize the Discord chat logs. ' +
+                'Be sassy and condescending about your summary. ' +
+                'Be brief and simple. ' + 
+                'If you do not know, just say you do not know. ' +
+                'If citing a user, remember to properly mention them via <@memberID>.',
             },
         ],
         keepAlive: -1, // Keep model in memory
