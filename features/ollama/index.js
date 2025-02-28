@@ -125,11 +125,7 @@ async function summarizeChatOllama(messages) {
             },
             {
                 role: 'user',
-                content: 'Summarize the Discord chat logs. ' +
-                'Be sassy and condescending about your summary. ' +
-                'Be brief and simple. ' + 
-                'If you do not know, just say you do not know. ' +
-                'If citing a user, remember to properly mention them via <@memberID>.',
+                content: finalUserPrompt,
             },
         ],
         keepAlive: -1, // Keep model in memory
