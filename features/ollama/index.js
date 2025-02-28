@@ -113,7 +113,7 @@ async function summarizeChatOllama(messages) {
     }).join('\n');
     let finalUserPrompt = `${formattedMessages}`;
     const requestBody = {
-        model: ollamaModel,
+        model: 'gemma2:9b', // TODO: Pull this to the command layer? For now this works.
         messages: [
             {
                 role: 'system',
