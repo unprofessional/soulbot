@@ -30,7 +30,7 @@ const chromaPort = process.env.CHROMA_PORT || '8085';
 const chromaUpsertEndpoint = process.env.CHROMA_UPSERT_ENDPOINT || 'api/v1/upsert';
 
 // Kokoro
-const kokoroUrl = process.env.KOKORO_URL || '192.168.7.210:8081';
+const kokoroUrl = process.env.KOKORO_URL || 'http://kokoro-http-service:8081';
 
 module.exports = {
     token, path, guildFile, channelFile, memberFile, featureFile, runMode,

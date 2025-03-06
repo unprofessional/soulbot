@@ -150,9 +150,9 @@ async function sendPromptToKokoro(userPrompt, sessionId) {
 
     try {
 
-        const url = `http://${kokoroUrl}/pipeline`;
+        // const url = `http://${kokoroUrl}/pipeline`;
 
-        const response = await fetch(url, {
+        const response = await fetch(`${kokoroUrl}/pipeline`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
