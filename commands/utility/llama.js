@@ -149,7 +149,10 @@ async function sendPromptToKokoro(userPrompt, sessionId) {
     };
 
     try {
-        const response = await fetch(kokoroUrl, {
+
+        const url = `http://${kokoroUrl}`;
+
+        const response = await fetch(url, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
