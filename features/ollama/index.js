@@ -210,6 +210,7 @@ async function queryWithRAG(userQuery, metadataFilters = {}, numResults = 20) {
 }
 
 module.exports = {
+    processChunks,
     sendPromptToOllama,
     summarizeChatOllama,
     queryWithRAG,

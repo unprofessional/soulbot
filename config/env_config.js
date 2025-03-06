@@ -29,9 +29,13 @@ const chromaHost = process.env.CHROMA_HOST || '0.0.0.0';
 const chromaPort = process.env.CHROMA_PORT || '8085';
 const chromaUpsertEndpoint = process.env.CHROMA_UPSERT_ENDPOINT || 'api/v1/upsert';
 
+// Kokoro
+const kokoroUrl = process.env.KOKORO_URL || '192.168.7.210:8081';
+
 module.exports = {
     token, path, guildFile, channelFile, memberFile, featureFile, runMode,
     ollamaHost, ollamaPort, ollamaChatEndpoint, ollamaEmbeddingEndpoint, ollamaModel, ollamaEmbedModel,
     pgHost, pgPort, pgUser, pgPass, pgDb,
     chromaHost, chromaPort, chromaUpsertEndpoint,
+    kokoroUrl,
 };

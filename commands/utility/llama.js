@@ -1,8 +1,9 @@
 const { SlashCommandBuilder } = require('discord.js');
 const { PromptTemplate } = require('@langchain/core/prompts');
-const { sendPromptToOllama } = require('../../features/ollama');
+const { sendPromptToOllama, processChunks } = require('../../features/ollama');
 const PromiseQueue = require('../../lib/promise_queue');
 const cheerio = require('cheerio');
+const { kokoroUrl } = require('../../config/env_config');
 
 // const BOT_OWNER_ID = process.env.BOT_OWNER_ID || '818606180095885332';
 const queue = new PromiseQueue(1, 20000); // Max 1 concurrent task, 20 seconds timeout
@@ -72,7 +73,10 @@ module.exports = {
             } else {
                 console.log('>>>>> llm > NORMAL TEXT-BASED REQUEST!');
                 console.log('Adding task to queue...');
-                const response = await queue.add(() => sendPromptToOllama(userMessage));
+                // const response = await queue.add(() => sendPromptToOllama(userMessage));
+
+                const memberId = interaction.user.id;
+                const response = await queue.add(() => sendPromptToKokoro(userMessage, memberId));
 
                 const messageToShow = `**Request:**\n> ${userMessage}\n\n**Response:**\n${response}`;
 
@@ -130,4 +134,41 @@ async function fetchWebPageContent(url) {
         console.error('Error fetching webpage content:', error);
         throw new Error('Could not fetch the webpage content.');
     }
+}
+
+// If you wanna use Kokoro instead!
+async function sendPromptToKokoro(userPrompt, sessionId) {
+
+    const systemPrompt = 'You are a sassy and condescending. ' +
+                'Answer in plain text. Keep it simple and to the point. Do not be verbose. ' + 
+                'Answer questions about the world truthfully. ';
+
+    const requestBody = {
+        prompt: `${systemPrompt}: "${userPrompt}"`,
+        sessionId: sessionId,
+    };
+
+    try {
+        const response = await fetch(kokoroUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(requestBody)
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`HTTP error! Status: ${response.status} - ${errorText}`);
+        }
+
+        let fullContent = await processChunks(response);
+
+        console.log('Full concatenated content:', fullContent);
+        return fullContent; // Return the fully concatenated response
+    } catch (error) {
+        console.error('Error communicating with Ollama API:', error);
+        throw error;
+    }
+
 }
