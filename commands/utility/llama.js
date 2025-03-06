@@ -166,13 +166,15 @@ async function sendPromptToKokoro(userPrompt, sessionId) {
             throw new Error(`HTTP error! Status: ${response.status} - ${errorText}`);
         }
 
-        console.log('>>> commands/utility/llama.js: ', response);
+        // console.log('>>> commands/utility/llama.js: ', response);
+        const responseText = await response.json();
+        console.log('>>> commands/utility/llama.js > responseText: ', responseText);
+        return responseText;
 
         // TODO: We might not need this...
-        let fullContent = await processChunks(response);
-
-        console.log('Full concatenated content:', fullContent);
-        return fullContent; // Return the fully concatenated response
+        // let fullContent = await processChunks(response);
+        // console.log('Full concatenated content:', fullContent);
+        // return fullContent; // Return the fully concatenated response
     } catch (error) {
         console.error('Error communicating with Ollama API:', error);
         throw error;
