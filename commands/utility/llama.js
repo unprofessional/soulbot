@@ -73,11 +73,11 @@ module.exports = {
             } else {
                 console.log('>>>>> llm > NORMAL TEXT-BASED REQUEST!');
                 console.log('Adding task to queue...');
-                // const response = await queue.add(() => sendPromptToOllama(userMessage));
+                const response = await queue.add(() => sendPromptToOllama(userMessage));
 
-                const memberId = interaction.user.id;
-                const response = await queue.add(() => sendPromptToKokoro(userMessage, memberId));
-
+                // const memberId = interaction.user.id;
+                // const response = await queue.add(() => sendPromptToKokoro(userMessage, memberId));
+                
                 const messageToShow = `**Request:**\n> ${userMessage}\n\n**Response:**\n${response}`;
 
                 if (messageToShow.length <= 2000) {
