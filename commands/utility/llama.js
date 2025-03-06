@@ -78,6 +78,7 @@ module.exports = {
 
                 const memberId = interaction.user.id;
                 const response = await queue.add(() => sendPromptToKokoro(userMessage, memberId));
+                console.log('Kokoro response:', response);
                 const messageToShow = `**Request:**\n> ${userMessage}\n\n**Response:**\n${response.response}`;
 
                 if (messageToShow.length <= 2000) {
