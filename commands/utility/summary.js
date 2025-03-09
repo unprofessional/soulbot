@@ -8,7 +8,7 @@ const queueLimit = 3;
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('summary')
-        .setDescription('Summarizes the last 50 messages in this channel.'),
+        .setDescription('Summarizes the last 100 messages in this channel.'),
     async execute(interaction) {
         // Check if the queue length exceeds the limit
         if (queue.queue.length >= queueLimit) {
@@ -19,7 +19,7 @@ module.exports = {
         }
         await interaction.deferReply();
         const channelId = interaction.channel.id;
-        const messages = await getMessages({ channelId, limit: 50 });
+        const messages = await getMessages({ channelId, limit: 100 });
         // console.log('>>>>> summary > execute > messages: ', messages);
 
         try {
