@@ -106,14 +106,14 @@ Categorize the image now and follow the JSON schema strictly.
     }
 }
 
-async function summarizeChatOllama(messages) {
+async function summarizeChat(messages, model = 'qwen2.5:14b') {
     const url = `http://${ollamaHost}:${ollamaPort}/${ollamaChatEndpoint}`;
     const formattedMessages = messages.map(msg => {
         return `(${msg.created_at.toISOString()}) [${msg.user_id}]: ${msg.content}`;
     }).join('\n');
     let finalUserPrompt = `${formattedMessages}`;
     const requestBody = {
-        model: ollamaModel, // `llama3.2-vision:11b`
+        model,
         options: {
             num_ctx: 8000, // Increase context size to 8k tokens
         },
@@ -212,6 +212,6 @@ async function queryWithRAG(userQuery, metadataFilters = {}, numResults = 20) {
 module.exports = {
     processChunks,
     sendPromptToOllama,
-    summarizeChatOllama,
+    summarizeChat,
     queryWithRAG,
 };
