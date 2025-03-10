@@ -58,7 +58,7 @@ module.exports = {
 
                 const response = await queue.add(() => sendPromptToOllama(formattedPrompt));
 
-                const messageToShow = `**Request:**\n> ${userMessage}\n\n**Response:**\n${response}`;
+                const messageToShow = `**Request:**\n> ${userMessage}\n\n**Response:**\n${response.response}`;
 
                 if (messageToShow.length <= 2000) {
                     await interaction.editReply(messageToShow);
