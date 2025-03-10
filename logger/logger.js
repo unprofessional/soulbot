@@ -27,7 +27,7 @@ const logger = createLogger({
 });
 
 // Helper function for logging Discord messages
-const logMessage = async (message, level = 'info') => {
+const logMessage = async (message, level = 'verbose') => {
     const formattedMessage = formatLog(message);
     logger.log(level, JSON.stringify(formattedMessage));
     await addMessage(message);
