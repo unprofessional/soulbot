@@ -3,8 +3,8 @@ const {
 } = require('../../config/env_config.js');
 const { queryChromaDb } = require('./embed.js');
 
-const processChunks = async (response) => {
-    const reader = response.body.getReader();
+const processChunks = async (ollamaResponse) => {
+    const reader = ollamaResponse.body.getReader();
     const decoder = new TextDecoder('utf-8');
     let responseText = '';
     let fullContent = '';
@@ -106,7 +106,7 @@ Categorize the image now and follow the JSON schema strictly.
     }
 }
 
-async function summarizeChat(messages, model = 'qwen2.5:14b') {
+async function summarizeChat(messages, model = 'llama3.2:latest') {
     const url = `http://${ollamaHost}:${ollamaPort}/${ollamaChatEndpoint}`;
     const formattedMessages = messages.map(msg => {
         return `(${msg.created_at.toISOString()}) [${msg.user_id}]: ${msg.content}`;
