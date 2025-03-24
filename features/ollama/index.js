@@ -115,11 +115,11 @@ async function summarizeChat(messages, model = 'llama3.2-vision:11b') {
     const requestBody = {
         model,
         options: {
-            temperature: 0.3,
+            temperature: 0.2,
             top_p: 0.9,
             top_k: 40,
             repeat_penalty: 1.1,
-            num_ctx: 8000, // Increase context size
+            num_ctx: 8192, // Increase context size
             mirostat: 0,
         },
         messages: [
