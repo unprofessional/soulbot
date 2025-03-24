@@ -106,7 +106,7 @@ Categorize the image now and follow the JSON schema strictly.
     }
 }
 
-async function summarizeChat(messages, model = 'llama3.2-vision:11b') {
+async function summarizeChat(messages, model = 'phi4:14b') {
     const url = `http://${ollamaHost}:${ollamaPort}/${ollamaChatEndpoint}`;
     const formattedMessages = messages.map(msg => {
         return `(${msg.created_at.toISOString()}) [${msg.user_id}]: ${msg.content}`;
