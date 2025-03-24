@@ -43,13 +43,14 @@ const filterVideoUrls = (mediaUrls) => {
 };
 
 const sendWebhookProxyMsg = async (message, content, files = [], communityNoteText, originalLink) => {
-    // console.log('>>>>> sendWebhookProxyMsg > originalLink: ', originalLink);
+    console.log('>>>>> sendWebhookProxyMsg > originalLink: ', originalLink);
     try {
         // Delete all existing webhooks created by the bot in this channel
         const webhooks = await message.channel.fetchWebhooks();
         const botWebhooks = webhooks.filter(wh => wh.owner.id === message.client.user.id);
 
         console.log(`>>> Deleting ${botWebhooks.size} existing webhooks`);
+
         for (const webhook of botWebhooks.values()) {
             await webhook.delete().catch(err => console.warn(`Failed to delete webhook: ${err}`));
         }
@@ -57,7 +58,9 @@ const sendWebhookProxyMsg = async (message, content, files = [], communityNoteTe
         const embed = embedCommunityNote(message, communityNoteText);
         const nickname = message.member?.nickname;
         const displayName = nickname || message.author.globalName || message.author.username;
-        // console.log('>>> sendWebhookProxyMsg > displayName: ', displayName);
+
+        console.log('>>> sendWebhookProxyMsg > displayName: ', displayName);
+
         const avatarURL = message.author.avatarURL({ dynamic: true }) || message.author.displayAvatarURL();
         // console.log('>>> sendWebhookProxyMsg > avatarURL: ', avatarURL);
 
@@ -86,7 +89,7 @@ const sendWebhookProxyMsg = async (message, content, files = [], communityNoteTe
             avatar: avatarURL,
         });
 
-        // console.log('>>> sendWebhookProxyMsg webhook created!');
+        console.log('>>> sendWebhookProxyMsg webhook created!');
 
         const twitterOrXUrlWithQueryParamPattern = /https?:\/\/(?:twitter\.com|x\.com)\/[a-zA-Z0-9_]+\/status\/\d+(?:\?.*)?/g;
 
@@ -112,17 +115,17 @@ const sendWebhookProxyMsg = async (message, content, files = [], communityNoteTe
             files: files,
         });
 
-        // console.log('>>> sendWebhookProxyMsg sent!');
+        console.log('>>> sendWebhookProxyMsg sent!');
 
-        await message.delete();
+        // await message.delete();
 
         // console.log('>>> sendWebhookProxyMsg message deleted!');
 
         // Delete the webhook to prevent accumulation
         await webhook.delete();
-        // console.log('>>> sendWebhookProxyMsg webhook deleted!');
+        console.log('>>> sendWebhookProxyMsg webhook deleted!');
     } catch (error) {
-        // console.error('>>> sendWebhookProxyMsg error: ', error);
+        console.error('>>> sendWebhookProxyMsg error: ', error);
         // console.error('>>> sendWebhookProxyMsg typeof error: ', typeof error);
         const tooLargeErrorStr = 'DiscordAPIError[40005]: Request entity too large';
         if(error.name === 'DiscordAPIError[40005]') {
