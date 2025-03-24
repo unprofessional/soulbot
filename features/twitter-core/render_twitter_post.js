@@ -68,26 +68,33 @@ const sendWebhookProxyMsg = async (message, content, files = [], communityNoteTe
 
         /**
          * Move this THREAD/CHANNEL handling logic elsewhere (utility?)
+         * 
+         * webhook.js / buildWebhook (but do not send)
          */
-
-        let webhookChannel = message.channel; // default to current channel
-
-        // If the message started a thread
-        if (message.hasThread && message.thread) {
-            console.log(`>>> sendWebhookProxyMsg > Message starts new thread: ${message.thread.id}`);
-            webhookChannel = message.thread;
-        }
-
-        // If the message is inside an existing thread
-        else if (message.channel.isThread()) {
-            console.log(`>>> sendWebhookProxyMsg > Message sent to existing thread: ${message.channel.id}`);
-            webhookChannel = message.channel;
-        }
-
-        const webhook = await webhookChannel.createWebhook({
+        const webhook = await message.channel.createWebhook({
             name: displayName,
             avatar: avatarURL,
         });
+        
+        let threadId;
+        
+        // If the message started a thread
+        if (message.hasThread && message.thread) {
+            threadId = message.thread.id;
+            console.log(`>>> sendWebhookProxyMsg > Message starts a new thread: ${threadId}`);
+        }
+        
+        // If the message was sent inside an existing thread
+        else if (message.channel.isThread()) {
+            threadId = message.channel.id;
+            console.log(`>>> sendWebhookProxyMsg > Message sent within existing thread: ${threadId}`);
+        }
+
+        /**
+         * MOVE THIS TO OTHER UTILITY FUNCTION
+         * 
+         * utis / url-transformer.js
+         */
 
         console.log('>>> sendWebhookProxyMsg webhook created!');
 
@@ -96,20 +103,21 @@ const sendWebhookProxyMsg = async (message, content, files = [], communityNoteTe
         // const twitterOrXUrlPattern = /https?:\/\/(?:twitter\.com|x\.com)\/[a-zA-Z0-9_]+\/status\/\d+/g;
 
         const urlWithQueryParams = message.content.match(twitterOrXUrlWithQueryParamPattern);
-        console.log('>>> sendWebhookProxyMsg > urlWithQueryParams: ', urlWithQueryParams);
+        // console.log('>>> sendWebhookProxyMsg > urlWithQueryParams: ', urlWithQueryParams);
         const strippedUrl = stripQueryParams(urlWithQueryParams[0]);
-        console.log('>>> sendWebhookProxyMsg > strippedUrl: ', strippedUrl);
+        // console.log('>>> sendWebhookProxyMsg > strippedUrl: ', strippedUrl);
 
         const urlTrimmedContent = message.content.replace(twitterOrXUrlWithQueryParamPattern, strippedUrl);
-        console.log('>>> sendWebhookProxyMsg > urlTrimmedContent: ', urlTrimmedContent);
+        // console.log('>>> sendWebhookProxyMsg > urlTrimmedContent: ', urlTrimmedContent);
 
         const modifiedContent = urlTrimmedContent.replace(/(https:\/\/\S+)/, '<$1>');
-        console.log('>>> sendWebhookProxyMsg > modifiedContent: ', modifiedContent);
+        // console.log('>>> sendWebhookProxyMsg > modifiedContent: ', modifiedContent);
 
         // Send the message through the webhook
         await webhook.send({
             content: modifiedContent,
             ...(embed && { embeds: [embed] }),
+            ...(threadId && { threadId }),
             username: displayName,
             avatarURL: avatarURL,
             files: files,
