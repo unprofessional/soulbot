@@ -61,8 +61,26 @@ const trimQueryParamsFromTwitXUrl = (content) => {
     // console.log('>>> trimQueryParamsFromTwitXUrl > modifiedContent: ', modifiedContent);
 };
 
-const webhookBuilder = () => {
-
+const webhookBuilder = async (parentChannel, message, displayName, avatarURL) => {
+    const webhook = await parentChannel.createWebhook({
+        name: displayName,
+        avatar: avatarURL,
+    });
+    
+    let threadId;
+    
+    // If the message started a thread
+    if (message.hasThread && message.thread) {
+        threadId = message.thread.id;
+        // console.log(`>>> sendWebhookProxyMsg > Message starts a new thread: ${threadId}`);
+    }
+    
+    // If the message was sent inside an existing thread
+    else if (message.channel.isThread()) {
+        threadId = message.channel.id;
+        // console.log(`>>> sendWebhookProxyMsg > Message sent within existing thread: ${threadId}`);
+    }
+    return { webhook, threadId };
 };
 
 const sendWebhookProxyMsg = async (message, content, files = [], communityNoteText, originalLink) => {
@@ -83,37 +101,13 @@ const sendWebhookProxyMsg = async (message, content, files = [], communityNoteTe
         const embed = embedCommunityNote(message, communityNoteText);
         const nickname = message.member?.nickname;
         const displayName = nickname || message.author.globalName || message.author.username;
-
         // console.log('>>> sendWebhookProxyMsg > displayName: ', displayName);
 
         const avatarURL = message.author.avatarURL({ dynamic: true }) || message.author.displayAvatarURL();
         // console.log('>>> sendWebhookProxyMsg > avatarURL: ', avatarURL);
-
         // console.log('>>> sendWebhookProxyMsg > content: ', content);
 
-        /**
-         * Move this THREAD/CHANNEL handling logic elsewhere (utility?)
-         * 
-         * webhook.js / buildWebhook (but do not send)
-         */
-        const webhook = await parentChannel.createWebhook({
-            name: displayName,
-            avatar: avatarURL,
-        });
-        
-        let threadId;
-        
-        // If the message started a thread
-        if (message.hasThread && message.thread) {
-            threadId = message.thread.id;
-            // console.log(`>>> sendWebhookProxyMsg > Message starts a new thread: ${threadId}`);
-        }
-        
-        // If the message was sent inside an existing thread
-        else if (message.channel.isThread()) {
-            threadId = message.channel.id;
-            // console.log(`>>> sendWebhookProxyMsg > Message sent within existing thread: ${threadId}`);
-        }
+        const { webhook, threadId } = await webhookBuilder(parentChannel, message, displayName, avatarURL);
 
         const modifiedContent = trimQueryParamsFromTwitXUrl(message.content);
         // console.log('>>> sendWebhookProxyMsg > modifiedContent: ', modifiedContent);
