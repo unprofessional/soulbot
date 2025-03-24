@@ -63,8 +63,25 @@ const sendWebhookProxyMsg = async (message, content, files = [], communityNoteTe
 
         console.log('>>> sendWebhookProxyMsg > content: ', content);
 
-        // Create and use a webhook
-        const webhook = await message.channel.createWebhook({
+        /**
+         * Move this THREAD/CHANNEL handling logic elsewhere (utility?)
+         */
+
+        let webhookChannel = message.channel; // default to current channel
+
+        // If the message started a thread
+        if (message.hasThread && message.thread) {
+            console.log(`>>> sendWebhookProxyMsg > Message starts new thread: ${message.thread.id}`);
+            webhookChannel = message.thread;
+        }
+
+        // If the message is inside an existing thread
+        else if (message.channel.isThread()) {
+            console.log(`>>> sendWebhookProxyMsg > Message sent to existing thread: ${message.channel.id}`);
+            webhookChannel = message.channel;
+        }
+
+        const webhook = await webhookChannel.createWebhook({
             name: displayName,
             avatar: avatarURL,
         });
