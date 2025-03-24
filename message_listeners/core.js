@@ -31,6 +31,10 @@ const { fetchImageAsBase64 } = require('../features/ollama/vision.js');
 const { logMessage } = require('../logger/logger.js');
 const { stripQueryParams } = require('../features/twitter-core/utils.js');
 
+/**
+ * FILE UTILS
+ */
+
 // TODO: Move to "Message Validation"?
 const validationChecksHook = (message) => {
 
@@ -65,6 +69,30 @@ const isOwner = (message) => {
     if(message.author.id === '818606180095885332') return true;
     return false;
 };
+
+////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////
+
+/**
+ * LINK LOOKUP
+ * 
+ * 1) search for messages... must filter from same server
+ *  - Need to find out how to fetch substring from main text body via SQL...
+ * 
+ * 2) get messageId then use it to "link back" as a reply (no need for webhook)
+ * 
+ * TIPS: we can probably just use the postId (i.e. `1904162608170827790` to check)
+ * 
+ */
+
+// const server = '';
+
+////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////
+
+/**
+ * MEAT OF THIS FILE'S PURPOSE BEGINS HERE
+ */
 
 const initializeListeners = async (client) => {
 

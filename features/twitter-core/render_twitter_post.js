@@ -13,6 +13,10 @@ const { embedCommunityNote } = require('./canvas_utils.js');
 const MAX_CONCURRENT_REQUESTS = 3;
 const processingDir = '/tempdata';
 
+/**
+ * PLACE ALL OF THESE UTIL FNS IN SEPARATE FILE???
+ */
+
 async function createDirectoryIfNotExists(processingDir) {
     try {
         await mkdir(`./${processingDir}/`, { recursive: true });
@@ -82,6 +86,10 @@ const webhookBuilder = async (parentChannel, message, displayName, avatarURL) =>
     }
     return { webhook, threadId };
 };
+
+/**
+ * THE REAL MEAT OF THIS FILE'S PURPOSE BEGINS HERE
+ */
 
 const sendWebhookProxyMsg = async (message, content, files = [], communityNoteText, originalLink) => {
     // console.log('>>>>> sendWebhookProxyMsg > originalLink: ', originalLink);

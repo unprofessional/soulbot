@@ -111,6 +111,39 @@ class MessageDAO {
             return false;
         }
     }
+
+    /**
+     * Find existing messages that contain a specific Twitter/X link.
+     * @param {string} url - The URL to search for.
+     * @returns {Promise<Array>} - Matching messages.
+     */
+    async findMessagesByLink(url) {
+        // Normalize Twitter and X links for better matching
+        const normalizedUrl = url
+            .replace('https://x.com', 'https://twitter.com')
+            .replace('http://x.com', 'https://twitter.com')
+            .split('?')[0]; // remove query params
+
+        const sql = `
+            SELECT * 
+            FROM message
+            WHERE content ILIKE $1
+            ORDER BY created_at DESC
+            LIMIT 10
+        `;
+
+        const params = [`%${normalizedUrl}%`];
+
+        try {
+            console.log('>>>>> MessageDAO > findMessagesByLink > normalizedUrl: ', normalizedUrl);
+            const result = await pool.query(sql, params);
+            return result.rows;
+        } catch (err) {
+            console.error('Error finding messages by link:', err);
+            throw err;
+        }
+    }
+    
 }
 
 module.exports = MessageDAO;
