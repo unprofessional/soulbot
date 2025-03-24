@@ -66,7 +66,7 @@ const webhookBuilder = () => {
 };
 
 const sendWebhookProxyMsg = async (message, content, files = [], communityNoteText, originalLink) => {
-    console.log('>>>>> sendWebhookProxyMsg > originalLink: ', originalLink);
+    // console.log('>>>>> sendWebhookProxyMsg > originalLink: ', originalLink);
     try {
         // Use parent channel for webhook creation and management
         const parentChannel = message.channel.isThread() ? message.channel.parent : message.channel;
@@ -74,7 +74,7 @@ const sendWebhookProxyMsg = async (message, content, files = [], communityNoteTe
 
         // Delete all existing webhooks created by the bot in this channel
         const botWebhooks = webhooks.filter(wh => wh.owner.id === message.client.user.id);
-        console.log(`>>> Deleting ${botWebhooks.size} existing webhooks`);
+        // console.log(`>>> Deleting ${botWebhooks.size} existing webhooks`);
 
         for (const webhook of botWebhooks.values()) {
             await webhook.delete().catch(err => console.warn(`Failed to delete webhook: ${err}`));
@@ -84,12 +84,12 @@ const sendWebhookProxyMsg = async (message, content, files = [], communityNoteTe
         const nickname = message.member?.nickname;
         const displayName = nickname || message.author.globalName || message.author.username;
 
-        console.log('>>> sendWebhookProxyMsg > displayName: ', displayName);
+        // console.log('>>> sendWebhookProxyMsg > displayName: ', displayName);
 
         const avatarURL = message.author.avatarURL({ dynamic: true }) || message.author.displayAvatarURL();
         // console.log('>>> sendWebhookProxyMsg > avatarURL: ', avatarURL);
 
-        console.log('>>> sendWebhookProxyMsg > content: ', content);
+        // console.log('>>> sendWebhookProxyMsg > content: ', content);
 
         /**
          * Move this THREAD/CHANNEL handling logic elsewhere (utility?)
@@ -106,13 +106,13 @@ const sendWebhookProxyMsg = async (message, content, files = [], communityNoteTe
         // If the message started a thread
         if (message.hasThread && message.thread) {
             threadId = message.thread.id;
-            console.log(`>>> sendWebhookProxyMsg > Message starts a new thread: ${threadId}`);
+            // console.log(`>>> sendWebhookProxyMsg > Message starts a new thread: ${threadId}`);
         }
         
         // If the message was sent inside an existing thread
         else if (message.channel.isThread()) {
             threadId = message.channel.id;
-            console.log(`>>> sendWebhookProxyMsg > Message sent within existing thread: ${threadId}`);
+            // console.log(`>>> sendWebhookProxyMsg > Message sent within existing thread: ${threadId}`);
         }
 
         const modifiedContent = trimQueryParamsFromTwitXUrl(message.content);
@@ -128,11 +128,15 @@ const sendWebhookProxyMsg = async (message, content, files = [], communityNoteTe
             files: files,
         });
 
-        console.log('>>> sendWebhookProxyMsg sent!');
+        // console.log('>>> sendWebhookProxyMsg sent!');
 
-        // Delete the webhook to prevent accumulation
+        // Delete the USER MESSAGE to reduce channel clutter
+        await message.delete();
+        // console.log('>>> sendWebhookProxyMsg message deleted!');
+
+        // Delete the WEBHOOK to prevent accumulation
         await webhook.delete();
-        console.log('>>> sendWebhookProxyMsg webhook deleted!');
+        // console.log('>>> sendWebhookProxyMsg webhook deleted!');
     } catch (error) {
         console.error('>>> sendWebhookProxyMsg error: ', error);
         // console.error('>>> sendWebhookProxyMsg typeof error: ', typeof error);
