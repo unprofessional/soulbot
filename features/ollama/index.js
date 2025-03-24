@@ -115,7 +115,7 @@ async function summarizeChat(messages, model = 'phi4:14b') {
     const requestBody = {
         model,
         options: {
-            num_ctx: 8000, // Increase context size to 8k tokens
+            num_ctx: 20000, // model dependent
         },
         messages: [
             {
