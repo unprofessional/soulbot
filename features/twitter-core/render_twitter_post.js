@@ -42,13 +42,38 @@ const filterVideoUrls = (mediaUrls) => {
     });
 };
 
+const trimQueryParamsFromTwitXUrl = (content) => {
+    console.log('>>> trimQueryParamsFromTwitXUrl webhook reached!');
+
+    const twitterOrXUrlWithQueryParamPattern = /https?:\/\/(?:twitter\.com|x\.com)\/[a-zA-Z0-9_]+\/status\/\d+(?:\?.*)?/g;
+
+    // const twitterOrXUrlPattern = /https?:\/\/(?:twitter\.com|x\.com)\/[a-zA-Z0-9_]+\/status\/\d+/g;
+
+    const urlWithQueryParams = content.match(twitterOrXUrlWithQueryParamPattern);
+    // console.log('>>> trimQueryParamsFromTwitXUrl > urlWithQueryParams: ', urlWithQueryParams);
+    const strippedUrl = stripQueryParams(urlWithQueryParams[0]);
+    // console.log('>>> trimQueryParamsFromTwitXUrl > strippedUrl: ', strippedUrl);
+
+    const urlTrimmedContent = content.replace(twitterOrXUrlWithQueryParamPattern, strippedUrl);
+    // console.log('>>> trimQueryParamsFromTwitXUrl > urlTrimmedContent: ', urlTrimmedContent);
+
+    return urlTrimmedContent.replace(/(https:\/\/\S+)/, '<$1>');
+    // console.log('>>> trimQueryParamsFromTwitXUrl > modifiedContent: ', modifiedContent);
+};
+
+const webhookBuilder = () => {
+
+};
+
 const sendWebhookProxyMsg = async (message, content, files = [], communityNoteText, originalLink) => {
     console.log('>>>>> sendWebhookProxyMsg > originalLink: ', originalLink);
     try {
-        // Delete all existing webhooks created by the bot in this channel
-        const webhooks = await message.channel.fetchWebhooks();
-        const botWebhooks = webhooks.filter(wh => wh.owner.id === message.client.user.id);
+        // Use parent channel for webhook creation and management
+        const parentChannel = message.channel.isThread() ? message.channel.parent : message.channel;
+        const webhooks = await parentChannel.fetchWebhooks();
 
+        // Delete all existing webhooks created by the bot in this channel
+        const botWebhooks = webhooks.filter(wh => wh.owner.id === message.client.user.id);
         console.log(`>>> Deleting ${botWebhooks.size} existing webhooks`);
 
         for (const webhook of botWebhooks.values()) {
@@ -71,7 +96,7 @@ const sendWebhookProxyMsg = async (message, content, files = [], communityNoteTe
          * 
          * webhook.js / buildWebhook (but do not send)
          */
-        const webhook = await message.channel.createWebhook({
+        const webhook = await parentChannel.createWebhook({
             name: displayName,
             avatar: avatarURL,
         });
@@ -90,27 +115,7 @@ const sendWebhookProxyMsg = async (message, content, files = [], communityNoteTe
             console.log(`>>> sendWebhookProxyMsg > Message sent within existing thread: ${threadId}`);
         }
 
-        /**
-         * MOVE THIS TO OTHER UTILITY FUNCTION
-         * 
-         * utis / url-transformer.js
-         */
-
-        console.log('>>> sendWebhookProxyMsg webhook created!');
-
-        const twitterOrXUrlWithQueryParamPattern = /https?:\/\/(?:twitter\.com|x\.com)\/[a-zA-Z0-9_]+\/status\/\d+(?:\?.*)?/g;
-
-        // const twitterOrXUrlPattern = /https?:\/\/(?:twitter\.com|x\.com)\/[a-zA-Z0-9_]+\/status\/\d+/g;
-
-        const urlWithQueryParams = message.content.match(twitterOrXUrlWithQueryParamPattern);
-        // console.log('>>> sendWebhookProxyMsg > urlWithQueryParams: ', urlWithQueryParams);
-        const strippedUrl = stripQueryParams(urlWithQueryParams[0]);
-        // console.log('>>> sendWebhookProxyMsg > strippedUrl: ', strippedUrl);
-
-        const urlTrimmedContent = message.content.replace(twitterOrXUrlWithQueryParamPattern, strippedUrl);
-        // console.log('>>> sendWebhookProxyMsg > urlTrimmedContent: ', urlTrimmedContent);
-
-        const modifiedContent = urlTrimmedContent.replace(/(https:\/\/\S+)/, '<$1>');
+        const modifiedContent = trimQueryParamsFromTwitXUrl(message.content);
         // console.log('>>> sendWebhookProxyMsg > modifiedContent: ', modifiedContent);
 
         // Send the message through the webhook
@@ -124,10 +129,6 @@ const sendWebhookProxyMsg = async (message, content, files = [], communityNoteTe
         });
 
         console.log('>>> sendWebhookProxyMsg sent!');
-
-        // await message.delete();
-
-        // console.log('>>> sendWebhookProxyMsg message deleted!');
 
         // Delete the webhook to prevent accumulation
         await webhook.delete();
