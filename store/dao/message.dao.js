@@ -117,28 +117,35 @@ class MessageDAO {
      * @param {string} url - The URL to search for.
      * @returns {Promise<Array>} - Matching messages.
      */
-    async findMessagesByLink(serverId, url) {
-        // Normalize Twitter and X links for better matching
-        const normalizedUrl = url
-            .replace('https://x.com', 'https://twitter.com')
-            .replace('http://x.com', 'https://twitter.com')
-            .split('?')[0]; // remove query params
-
+    async findMessagesByLink(guildId, url) {
+        // Normalize base for both X and Twitter
+        const urlWithoutParams = url.split('?')[0];
+    
+        const twitterUrl = urlWithoutParams
+            .replace(/^https?:\/\/x\.com/, 'https://twitter.com');
+    
+        const xUrl = urlWithoutParams
+            .replace(/^https?:\/\/twitter\.com/, 'https://x.com');
+    
         const sql = `
             SELECT * 
             FROM message
-            WHERE guild_id = $1 AND content ILIKE $2
+            WHERE guild_id = $1 AND (
+                content ILIKE $2 OR content ILIKE $3
+            )
             ORDER BY created_at DESC
             LIMIT 10
         `;
-
+    
         const params = [
-            `%${serverId}%`,
-            `%${normalizedUrl}%`,
+            guildId,
+            `%${twitterUrl}%`,
+            `%${xUrl}%`,
         ];
-
+    
         try {
-            console.log('>>>>> MessageDAO > findMessagesByLink > normalizedUrl: ', normalizedUrl);
+            console.log('>>>>> MessageDAO > findMessagesByLink > twitterUrl:', twitterUrl);
+            console.log('>>>>> MessageDAO > findMessagesByLink > xUrl:', xUrl);
             const result = await pool.query(sql, params);
             return result.rows;
         } catch (err) {
@@ -146,6 +153,7 @@ class MessageDAO {
             throw err;
         }
     }
+    
     
 }
 
