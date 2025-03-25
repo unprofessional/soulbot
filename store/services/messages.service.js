@@ -17,11 +17,11 @@ const addMessage = async (message) => {
             content: message.content || '[Non-text message]',
             attachments: Array.from(message.attachments.values()).map((att) => att.url), // Extract URLs from attachments
             meta: {
-                ...(message.hasThread && message.thread && { threadId: message.thread.id }),
+                ...(message.channel.isThread?.() && { threadId: message.channel.id }),
                 username: message.author.username,
                 channelName: message.channel?.name,
                 guildName: message.guild?.name,
-            },            
+            },                    
         };
 
         const success = await messageDAO.save(structuredMessage);
