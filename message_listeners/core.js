@@ -148,7 +148,7 @@ const initializeListeners = async (client) => {
                         console.log('>>>>> containsTwitterUrl > firstInstance: ', firstInstance);
                         const messageId = firstInstance.message_id;
                         const channelId = firstInstance.meta?.thread_id ? firstInstance.meta.threadId : firstInstance.channel_id;
-                        const link = `https://discord.com.channels/${guildId}/${channelId}/${messageId}`;
+                        const link = `https://discord.com/channels/${guildId}/${channelId}/${messageId}`;
                         console.log('>>>>> containsTwitterUrl > link: ', link);
                         message.reply(`Someone already posted this here: ${link}`);
                         // msgMarkedForDeletion = false;
