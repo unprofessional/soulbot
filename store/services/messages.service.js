@@ -56,7 +56,7 @@ const getMessages = async (options = {}) => {
     }
 };
 
-const findMessagesByLink = async (guildId, url) => {
+const findMessagesByLink = async (guildId, messageId, url) => {
     try {
         const messages = await messageDAO.findMessagesByLink(guildId, url);
         console.log('Messages from link retrieved successfully:', messages);

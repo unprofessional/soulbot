@@ -136,7 +136,7 @@ const initializeListeners = async (client) => {
                     let metadata = {};
 
                     // Just reply with first instance of the link
-                    const foundMessagesFromLink = await findMessagesByLink(guildId, firstUrl);
+                    const foundMessagesFromLink = await findMessagesByLink(guildId, message.id, firstUrl);
                     console.log('>>>>> containsTwitterUrl > foundMessagesFromLink: ', foundMessagesFromLink);
                     // Assumes is sorted in DESC
                     let firstInstance;
