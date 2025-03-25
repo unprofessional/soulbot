@@ -116,10 +116,12 @@ class MessageDAO {
 
     /**
      * Find existing messages that contain a specific Twitter/X link.
-     * @param {string} url - The URL to search for.
-     * @returns {Promise<Array>} - Matching messages.
+     * @param {*} guildId 
+     * @param {*} messageId 
+     * @param {*} url 
+     * @returns 
      */
-    async findMessagesByLink(guildId, url) {
+    async findMessagesByLink(guildId, messageId, url) {
         // Normalize base for both X and Twitter
         const urlWithoutParams = url.split('?')[0];
     
@@ -135,6 +137,7 @@ class MessageDAO {
             WHERE guild_id = $1 AND (
                 content ILIKE $2 OR content ILIKE $3
             )
+            AND message_id != $4
             ORDER BY created_at ASC
             LIMIT 1
         `;
@@ -143,6 +146,7 @@ class MessageDAO {
             guildId,
             `%${twitterUrl}%`,
             `%${xUrl}%`,
+            messageId,
         ];
     
         try {

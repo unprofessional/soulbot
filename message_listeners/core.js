@@ -141,9 +141,12 @@ const initializeListeners = async (client) => {
                     // Assumes is sorted in DESC
                     let firstInstance;
                     // let msgMarkedForDeletion = true;
-                    if(foundMessagesFromLink) {
-                        // firstInstance = foundMessagesFromLink[0];
-                        firstInstance = undefined;
+                    if (foundMessagesFromLink?.length > 0) {
+                        const filtered = foundMessagesFromLink.filter(
+                            (msg) => String(msg.message_id) !== String(message.id)
+                        );
+                    
+                        firstInstance = filtered[0]; // could still be undefined if none
                     }
                     if(firstInstance) {
                         console.log('>>>>> containsTwitterUrl > firstInstance: ', firstInstance);
