@@ -142,7 +142,8 @@ const initializeListeners = async (client) => {
                     let firstInstance;
                     // let msgMarkedForDeletion = true;
                     if(foundMessagesFromLink) {
-                        firstInstance = foundMessagesFromLink[0];
+                        // firstInstance = foundMessagesFromLink[0];
+                        firstInstance = undefined;
                     }
                     if(firstInstance) {
                         console.log('>>>>> containsTwitterUrl > firstInstance: ', firstInstance);
