@@ -148,6 +148,7 @@ const initializeListeners = async (client) => {
                         const messageId = firstInstance.message_id;
                         const channelId = firstInstance.meta?.thread_id ? firstInstance.meta.threadId : firstInstance.channel_id;
                         const link = `Link found, first posted here: https://discord.com.channels/${guildId}/${channelId}/${messageId}`;
+                        console.log('>>>>> containsTwitterUrl > link: ', link);
                         message.reply(`Link found, first posted here: ${link}`);
                     }
 
