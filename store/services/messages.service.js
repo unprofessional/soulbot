@@ -11,10 +11,17 @@ const addMessage = async (message) => {
     try {
         const structuredMessage = {
             userId: message.author.id,
-            guildId: message.guild?.id || null, // Handle direct messages
-            channelId: message.channel?.id || null,
+            guildId: message.guild?.id || null, // null if DM
+            channelId: message.channel?.id || null, // null if DM
+            messageId: message.id,  // must exist
             content: message.content || '[Non-text message]',
             attachments: Array.from(message.attachments.values()).map((att) => att.url), // Extract URLs from attachments
+            meta: {
+                ...(message.hasThread && message.thread && { threadId: message.thread.id }),
+                username: message.author.username,
+                channelName: message.channel?.name,
+                guildName: message.guild?.name,
+            },            
         };
 
         const success = await messageDAO.save(structuredMessage);

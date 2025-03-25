@@ -30,6 +30,7 @@ const logger = createLogger({
 const logMessage = async (message, level = 'verbose') => {
     const formattedMessage = formatLog(message);
     logger.log(level, JSON.stringify(formattedMessage));
+    // transport to database table `message`
     await addMessage(message);
 };
 
