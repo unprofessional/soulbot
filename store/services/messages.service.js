@@ -52,7 +52,7 @@ const getMessages = async (options = {}) => {
 const findMessagesByLink = async (guildId, url) => {
     try {
         const messages = await messageDAO.findMessagesByLink(guildId, url);
-        console.log('Messages retrieved successfully:', messages);
+        console.log('Messages from link retrieved successfully:', messages);
         // // Reverse the list for the sake of chronological readability for the LLM
         // return messages.reverse();
     } catch (err) {

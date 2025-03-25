@@ -133,8 +133,8 @@ class MessageDAO {
             WHERE guild_id = $1 AND (
                 content ILIKE $2 OR content ILIKE $3
             )
-            ORDER BY created_at DESC
-            LIMIT 10
+            ORDER BY created_at ASC
+            LIMIT 1
         `;
     
         const params = [
