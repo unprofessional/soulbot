@@ -49,7 +49,20 @@ const getMessages = async (options = {}) => {
     }
 };
 
+const findMessagesByLink = async (serverId, url) => {
+    try {
+        const messages = await messageDAO.findMessagesByLink(serverId, url);
+        console.log('Messages retrieved successfully:', messages);
+        // // Reverse the list for the sake of chronological readability for the LLM
+        // return messages.reverse();
+    } catch (err) {
+        console.error('Error in findMessagesByLink service:', err);
+        throw err;
+    }
+}
+
 module.exports = { 
     addMessage,
     getMessages,
+    findMessagesByLink,
 };

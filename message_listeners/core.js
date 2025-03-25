@@ -30,6 +30,7 @@ const { sendPromptToOllama } = require('../features/ollama/index.js');
 const { fetchImageAsBase64 } = require('../features/ollama/vision.js');
 const { logMessage } = require('../logger/logger.js');
 const { stripQueryParams } = require('../features/twitter-core/utils.js');
+const { findMessagesByLink } = require('../store/services/messages.service.js');
 
 /**
  * FILE UTILS
@@ -101,6 +102,9 @@ const initializeListeners = async (client) => {
      */
     client.on(Events.MessageCreate, async (message) => {
 
+        const guildId = message.guildId;
+        const cachedGuild = client.guilds.cache.get(guildId);
+
         // Logger
         // THIS IS SPAMMY, ONLY USE FOR DEBUGGING!
         // console.log(`${message.guildId}: ${message.author.globalName}: ${message.content}`);
@@ -130,6 +134,19 @@ const initializeListeners = async (client) => {
     
                     const firstUrl = stripQueryParams(urls[0]);
                     let metadata = {};
+
+                    // Just reply with first instance of the link
+                    const foundMessagesFromLink = await findMessagesByLink(guildId, firstUrl);
+                    // Assumes is sorted in DESC
+                    let firstInstance;
+                    if(foundMessagesFromLink) {
+                        firstInstance = foundMessagesFromLink[0];
+                    }
+                    if(firstInstance) {
+                        const messageId = firstInstance.messageId;
+                        const channelId = firstInstance.channelId;
+                        message.reply(`Link found, first posted here: https://discord.com.channels/${guildId}/${channelId}/${messageId}`);
+                    }
 
                     try {
                         metadata = await fetchMetadata(firstUrl, message, containsXDotComUrl);
@@ -228,9 +245,6 @@ const initializeListeners = async (client) => {
         if(!isSelf(message) && !isABot(message) && isOwner(message)) {
 
             // console.log('>>>>> NOT self!!! Reading message!!');
-
-            const guildId = message.guildId;
-            const cachedGuild = client.guilds.cache.get(guildId);
 
             /**
              * Unvalidated

@@ -117,7 +117,7 @@ class MessageDAO {
      * @param {string} url - The URL to search for.
      * @returns {Promise<Array>} - Matching messages.
      */
-    async findMessagesByLink(url) {
+    async findMessagesByLink(serverId, url) {
         // Normalize Twitter and X links for better matching
         const normalizedUrl = url
             .replace('https://x.com', 'https://twitter.com')
@@ -127,12 +127,15 @@ class MessageDAO {
         const sql = `
             SELECT * 
             FROM message
-            WHERE content ILIKE $1
+            WHERE server_id $1 AND content ILIKE $2
             ORDER BY created_at DESC
             LIMIT 10
         `;
 
-        const params = [`%${normalizedUrl}%`];
+        const params = [
+            `%${serverId}%`,
+            `%${normalizedUrl}%`,
+        ];
 
         try {
             console.log('>>>>> MessageDAO > findMessagesByLink > normalizedUrl: ', normalizedUrl);
