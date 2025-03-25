@@ -143,7 +143,7 @@ const initializeListeners = async (client) => {
                     if(foundMessagesFromLink) {
                         firstInstance = foundMessagesFromLink[0];
                     }
-                    if(firstInstance.meta?.threadId ) {
+                    if(firstInstance) {
                         console.log('>>>>> containsTwitterUrl > firstInstance: ', firstInstance);
                         const messageId = firstInstance.message_id;
                         const channelId = firstInstance.meta?.thread_id ? firstInstance.meta.threadId : firstInstance.channel_id;
