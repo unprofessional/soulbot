@@ -137,12 +137,14 @@ const initializeListeners = async (client) => {
 
                     // Just reply with first instance of the link
                     const foundMessagesFromLink = await findMessagesByLink(guildId, firstUrl);
+                    console.log('>>>>> containsTwitterUrl > foundMessagesFromLink: ', foundMessagesFromLink);
                     // Assumes is sorted in DESC
                     let firstInstance;
                     if(foundMessagesFromLink) {
                         firstInstance = foundMessagesFromLink[0];
                     }
                     if(firstInstance) {
+                        console.log('>>>>> containsTwitterUrl > firstInstance: ', firstInstance);
                         const messageId = firstInstance.message_id;
                         const channelId = firstInstance.channel_id;
                         message.reply(`Link found, first posted here: https://discord.com.channels/${guildId}/${channelId}/${messageId}`);
