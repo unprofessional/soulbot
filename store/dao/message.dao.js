@@ -88,19 +88,21 @@ class MessageDAO {
      * @returns {Promise<boolean>} - True if the save was successful.
      */
     async save(structuredMessage) {
-        const { userId, guildId, channelId, content, attachments } = structuredMessage;
+        const { userId, guildId, channelId, messageId, content, attachments, meta } = structuredMessage;
 
         const sql = `
-            INSERT INTO message (user_id, guild_id, channel_id, content, attachments)
-            VALUES ($1, $2, $3, $4, $5)
+            INSERT INTO message (user_id, guild_id, channel_id, message_id, content, attachments, meta)
+            VALUES ($1, $2, $3, $4, $5, $6, $7)
         `;
 
         const params = [
             userId,
             guildId || null,
             channelId || null,
+            messageId,
             content,
             attachments,
+            meta,
         ];
 
         try {
