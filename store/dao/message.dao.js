@@ -127,7 +127,7 @@ class MessageDAO {
         const sql = `
             SELECT * 
             FROM message
-            WHERE server_id $1 AND content ILIKE $2
+            WHERE guild_id = $1 AND content ILIKE $2
             ORDER BY created_at DESC
             LIMIT 10
         `;

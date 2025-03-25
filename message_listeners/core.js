@@ -143,8 +143,8 @@ const initializeListeners = async (client) => {
                         firstInstance = foundMessagesFromLink[0];
                     }
                     if(firstInstance) {
-                        const messageId = firstInstance.messageId;
-                        const channelId = firstInstance.channelId;
+                        const messageId = firstInstance.message_id;
+                        const channelId = firstInstance.channel_id;
                         message.reply(`Link found, first posted here: https://discord.com.channels/${guildId}/${channelId}/${messageId}`);
                     }
 
