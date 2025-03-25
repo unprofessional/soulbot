@@ -140,6 +140,7 @@ const initializeListeners = async (client) => {
                     console.log('>>>>> containsTwitterUrl > foundMessagesFromLink: ', foundMessagesFromLink);
                     // Assumes is sorted in DESC
                     let firstInstance;
+                    // let msgMarkedForDeletion = true;
                     if(foundMessagesFromLink) {
                         firstInstance = foundMessagesFromLink[0];
                     }
@@ -147,39 +148,40 @@ const initializeListeners = async (client) => {
                         console.log('>>>>> containsTwitterUrl > firstInstance: ', firstInstance);
                         const messageId = firstInstance.message_id;
                         const channelId = firstInstance.meta?.thread_id ? firstInstance.meta.threadId : firstInstance.channel_id;
-                        const link = `Link found, first posted here: https://discord.com.channels/${guildId}/${channelId}/${messageId}`;
+                        const link = `https://discord.com.channels/${guildId}/${channelId}/${messageId}`;
                         console.log('>>>>> containsTwitterUrl > link: ', link);
-                        message.reply(`Link found, first posted here: ${link}`);
-                    }
-
-                    try {
-                        metadata = await fetchMetadata(firstUrl, message, containsXDotComUrl);
-                        // console.log('>>>>> containsTwitterUrl > CALL-fetchMetadata > metadata: ', metadata);
-                    }
-                    catch(err) {
-                        // console.log('>>>>> containsTwitterUrl > CALL-fetchMetadata > err: ', err);
-                    }
-
-                    if(metadata?.error) {
-                        message.reply('Post unavailable! Deleted or protected mode?');
+                        message.reply(`Someone already posted this here: ${link}`);
+                        // msgMarkedForDeletion = false;
                     } else {
-                        if(metadata.qrtURL) {
-                            const qtMetadata = await fetchQTMetadata(metadata.qrtURL, message, containsXDotComUrl);
-                            // console.log('>>>>> core > qtMetadata: ', qtMetadata);
-                            metadata.qtMetadata = qtMetadata;
+                        try {
+                            metadata = await fetchMetadata(firstUrl, message, containsXDotComUrl);
+                            // console.log('>>>>> containsTwitterUrl > CALL-fetchMetadata > metadata: ', metadata);
                         }
-        
-                        if (metadata.error) {
-                            message.reply(`Server 500!
-        \`\`\`HTML
-        ${metadata.errorMsg}
-        \`\`\``
-                            );
+                        catch(err) {
+                            // console.log('>>>>> containsTwitterUrl > CALL-fetchMetadata > err: ', err);
+                        }
+    
+                        if(metadata?.error) {
+                            message.reply('Post unavailable! Deleted or protected mode?');
                         } else {
-                            // console.log('>>>>> fetchMetadata > metadata: ', JSON.stringify(metadata, null, 2));
-                            console.log('>>>>> core detect > firstUrl: ', firstUrl);
-                            await renderTwitterPost(metadata, message, firstUrl);
-                            // await message.suppressEmbeds(true);
+                            if(metadata.qrtURL) {
+                                const qtMetadata = await fetchQTMetadata(metadata.qrtURL, message, containsXDotComUrl);
+                                // console.log('>>>>> core > qtMetadata: ', qtMetadata);
+                                metadata.qtMetadata = qtMetadata;
+                            }
+            
+                            if (metadata.error) {
+                                message.reply(`Server 500!
+            \`\`\`HTML
+            ${metadata.errorMsg}
+            \`\`\``
+                                );
+                            } else {
+                                // console.log('>>>>> fetchMetadata > metadata: ', JSON.stringify(metadata, null, 2));
+                                console.log('>>>>> core detect > firstUrl: ', firstUrl);
+                                await renderTwitterPost(metadata, message, firstUrl);
+                                // await message.suppressEmbeds(true);
+                            }
                         }
                     }
                 }
