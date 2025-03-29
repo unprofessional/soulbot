@@ -124,7 +124,10 @@ class MessageDAO {
     async findMessagesByLink(guildId, messageId, url) {
         // Normalize base for both X and Twitter
         const urlWithoutParams = url.split('?')[0];
-    
+
+        // NOTE: For now, we should just search against `/status/8888888888888888888`
+        // See `message_listeners/core.js`
+
         const twitterUrl = urlWithoutParams
             .replace(/^https?:\/\/x\.com/, 'https://twitter.com');
     
@@ -159,7 +162,6 @@ class MessageDAO {
             throw err;
         }
     }
-    
     
 }
 

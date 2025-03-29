@@ -114,10 +114,53 @@ const initializeListeners = async (client) => {
 
             await enforceGoldyRole(message);
 
-            /**
-             * This is where the actual Twitter URL listener logic begins
-             */
+            ////////////////////////////////////////////////////////////
+            ////////////////////////////////////////////////////////////
+            // This is where the actual Twitter URL listener logic begins
+            ////////////////////////////////////////////////////////////
+            // FIXME: REFACTOR URL PARSING!!!!
+            ////////////////////////////////////////////////////////////
+            ////////////////////////////////////////////////////////////
             if(twitterFeature.on) {
+
+                if (twitterFeature.on) {
+                    
+                    const KNOWN_X_DOMAINS = [
+                        'twitter.com',
+                        'x.com',
+                        'fixupx.com',
+                        'vxtwitter.com',
+                        'd.fixtwitter.com',
+                        'fxtwitter.com',
+                        // nitter.net excluded (doesn't allow interaction)
+                    ];
+                    
+                    const twitUrlPattern = /https?:\/\/([\w.-]+)\/\w+\/status\/(?<statusId>\d{1,})/gi;
+                    const matches = [...message.content.matchAll(twitUrlPattern)];
+                    
+                    if (matches.length > 0) {
+                        const match = matches[0];
+                        const statusId = match.groups.statusId;
+                        const domain = match[1].toLowerCase();
+                    
+                        const isKnownDomain = KNOWN_X_DOMAINS.includes(domain);
+                        const isModernId = statusId.length >= 15;
+                    
+                        if (isKnownDomain && (isModernId || domain === 'twitter.com' || domain === 'x.com')) {
+                            console.log('✅ Valid Twitter/X status detected:', match[0]);
+                    
+                            // You can normalize if needed
+                            // const normalizedUrl = `https://x.com/i/web/status/${statusId}`;
+                            // console.log('Normalized URL:', normalizedUrl);
+                    
+                            // Proceed: dupe check, embed suppression, metadata fetch, etc.
+                        }
+                    }
+                    
+                    
+                }
+                
+
                 const twitterUrlPattern = /https?:\/\/twitter\.com\/[a-zA-Z0-9_]+\/status\/\d+/g;
                 const containsTwitterUrl = twitterUrlPattern.test(message.content);
                 const xDotComUrlPattern = /https?:\/\/x\.com\/[a-zA-Z0-9_]+\/status\/\d+/g;
