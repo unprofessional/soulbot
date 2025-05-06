@@ -2,7 +2,7 @@ const { SlashCommandBuilder } = require('discord.js');
 const PromiseQueue = require('../../lib/promise_queue');
 const { getMessages } = require('../../store/services/messages.service');
 const { summarizeChat } = require('../../features/ollama');
-const queue = new PromiseQueue(1, 30000); // Max 1 concurrent task, 20 seconds timeout
+const queue = new PromiseQueue(1, 60000); // Max 1 concurrent task, 20 seconds timeout
 const queueLimit = 3;
 
 module.exports = {
