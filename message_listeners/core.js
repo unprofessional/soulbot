@@ -130,7 +130,7 @@ const initializeListeners = async (client) => {
                         'x.com',
                         'fixupx.com',
                         'vxtwitter.com',
-                        'd.fxtwitter.com', // for just the media asset(s)
+                        // 'd.fxtwitter.com', // for just the media asset(s)... we want full context checking
                         'fxtwitter.com',
                         // nitter.net excluded (doesn't allow interaction)
                     ];
