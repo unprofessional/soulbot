@@ -6,7 +6,7 @@ const cheerio = require('cheerio');
 const { kokoroUrl } = require('../../config/env_config');
 
 // const BOT_OWNER_ID = process.env.BOT_OWNER_ID || '818606180095885332';
-const queue = new PromiseQueue(1, 30000); // Max 1 concurrent task, 20 seconds timeout
+const queue = new PromiseQueue(1, 60000); // Max 1 concurrent task, 20 seconds timeout
 const queueLimit = 3;
 
 module.exports = {
