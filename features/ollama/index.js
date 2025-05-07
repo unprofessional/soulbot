@@ -77,7 +77,7 @@ Categorize the image now and follow the JSON schema strictly.
                 ...(imagePath && { images: [imagePath] }), // Conditionally add 'images' property
             },
         ],
-        keepAlive: -1, // Keep model in memory
+        keep_alive: -1, // Keep model in memory
     };
 
     console.log('>>>>> ollama > sendPromptToOllama > requestBody: ', requestBody);
@@ -135,7 +135,7 @@ async function summarizeChat(messages, model = 'vanilj/midnight-miqu-70b-v1.5:la
                 content: finalUserPrompt,
             },
         ],
-        keepAlive: -1, // Keep model in memory
+        keep_alive: -1, // Keep model in memory
     };
 
     console.log('>>>>> ollama > summarizeChatOllama > requestBody: ', requestBody);
