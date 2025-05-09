@@ -127,8 +127,7 @@ async function summarizeChat(messages, model = 'vanilj/midnight-miqu-70b-v1.5:la
                 role: 'system',
                 content: 'Summarize the Discord chat logs. ' +
                 'Be brief and simple. ' + 
-                'If you do not know, just say you do not know. ' +
-                'If citing a user, remember to mention them via "<@userId>" so Discord can tag them.',
+                'Summarize individual users and mention them directly via the Discord "<@userId>" syntax. ' +
             },
             {
                 role: 'user',
