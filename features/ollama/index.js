@@ -1,6 +1,7 @@
 const {
-    ollamaHost, ollamaPort, ollamaChatEndpoint, ollamaModel,
+    ollamaHost, ollamaPort, ollamaChatEndpoint,
 } = require('../../config/env_config.js');
+const { chatModel, summaryModel } = require('../../config/system_constants.js');
 const { queryChromaDb } = require('./embed.js');
 
 const processChunks = async (ollamaResponse) => {
@@ -62,7 +63,7 @@ Categorize the image now and follow the JSON schema strictly.
 `;
     }
     const requestBody = {
-        model: ollamaModel,
+        model: chatModel,
         messages: [
             {
                 role: 'system',
@@ -106,7 +107,7 @@ Categorize the image now and follow the JSON schema strictly.
     }
 }
 
-async function summarizeChat(messages, model = 'vanilj/midnight-miqu-70b-v1.5:latest') {
+async function summarizeChat(messages, model = summaryModel) {
     const url = `http://${ollamaHost}:${ollamaPort}/${ollamaChatEndpoint}`;
     const formattedMessages = messages.map(msg => {
         return `(${msg.created_at.toISOString()}) [${msg.user_id}]: ${msg.content}`;
