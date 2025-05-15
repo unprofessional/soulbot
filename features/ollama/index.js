@@ -147,10 +147,14 @@ async function summarizeChat(messages, model = summaryModel) {
             throw new Error(`HTTP error! Status: ${response.status} - ${errorText}`);
         }
 
-        let fullContent = await processChunks(response);
+        const data = await response.json();
+        console.log('>>> data: ', data);
 
-        console.log('Full concatenated content:', fullContent);
-        return fullContent; // Return the fully concatenated response
+        const summary = data.response
+            .replace(/<think>\s*<\/think>\s*/gi, '') // removes empty <think> tags and surrounding whitespace
+            .trim();
+
+        return summary;
     } catch (error) {
         console.error('Error communicating with Ollama API:', error);
         throw error;
