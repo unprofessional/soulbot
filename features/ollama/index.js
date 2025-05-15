@@ -1,7 +1,7 @@
 const {
-    ollamaHost, ollamaPort, ollamaChatEndpoint,
+    ollamaHost, ollamaPort, ollamaChatEndpoint, ollamaGenerateEndpoint,
 } = require('../../config/env_config.js');
-const { chatModel, summaryModel } = require('../../config/system_constants.js');
+const { chatModel, summaryModel, contextSize } = require('../../config/system_constants.js');
 const { queryChromaDb } = require('./embed.js');
 
 const processChunks = async (ollamaResponse) => {
@@ -108,7 +108,7 @@ Categorize the image now and follow the JSON schema strictly.
 }
 
 async function summarizeChat(messages, model = summaryModel) {
-    const url = `http://${ollamaHost}:${ollamaPort}/${ollamaChatEndpoint}`;
+    const url = `http://${ollamaHost}:${ollamaPort}/${ollamaGenerateEndpoint}`;
     const formattedMessages = messages.map(msg => {
         return `(${msg.created_at.toISOString()}) [${msg.user_id}]: ${msg.content}`;
     }).join('\n');
@@ -116,25 +116,18 @@ async function summarizeChat(messages, model = summaryModel) {
     const requestBody = {
         model,
         options: {
-            temperature: 0.2,
-            top_p: 0.9,
-            top_k: 40,
-            repeat_penalty: 1.1,
-            num_ctx: 8192, // Increase context size
-            mirostat: 0,
+            // temperature: 0.2,
+            // top_p: 0.9,
+            // top_k: 40,
+            // repeat_penalty: 1.1,
+            // mirostat: 0,
+            num_ctx: contextSize,
         },
-        messages: [
-            {
-                role: 'system',
-                content: 'Summarize the Discord chat logs. ' +
+        prompt: 'Summarize the Discord chat logs. ' +
                 // 'Be brief and simple. ' + 
-                'Summarize individual user points made and mention them directly via the Discord "<@userId>" syntax. '
-            },
-            {
-                role: 'user',
-                content: finalUserPrompt,
-            },
-        ],
+                'Summarize individual user points made and mention them directly via the Discord "<@userId>" syntax: ' +
+                `DiscordChatLog: ${finalUserPrompt}`,
+        stream: false,
         keep_alive: -1, // Keep model in memory
     };
 
