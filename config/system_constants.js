@@ -1,7 +1,7 @@
 module.exports = {
     chatModel: 'qwen2.5:14b',
     summaryModel: 'qwen2.5:14b',
-    contextSize: '40960',
+    contextSize: 40960,
 };
 
 // vanilj/midnight-miqu-70b-v1.5:latest
