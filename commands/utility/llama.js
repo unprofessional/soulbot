@@ -58,7 +58,9 @@ module.exports = {
 
                 const response = await queue.add(() => sendPromptToOllama(formattedPrompt));
 
-                const messageToShow = `**Request:**\n> ${userMessage}\n\n**Response:**\n${response.response}`;
+                const messageToShow = `**Request:**\n> ${userMessage}\n\n**Response:**\n${response.response}`
+                    .replace(/<think>\s*<\/think>\s*/gi, '') // removes empty <think> tags and surrounding whitespace
+                    .trim();
 
                 if (messageToShow.length <= 2000) {
                     await interaction.editReply(messageToShow);
@@ -79,7 +81,9 @@ module.exports = {
                 const memberId = interaction.user.id;
                 const response = await queue.add(() => sendPromptToKokoro(userMessage, memberId));
                 console.log('Kokoro response:', response);
-                const messageToShow = `**Request:**\n> ${userMessage}\n\n**Response:**\n${response.response}`;
+                const messageToShow = `**Request:**\n> ${userMessage}\n\n**Response:**\n${response.response}`
+                    .replace(/<think>\s*<\/think>\s*/gi, '') // removes empty <think> tags and surrounding whitespace
+                    .trim();
 
                 if (messageToShow.length <= 2000) {
                     await interaction.editReply(messageToShow);

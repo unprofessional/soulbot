@@ -1,6 +1,6 @@
 module.exports = {
-    chatModel: 'qwen2.5:14b',
-    summaryModel: 'qwen2.5:14b',
+    chatModel: 'qwen3:14b',
+    summaryModel: 'qwen3:14b',
     contextSize: 40960,
 };
 

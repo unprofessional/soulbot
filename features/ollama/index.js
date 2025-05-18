@@ -148,7 +148,7 @@ async function summarizeChat(messages, model = summaryModel) {
         }
 
         const data = await response.json();
-        console.log('>>> data: ', data);
+        // console.log('>>> data: ', data);
 
         const summary = data.response
             .replace(/<think>\s*<\/think>\s*/gi, '') // removes empty <think> tags and surrounding whitespace
