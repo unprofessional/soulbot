@@ -13,7 +13,8 @@ function getWrappedText(ctx, text, maxWidth) {
 
     text.split('\n').forEach(paragraph => {
         const cleaned = paragraph.replace(shortTwitterUrlPattern, '').trim();
-        if (!cleaned) return lines.push('');
+        // if (!cleaned) return lines.push('');
+        if (!cleaned) return;
 
         const words = cleaned.split(' ');
         let currentLine = words[0];
