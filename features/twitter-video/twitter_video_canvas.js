@@ -54,11 +54,11 @@ async function createTwitterVideoCanvas(metadataJson) {
     ctx.textDrawingMode = 'glyph';
 
     ctx.font = '18px "Noto Color Emoji"';
-    const descLines = getWrappedText(ctx, metadata.description, 420);
+    const hasDescription = metadata.description.trim().length > 0;
+    const descLines = hasDescription ? getWrappedText(ctx, metadata.description, 420) : [];
     const baseY = 110;
     let canvasHeight = calculateCanvasHeight(descLines, baseY, heightShim);
-
-    if (!metadata.description) canvasHeight -= 40;
+    if (!hasDescription) canvasHeight -= 40;
 
     canvas.height = canvasHeight;
     ctx.fillRect(0, 0, canvasWidth, canvasHeight);
@@ -68,12 +68,22 @@ async function createTwitterVideoCanvas(metadataJson) {
         loadImage(metadata.pfpUrl),
     ]);
 
-    drawBasicElements(ctx, globalFont, metadata, favicon, pfp, descLines, {
-        hasImgs: true,
-        hasVids: true,
-        yOffset: baseY,
-        canvasHeightOffset: canvasHeight,
-    });
+    if (hasDescription) {
+        drawBasicElements(ctx, globalFont, metadata, favicon, pfp, descLines, {
+            hasImgs: true,
+            hasVids: true,
+            yOffset: baseY,
+            canvasHeightOffset: canvasHeight,
+        });
+    } else {
+        // drawBasicElements is still needed for layout metadata like pfp & handle
+        drawBasicElements(ctx, globalFont, metadata, favicon, pfp, [], {
+            hasImgs: true,
+            hasVids: true,
+            yOffset: baseY,
+            canvasHeightOffset: canvasHeight,
+        });
+    }
 
     const buffer = canvas.toBuffer('image/png');
     const videoUrl = metadata.mediaUrls[0];
