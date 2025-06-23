@@ -1,17 +1,37 @@
-// features/twitter-video/twitter_video_canvas.js
+// Refactored: features/twitter-video/twitter_video_canvas.js
+
 const { existsSync, mkdirSync, writeFileSync } = require('node:fs');
-const {
-    registerFont,
-    createCanvas,
-    loadImage,
-} = require('canvas');
+const { registerFont, createCanvas, loadImage } = require('canvas');
 const { buildPathsAndStuff } = require('../twitter-core/path_builder.js');
 const { getWrappedText, drawBasicElements } = require('../twitter-core/canvas_utils.js');
 
-const createTwitterVideoCanvas = async (metadataJson) => {
+const FONT_PATHS = [
+    ['/truetype/noto/NotoColorEmoji.ttf', 'Noto Color Emoji'],
+    ['/truetype/noto/NotoSansMath-Regular.ttf', 'Noto Sans Math'],
+    ['/opentype/noto/NotoSansCJK-VF.ttf.ttc', 'Noto Sans CJK'],
+];
 
-    // console.log('>>>>> createTwitterVideoCanvas reached!');
+function registerFonts(basePath = '/usr/share/fonts') {
+    FONT_PATHS.forEach(([relativePath, family]) => {
+        registerFont(`${basePath}${relativePath}`, { family });
+    });
+}
 
+function calculateCanvasHeight(lines, baseY, heightShim, lineHeight = 30, padding = 40) {
+    return (lines.length * lineHeight) + baseY + padding + heightShim;
+}
+
+function getHeightShim(media) {
+    const MAX_WIDTH = 560;
+    const defaultShim = 600;
+    if (!media?.width || !media?.height) return defaultShim;
+
+    return media.width > media.height
+        ? media.height * (MAX_WIDTH / media.width)
+        : defaultShim;
+}
+
+async function createTwitterVideoCanvas(metadataJson) {
     const metadata = {
         authorNick: metadataJson.user_screen_name,
         authorUsername: metadataJson.user_name,
@@ -21,121 +41,52 @@ const createTwitterVideoCanvas = async (metadataJson) => {
         mediaUrls: metadataJson.mediaURLs,
         mediaExtended: metadataJson.media_extended,
     };
-    // console.log('>>>>> createTwitterVideoCanvas > metadata: ', metadata);
 
-    // const baseFontUrl = '/Users/power/dev/devcru/soulbot/fonts';
-    const baseFontUrl = '/usr/share/fonts';
-
-    // Unnecessary if the font is loaded in the local OS
-    // TODO: Investigate if `fonts/` is even necessary...
-    registerFont(`${baseFontUrl}/truetype/noto/NotoColorEmoji.ttf`, { family: 'Noto Color Emoji' });
-
-    // // For Gothic etc
-    registerFont(`${baseFontUrl}/truetype/noto/NotoSansMath-Regular.ttf`, { family: 'Noto Sans Math' });
-
-    // // Register Noto Sans CJK Regular and Bold
-    registerFont(`${baseFontUrl}/opentype/noto/NotoSansCJK-VF.ttf.ttc`, { family: 'Noto Sans CJK' });
-
+    registerFonts();
     const globalFont = '"Noto Color Emoji", "Noto Sans CJK", "Noto Sans Math"';
+    const canvasWidth = 600;
+    const media = metadata.mediaExtended?.[0]?.size || { width: 0, height: 0 };
+    const heightShim = getHeightShim(media);
 
-    const maxCanvasWidth = 600;
-    let canvasHeight = 650;
-    const canvas = createCanvas(maxCanvasWidth, canvasHeight);
+    const canvas = createCanvas(canvasWidth, 650);
     const ctx = canvas.getContext('2d');
-
-    // Fill background color
     ctx.fillStyle = '#000';
+    ctx.textDrawingMode = 'glyph';
 
-    // Grants emoji color
-    ctx.textDrawingMode = "glyph";
-
-    let mediaMaxHeight = 600; // getMaxHeight(numOfImgs);
-    let mediaMaxWidth = 560;
-
-    // Default media embed dimensions
-    let mediaObject = {
-        height: 0,
-        width: 0,
-    };
-
-    let heightShim = mediaMaxHeight;
-
-    // console.log('>>>>> has images!');
-    mediaObject = {
-        height: metadata.mediaExtended[0].size.height,
-        width: metadata.mediaExtended[0].size.width,
-    };
-
-    // if more wide than tall, heightShim should be scaled down with width ratio
-    if(mediaObject.width > mediaObject.height) {
-        const newWidthRatio = mediaMaxWidth / mediaObject.width;
-        const adjustedHeight = mediaObject.height * newWidthRatio;
-        heightShim = adjustedHeight;    
-    }
-
-    // Pre-process description with text wrapping
-    ctx.font = '18px "Noto Color Emoji"'; // we need to set the intended font here first before calcing it
+    ctx.font = '18px "Noto Color Emoji"';
     const descLines = getWrappedText(ctx, metadata.description, 420);
-    let defaultYPosition = 110; // Starting Y position for description text
+    const baseY = 110;
+    const canvasHeight = calculateCanvasHeight(descLines, baseY, heightShim);
 
-    // New height calcs
-    const descLinesLength = descLines.length;
-    const calculatedCanvasHeightFromDescLines = (descLinesLength * 30) + defaultYPosition + 40 + heightShim;
+    canvas.height = canvasHeight;
+    ctx.fillRect(0, 0, canvasWidth, canvasHeight);
 
-    // console.log('>>>>> calculatedCanvasHeightFromDescLines: ', calculatedCanvasHeightFromDescLines);
+    const [favicon, pfp] = await Promise.all([
+        loadImage('https://abs.twimg.com/favicons/twitter.3.ico'),
+        loadImage(metadata.pfpUrl),
+    ]);
 
-    // Re-calc canvas
-    ctx.canvas.height = calculatedCanvasHeightFromDescLines;
-    ctx.fillRect(0, 0, maxCanvasWidth, calculatedCanvasHeightFromDescLines);
-  
-    const favIconUrl = 'https://abs.twimg.com/favicons/twitter.3.ico';
-    const favicon = await loadImage(favIconUrl);
-    const pfpUrl = metadata.pfpUrl;
-    const pfp = await loadImage(pfpUrl);
-
-    // Standard Post
     drawBasicElements(ctx, globalFont, metadata, favicon, pfp, descLines, {
-        hasImgs: true, hasVids: true,
-        yOffset: defaultYPosition,
-        canvasHeightOffset: calculatedCanvasHeightFromDescLines,
+        hasImgs: true,
+        hasVids: true,
+        yOffset: baseY,
+        canvasHeightOffset: canvasHeight,
     });
 
-    // TODO: Utility function
-    const videoUrl = metadata.mediaUrls[0];
-    // console.log('>>>>> twitter_video_canvas > videoUrl: ', videoUrl);
-
-    // Convert the canvas to a buffer
     const buffer = canvas.toBuffer('image/png');
+    const videoUrl = metadata.mediaUrls[0];
+    const { filename, localWorkingPath } = buildPathsAndStuff('/tempdata', videoUrl);
+    const outputPath = `${localWorkingPath}/${filename}.png`;
 
-    // Write the buffer to a file
-    /**
-     * TODO TODO TODO — use temp filename first... UUID? then track state
-     */
-    const processingDir = '/tempdata';
-    const pathObj = buildPathsAndStuff(processingDir, videoUrl);
-    const filename = pathObj.filename;
-    const localWorkingPath = pathObj.localWorkingPath;
-    const localFilename = `${filename}.png`;
+    if (!existsSync(localWorkingPath)) mkdirSync(localWorkingPath, { recursive: true });
+    writeFileSync(outputPath, buffer);
 
-    // console.log('>>>>> twitter_video_canvas > localWorkingPath: ', localWorkingPath);
-
-    /**
-     * Rewrite with proper async handling for failure-cases...
-     */
-    if (!existsSync(localWorkingPath)) {
-        mkdirSync(localWorkingPath, { recursive: true });
-    }
-    writeFileSync(`${localWorkingPath}/${localFilename}`, buffer, (err) => {
-        if (err) throw err;
-        console.log('The file was saved!');
-    });
     return {
-        localFilename,
-        canvasHeight: calculatedCanvasHeightFromDescLines,
-        canvasWidth: mediaMaxWidth,
+        localFilename: `${filename}.png`,
+        canvasHeight,
+        canvasWidth: 560,
         heightShim,
     };
-    
-};
+}
 
 module.exports = { createTwitterVideoCanvas };
