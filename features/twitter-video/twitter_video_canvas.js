@@ -56,7 +56,9 @@ async function createTwitterVideoCanvas(metadataJson) {
     ctx.font = '18px "Noto Color Emoji"';
     const descLines = getWrappedText(ctx, metadata.description, 420);
     const baseY = 110;
-    const canvasHeight = calculateCanvasHeight(descLines, baseY, heightShim);
+    let canvasHeight = calculateCanvasHeight(descLines, baseY, heightShim);
+
+    if (!metadata.description) canvasHeight -= 40;
 
     canvas.height = canvasHeight;
     ctx.fillRect(0, 0, canvasWidth, canvasHeight);
