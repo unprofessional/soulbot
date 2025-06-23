@@ -100,10 +100,8 @@ async function createTwitterCanvas(metadataJson, isImage) {
     const maxCharLength = onlyVids ? 120 : 240;
     const descLines = getWrappedText(ctx, metadata.description, maxCharLength);
     const baseY = 110;
-    let descHeight = (descLines.length * 30) + baseY + 40 + heightShim;
+    const descHeight = (descLines.length * 30) + baseY + 40 + heightShim;
     const qtHeight = qtMetadata ? calculateQuoteHeight(ctx, qtMetadata) + 100 - (qtMetadata.error ? 40 : 0) : 0;
-
-    if (!metadata.description) descHeight -= 40;
 
     const totalHeight = descHeight + qtHeight;
     canvas.height = totalHeight;
