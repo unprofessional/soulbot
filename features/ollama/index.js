@@ -78,6 +78,7 @@ Categorize the image now and follow the JSON schema strictly.
                 ...(imagePath && { images: [imagePath] }), // Conditionally add 'images' property
             },
         ],
+        stream: false,
         keep_alive: -1, // Keep model in memory
     };
 
