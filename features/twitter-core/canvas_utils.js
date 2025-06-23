@@ -1,366 +1,197 @@
-// const { createCanvas } = require('canvas');
+// Refactored: features/twitter-core/canvas_utils.js
+
 const { cropSingleImage } = require("../twitter-post/crop_single_image");
 const { formatTwitterDate, filterMediaUrls } = require("./utils");
-const { scaleDownToFitAspectRatio } = require('../twitter-post/scale_down');
+const { scaleDownToFitAspectRatio } = require("../twitter-post/scale_down");
 
+/**
+ * Wraps text into lines that fit within maxWidth, excluding t.co URLs.
+ */
 function getWrappedText(ctx, text, maxWidth) {
-
-    // console.log('>>>>> canvas_utils > drawDescription > text: ', text);
-    // console.log('>>>>> canvas_utils > drawDescription > maxWidth: ', maxWidth);
-
-    // Enforce this on every call....
-    // ctx.font = '24px "Noto Color Emoji"'; // we need to set the intended font here first before calcing it
-
     const lines = [];
-    // const paragraphs = hasVids
-    //     ? [text.replace(/\n/g, ' ')]
-    //     : text.split('\n'); // Conditionally handle newlines
-    const paragraphs = text.split('\n');
+    const shortTwitterUrlPattern = /https:\/\/t\.co\/\S+/g;
 
-    const shortTwitterUrlPattern = /https:\/\/t\.co\/\S+/g; // Ensure global match
+    text.split('\n').forEach(paragraph => {
+        const cleaned = paragraph.replace(shortTwitterUrlPattern, '').trim();
+        if (!cleaned) return lines.push('');
 
-    paragraphs.forEach(paragraph => {
-        let matches = paragraph.match(shortTwitterUrlPattern); // Get the URL matches
+        const words = cleaned.split(' ');
+        let currentLine = words[0];
 
-        if (matches) {
-            matches.forEach(url => {
-                paragraph = paragraph.replace(url, '').trim();
-            });
+        for (let i = 1; i < words.length; i++) {
+            const testLine = `${currentLine} ${words[i]}`;
+            const width = ctx.measureText(testLine).width;
+            currentLine = width < maxWidth ? testLine : (lines.push(currentLine), words[i]);
         }
-
-        if (paragraph === '') {
-            lines.push(''); // Handle blank lines (paragraph breaks)
-        } else {
-            const words = paragraph.split(' ');
-            let currentLine = words[0];
-
-            // console.log('@@@ Current Font Before Wrapping:', ctx.font);
-            // console.log('@@@ maxWidth:', maxWidth);
-
-            for (let i = 1; i < words.length; i++) {
-                const word = words[i];
-                const width = ctx.measureText(currentLine + " " + word).width;
-                // console.log('@@@ currentLine:', currentLine);
-                // console.log('@@@ width:', width);
-
-                if (width < maxWidth) {
-                    currentLine += " " + word;
-                } else {
-                    lines.push(currentLine);
-                    currentLine = word;
-                }
-            }
-            lines.push(currentLine); // Push the last line of the paragraph
-        }
+        lines.push(currentLine);
     });
+
     return lines;
 }
 
-// TODO: Refactor with the below drawDescription...
-const getYPosFromLineHeight = (descLines, y) => {
+/**
+ * Calculates y position based on line height.
+ */
+function getYPosFromLineHeight(descLines, y, lineHeight = 30) {
+    return y + descLines.length * lineHeight;
+}
+
+/**
+ * Draws wrapped text description lines.
+ */
+function drawDescription(ctx, hasImgs, hasVids, descLines, font, x, y, isQt = false) {
     const lineHeight = 30;
+    ctx.font = '24px "Noto Color Emoji"';
+    ctx.textDrawingMode = "glyph";
+
     descLines.forEach(line => {
+        ctx.fillText(line, x, isQt ? y + 100 : y);
         y += lineHeight;
     });
-    return y;
-};
+}
 
-// ....hasOnlyVideos might be the wrong descriptor... could be QTVideo?????
-const drawDescription = (ctx, hasImgs, hasVids, descLines, font, x, y, isQt) => {
-    // console.log('>>>>> canvas_utils > drawDescription > descLines: ', descLines);
-    // console.log('>>>>> canvas_utils > drawDescription > descLines.length: ', descLines.length);
-    // const isQtWithMedia = isQt && (hasImgs || hasVids);
-    // const lineHeight = isQtWithMedia ? 24 : 30;
-    const lineHeight = 30;
-    // console.log('>>>>> canvas_utils > drawDescription > hasImgs || hasVids: ', hasImgs || hasVids);
-    descLines.forEach(line => {
-        ctx.textDrawingMode = "glyph";
-        // ctx.font = isQt ? '18px "Noto Color Emoji"' : '24px "Noto Color Emoji"';
-        // ctx.font = isQtWithMedia ? '18px "Noto Color Emoji"' : '24px "Noto Color Emoji"';
-        ctx.font = '24px "Noto Color Emoji"';
-        // if(!hasImgs && hasVids) {
-        //     console.log('>>>>> canvas_utils > drawDescription > !hasImgs and hasVids!');
-        //     ctx.font = '36px ' + font;
-        // }
-        // console.log('!!! canvas_utils > drawDescription > line: ', line);
-        ctx.fillText(line, x, isQt ? y + 100: y);
-        // drawTextWithSpacing(ctx, line, x, y, 1);
-        y += lineHeight;
-    });
-};
-
+/**
+ * Renders individual letters with spacing.
+ */
 function drawTextWithSpacing(ctx, text, x, y, letterSpacing = 1) {
-    // Set the initial position
     let currentX = x;
-
-    // Draw each character with specified letter spacing
     for (const char of text) {
         ctx.fillText(char, currentX, y);
-        // Move the x position by the character width plus the letterSpacing
         currentX += ctx.measureText(char).width + letterSpacing;
     }
 }
 
-const drawBasicElements = (
-    ctx, globalFont, metadata, favicon, pfp, descLines, options
-) => {
+function drawBasicElements(ctx, font, metadata, favicon, pfp, descLines, options) {
+    const { yOffset = 0, canvasHeightOffset = 0, hasImgs = false, hasVids = false } = options;
 
-    const {
-        yOffset = 0,
-        canvasHeightOffset = 0,
-        hasImgs = false,
-        hasVids = false,
-    } = options;
-
-    // Load and draw favicon
     ctx.drawImage(favicon, 550, 20, 32, 32);
-
-    // Draw nickname elements
-    ctx.fillStyle = 'white';
-    // ctx.font = 'bold 18px ' + globalFont;
-    // setFontBasedOnContent(ctx, metadata.authorUsername);
     ctx.textDrawingMode = "glyph";
+
+    ctx.fillStyle = 'white';
     ctx.font = '18px "Noto Color Emoji"';
     ctx.fillText(metadata.authorUsername, 100, 40);
 
-    // Draw username elements
     ctx.fillStyle = 'gray';
-    ctx.font = '18px ' + globalFont;
+    ctx.font = `18px ${font}`;
     ctx.fillText(`@${metadata.authorNick}`, 100, 60);
 
-    // Draw description (post text wrap handling)
     ctx.fillStyle = 'white';
-    const descXPosition = !hasImgs && hasVids ? 80 : 30;
-    ctx.textDrawingMode = "glyph";
     ctx.font = '24px "Noto Color Emoji"';
-    drawDescription(ctx, hasImgs, hasVids, descLines, globalFont, descXPosition, yOffset);
+    const descX = (!hasImgs && hasVids) ? 80 : 30;
+    drawDescription(ctx, hasImgs, hasVids, descLines, font, descX, yOffset);
 
-    // Draw date elements
     ctx.fillStyle = 'gray';
-    ctx.font = '18px ' + globalFont;
+    ctx.font = `18px ${font}`;
     ctx.fillText(formatTwitterDate(metadata.date), 30, canvasHeightOffset - 20);
 
-    // Draw circle mask
     ctx.save();
     const radius = 25;
     ctx.beginPath();
-    ctx.arc(20 + radius, 20 + radius, radius, 0, Math.PI * 2, true);
-    ctx.closePath();
+    ctx.arc(20 + radius, 20 + radius, radius, 0, Math.PI * 2);
     ctx.clip();
-
-    // Draw pfp image centered in the circle
-    ctx.drawImage(pfp, 20, 20, 50, radius * 2);
+    ctx.drawImage(pfp, 20, 20, 50, 50);
     ctx.restore();
-};
+}
 
-const drawQtBasicElements = (
-    ctx, globalFont, metadata, pfp, mediaObject, options
-) => {
+function drawQtBasicElements(ctx, font, metadata, pfp, mediaObj, options) {
+    const { canvasHeightOffset = 0, qtCanvasHeightOffset = 0 } = options;
+    const hasImgs = filterMediaUrls(metadata, ['jpg', 'jpeg', 'png']).length > 0;
+    const hasVids = filterMediaUrls(metadata, ['mp4']).length > 0;
+    const hasMedia = hasImgs || hasVids;
 
-    const {
-        canvasHeightOffset = 0,
-        qtCanvasHeightOffset = 0,
-        hasImgs = false,
-        hasVids = false,
-    } = options;
+    const qtMaxCharLength = hasMedia ? 320 : 420;
+    ctx.font = `24px ${font}`;
+    const qtDescLines = getWrappedText(ctx, metadata.description, qtMaxCharLength);
 
-    // console.log('>>>>> canvas_utils > drawQtBasicElements > qtMeta: ', metadata);
-    
-    // Pre-process media
-    const numOfQtImgs = filterMediaUrls(metadata, ['jpg', 'jpeg', 'png']).length;
-    // console.log('>>>>> canvas_utils > drawQtBasicElements > qtMeta > numOfQtImgs', numOfQtImgs);
-    const numOfQtVideos = filterMediaUrls(metadata, ['mp4']).length;
-    // console.log('>>>>> canvas_utils > drawQtBasicElements > numOfQtVideos', numOfQtVideos);
-    const hasMedia = numOfQtImgs > 0 || numOfQtVideos > 0;
-    
-    // const minHeight = 100;
-    // let mediaQtMaxHeight = hasMedia ? 300 : minHeight;
-    let mediaQtMaxWidth = 560;
-    
-    // Pre-process description with text wrapping
-    const qtMaxCharLength = hasMedia ? 320 : 420; // Maximum width for text
-    ctx.font = '24px ' + globalFont; // gotta set this here before getWrappedText for size calcs
-    const qtDescLines = getWrappedText(ctx, metadata.description, qtMaxCharLength, true);
-    
-    const qtXPosition = 20;
-    let qtYPosition = canvasHeightOffset;
-    
-    // QT Canvas Stroke
+    const qtX = 20;
+    const qtY = canvasHeightOffset;
+    const boxHeight = hasMedia ? Math.max(qtCanvasHeightOffset, 285) : qtCanvasHeightOffset;
+
     ctx.strokeStyle = '#4d4d4d';
-    ctx.lineWidth = 1;  // Set the stroke width (optional)
-    const cornerRadius = 15; // Adjust corner radius as needed
-    // console.log('>>>>> canvas_utils > drawQtBasicElements > mediaQtMaxHeight: ', mediaQtMaxHeight);
-    // console.log('>>>>> canvas_utils > drawQtBasicElements > qtCanvasHeightOffset: ', qtCanvasHeightOffset);
-    if (hasMedia) {
-        const minMediaHeight = 80 + 175 + 30; // qtMediaOffset + qtMediaStaticHeight + qtBottomPadding
-        // console.log('>>>>> canvas_utils > drawQtBasicElements > minMediaHeight: ', minMediaHeight);
-        const determinedHeight = minMediaHeight > qtCanvasHeightOffset ? minMediaHeight : qtCanvasHeightOffset;
-        // console.log('>>>>> canvas_utils > drawQtBasicElements > determinedHeight: ', determinedHeight);
-        // ctx.strokeRect(qtXPosition, qtYPosition, mediaQtMaxWidth, determinedHeight - 20); // 20 offset to match the left and right margins
-        ctx.beginPath();
-        ctx.roundRect(qtXPosition, qtYPosition, mediaQtMaxWidth, determinedHeight - 20, cornerRadius);
-        ctx.stroke();
-    } else {
-        // ctx.strokeRect(qtXPosition, qtYPosition, mediaQtMaxWidth, qtCanvasHeightOffset - 20); // 20 offset to match the left and right margins
-        ctx.beginPath();
-        ctx.roundRect(qtXPosition, qtYPosition, mediaQtMaxWidth, qtCanvasHeightOffset - 20, cornerRadius);
-        ctx.stroke();
-    }
-    
-    // Draw nickname elements
-    ctx.fillStyle = 'white'; // Text color
-    ctx.font = 'bold 18px ' + globalFont;
-    ctx.fillText(metadata.authorUsername, 100, qtYPosition + 40);
-  
-    // Draw nickname elements
-    ctx.fillStyle = 'gray'; // Text color
-    ctx.font = '18px ' + globalFont;
-    ctx.fillText(`@${metadata.authorNick}`, 100, qtYPosition + 60);
-  
-    // Draw description (post text wrap handling)
-    ctx.fillStyle = 'white'; // Text color for description
-    ctx.font = '24px ' + globalFont;
-    const qtTextXAxisStart = hasMedia ? 230 : 100;
-    drawDescription(ctx, hasImgs, hasVids, qtDescLines, globalFont, qtTextXAxisStart, qtYPosition, true);
-
-    const pfpOffset = canvasHeightOffset + 20;
-
-    // Draw circle mask
-    ctx.save();
-    const radius = 25;
+    ctx.lineWidth = 1;
     ctx.beginPath();
-    ctx.arc(40 + radius, pfpOffset + radius, radius, 0, Math.PI * 2, true);
-    ctx.closePath();
-    ctx.clip();
-
-    // Draw pfp image centered in the circle
-    ctx.drawImage(pfp, 40, pfpOffset, 50, radius * 2);
-    ctx.restore();
-    
-    const qtMediaYPos = canvasHeightOffset + 80;
-    // console.log('>>>>> canvas_utils > drawQtBasicElements > qtMediaYPos: ', qtMediaYPos);
-
-    // console.log('>>>>> canvas_utils > drawQtBasicElements > mainMedia1: ', mediaObject);
-    // or if (mainMedia1 !== undefined)
-    if (mediaObject) {
-        // console.log('>>>>> canvas_utils > drawQtBasicElements > has a mediaUrl!');
-        const maxHeight = 175;
-        const maxWidth = 175;
-        const qtXPosFinal = qtXPosition + 20;
-        // Create a clipping path with rounded corners
-        const cornerRadius = 15;
-        ctx.save(); // Save the current context state
-        ctx.beginPath();
-        ctx.moveTo(qtXPosFinal + cornerRadius, qtMediaYPos); // Start at the top-left corner
-        ctx.lineTo(qtXPosFinal + maxWidth - cornerRadius, qtMediaYPos); // Top-right corner
-        ctx.quadraticCurveTo(qtXPosFinal + maxWidth, qtMediaYPos, qtXPosFinal + maxWidth, qtMediaYPos + cornerRadius); // Top-right curve
-        ctx.lineTo(qtXPosFinal + maxWidth, qtMediaYPos + maxHeight - cornerRadius); // Bottom-right corner
-        ctx.quadraticCurveTo(qtXPosFinal + maxWidth, qtMediaYPos + maxHeight, qtXPosFinal + maxWidth - cornerRadius, qtMediaYPos + maxHeight); // Bottom-right curve
-        ctx.lineTo(qtXPosFinal + cornerRadius, qtMediaYPos + maxHeight); // Bottom-left corner
-        ctx.quadraticCurveTo(qtXPosFinal, qtMediaYPos + maxHeight, qtXPosFinal, qtMediaYPos + maxHeight - cornerRadius); // Bottom-left curve
-        ctx.lineTo(qtXPosFinal, qtMediaYPos + cornerRadius); // Top-left corner
-        ctx.quadraticCurveTo(qtXPosFinal, qtMediaYPos, qtXPosFinal + cornerRadius, qtMediaYPos); // Top-left curve
-        ctx.closePath();
-        ctx.clip(); // Apply the clipping path
-        cropSingleImage(ctx, mediaObject, maxHeight, maxWidth, qtXPosFinal, qtMediaYPos);
-        ctx.restore();
-    } else {
-        console.error('>>>>> canvas_utils > drawQtBasicElements > mainMedia1 does not have either height, width, or neither!!!');
-    }
-    
-};
-
-const drawQtMissingStatus = (ctx, globalFont, errorMsg, options) => {
-
-    const {
-        canvasHeightOffset = 0,
-        qtCanvasHeightOffset = 0,
-    } = options;
-
-    // Pre-process description with text wrapping
-    ctx.font = '24px ' + globalFont; // gotta set this here before getWrappedText for size calcs
-    const qtDescLines = getWrappedText(ctx, errorMsg, 420);
-
-    let mediaQtMaxWidth = 560;
-    
-    const qtXPosition = 20;
-    const qtYPosition = canvasHeightOffset;
-    
-    // QT Canvas Stroke
-    ctx.strokeStyle = '#4d4d4d';
-    ctx.lineWidth = 1;  // Set the stroke width (optional)
-    const cornerRadius = 15; // Adjust corner radius as needed
-
-    ctx.beginPath();
-    ctx.roundRect(qtXPosition, qtYPosition, mediaQtMaxWidth, qtCanvasHeightOffset - 20, cornerRadius);
+    ctx.roundRect(qtX, qtY, 560, boxHeight - 20, 15);
     ctx.stroke();
 
-    // Draw description (post text wrap handling)
-    ctx.fillStyle = 'white'; // Text color for description
-    ctx.font = '24px ' + globalFont;
-    const qtTextXAxisStart = 100;
-    drawDescription(ctx, false, false, qtDescLines, globalFont, qtTextXAxisStart, qtYPosition - 40, true);
-};
+    ctx.fillStyle = 'white';
+    ctx.font = `bold 18px ${font}`;
+    ctx.fillText(metadata.authorUsername, 100, qtY + 40);
 
-const embedCommunityNote = (message, communityNoteText) => {
-    const embed = {
-        color: 0x0099ff,
-        // author: {
-        //     name: `${message.author.username}`,
-        //     icon_url: message.author.displayAvatarURL(),
-        // },
-        title: 'Community Note. Readers added context:',
-        description: communityNoteText,
-        // footer: {
-        //     text: 'Test footer text',
-        // },
-    };
-    return communityNoteText ? embed : undefined;
-};
+    ctx.fillStyle = 'gray';
+    ctx.font = `18px ${font}`;
+    ctx.fillText(`@${metadata.authorNick}`, 100, qtY + 60);
 
-const getAdjustedAspectRatios = (
-    canvasWidth, canvasHeight,
-    videoWidth, videoHeight,
-    heightShim
-) => {
+    ctx.fillStyle = 'white';
+    ctx.font = `24px ${font}`;
+    const textX = hasMedia ? 230 : 100;
+    drawDescription(ctx, hasImgs, hasVids, qtDescLines, font, textX, qtY, true);
 
-    // Ensure the dimensions are even
-    const adjustedCanvasWidth = Math.ceil(canvasWidth / 2) * 2;
-    const adjustedCanvasHeight = Math.ceil(canvasHeight / 2) * 2;
-    const adjustedVideoWidth = Math.ceil(videoWidth / 2) * 2;
-    const adjustedVideoHeight = Math.ceil(videoHeight / 2) * 2;
-    // console.log('>>>>> getAdjustedAspectRatios > adjustedCanvasWidth: ', adjustedCanvasWidth);
-    // console.log('>>>>> getAdjustedAspectRatios > adjustedCanvasHeight: ', adjustedCanvasHeight);
-    // console.log('>>>>> getAdjustedAspectRatios > adjustedVideoWidth: ', adjustedVideoWidth);
-    // console.log('>>>>> getAdjustedAspectRatios > adjustedVideoHeight: ', adjustedVideoHeight);
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(65, canvasHeightOffset + 45, 25, 0, Math.PI * 2);
+    ctx.clip();
+    ctx.drawImage(pfp, 40, canvasHeightOffset + 20, 50, 50);
+    ctx.restore();
 
-    const mediaObject = {
-        height: adjustedVideoHeight,
-        width: adjustedVideoWidth
-    };
-    // console.log('>>>>> getAdjustedAspectRatios > mediaObject: ', mediaObject);
+    if (mediaObj) {
+        const qtMediaY = canvasHeightOffset + 80;
+        ctx.save();
+        ctx.beginPath();
+        ctx.roundRect(40, qtMediaY, 175, 175, 15);
+        ctx.clip();
+        cropSingleImage(ctx, mediaObj, 175, 175, 40, qtMediaY);
+        ctx.restore();
+    }
+}
 
-    const scaledDownObject = scaleDownToFitAspectRatio(
-        mediaObject, adjustedCanvasHeight, adjustedCanvasWidth, (canvasHeight - heightShim)
-    );
-    // console.log('>>>>> getAdjustedAspectRatios > scaledDownObject: ', scaledDownObject);
+function drawQtMissingStatus(ctx, font, errorMsg, options) {
+    const { canvasHeightOffset = 0, qtCanvasHeightOffset = 0 } = options;
+    ctx.font = `24px ${font}`;
+    const qtDescLines = getWrappedText(ctx, errorMsg, 420);
 
-    const overlayX = (canvasWidth - scaledDownObject.width) / 2;
-    const overlayY = canvasHeight - heightShim - 50;
-    // console.log('>>>>> getAdjustedAspectRatios > overlayX: ', overlayX);
-    // console.log('>>>>> getAdjustedAspectRatios > overlayY: ', overlayY);
+    const qtX = 20;
+    const qtY = canvasHeightOffset;
+    ctx.strokeStyle = '#4d4d4d';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.roundRect(qtX, qtY, 560, qtCanvasHeightOffset - 20, 15);
+    ctx.stroke();
+
+    ctx.fillStyle = 'white';
+    ctx.font = `24px ${font}`;
+    drawDescription(ctx, false, false, qtDescLines, font, 100, qtY - 40, true);
+}
+
+function embedCommunityNote(message, noteText) {
+    return noteText
+        ? {
+            color: 0x0099ff,
+            title: 'Community Note:',
+            description: noteText,
+        }
+        : undefined;
+}
+
+function getAdjustedAspectRatios(canvasWidth, canvasHeight, videoWidth, videoHeight, heightShim) {
+    const even = n => Math.ceil(n / 2) * 2;
+    const mediaObject = { width: even(videoWidth), height: even(videoHeight) };
+    const adjustedCanvasWidth = even(canvasWidth);
+    const adjustedCanvasHeight = even(canvasHeight);
+    const scaled = scaleDownToFitAspectRatio(mediaObject, adjustedCanvasHeight, adjustedCanvasWidth, canvasHeight - heightShim);
 
     return {
-        adjustedCanvasWidth, adjustedCanvasHeight,
-        scaledDownObjectWidth: scaledDownObject.width,
-        scaledDownObjectHeight: scaledDownObject.height,
-        overlayX, overlayY
-    };  
-};
+        adjustedCanvasWidth,
+        adjustedCanvasHeight,
+        scaledDownObjectWidth: scaled.width,
+        scaledDownObjectHeight: scaled.height,
+        overlayX: (canvasWidth - scaled.width) / 2,
+        overlayY: canvasHeight - heightShim - 50,
+    };
+}
 
 module.exports = {
     getWrappedText,
-    getYPosFromLineHeight, // TODO: See method docs... refactor with drawDescription
+    getYPosFromLineHeight,
     drawDescription,
     drawTextWithSpacing,
     drawBasicElements,

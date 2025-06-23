@@ -1,3 +1,4 @@
+// features/twitter-video/twitter_video_canvas.js
 const { existsSync, mkdirSync, writeFileSync } = require('node:fs');
 const {
     registerFont,
@@ -5,7 +6,7 @@ const {
     loadImage,
 } = require('canvas');
 const { buildPathsAndStuff } = require('../twitter-core/path_builder.js');
-const { getWrappedText, drawBasicElements, getAdjustedAspectRatios } = require('../twitter-core/canvas_utils.js');
+const { getWrappedText, drawBasicElements } = require('../twitter-core/canvas_utils.js');
 
 const createTwitterVideoCanvas = async (metadataJson) => {
 
@@ -98,17 +99,6 @@ const createTwitterVideoCanvas = async (metadataJson) => {
         yOffset: defaultYPosition,
         canvasHeightOffset: calculatedCanvasHeightFromDescLines,
     });
-
-    // Alpha layer mask attempt... uncomment when implementing!
-    // const {
-    //     adjustedCanvasWidth, adjustedCanvasHeight,
-    //     scaledDownObjectWidth, scaledDownObjectHeight,
-    //     overlayX, overlayY
-    // } = getAdjustedAspectRatios(
-    //     maxCanvasWidth, canvasHeight,
-    //     mediaObject.width, mediaObject.height,
-    //     heightShim
-    // );
 
     // TODO: Utility function
     const videoUrl = metadata.mediaUrls[0];
