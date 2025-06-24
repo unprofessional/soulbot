@@ -128,7 +128,7 @@ async function createTwitterCanvas(metadataJson, isImage) {
         loadImage(metadata.pfpUrl)
     ]);
 
-    const useDesktopLayout = metadata.description.length > MAX_DESC_CHARS;
+    const useDesktopLayout = false; //metadata.description.length > MAX_DESC_CHARS;
 
     if (useDesktopLayout) {
         drawDesktopLayout(ctx, font, metadata, favicon, pfp, descLines, {
@@ -158,7 +158,7 @@ async function createTwitterCanvas(metadataJson, isImage) {
                 : null;
             const qtMediaImg = qtMediaUrl ? await loadImage(qtMediaUrl) : undefined;
 
-            const qtUseDesktopLayout = qtMetadata.description.length > MAX_QT_DESC_CHARS;
+            const qtUseDesktopLayout = false; //qtMetadata.description.length > MAX_QT_DESC_CHARS;
 
             if (qtUseDesktopLayout) {
                 drawQtDesktopLayout(ctx, font, qtMetadata, qtPfp, qtMediaImg, {
