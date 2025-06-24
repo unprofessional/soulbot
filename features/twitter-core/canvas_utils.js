@@ -198,11 +198,10 @@ function drawDesktopLayout(ctx, font, metadata, favicon, pfp, descLines, options
         hasVids = false,
     } = options;
 
+    const hasMedia = hasImgs || hasVids;
     const padding = 30;
     const leftColumnWidth = 150;
-    // const contentWidth = 560 - leftColumnWidth - padding;
 
-    // Set drawing mode
     ctx.textDrawingMode = "glyph";
 
     // === Left: Avatar + User Info ===
@@ -226,8 +225,8 @@ function drawDesktopLayout(ctx, font, metadata, favicon, pfp, descLines, options
     ctx.fillText(`@${metadata.authorNick}`, padding, avatarY + avatarRadius * 2 + 55);
 
     // === Right: Wrapped Description ===
-    const textX = padding + leftColumnWidth;
-    let textY = yOffset + 10;
+    const textX = hasMedia ? (padding + leftColumnWidth) : padding;
+    const textY = yOffset + 100;
 
     ctx.fillStyle = 'white';
     ctx.font = '24px "Noto Color Emoji"';
@@ -251,7 +250,6 @@ function drawQtDesktopLayout(ctx, font, metadata, pfp, mediaObj, options) {
 
     const padding = 30;
     const leftColWidth = 150;
-    // const contentWidth = 560 - leftColWidth - padding;
 
     const hasImgs = filterMediaUrls(metadata, ['jpg', 'jpeg', 'png']).length > 0;
     const hasVids = filterMediaUrls(metadata, ['mp4']).length > 0;
@@ -295,11 +293,11 @@ function drawQtDesktopLayout(ctx, font, metadata, pfp, mediaObj, options) {
     // === Right: Wrapped Quote Description ===
     ctx.fillStyle = 'white';
     ctx.font = '24px "Noto Color Emoji"';
-    const textX = qtX + leftColWidth;
-    let textY = qtY + 30;
+    const textX = hasMedia ? (qtX + leftColWidth) : (qtX + padding);
+    const textY = qtY + 30;
     drawDescription(ctx, hasImgs, hasVids, qtDescLines, font, textX, textY, true);
 
-    // === Optional: Media Preview (Mini Thumbnail) ===
+    // === Optional: Media Preview ===
     if (mediaObj) {
         const mediaY = qtY + boxHeight - 195;
         ctx.save();
