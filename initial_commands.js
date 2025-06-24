@@ -1,89 +1,94 @@
-const path = require('node:path');
+// initial_commands.js
+
 const fs = require('node:fs');
+const path = require('node:path');
 const { Collection, REST, Routes, Events } = require('discord.js');
 require('dotenv').config();
+
+const { DISCORD_CLIENT_ID, DISCORD_BOT_TOKEN } = process.env;
 
 const initializeCommands = async (client) => {
     client.commands = new Collection();
 
-    const foldersPath = path.join(__dirname, 'commands');
+    const foldersPath = path.resolve(__dirname, 'commands');
     const commandFolders = fs.readdirSync(foldersPath);
 
-    const commands = []; // For registering commands via Discord REST API
-    const clientId = process.env.DISCORD_CLIENT_ID;
+    const commandsForAPI = [];
+    const rest = new REST({ version: '10' }).setToken(DISCORD_BOT_TOKEN);
 
-    // Dynamically load command files
+    // === Load all command files ===
     for (const folder of commandFolders) {
-        const commandsPath = path.join(foldersPath, folder);
-        const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('.js'));
-        
+        const folderPath = path.join(foldersPath, folder);
+        const commandFiles = fs
+            .readdirSync(folderPath, { withFileTypes: true })
+            .filter(f => f.isFile() && f.name.endsWith('.js'))
+            .map(f => f.name);
+
         for (const file of commandFiles) {
-            const filePath = path.join(commandsPath, file);
-            const command = require(filePath);
-
-            // if (command.name === 'llm') { // Replace 'llm' with the command you want to remove
-            //     console.log(`Deleting command: ${command.name}`);
-            //     await rest.delete(`${Routes.applicationCommands(clientId)}/${command.id}`);
-            // }
-
-            // Add the command to the client.commands Collection
-            if ('data' in command && 'execute' in command) {
-                client.commands.set(command.data.name, command);
-                commands.push(command.data.toJSON()); // For Discord REST API registration
-            } else {
-                console.log(`[WARNING] The command at ${filePath} is missing a required "data" or "execute" property.`);
+            const filePath = path.join(folderPath, file);
+            try {
+                const command = require(filePath);
+                if ('data' in command && 'execute' in command) {
+                    client.commands.set(command.data.name, command);
+                    commandsForAPI.push(command.data.toJSON());
+                } else {
+                    console.warn(`[WARN] Command file at ${filePath} is missing "data" or "execute" export.`);
+                }
+            } catch (err) {
+                console.error(`[ERROR] Failed to load command at ${filePath}:`, err);
             }
         }
     }
 
-    // Register commands using Discord's REST API
-    const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_BOT_TOKEN);
-
+    // === Register global application commands ===
     try {
-        console.log('Refreshing application (/) commands...');
-        // const guildId = process.env.DISCORD_GUILD_ID; // Optional: For guild-specific commands
-
-        // console.log('>>>>> initial_commands > clientId: ', clientId);
-        // console.log('>>>>> initial_commands > guildId: ', guildId);
-
-        // if (guildId) {
-        //     // Register commands for a specific guild (useful for development)
-        //     await rest.put(
-        //         Routes.applicationGuildCommands(clientId, guildId),
-        //         { body: commands }
-        //     );
-        //     console.log('Successfully reloaded guild (/) commands.');
-        // } else {
-            // Register global commands
-            await rest.put(
-                Routes.applicationCommands(clientId),
-                { body: commands }
-            );
-            console.log('Successfully reloaded global (/) commands.');
-        // }
-    } catch (error) {
-        console.error('Error refreshing commands:', error);
+        console.log('🔄 Registering global application (/) commands...');
+        await rest.put(Routes.applicationCommands(DISCORD_CLIENT_ID), {
+            body: commandsForAPI,
+        });
+        console.log(`✅ Successfully registered ${commandsForAPI.length} global (/) commands.`);
+    } catch (err) {
+        console.error('❌ Error registering application commands:', err);
     }
 
-    // Set up the InteractionCreate listener
+    // === Handle interactions: slash, modal, button, select menu ===
     client.on(Events.InteractionCreate, async interaction => {
-        if (!interaction.isChatInputCommand()) return;
-
-        const command = client.commands.get(interaction.commandName);
-
-        if (!command) {
-            console.error(`No command matching ${interaction.commandName} was found.`);
-            return;
-        }
-
         try {
-            await command.execute(interaction);
-        } catch (error) {
-            console.error(`Error executing command ${interaction.commandName}:`, error);
+            if (interaction.isChatInputCommand()) {
+                const command = client.commands.get(interaction.commandName);
+                if (!command) {
+                    console.warn(`[WARN] No matching command for: ${interaction.commandName}`);
+                    return;
+                }
+                await command.execute(interaction);
+            }
+
+            else if (interaction.isModalSubmit()) {
+                const modalHandler = require('./features/rpg-tracker/modal_handlers.js');
+                await modalHandler.handleModal(interaction);
+            }
+
+            else if (interaction.isButton()) {
+                const buttonHandler = require('./features/rpg-tracker/button_handlers.js');
+                await buttonHandler.handleButton(interaction);
+            }
+            
+            else if (interaction.isStringSelectMenu()) {
+                const selectMenuHandler = require('./features/rpg-tracker/select_menu_handlers.js');
+                await selectMenuHandler.handleSelectMenu(interaction);
+            }
+        } catch (err) {
+            console.error('❌ Error handling interaction:', err);
             if (interaction.replied || interaction.deferred) {
-                await interaction.followUp({ content: 'There was an error while executing this command!', ephemeral: true });
+                await interaction.followUp({
+                    content: 'There was an error while executing this action!',
+                    ephemeral: true,
+                });
             } else {
-                await interaction.reply({ content: 'There was an error while executing this command!', ephemeral: true });
+                await interaction.reply({
+                    content: 'There was an error while executing this action!',
+                    ephemeral: true,
+                });
             }
         }
     });

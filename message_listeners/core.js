@@ -241,6 +241,7 @@ const initializeListeners = async (client) => {
                 const images = message.attachments.filter(att => att.contentType?.startsWith('image/'));
                 if (images.size > 0) {
                     await message.channel.send('Processing your image, please wait...');
+                    // eslint-disable-next-line no-unused-vars
                     for (const [_, image] of images) {
                         try {
                             // const localPath = `/tempdata/${image.name}`;
@@ -273,6 +274,7 @@ const initializeListeners = async (client) => {
                 const images = message.attachments.filter(att => att.contentType?.startsWith('image/'));
                 if (images.size > 0) {
                     await message.channel.send('Processing your image, please wait...');
+                    // eslint-disable-next-line no-unused-vars
                     for (const [_, image] of images) {
                         try {
                             // const localPath = `/tempdata/${image.name}`;

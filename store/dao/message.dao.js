@@ -1,3 +1,5 @@
+// store/dao/message.dao.js
+
 const { Pool } = require('pg');
 const {
     pgHost, pgPort, pgUser, pgPass, pgDb,

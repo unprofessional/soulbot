@@ -1,6 +1,8 @@
+// commands/utility/llama.js
+
 const { SlashCommandBuilder } = require('discord.js');
 const { PromptTemplate } = require('@langchain/core/prompts');
-const { sendPromptToOllama, processChunks } = require('../../features/ollama');
+const { sendPromptToOllama } = require('../../features/ollama');
 const PromiseQueue = require('../../lib/promise_queue');
 const cheerio = require('cheerio');
 const { kokoroUrl } = require('../../config/env_config');
