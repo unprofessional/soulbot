@@ -6,9 +6,11 @@ const { scaleDownToFitAspectRatio } = require('./scale_down.js');
 const {
     getWrappedText,
     drawBasicElements,
+    drawDesktopLayout,
     drawQtBasicElements,
-    getYPosFromLineHeight,
-    drawQtMissingStatus
+    drawQtDesktopLayout,
+    drawQtMissingStatus,
+    getYPosFromLineHeight
 } = require('../twitter-core/canvas_utils.js');
 const {
     filterMediaUrls,
@@ -97,10 +99,24 @@ async function createTwitterCanvas(metadataJson, isImage) {
             : Math.min(mediaObj.height, mediaMaxHeight);
     }
 
+    const MAX_DESC_CHARS = 300;
+    const MAX_QT_DESC_CHARS = 240;
+
+    // Trim overly long root tweets
+    if (metadata.description.length > MAX_DESC_CHARS + 50) {
+        metadata.description = metadata.description.slice(0, MAX_DESC_CHARS) + '…';
+    }
+
+    // Generate wrapped lines for root
     const maxCharLength = onlyVids ? 120 : 240;
     const descLines = getWrappedText(ctx, metadata.description, maxCharLength);
     const baseY = 110;
     const descHeight = (descLines.length * 30) + baseY + 40 + heightShim;
+
+    // Quote height pre-pass
+    if (qtMetadata && qtMetadata.description.length > MAX_QT_DESC_CHARS + 50) {
+        qtMetadata.description = qtMetadata.description.slice(0, MAX_QT_DESC_CHARS) + '…';
+    }
     const qtHeight = qtMetadata ? calculateQuoteHeight(ctx, qtMetadata) + 100 - (qtMetadata.error ? 40 : 0) : 0;
 
     const totalHeight = descHeight + qtHeight;
@@ -112,12 +128,23 @@ async function createTwitterCanvas(metadataJson, isImage) {
         loadImage(metadata.pfpUrl)
     ]);
 
-    drawBasicElements(ctx, font, metadata, favicon, pfp, descLines, {
-        hasImgs,
-        hasVids,
-        yOffset: baseY,
-        canvasHeightOffset: descHeight
-    });
+    const useDesktopLayout = metadata.description.length > MAX_DESC_CHARS;
+
+    if (useDesktopLayout) {
+        drawDesktopLayout(ctx, font, metadata, favicon, pfp, descLines, {
+            hasImgs,
+            hasVids,
+            yOffset: baseY,
+            canvasHeightOffset: descHeight
+        });
+    } else {
+        drawBasicElements(ctx, font, metadata, favicon, pfp, descLines, {
+            hasImgs,
+            hasVids,
+            yOffset: baseY,
+            canvasHeightOffset: descHeight
+        });
+    }
 
     if (qtMetadata) {
         const qtPfp = await loadImage(qtMetadata.pfpUrl);
@@ -131,12 +158,21 @@ async function createTwitterCanvas(metadataJson, isImage) {
                 : null;
             const qtMediaImg = qtMediaUrl ? await loadImage(qtMediaUrl) : undefined;
 
-            drawQtBasicElements(ctx, font, qtMetadata, qtPfp, qtMediaImg, {
-                canvasHeightOffset: descHeight,
-                qtCanvasHeightOffset: qtHeight,
-                hasImgs,
-                hasVids
-            });
+            const qtUseDesktopLayout = qtMetadata.description.length > MAX_QT_DESC_CHARS;
+
+            if (qtUseDesktopLayout) {
+                drawQtDesktopLayout(ctx, font, qtMetadata, qtPfp, qtMediaImg, {
+                    canvasHeightOffset: descHeight,
+                    qtCanvasHeightOffset: qtHeight
+                });
+            } else {
+                drawQtBasicElements(ctx, font, qtMetadata, qtPfp, qtMediaImg, {
+                    canvasHeightOffset: descHeight,
+                    qtCanvasHeightOffset: qtHeight,
+                    hasImgs,
+                    hasVids
+                });
+            }
         } else {
             drawQtMissingStatus(ctx, font, qtMetadata.message, {
                 canvasHeightOffset: descHeight,

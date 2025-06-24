@@ -1,3 +1,5 @@
+// features/twitter-core/render_twitter_post.js
+
 const { mkdir, readdir, readFile } = require('node:fs').promises;
 const { createTwitterCanvas } = require('../twitter-post/twitter_canvas.js');
 const { createTwitterVideoCanvas } = require('../twitter-video/twitter_video_canvas.js');

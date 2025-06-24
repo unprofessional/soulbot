@@ -190,6 +190,127 @@ function getAdjustedAspectRatios(canvasWidth, canvasHeight, videoWidth, videoHei
     };
 }
 
+function drawDesktopLayout(ctx, font, metadata, favicon, pfp, descLines, options) {
+    const {
+        yOffset = 0,
+        canvasHeightOffset = 0,
+        hasImgs = false,
+        hasVids = false,
+    } = options;
+
+    const padding = 30;
+    const leftColumnWidth = 150;
+    // const contentWidth = 560 - leftColumnWidth - padding;
+
+    // Set drawing mode
+    ctx.textDrawingMode = "glyph";
+
+    // === Left: Avatar + User Info ===
+    ctx.save();
+    const avatarRadius = 30;
+    const avatarX = padding + avatarRadius;
+    const avatarY = yOffset;
+
+    ctx.beginPath();
+    ctx.arc(avatarX, avatarY + avatarRadius, avatarRadius, 0, Math.PI * 2);
+    ctx.clip();
+    ctx.drawImage(pfp, avatarX - avatarRadius, avatarY, avatarRadius * 2, avatarRadius * 2);
+    ctx.restore();
+
+    ctx.fillStyle = 'white';
+    ctx.font = `bold 18px ${font}`;
+    ctx.fillText(metadata.authorUsername, padding, avatarY + avatarRadius * 2 + 30);
+
+    ctx.fillStyle = 'gray';
+    ctx.font = `18px ${font}`;
+    ctx.fillText(`@${metadata.authorNick}`, padding, avatarY + avatarRadius * 2 + 55);
+
+    // === Right: Wrapped Description ===
+    const textX = padding + leftColumnWidth;
+    let textY = yOffset + 10;
+
+    ctx.fillStyle = 'white';
+    ctx.font = '24px "Noto Color Emoji"';
+    drawDescription(ctx, hasImgs, hasVids, descLines, font, textX, textY);
+
+    // === Footer Date ===
+    const footerY = canvasHeightOffset - 20;
+    ctx.fillStyle = 'gray';
+    ctx.font = `18px ${font}`;
+    ctx.fillText(formatTwitterDate(metadata.date), padding, footerY);
+
+    // === Favicon Top Right ===
+    ctx.drawImage(favicon, 550, 20, 32, 32);
+}
+
+function drawQtDesktopLayout(ctx, font, metadata, pfp, mediaObj, options) {
+    const {
+        canvasHeightOffset = 0,
+        qtCanvasHeightOffset = 0,
+    } = options;
+
+    const padding = 30;
+    const leftColWidth = 150;
+    // const contentWidth = 560 - leftColWidth - padding;
+
+    const hasImgs = filterMediaUrls(metadata, ['jpg', 'jpeg', 'png']).length > 0;
+    const hasVids = filterMediaUrls(metadata, ['mp4']).length > 0;
+    const hasMedia = hasImgs || hasVids;
+
+    const textWrapWidth = hasMedia ? 320 : 420;
+    ctx.font = `24px ${font}`;
+    const qtDescLines = getWrappedText(ctx, metadata.description, textWrapWidth);
+
+    const qtX = 20;
+    const qtY = canvasHeightOffset;
+    const boxHeight = Math.max(qtCanvasHeightOffset, hasMedia ? 285 : 150);
+
+    // === Outer Quote Box ===
+    ctx.strokeStyle = '#4d4d4d';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.roundRect(qtX, qtY, 560, boxHeight - 20, 15);
+    ctx.stroke();
+
+    // === Left: PFP + Name ===
+    const avatarRadius = 25;
+    const avatarX = qtX + padding;
+    const avatarY = qtY + 20;
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(avatarX + avatarRadius, avatarY + avatarRadius, avatarRadius, 0, Math.PI * 2);
+    ctx.clip();
+    ctx.drawImage(pfp, avatarX, avatarY, avatarRadius * 2, avatarRadius * 2);
+    ctx.restore();
+
+    ctx.fillStyle = 'white';
+    ctx.font = `bold 18px ${font}`;
+    ctx.fillText(metadata.authorUsername, avatarX, avatarY + avatarRadius * 2 + 20);
+
+    ctx.fillStyle = 'gray';
+    ctx.font = `18px ${font}`;
+    ctx.fillText(`@${metadata.authorNick}`, avatarX, avatarY + avatarRadius * 2 + 40);
+
+    // === Right: Wrapped Quote Description ===
+    ctx.fillStyle = 'white';
+    ctx.font = '24px "Noto Color Emoji"';
+    const textX = qtX + leftColWidth;
+    let textY = qtY + 30;
+    drawDescription(ctx, hasImgs, hasVids, qtDescLines, font, textX, textY, true);
+
+    // === Optional: Media Preview (Mini Thumbnail) ===
+    if (mediaObj) {
+        const mediaY = qtY + boxHeight - 195;
+        ctx.save();
+        ctx.beginPath();
+        ctx.roundRect(qtX + padding, mediaY, 175, 175, 15);
+        ctx.clip();
+        cropSingleImage(ctx, mediaObj, 175, 175, qtX + padding, mediaY);
+        ctx.restore();
+    }
+}
+
 module.exports = {
     getWrappedText,
     getYPosFromLineHeight,
@@ -200,4 +321,6 @@ module.exports = {
     drawQtMissingStatus,
     embedCommunityNote,
     getAdjustedAspectRatios,
+    drawDesktopLayout,
+    drawQtDesktopLayout,
 };
