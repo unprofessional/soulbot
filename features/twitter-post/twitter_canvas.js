@@ -99,8 +99,8 @@ async function createTwitterCanvas(metadataJson, isImage) {
             : Math.min(mediaObj.height, mediaMaxHeight);
     }
 
-    const MAX_DESC_CHARS = 300;
-    const MAX_QT_DESC_CHARS = 240;
+    const MAX_DESC_CHARS = 1000;
+    const MAX_QT_DESC_CHARS = 500;
 
     // Trim overly long root tweets
     if (metadata.description.length > MAX_DESC_CHARS + 50) {
