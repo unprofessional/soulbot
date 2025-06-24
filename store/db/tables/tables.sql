@@ -68,7 +68,7 @@ CREATE TABLE IF NOT EXISTS character_stat_field (
   UNIQUE(character_id, name) -- Prevent duplicate stat names for a character
 );
 
--- User Profiles
+-- RPG Tracker: User Profiles
 CREATE TABLE IF NOT EXISTS user_profile (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   discord_id TEXT NOT NULL UNIQUE, -- maps to Discord user ID

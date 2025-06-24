@@ -42,7 +42,7 @@ const initializeCommands = async (client) => {
 
     // === Register global application commands ===
     try {
-        console.log('🔄 Registering global application (/) commands...');
+        console.log('🔄 Registering global application (/) commands: ', commandsForAPI);
         await rest.put(Routes.applicationCommands(DISCORD_CLIENT_ID), {
             body: commandsForAPI,
         });
