@@ -3,6 +3,8 @@ const {
     TextInputBuilder,
     TextInputStyle,
     ActionRowBuilder,
+    ButtonBuilder,
+    ButtonStyle,
 } = require('discord.js');
 
 const { getCharactersByUser, getCharacterWithStats } = require('../../store/services/character.service');
@@ -47,6 +49,7 @@ module.exports = {
             return await interaction.showModal(modal);
         }
 
+        // === Add Inventory Modal ===
         if (customId.startsWith('add_inventory_item:')) {
             const [, characterId] = customId.split(':');
 
@@ -80,25 +83,56 @@ module.exports = {
             return await interaction.showModal(modal);
         }
 
+        // === Trigger inventory clear confirmation ===
         if (customId.startsWith('clear_inventory:')) {
+            const [, characterId] = customId.split(':');
+
+            const confirmRow = new ActionRowBuilder().addComponents(
+                new ButtonBuilder()
+                    .setCustomId(`confirm_clear_inventory:${characterId}`)
+                    .setLabel('Yes, Delete All Items')
+                    .setStyle(ButtonStyle.Danger),
+                new ButtonBuilder()
+                    .setCustomId('cancel_clear_inventory')
+                    .setLabel('Cancel')
+                    .setStyle(ButtonStyle.Secondary)
+            );
+
+            return await interaction.reply({
+                content: '⚠️ Are you sure you want to delete all inventory items for this character?',
+                components: [confirmRow],
+                ephemeral: true,
+            });
+        }
+
+        // === Confirm inventory deletion ===
+        if (customId.startsWith('confirm_clear_inventory:')) {
             const [, characterId] = customId.split(':');
 
             try {
                 await deleteInventoryByCharacter(characterId);
-                return await interaction.reply({
+                return await interaction.update({
                     content: '🗑️ Inventory cleared.',
-                    ephemeral: true,
+                    components: [],
                 });
             } catch (err) {
                 console.error('Error clearing inventory:', err);
-                return await interaction.reply({
+                return await interaction.update({
                     content: '❌ Failed to clear inventory.',
-                    ephemeral: true,
+                    components: [],
                 });
             }
         }
 
-        // Unknown or unsupported button
+        // === Cancel inventory deletion ===
+        if (customId === 'cancel_clear_inventory') {
+            return await interaction.update({
+                content: '❎ Inventory deletion cancelled.',
+                components: [],
+            });
+        }
+
+        // === Unknown / fallback ===
         return await interaction.reply({
             content: '❌ Unrecognized button interaction.',
             ephemeral: true,
@@ -121,7 +155,6 @@ module.exports = {
 
         try {
             const allCharacters = await getCharactersByUser(userId, guildId);
-
             const character = allCharacters.find(c => c.guild_id === guildId) || allCharacters[0];
 
             if (!character) {

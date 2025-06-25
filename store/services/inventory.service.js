@@ -83,6 +83,18 @@ async function setEquipped(inventoryId, equipped) {
     return inventoryDAO.toggleEquipped(inventoryId, equipped);
 }
 
+/**
+ * Delete all inventory items (and their fields) for a character.
+ */
+async function deleteInventoryByCharacter(characterId) {
+    const items = await inventoryDAO.findByCharacter(characterId);
+    for (const item of items) {
+        await fieldDAO.deleteByInventory(item.id); // safeguard
+        await inventoryDAO.deleteById(item.id);
+    }
+}
+
+
 module.exports = {
     createItem,
     getInventory,
@@ -91,4 +103,5 @@ module.exports = {
     updateFields,
     deleteItem,
     setEquipped,
+    deleteInventoryByCharacter,
 };
