@@ -1,3 +1,5 @@
+// store/dao/stat_template.dao.js
+
 const { Pool } = require('pg');
 const { pgHost, pgPort, pgUser, pgPass, pgDb } = require('../../config/env_config.js');
 

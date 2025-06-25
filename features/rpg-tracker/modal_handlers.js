@@ -98,21 +98,10 @@ module.exports = {
         }
 
         // === Create Character ===
-        if (customId === 'createCharacterModal') {
+        if (customId.startsWith('createCharacterModal:')) {
+            const [, gameId] = customId.split(':');
+
             try {
-                const name = interaction.fields.getTextInputValue('name');
-                const className = interaction.fields.getTextInputValue('class');
-                const race = interaction.fields.getTextInputValue('race');
-                const rawMaxHp = interaction.fields.getTextInputValue('hp');
-                const maxHp = parseInt(rawMaxHp, 10);
-
-                if (!name || !className || isNaN(maxHp)) {
-                    return interaction.reply({
-                        content: '⚠️ Invalid character input. Make sure name, class, and HP are valid.',
-                        ephemeral: true,
-                    });
-                }
-
                 if (!interaction.guildId) {
                     return interaction.reply({
                         content: '⚠️ You must use this command in a server (not a DM).',
@@ -121,11 +110,51 @@ module.exports = {
                 }
 
                 const player = await getOrCreatePlayer(interaction.user.id);
-                const gameId = player?.current_game_id;
-
-                if (!gameId) {
+                if (!player?.current_game_id || player.current_game_id !== gameId) {
                     return interaction.reply({
-                        content: '⚠️ You haven’t joined a game yet. Use `/join-game` to select one.',
+                        content: '⚠️ You must join the game before creating a character.',
+                        ephemeral: true,
+                    });
+                }
+
+                const statTemplates = await getStatTemplates(gameId);
+                if (!statTemplates.length) {
+                    return interaction.reply({
+                        content: '⚠️ This game has no stat fields defined. Ask the GM to add some first.',
+                        ephemeral: true,
+                    });
+                }
+
+                // Initialize metadata and stats
+                let name = 'Unnamed';
+                let clazz = '';
+                let race = '';
+                let level = 1;
+                const statFields = {};
+
+                for (const template of statTemplates) {
+                    const value = interaction.fields.getTextInputValue(template.id)?.trim() || '';
+
+                    // Pull metadata from label
+                    const lowerLabel = template.label.toLowerCase();
+                    if (lowerLabel === 'name') {
+                        name = value || name;
+                    } else if (lowerLabel === 'class' || lowerLabel === 'role') {
+                        clazz = value || clazz;
+                    } else if (lowerLabel === 'race' || lowerLabel === 'origin') {
+                        race = value || race;
+                    } else if (lowerLabel === 'level') {
+                        const parsed = parseInt(value, 10);
+                        if (!isNaN(parsed)) level = parsed;
+                    }
+
+                    // Always save by template.id
+                    statFields[template.id] = value;
+                }
+
+                if (!name || !clazz) {
+                    return interaction.reply({
+                        content: '⚠️ Name and class are required.',
                         ephemeral: true,
                     });
                 }
@@ -134,16 +163,17 @@ module.exports = {
                     userId: interaction.user.id,
                     gameId,
                     name,
-                    clazz: className,
+                    clazz,
                     race,
-                    level: 1,
-                    stats: { hp: maxHp },
+                    level,
+                    stats: statFields, // { [templateId]: value }
                 });
 
                 return interaction.reply({
                     content: `✅ Character **${character.name}** created and joined your active game!`,
                     ephemeral: true,
                 });
+
             } catch (err) {
                 console.error('Error in createCharacterModal:', err);
                 return interaction.reply({
