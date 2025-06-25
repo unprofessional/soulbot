@@ -8,7 +8,7 @@ const {
 const {
     buildCharacterEmbed,
     buildCharacterActionRow,
-} = require('../../../features/rpg-tracker/embed-utils');
+} = require('../../../features/rpg-tracker/embed_utils');
 
 module.exports = {
     data: new SlashCommandBuilder()
