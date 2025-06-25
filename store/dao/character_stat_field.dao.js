@@ -1,5 +1,3 @@
-// store/dao/character_stat_field.dao.js
-
 const { Pool } = require('pg');
 const { pgHost, pgPort, pgUser, pgPass, pgDb } = require('../../config/env_config.js');
 
@@ -22,9 +20,11 @@ class CharacterStatFieldDAO {
         `;
         const params = [characterId, name, value, JSON.stringify(meta)];
         const result = await pool.query(sql, params);
+        const row = result.rows[0];
+
         return {
-            ...result.rows[0],
-            meta: JSON.parse(result.rows[0].meta || '{}')
+            ...row,
+            meta: typeof row.meta === 'string' ? JSON.parse(row.meta || '{}') : row.meta || {}
         };
     }
 
@@ -57,7 +57,7 @@ class CharacterStatFieldDAO {
         return result.rows.map(row => ({
             name: row.name,
             value: row.value,
-            meta: JSON.parse(row.meta || '{}')
+            meta: typeof row.meta === 'string' ? JSON.parse(row.meta || '{}') : row.meta || {}
         }));
     }
 
