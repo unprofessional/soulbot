@@ -14,6 +14,7 @@ module.exports = {
         .setDescription('Create a character for your current game.'),
 
     async execute(interaction) {
+        
         const modal = new ModalBuilder()
             .setCustomId('createCharacterModal')
             .setTitle('Create New Character')
@@ -37,6 +38,13 @@ module.exports = {
                         .setCustomId('race')
                         .setLabel('Race or Origin')
                         .setRequired(false)
+                        .setStyle(TextInputStyle.Short)
+                ),
+                new ActionRowBuilder().addComponents( // 🔧 NEW FIELD
+                    new TextInputBuilder()
+                        .setCustomId('hp')
+                        .setLabel('Max HP')
+                        .setRequired(true)
                         .setStyle(TextInputStyle.Short)
                 )
             );
