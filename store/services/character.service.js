@@ -3,10 +3,12 @@
 const GameDAO = require('../dao/game.dao.js');
 const CharacterDAO = require('../dao/character.dao.js');
 const CharacterStatFieldDAO = require('../dao/character_stat_field.dao.js');
+const PlayerDAO = require('../dao/player.dao.js');
 
 const gameDAO = new GameDAO();
 const characterDAO = new CharacterDAO();
 const statDAO = new CharacterStatFieldDAO();
+const playerDAO = new PlayerDAO();
 
 /**
  * Create a new game session.
@@ -46,6 +48,8 @@ async function createCharacter({ userId, gameId, name, clazz, race, level = 1, n
     if (stats && typeof stats === 'object') {
         await statDAO.bulkUpsert(character.id, stats);
     }
+
+    await playerDAO.setCurrentCharacter(userId, character.id);
 
     return character;
 }
