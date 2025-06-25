@@ -69,22 +69,25 @@ const initializeCommands = async (client) => {
             }
 
             else if (interaction.isModalSubmit()) {
-                const modalHandler = require('./features/rpg-tracker/modal_handlers.js');
+                const modalHandler = require(path.resolve(__dirname, 'features/rpg-tracker/modal_handlers.js'));
                 await modalHandler.handleModal(interaction);
             }
 
             else if (interaction.isButton()) {
-                const buttonHandler = require('./features/rpg-tracker/button_handlers.js');
+                console.log('🔘 Button interaction received:', interaction.customId);
+                const buttonHandler = require(path.resolve(__dirname, 'features/rpg-tracker/button_handlers.js'));
                 await buttonHandler.handleButton(interaction);
             }
 
             else if (interaction.isStringSelectMenu()) {
-                const selectMenuHandler = require('./features/rpg-tracker/select_menu_handlers.js');
+                const selectMenuHandler = require(path.resolve(__dirname, 'features/rpg-tracker/select_menu_handlers.js'));
                 await selectMenuHandler.handleSelectMenu(interaction);
             }
 
         } catch (err) {
             console.error('❌ Error handling interaction:', err);
+            console.error('❌ Error stack trace:', err.stack);
+
             const replyPayload = {
                 content: 'There was an error while executing this action!',
                 ephemeral: true,
