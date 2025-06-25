@@ -1,4 +1,4 @@
-const { setCurrentCharacter } = require('../../store/services/user-profile.service');
+const { setCurrentCharacter } = require('../../store/services/players.service');
 const { getCharacterWithStats } = require('../../store/services/character.service');
 const { buildCharacterEmbed, buildCharacterActionRow } = require('./embed_utils');
 
