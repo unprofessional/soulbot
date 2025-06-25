@@ -48,7 +48,6 @@ CREATE TABLE game (
 CREATE TABLE stat_template (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   game_id UUID NOT NULL REFERENCES game(id) ON DELETE CASCADE,
-  name TEXT NOT NULL,
   label TEXT NOT NULL,
   field_type TEXT NOT NULL DEFAULT 'short' CHECK (field_type IN ('short', 'paragraph')),
   default_value TEXT,

@@ -1,5 +1,3 @@
-// store/dao/stat_template.dao.js
-
 const { Pool } = require('pg');
 const { pgHost, pgPort, pgUser, pgPass, pgDb } = require('../../config/env_config.js');
 
@@ -12,17 +10,16 @@ const pool = new Pool({
 });
 
 class StatTemplateDAO {
-    async create({ game_id, name, label, field_type = 'short', default_value = null, is_required = true, sort_order = 0, meta = {} }) {
+    async create({ game_id, label, field_type = 'short', default_value = null, is_required = true, sort_order = 0, meta = {} }) {
         const sql = `
             INSERT INTO stat_template (
-                game_id, name, label, field_type, default_value, is_required, sort_order, meta
+                game_id, label, field_type, default_value, is_required, sort_order, meta
             )
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+            VALUES ($1, $2, $3, $4, $5, $6, $7)
             RETURNING *
         `;
         const result = await pool.query(sql, [
             game_id,
-            name,
             label,
             field_type,
             default_value,

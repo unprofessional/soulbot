@@ -1,4 +1,9 @@
-// features/rpg-tracker/modal_handlers.js
+const {
+    ActionRowBuilder,
+    ButtonBuilder,
+    ButtonStyle,
+    EmbedBuilder,
+} = require('discord.js');
 
 const {
     createCharacter,
@@ -13,6 +18,7 @@ const {
 } = require('../../store/services/player.service');
 const {
     addStatTemplates,
+    getStatTemplates,
 } = require('../../store/services/game.service');
 
 module.exports = {
@@ -28,31 +34,20 @@ module.exports = {
             const [, gameId] = customId.split(':');
             try {
                 const label = interaction.fields.getTextInputValue('label')?.trim();
-                const name = interaction.fields.getTextInputValue('name')?.trim().toLowerCase();
                 const defaultValue = interaction.fields.getTextInputValue('default_value')?.trim() || null;
                 const fieldType = interaction.fields.getTextInputValue('field_type')?.trim().toLowerCase();
                 const sortOrderRaw = interaction.fields.getTextInputValue('sort_order')?.trim();
-
-                // === Validation ===
-                if (!label || !name || !['short', 'paragraph'].includes(fieldType)) {
-                    return interaction.reply({
-                        content: '⚠️ Please provide a valid label, name, and field type ("short" or "paragraph").',
-                        ephemeral: true,
-                    });
-                }
-
-                if (!/^[a-zA-Z0-9_]{1,20}$/.test(name)) {
-                    return interaction.reply({
-                        content: '⚠️ Stat name must be alphanumeric with optional underscores (max 20 chars).',
-                        ephemeral: true,
-                    });
-                }
-
                 const sortOrder = isNaN(parseInt(sortOrderRaw)) ? 0 : parseInt(sortOrderRaw, 10);
+
+                if (!label || !['short', 'paragraph'].includes(fieldType)) {
+                    return interaction.reply({
+                        content: '⚠️ Please provide a valid label and field type ("short" or "paragraph").',
+                        ephemeral: true,
+                    });
+                }
 
                 await addStatTemplates(gameId, [
                     {
-                        name,
                         label,
                         field_type: fieldType,
                         default_value: defaultValue,
@@ -61,10 +56,38 @@ module.exports = {
                     },
                 ]);
 
+                // Fetch current stat template for preview
+                const allFields = await getStatTemplates(gameId);
+
+                const fieldDescriptions = allFields.map((f) => {
+                    const icon = f.field_type === 'paragraph' ? '📝' : '🔹';
+                    const defaultVal = f.default_value ? ` _(default: ${f.default_value})_` : '';
+                    return `${icon} **${f.label}**${defaultVal}`;
+                });
+
+                const embed = new EmbedBuilder()
+                    .setTitle('📋 Current Stat Template')
+                    .setDescription(fieldDescriptions.length ? fieldDescriptions.join('\n') : '*No fields yet.*')
+                    .setColor(0x00b0f4);
+
+                const actionRow = new ActionRowBuilder().addComponents(
+                    new ButtonBuilder()
+                        .setCustomId(`defineStats:${gameId}`)
+                        .setLabel('➕ Add Another Stat')
+                        .setStyle(ButtonStyle.Primary),
+                    new ButtonBuilder()
+                        .setCustomId(`finishStatSetup:${gameId}`)
+                        .setLabel('✅ Done')
+                        .setStyle(ButtonStyle.Success)
+                );
+
                 return interaction.reply({
-                    content: `✅ Added stat field **${label}** \`(${name})\` to this game's required character template.`,
+                    content: `✅ Added stat field **${label}**.`,
+                    embeds: [embed],
+                    components: [actionRow],
                     ephemeral: true,
                 });
+
             } catch (err) {
                 console.error('Error in createStatTemplate modal:', err);
                 return interaction.reply({
@@ -81,8 +104,8 @@ module.exports = {
                 const className = interaction.fields.getTextInputValue('class');
                 const race = interaction.fields.getTextInputValue('race');
                 const rawMaxHp = interaction.fields.getTextInputValue('hp');
-
                 const maxHp = parseInt(rawMaxHp, 10);
+
                 if (!name || !className || isNaN(maxHp)) {
                     return interaction.reply({
                         content: '⚠️ Invalid character input. Make sure name, class, and HP are valid.',

@@ -41,13 +41,6 @@ module.exports = {
                     ),
                     new ActionRowBuilder().addComponents(
                         new TextInputBuilder()
-                            .setCustomId('name')
-                            .setLabel('Field Name (e.g. hp, class, str) [no spaces]')
-                            .setStyle(TextInputStyle.Short)
-                            .setRequired(true)
-                    ),
-                    new ActionRowBuilder().addComponents(
-                        new TextInputBuilder()
                             .setCustomId('default_value')
                             .setLabel('Default Value (optional)')
                             .setStyle(TextInputStyle.Short)
@@ -70,6 +63,14 @@ module.exports = {
                 );
 
             return await interaction.showModal(modal);
+        }
+
+        // === Finalize stat setup confirmation ===
+        if (customId.startsWith('finishStatSetup:')) {
+            return await interaction.reply({
+                content: '🎯 Stat template setup complete! You can now invite players to join and create characters.',
+                ephemeral: true,
+            });
         }
 
         // === Edit Stat Modal ===
