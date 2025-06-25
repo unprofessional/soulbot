@@ -1,5 +1,5 @@
-const { SlashCommandBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
-const { getCurrentCharacter } = require('../../../store/services/user-profile.service');
+const { SlashCommandBuilder } = require('discord.js');
+const { getCurrentCharacter } = require('../../../store/services/player.service');
 const { getCharacterWithInventory } = require('../../../store/services/inventory.service');
 const { buildInventoryEmbed, buildInventoryActionRow } = require('../../../features/rpg-tracker/embed_utils');
 
