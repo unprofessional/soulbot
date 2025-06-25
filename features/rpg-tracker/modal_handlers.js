@@ -4,7 +4,7 @@ const {
     updateCharacterMeta,
 } = require('../../store/services/character.service');
 const {
-    createInventoryItem,
+    createItem, // ✅ Fixed: correct import
 } = require('../../store/services/inventory.service');
 const {
     getOrCreatePlayer,
@@ -41,7 +41,6 @@ module.exports = {
                     });
                 }
 
-                // 🔄 Get player record and resolve current game
                 const player = await getOrCreatePlayer(interaction.user.id);
                 const gameId = player?.current_game_id;
 
@@ -164,8 +163,7 @@ module.exports = {
                     });
                 }
 
-                const item = await createInventoryItem({
-                    characterId,
+                const item = await createItem(characterId, {
                     name,
                     type,
                     description,
