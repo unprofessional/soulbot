@@ -1,5 +1,3 @@
-// store/services/player.service.js
-
 const PlayerDAO = require('../dao/player.dao.js');
 const playerDAO = new PlayerDAO();
 
@@ -32,8 +30,29 @@ async function getCurrentCharacter(discordId) {
     return await playerDAO.getCurrentCharacter(discordId);
 }
 
+/**
+ * Updates the current active game ID for a given player.
+ * @param {string} discordId 
+ * @param {string} gameId 
+ * @returns {Promise<Object>} updated player record
+ */
+async function setCurrentGame(discordId, gameId) {
+    return await playerDAO.setCurrentGame(discordId, gameId);
+}
+
+/**
+ * Returns the currently selected game ID for a player.
+ * @param {string} discordId 
+ * @returns {Promise<string|null>}
+ */
+async function getCurrentGame(discordId) {
+    return await playerDAO.getCurrentGame(discordId);
+}
+
 module.exports = {
     getOrCreatePlayer,
     setCurrentCharacter,
     getCurrentCharacter,
+    setCurrentGame,
+    getCurrentGame,
 };

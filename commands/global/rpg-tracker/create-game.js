@@ -1,7 +1,6 @@
-// commands/global/rpg-tracker/create-game.js
-
 const { SlashCommandBuilder } = require('discord.js');
 const { createGame } = require('../../../store/services/character.service');
+const { getOrCreatePlayer, setCurrentGame } = require('../../../store/services/player.service');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -34,6 +33,7 @@ module.exports = {
         }
 
         try {
+            // Create game record
             const game = await createGame({
                 name,
                 description,
@@ -41,8 +41,12 @@ module.exports = {
                 guildId,
             });
 
+            // Ensure player record (as GM) and auto-join the game
+            await getOrCreatePlayer(userId, 'gm');
+            await setCurrentGame(userId, game.id);
+
             await interaction.reply({
-                content: `✅ Created game **${game.name}** (ID: \`${game.id}\`)`,
+                content: `✅ Created game **${game.name}** and set it as your active campaign.`,
                 ephemeral: true,
             });
         } catch (err) {

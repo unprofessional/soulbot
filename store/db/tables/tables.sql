@@ -47,11 +47,18 @@ CREATE TABLE game (
 -- === PLAYER ACCOUNTS ===
 CREATE TABLE player (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  -- Discord identity
   discord_id TEXT NOT NULL UNIQUE,
+  -- Player or GM
   role TEXT DEFAULT 'player' CHECK (role IN ('player', 'gm')),
+  -- Currently selected character (e.g. for editing/stats/etc.)
   current_character_id UUID REFERENCES character(id) ON DELETE SET NULL,
+  -- Currently joined game (used to resolve game_id when creating characters)
+  current_game_id UUID REFERENCES game(id) ON DELETE SET NULL,
+  -- Metadata
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
 
 -- === CHARACTERS ===
 CREATE TABLE character (

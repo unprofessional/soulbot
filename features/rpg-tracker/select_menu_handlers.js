@@ -1,18 +1,27 @@
-const { setCurrentCharacter } = require('../../store/services/player.service');
-const { getCharacterWithStats } = require('../../store/services/character.service');
-const { buildCharacterEmbed, buildCharacterActionRow } = require('./embed_utils');
+const {
+    setCurrentCharacter,
+    setCurrentGame,
+    getOrCreatePlayer,
+} = require('../../store/services/player.service');
+const {
+    getCharacterWithStats,
+} = require('../../store/services/character.service');
+const {
+    buildCharacterEmbed,
+    buildCharacterActionRow,
+} = require('./embed_utils');
 
 module.exports = {
     /**
-     * Handles character selection from dropdown.
+     * Handles select menu interactions like character switching or joining games.
      * @param {import('discord.js').StringSelectMenuInteraction} interaction
      */
     async handleSelectMenu(interaction) {
-        const { customId, user } = interaction;
+        const { customId, user, values } = interaction;
 
         // === /switch-character dropdown ===
         if (customId === 'switchCharacterDropdown') {
-            const selectedId = interaction.values?.[0];
+            const selectedId = values?.[0];
             if (!selectedId) {
                 return await interaction.reply({
                     content: '⚠️ No character selected.',
@@ -22,7 +31,6 @@ module.exports = {
 
             try {
                 await setCurrentCharacter(user.id, selectedId);
-
                 const character = await getCharacterWithStats(selectedId);
 
                 return await interaction.update({
@@ -34,6 +42,33 @@ module.exports = {
                 console.error('Error switching character:', err);
                 return await interaction.reply({
                     content: '❌ Failed to switch character.',
+                    ephemeral: true,
+                });
+            }
+        }
+
+        // === /join-game dropdown ===
+        if (customId === 'joinGameDropdown') {
+            const selectedGameId = values?.[0];
+            if (!selectedGameId) {
+                return await interaction.reply({
+                    content: '⚠️ No game selected.',
+                    ephemeral: true,
+                });
+            }
+
+            try {
+                await getOrCreatePlayer(user.id); // ensure exists
+                await setCurrentGame(user.id, selectedGameId);
+
+                return await interaction.update({
+                    content: `✅ You have joined the selected game.`,
+                    components: [],
+                });
+            } catch (err) {
+                console.error('Error joining game:', err);
+                return await interaction.reply({
+                    content: '❌ Failed to join game.',
                     ephemeral: true,
                 });
             }

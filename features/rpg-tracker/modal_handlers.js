@@ -1,14 +1,14 @@
-// features/rpg-tracker/modal_handlers.js
-
 const {
     createCharacter,
-    getGame,
     updateStat,
     updateCharacterMeta,
 } = require('../../store/services/character.service');
 const {
     createInventoryItem,
 } = require('../../store/services/inventory.service');
+const {
+    getOrCreatePlayer,
+} = require('../../store/services/player.service');
 
 module.exports = {
     /**
@@ -34,7 +34,6 @@ module.exports = {
                     });
                 }
 
-                // 🔐 Guard against DM usage
                 if (!interaction.guildId) {
                     return interaction.reply({
                         content: '⚠️ You must use this command in a server (not a DM).',
@@ -42,30 +41,29 @@ module.exports = {
                     });
                 }
 
-                const guildId = interaction.guildId;
-                const game = await getGame({ guildId });
+                // 🔄 Get player record and resolve current game
+                const player = await getOrCreatePlayer(interaction.user.id);
+                const gameId = player?.current_game_id;
 
-                if (!game) {
+                if (!gameId) {
                     return interaction.reply({
-                        content: '⚠️ No active game found for this server. Ask your DM to create one.',
+                        content: '⚠️ You haven’t joined a game yet. Use `/join-game` to select one.',
                         ephemeral: true,
                     });
                 }
 
                 const character = await createCharacter({
                     userId: interaction.user.id,
-                    gameId: game.id,
+                    gameId,
                     name,
-                    className,
+                    clazz: className,
                     race,
                     level: 1,
-                    stats: {
-                        hp: maxHp,
-                    },
+                    stats: { hp: maxHp },
                 });
 
                 return interaction.reply({
-                    content: `✅ Character **${character.name}** created in game **${game.name}**!`,
+                    content: `✅ Character **${character.name}** created and joined your active game!`,
                     ephemeral: true,
                 });
             } catch (err) {
@@ -171,7 +169,7 @@ module.exports = {
                     name,
                     type,
                     description,
-                    equipped: false, // Default unequipped
+                    equipped: false,
                 });
 
                 return interaction.reply({
