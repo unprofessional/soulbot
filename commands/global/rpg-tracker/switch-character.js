@@ -7,7 +7,7 @@ const {
 } = require('discord.js');
 const { getCharactersByUser } = require('../../../store/services/character.service');
 const { getCurrentGame } = require('../../../store/services/player.service');
-const { validateGameAccess } = require('../../../utils/validate_game_access');
+const { validateGameAccess } = require('../../../features/rpg-tracker/validate_game_access');
 
 module.exports = {
     data: new SlashCommandBuilder()

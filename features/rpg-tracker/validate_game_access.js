@@ -1,4 +1,4 @@
-// utils/validate_game_access.js
+// features/rpg-tracker/validate_game_access.js
 
 const { getGame } = require('../../store/services/game.service');
 

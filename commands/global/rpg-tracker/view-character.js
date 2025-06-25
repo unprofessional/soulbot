@@ -10,7 +10,7 @@ const {
     buildCharacterEmbed,
     buildCharacterActionRow,
 } = require('../../../features/rpg-tracker/embed_utils');
-const { validateGameAccess } = require('../../../utils/validate_game_access');
+const { validateGameAccess } = require('../../../features/rpg-tracker/validate_game_access');
 
 module.exports = {
     data: new SlashCommandBuilder()
