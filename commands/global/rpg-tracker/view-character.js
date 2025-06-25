@@ -5,6 +5,7 @@ const {
     getCharactersByUser,
     getCharacterWithStats,
 } = require('../../../store/services/character.service');
+const { getCurrentGame } = require('../../../store/services/player.service');
 const {
     buildCharacterEmbed,
     buildCharacterActionRow,
@@ -27,19 +28,17 @@ module.exports = {
         }
 
         try {
-            const allCharacters = await getCharactersByUser(userId, guildId);
+            const currentGameId = await getCurrentGame(userId);
+            const allCharacters = await getCharactersByUser(userId, currentGameId);
 
-            const character =
-                allCharacters.find((c) => c.game_id && c.guild_id === guildId) ||
-                allCharacters[0];
-
-            if (!character) {
+            if (!allCharacters.length) {
                 return await interaction.reply({
                     content: '⚠️ No character found. Use `/create-character` to start one.',
                     ephemeral: true,
                 });
             }
 
+            const character = allCharacters[0];
             const full = await getCharacterWithStats(character.id);
             const embed = buildCharacterEmbed(full);
             const row = buildCharacterActionRow(character.id);
@@ -57,4 +56,5 @@ module.exports = {
             });
         }
     },
+    
 };
