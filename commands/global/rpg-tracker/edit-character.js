@@ -1,3 +1,5 @@
+// commands/global/rpg-tracker/edit-character.js
+
 const {
     SlashCommandBuilder,
     ModalBuilder,

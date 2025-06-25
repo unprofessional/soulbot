@@ -1,3 +1,5 @@
+// commands/global/rpg-tracker/switch-character.js
+
 const {
     SlashCommandBuilder,
     ActionRowBuilder,

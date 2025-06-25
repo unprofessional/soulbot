@@ -1,14 +1,19 @@
+// features/rpg-tracker/modal_handlers.js
+
 const {
     createCharacter,
     updateStat,
     updateCharacterMeta,
 } = require('../../store/services/character.service');
 const {
-    createItem, // ✅ Fixed: correct import
+    createItem,
 } = require('../../store/services/inventory.service');
 const {
     getOrCreatePlayer,
 } = require('../../store/services/player.service');
+const {
+    addStatTemplates,
+} = require('../../store/services/game.service');
 
 module.exports = {
     /**
@@ -17,6 +22,57 @@ module.exports = {
      */
     async handleModal(interaction) {
         const { customId } = interaction;
+
+        // === GM Create Default Game Stats ===
+        if (customId.startsWith('createStatTemplate:')) {
+            const [, gameId] = customId.split(':');
+            try {
+                const label = interaction.fields.getTextInputValue('label')?.trim();
+                const name = interaction.fields.getTextInputValue('name')?.trim().toLowerCase();
+                const defaultValue = interaction.fields.getTextInputValue('default_value')?.trim() || null;
+                const fieldType = interaction.fields.getTextInputValue('field_type')?.trim().toLowerCase();
+                const sortOrderRaw = interaction.fields.getTextInputValue('sort_order')?.trim();
+
+                // === Validation ===
+                if (!label || !name || !['short', 'paragraph'].includes(fieldType)) {
+                    return interaction.reply({
+                        content: '⚠️ Please provide a valid label, name, and field type ("short" or "paragraph").',
+                        ephemeral: true,
+                    });
+                }
+
+                if (!/^[a-zA-Z0-9_]{1,20}$/.test(name)) {
+                    return interaction.reply({
+                        content: '⚠️ Stat name must be alphanumeric with optional underscores (max 20 chars).',
+                        ephemeral: true,
+                    });
+                }
+
+                const sortOrder = isNaN(parseInt(sortOrderRaw)) ? 0 : parseInt(sortOrderRaw, 10);
+
+                await addStatTemplates(gameId, [
+                    {
+                        name,
+                        label,
+                        field_type: fieldType,
+                        default_value: defaultValue,
+                        is_required: true,
+                        sort_order: sortOrder,
+                    },
+                ]);
+
+                return interaction.reply({
+                    content: `✅ Added stat field **${label}** \`(${name})\` to this game's required character template.`,
+                    ephemeral: true,
+                });
+            } catch (err) {
+                console.error('Error in createStatTemplate modal:', err);
+                return interaction.reply({
+                    content: '❌ Failed to add stat template. Please try again.',
+                    ephemeral: true,
+                });
+            }
+        }
 
         // === Create Character ===
         if (customId === 'createCharacterModal') {

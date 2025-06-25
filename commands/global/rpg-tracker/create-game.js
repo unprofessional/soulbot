@@ -1,5 +1,7 @@
-const { SlashCommandBuilder } = require('discord.js');
-const { createGame } = require('../../../store/services/character.service');
+// commands/global/rpg-tracker/create-game.js
+
+const { SlashCommandBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
+const { createGame } = require('../../../store/services/game.service'); // ✅ moved from character.service
 const { getOrCreatePlayer, setCurrentGame } = require('../../../store/services/player.service');
 
 module.exports = {
@@ -45,8 +47,22 @@ module.exports = {
             await getOrCreatePlayer(userId, 'gm');
             await setCurrentGame(userId, game.id);
 
+            const defineStatsBtn = new ButtonBuilder()
+                .setCustomId(`defineStats:${game.id}`)
+                .setLabel('Define Required Stats')
+                .setStyle(ButtonStyle.Primary);
+
+            const row = new ActionRowBuilder().addComponents(defineStatsBtn);
+
             await interaction.reply({
-                content: `✅ Created game **${game.name}** and set it as your active campaign.`,
+                content: [
+                    `✅ Created game **${game.name}** and set it as your active campaign.`,
+                    ``,
+                    `Characters in this game can include **required stats** (defined by you) and **optional custom fields** (added by players).`,
+                    ``,
+                    `Use the button below to set up your game's stat template.`,
+                ].join('\n'),
+                components: [row],
                 ephemeral: true,
             });
         } catch (err) {

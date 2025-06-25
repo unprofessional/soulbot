@@ -1,3 +1,5 @@
+// commands/global/rpg-tracker/inventory.js
+
 const { SlashCommandBuilder } = require('discord.js');
 const { getCurrentCharacter } = require('../../../store/services/player.service');
 const { getCharacterWithInventory } = require('../../../store/services/inventory.service');

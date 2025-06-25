@@ -1,3 +1,5 @@
+// commands/global/rpg-tracker/join-game.js
+
 const { SlashCommandBuilder, ActionRowBuilder, StringSelectMenuBuilder } = require('discord.js');
 const { getGame } = require('../../../store/services/character.service');
 
