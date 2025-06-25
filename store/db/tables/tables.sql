@@ -40,6 +40,7 @@ CREATE TABLE game (
   guild_id TEXT,
   name TEXT NOT NULL,
   description TEXT,
+  is_public BOOLEAN DEFAULT FALSE,
   created_by TEXT NOT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

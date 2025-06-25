@@ -1,12 +1,12 @@
 // commands/global/rpg-tracker/join-game.js
 
 const { SlashCommandBuilder, ActionRowBuilder, StringSelectMenuBuilder } = require('discord.js');
-const { getGame } = require('../../../store/services/character.service');
+const { getGame } = require('../../../store/services/game.service');
 
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('join-game')
-        .setDescription('Select a game to join as your active game (excludes games you created).'),
+        .setDescription('Select a public game in this server to join.'),
 
     async execute(interaction) {
         const guildId = interaction.guildId;
@@ -21,12 +21,16 @@ module.exports = {
 
         const games = await getGame({ guildId });
 
-        // Filter out games created by this user (i.e., GM-created campaigns)
-        const eligibleGames = games.filter(game => game.created_by !== userId);
+        // Filter out games that are either:
+        // 1. Created by the user (GM)
+        // 2. Not marked public
+        const eligibleGames = games.filter(game =>
+            game.created_by !== userId && game.is_public === true
+        );
 
         if (!eligibleGames.length) {
             return interaction.reply({
-                content: '⚠️ There are no joinable games in this server. You cannot join a game you created.',
+                content: '⚠️ There are no joinable public games in this server. You cannot join a game you created.',
                 ephemeral: true,
             });
         }

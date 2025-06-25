@@ -48,6 +48,15 @@ class GameDAO {
     async delete(gameId) {
         await pool.query(`DELETE FROM game WHERE id = $1`, [gameId]);
     }
+
+    async publish(gameId) {
+        const result = await pool.query(
+            `UPDATE game SET is_public = TRUE WHERE id = $1 RETURNING *`,
+            [gameId]
+        );
+        return result.rows[0] || null;
+    }
+
 }
 
 module.exports = GameDAO;

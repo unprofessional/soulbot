@@ -1,3 +1,5 @@
+// commands/global/rpg-tracker/create-character.js
+
 const {
     SlashCommandBuilder,
     ModalBuilder,
@@ -7,7 +9,7 @@ const {
 } = require('discord.js');
 
 const { getOrCreatePlayer } = require('../../../store/services/player.service');
-const { getStatTemplates } = require('../../../store/services/game.service');
+const { getGame, getStatTemplates } = require('../../../store/services/game.service');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -35,6 +37,22 @@ module.exports = {
             });
         }
 
+        const game = await getGame({ id: gameId });
+
+        if (!game) {
+            return interaction.reply({
+                content: '⚠️ Your currently joined game no longer exists.',
+                ephemeral: true,
+            });
+        }
+
+        if (!game.is_public && game.created_by !== userId) {
+            return interaction.reply({
+                content: '⚠️ This game is no longer public. You must ask the GM to republish it or invite you.',
+                ephemeral: true,
+            });
+        }
+
         const statTemplates = await getStatTemplates(gameId);
 
         if (!statTemplates.length) {
@@ -44,7 +62,6 @@ module.exports = {
             });
         }
 
-        // Limit to 5 fields per modal
         const fields = statTemplates.slice(0, 5);
 
         const modal = new ModalBuilder()
@@ -54,7 +71,7 @@ module.exports = {
         for (const field of fields) {
             const input = new TextInputBuilder()
                 .setCustomId(field.id)
-                .setLabel(field.label.slice(0, 45)) // Discord limit
+                .setLabel(field.label.slice(0, 45))
                 .setRequired(Boolean(field.is_required))
                 .setStyle(field.field_type === 'paragraph' ? TextInputStyle.Paragraph : TextInputStyle.Short);
 

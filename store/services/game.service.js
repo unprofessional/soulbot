@@ -48,10 +48,19 @@ async function clearStatTemplates(gameId) {
     return statTemplateDAO.deleteByGame(gameId);
 }
 
+/**
+ * 
+ * Publish the game to make it public
+ */
+async function publishGame(gameId) {
+    return gameDAO.publish(gameId);
+}
+
 module.exports = {
     createGame,
     getGame,
     getStatTemplates,
     addStatTemplates,
     clearStatTemplates,
+    publishGame,
 };

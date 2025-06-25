@@ -15,6 +15,8 @@ const {
     buildCharacterEmbed,
     buildCharacterActionRow,
 } = require('./embed_utils');
+const { getOrCreatePlayer } = require('../../store/services/player.service');
+const { publishGame } = require('../../store/services/game.service');
 
 module.exports = {
     /**
@@ -71,6 +73,34 @@ module.exports = {
                 content: '🎯 Stat template setup complete! You can now invite players to join and create characters.',
                 ephemeral: true,
             });
+        }
+
+        // === GM Publishes game to make public for players ===
+        if (customId.startsWith('publishGame:')) {
+            const [, gameId] = customId.split(':');
+            try {
+                const player = await getOrCreatePlayer(interaction.user.id);
+
+                if (player?.role !== 'gm' || player.current_game_id !== gameId) {
+                    return interaction.reply({
+                        content: '⚠️ Only the GM of this game can publish it.',
+                        ephemeral: true,
+                    });
+                }
+
+                const result = await publishGame(gameId);
+
+                return interaction.reply({
+                    content: `📣 Game **${result.name}** is now published! Players can now see and join it using \`/join-game\`.`,
+                    ephemeral: true,
+                });
+            } catch (err) {
+                console.error('Error publishing game:', err);
+                return interaction.reply({
+                    content: '❌ Failed to publish game. Please try again later.',
+                    ephemeral: true,
+                });
+            }
         }
 
         // === Edit Stat Modal ===

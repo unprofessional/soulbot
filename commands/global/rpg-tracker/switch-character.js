@@ -7,6 +7,7 @@ const {
 } = require('discord.js');
 const { getCharactersByUser } = require('../../../store/services/character.service');
 const { getCurrentGame } = require('../../../store/services/player.service');
+const { validateGameAccess } = require('../../../utils/validate_game_access');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -26,11 +27,24 @@ module.exports = {
 
         try {
             const currentGameId = await getCurrentGame(userId);
-            const characters = await getCharactersByUser(userId, currentGameId);
+            const allCharacters = await getCharactersByUser(userId, currentGameId);
 
-            if (!characters.length) {
+            const eligibleCharacters = [];
+
+            for (const character of allCharacters) {
+                const { valid } = await validateGameAccess({
+                    gameId: character.game_id,
+                    userId,
+                });
+
+                if (valid) {
+                    eligibleCharacters.push(character);
+                }
+            }
+
+            if (!eligibleCharacters.length) {
                 return await interaction.reply({
-                    content: '⚠️ You have no characters to choose from. Use `/create-character` to make one.',
+                    content: '⚠️ You have no characters in published or accessible games.',
                     ephemeral: true,
                 });
             }
@@ -39,7 +53,7 @@ module.exports = {
                 .setCustomId('switchCharacterDropdown')
                 .setPlaceholder('Choose your character')
                 .addOptions(
-                    characters.map(c => ({
+                    eligibleCharacters.map(c => ({
                         label: `${c.name} (Lv ${c.level ?? 1} ${c.class || 'Unclassed'})`,
                         description: c.race || 'No race specified',
                         value: c.id,

@@ -10,6 +10,7 @@ const {
     buildCharacterEmbed,
     buildCharacterActionRow,
 } = require('../../../features/rpg-tracker/embed_utils');
+const { validateGameAccess } = require('../../../utils/validate_game_access');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -40,10 +41,15 @@ module.exports = {
 
             const character = allCharacters[0];
             const full = await getCharacterWithStats(character.id);
+
+            // Run game access validation
+            const { warning } = await validateGameAccess({ gameId: full.game_id, userId });
+
             const embed = buildCharacterEmbed(full);
             const row = buildCharacterActionRow(character.id);
 
             await interaction.reply({
+                content: warning || undefined,
                 embeds: [embed],
                 components: [row],
                 ephemeral: true,
@@ -56,5 +62,4 @@ module.exports = {
             });
         }
     },
-    
 };

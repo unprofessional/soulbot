@@ -10,6 +10,7 @@ const {
 
 const { getCharactersByUser } = require('../../../store/services/character.service');
 const { getCurrentGame } = require('../../../store/services/player.service');
+const { validateGameAccess } = require('../../../utils/validate_game_access');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -21,7 +22,7 @@ module.exports = {
         const guildId = interaction.guild?.id;
 
         if (!guildId) {
-            return await interaction.reply({
+            return interaction.reply({
                 content: '⚠️ This command must be used in a server.',
                 ephemeral: true,
             });
@@ -30,12 +31,23 @@ module.exports = {
         try {
             const currentGameId = await getCurrentGame(userId);
             const characters = await getCharactersByUser(userId, currentGameId);
-
             const character = characters[0];
 
             if (!character) {
-                return await interaction.reply({
+                return interaction.reply({
                     content: '⚠️ No character found. Use `/create-character` first.',
+                    ephemeral: true,
+                });
+            }
+
+            const { valid, warning } = await validateGameAccess({
+                gameId: character.game_id,
+                userId,
+            });
+
+            if (!valid) {
+                return interaction.reply({
+                    content: warning || '⚠️ You no longer have access to this game.',
                     ephemeral: true,
                 });
             }

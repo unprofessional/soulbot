@@ -4,6 +4,7 @@ const { SlashCommandBuilder } = require('discord.js');
 const { getCurrentCharacter } = require('../../../store/services/player.service');
 const { getCharacterWithInventory } = require('../../../store/services/inventory.service');
 const { buildInventoryEmbed, buildInventoryActionRow } = require('../../../features/rpg-tracker/embed_utils');
+const { validateGameAccess } = require('../../../utils/validate_game_access');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -23,10 +24,24 @@ module.exports = {
             }
 
             const character = await getCharacterWithInventory(characterId);
+
+            const { valid, warning } = await validateGameAccess({
+                gameId: character.game_id,
+                userId,
+            });
+
+            if (!valid) {
+                return await interaction.reply({
+                    content: warning || '⚠️ You no longer have access to this game.',
+                    ephemeral: true,
+                });
+            }
+
             const embed = buildInventoryEmbed(character);
             const row = buildInventoryActionRow(character.id);
 
             return await interaction.reply({
+                content: warning || undefined,
                 embeds: [embed],
                 components: [row],
                 ephemeral: true,
