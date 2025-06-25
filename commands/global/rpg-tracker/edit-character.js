@@ -1,5 +1,3 @@
-// commands/global/rpg-tracker/edit-character.js
-
 const {
     SlashCommandBuilder,
     ModalBuilder,
@@ -7,7 +5,9 @@ const {
     TextInputStyle,
     ActionRowBuilder,
 } = require('discord.js');
+
 const { getCharactersByUser } = require('../../../store/services/character.service');
+const { getCurrentGame } = require('../../../store/services/player.service');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -25,63 +25,72 @@ module.exports = {
             });
         }
 
-        const allCharacters = await getCharactersByUser(userId, guildId);
+        try {
+            const currentGameId = await getCurrentGame(userId);
+            const characters = await getCharactersByUser(userId, currentGameId);
 
-        const character = allCharacters.find(c => c.guild_id === guildId) || allCharacters[0];
+            const character = characters[0];
 
-        if (!character) {
-            return await interaction.reply({
-                content: '⚠️ No character found. Use `/create-character` first.',
+            if (!character) {
+                return await interaction.reply({
+                    content: '⚠️ No character found. Use `/create-character` first.',
+                    ephemeral: true,
+                });
+            }
+
+            const modal = new ModalBuilder()
+                .setCustomId(`editCharacterModal:${character.id}`)
+                .setTitle('Edit Character Info')
+                .addComponents(
+                    new ActionRowBuilder().addComponents(
+                        new TextInputBuilder()
+                            .setCustomId('name')
+                            .setLabel('Character Name')
+                            .setStyle(TextInputStyle.Short)
+                            .setRequired(true)
+                            .setValue(character.name || '')
+                    ),
+                    new ActionRowBuilder().addComponents(
+                        new TextInputBuilder()
+                            .setCustomId('class')
+                            .setLabel('Class or Role')
+                            .setStyle(TextInputStyle.Short)
+                            .setRequired(true)
+                            .setValue(character.class || '')
+                    ),
+                    new ActionRowBuilder().addComponents(
+                        new TextInputBuilder()
+                            .setCustomId('race')
+                            .setLabel('Race or Origin')
+                            .setStyle(TextInputStyle.Short)
+                            .setRequired(false)
+                            .setValue(character.race || '')
+                    ),
+                    new ActionRowBuilder().addComponents(
+                        new TextInputBuilder()
+                            .setCustomId('level')
+                            .setLabel('Level')
+                            .setStyle(TextInputStyle.Short)
+                            .setRequired(true)
+                            .setValue(String(character.level || 1))
+                    ),
+                    new ActionRowBuilder().addComponents(
+                        new TextInputBuilder()
+                            .setCustomId('notes')
+                            .setLabel('Notes')
+                            .setStyle(TextInputStyle.Paragraph)
+                            .setRequired(false)
+                            .setValue(character.notes || '')
+                    )
+                );
+
+            await interaction.showModal(modal);
+        } catch (err) {
+            console.error('[COMMAND ERROR] /edit-character:', err);
+            await interaction.reply({
+                content: '❌ Failed to retrieve your character.',
                 ephemeral: true,
             });
         }
-
-        const modal = new ModalBuilder()
-            .setCustomId(`editCharacterModal:${character.id}`)
-            .setTitle('Edit Character Info')
-            .addComponents(
-                new ActionRowBuilder().addComponents(
-                    new TextInputBuilder()
-                        .setCustomId('name')
-                        .setLabel('Character Name')
-                        .setStyle(TextInputStyle.Short)
-                        .setRequired(true)
-                        .setValue(character.name || '')
-                ),
-                new ActionRowBuilder().addComponents(
-                    new TextInputBuilder()
-                        .setCustomId('class')
-                        .setLabel('Class or Role')
-                        .setStyle(TextInputStyle.Short)
-                        .setRequired(true)
-                        .setValue(character.class || '')
-                ),
-                new ActionRowBuilder().addComponents(
-                    new TextInputBuilder()
-                        .setCustomId('race')
-                        .setLabel('Race or Origin')
-                        .setStyle(TextInputStyle.Short)
-                        .setRequired(false)
-                        .setValue(character.race || '')
-                ),
-                new ActionRowBuilder().addComponents(
-                    new TextInputBuilder()
-                        .setCustomId('level')
-                        .setLabel('Level')
-                        .setStyle(TextInputStyle.Short)
-                        .setRequired(true)
-                        .setValue(String(character.level || 1))
-                ),
-                new ActionRowBuilder().addComponents(
-                    new TextInputBuilder()
-                        .setCustomId('notes')
-                        .setLabel('Notes')
-                        .setStyle(TextInputStyle.Paragraph)
-                        .setRequired(false)
-                        .setValue(character.notes || '')
-                )
-            );
-
-        await interaction.showModal(modal);
     },
 };

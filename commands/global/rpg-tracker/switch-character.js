@@ -1,11 +1,10 @@
-// commands/global/rpg-tracker/switch-character.js
-
 const {
     SlashCommandBuilder,
     ActionRowBuilder,
     StringSelectMenuBuilder,
 } = require('discord.js');
 const { getCharactersByUser } = require('../../../store/services/character.service');
+const { getCurrentGame } = require('../../../store/services/player.service');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -24,7 +23,8 @@ module.exports = {
         }
 
         try {
-            const characters = await getCharactersByUser(userId, guildId);
+            const currentGameId = await getCurrentGame(userId);
+            const characters = await getCharactersByUser(userId, currentGameId);
 
             if (!characters.length) {
                 return await interaction.reply({
