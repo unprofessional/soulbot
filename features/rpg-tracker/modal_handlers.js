@@ -34,7 +34,15 @@ module.exports = {
                     });
                 }
 
-                const guildId = interaction.guild?.id;
+                // 🔐 Guard against DM usage
+                if (!interaction.guildId) {
+                    return interaction.reply({
+                        content: '⚠️ You must use this command in a server (not a DM).',
+                        ephemeral: true,
+                    });
+                }
+
+                const guildId = interaction.guildId;
                 const game = await getGame({ guildId });
 
                 if (!game) {
