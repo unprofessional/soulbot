@@ -1,3 +1,5 @@
+// store/services/character.service.js
+
 const GameDAO = require('../dao/game.dao.js');
 const CharacterDAO = require('../dao/character.dao.js');
 const CharacterStatFieldDAO = require('../dao/character_stat_field.dao.js');
@@ -30,16 +32,14 @@ async function getGame({ id, guildId }) {
 /**
  * Create a character and optionally assign stats.
  */
-async function createCharacter({ userId, gameId, name, className, race, level, hp, maxHp, notes, stats }) {
+async function createCharacter({ userId, gameId, name, clazz, race, level = 1, notes = null, stats = {} }) {
     const character = await characterDAO.create({
         user_id: userId,
         game_id: gameId,
         name,
-        class: className,
+        class: clazz,
         race,
         level,
-        hp,
-        max_hp: maxHp,
         notes,
     });
 
@@ -51,7 +51,7 @@ async function createCharacter({ userId, gameId, name, className, race, level, h
 }
 
 /**
- * Get character by ID, including stats.
+ * Get character by ID, including stat fields.
  */
 async function getCharacterWithStats(characterId) {
     const character = await characterDAO.findById(characterId);
@@ -62,7 +62,7 @@ async function getCharacterWithStats(characterId) {
 }
 
 /**
- * Get all characters for a user (optionally scoped to game).
+ * Get all characters for a user (optionally filtered by game).
  */
 async function getCharactersByUser(userId, gameId = null) {
     const all = await characterDAO.findByUser(userId);
@@ -77,38 +77,31 @@ async function getCharactersByGame(gameId) {
 }
 
 /**
- * Update a stat for a character.
+ * Update a single stat field.
  */
 async function updateStat(characterId, statName, newValue) {
-    return statDAO.create(characterId, statName, newValue); // upsert logic
+    return statDAO.create(characterId, statName, newValue); // upsert
 }
 
 /**
- * Update multiple stats.
+ * Update multiple stat fields.
  */
 async function updateStats(characterId, statMap) {
     return statDAO.bulkUpsert(characterId, statMap);
 }
 
 /**
- * Adjust character HP.
- */
-async function updateHP(characterId, hp, maxHp) {
-    return characterDAO.updateHP(characterId, hp, maxHp);
-}
-
-/**
- * Update character metadata (name/class/race/level).
+ * Update core character metadata (name, class, race, level, notes).
  */
 async function updateCharacterMeta(characterId, fields) {
     return characterDAO.updateMeta(characterId, fields);
 }
 
 /**
- * Delete character and stat records.
+ * Delete character and associated stat fields.
  */
 async function deleteCharacter(characterId) {
-    await statDAO.deleteByCharacter(characterId); // optional, ON DELETE CASCADE may already handle this
+    await statDAO.deleteByCharacter(characterId); // redundant if ON DELETE CASCADE is present, but safe
     await characterDAO.delete(characterId);
 }
 
@@ -121,7 +114,6 @@ module.exports = {
     getCharactersByGame,
     updateStat,
     updateStats,
-    updateHP,
     updateCharacterMeta,
     deleteCharacter,
 };

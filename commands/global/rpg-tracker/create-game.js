@@ -8,21 +8,30 @@ module.exports = {
         .setName('create-game')
         .setDescription('Creates a new RPG campaign for this server.')
         .addStringOption(option =>
-            option.setName('name')
+            option
+                .setName('name')
                 .setDescription('The name of your game/campaign')
                 .setRequired(true)
         )
         .addStringOption(option =>
-            option.setName('description')
+            option
+                .setName('description')
                 .setDescription('A short description of the game')
                 .setRequired(false)
         ),
 
     async execute(interaction) {
-        const name = interaction.options.getString('name');
-        const description = interaction.options.getString('description') || null;
+        const name = interaction.options.getString('name')?.trim();
+        const description = interaction.options.getString('description')?.trim() || null;
         const guildId = interaction.guild?.id;
         const userId = interaction.user.id;
+
+        if (!guildId) {
+            return await interaction.reply({
+                content: '⚠️ This command must be used within a server.',
+                ephemeral: true,
+            });
+        }
 
         try {
             const game = await createGame({
@@ -37,9 +46,9 @@ module.exports = {
                 ephemeral: true,
             });
         } catch (err) {
-            console.error('Error in /create-game:', err);
+            console.error('[COMMAND ERROR] /create-game:', err);
             await interaction.reply({
-                content: '❌ Failed to create game. Try again later.',
+                content: '❌ Failed to create game. Please try again later.',
                 ephemeral: true,
             });
         }

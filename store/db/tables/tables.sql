@@ -31,56 +31,77 @@ CREATE INDEX idx_message_content_trgm ON message USING GIN (content gin_trgm_ops
 CREATE INDEX IF NOT EXISTS idx_message_guild_created ON message (guild_id, created_at DESC);
 
 -- -- -- -- -- --
--- RPG TRACKER
+-- RPG TRACKER: FLEXIBLE CHARACTER SYSTEM
 -- -- -- -- -- --
 
--- Campaign/Game Metadata
-CREATE TABLE IF NOT EXISTS game (
+-- === GAME METADATA ===
+CREATE TABLE game (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  guild_id TEXT, -- Optional: if linked to a Discord server
+  guild_id TEXT, -- Discord server ID (optional)
   name TEXT NOT NULL,
   description TEXT,
-  created_by TEXT NOT NULL, -- Discord user ID of DM
+  created_by TEXT NOT NULL, -- Discord user ID (usually the GM)
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Characters per Game
-CREATE TABLE IF NOT EXISTS characters (
+-- === PLAYER ACCOUNTS ===
+CREATE TABLE player (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  discord_id TEXT NOT NULL UNIQUE,
+  role TEXT DEFAULT 'player' CHECK (role IN ('player', 'gm')),
+  current_character_id UUID REFERENCES character(id) ON DELETE SET NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- === CHARACTERS ===
+CREATE TABLE character (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   game_id UUID NOT NULL REFERENCES game(id) ON DELETE CASCADE,
-  user_id TEXT NOT NULL,
+  user_id TEXT NOT NULL, -- Discord user ID
   name TEXT NOT NULL,
   class TEXT,
   race TEXT,
   level INTEGER DEFAULT 1 CHECK (level > 0),
-  hp INTEGER DEFAULT 10 CHECK (hp >= 0),
-  max_hp INTEGER DEFAULT 10 CHECK (max_hp >= 0),
   notes TEXT,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Character Stats (Normalized)
-CREATE TABLE IF NOT EXISTS character_stat_field (
+-- === CHARACTER STATS (Flexible, per-character) ===
+CREATE TABLE character_stat_field (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  character_id UUID NOT NULL REFERENCES characters(id) ON DELETE CASCADE,
-  name TEXT NOT NULL CHECK (name IN ('str', 'dex', 'con', 'int', 'wis', 'cha')),
-  value INTEGER NOT NULL CHECK (value >= 0),
-  UNIQUE(character_id, name) -- Prevent duplicate stat names for a character
+  character_id UUID NOT NULL REFERENCES character(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,    -- e.g., hp, vigor, gil, xp_total, etc.
+  value INTEGER NOT NULL,
+  meta JSONB DEFAULT '{}', -- Extra metadata (e.g. ["tagged", "temporary"], etc.)
+  UNIQUE(character_id, name)
 );
 
--- RPG Tracker: User Profiles
-CREATE TABLE IF NOT EXISTS user_profile (
+-- === INVENTORY ITEMS ===
+CREATE TABLE character_inventory (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  discord_id TEXT NOT NULL UNIQUE, -- maps to Discord user ID
-  role TEXT DEFAULT 'player' CHECK (role IN ('player', 'gm')),
-  current_character_id UUID REFERENCES characters(id) ON DELETE SET NULL,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  character_id UUID NOT NULL REFERENCES character(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,       -- e.g., "Shotgun", "Potion"
+  type TEXT,                -- e.g., weapon, armor, materia, utility
+  equipped BOOLEAN DEFAULT FALSE,
+  description TEXT
 );
 
--- Indexes
-CREATE INDEX IF NOT EXISTS idx_game_guild_id ON game(guild_id);
-CREATE INDEX IF NOT EXISTS idx_characters_user_id ON characters(user_id);
-CREATE INDEX IF NOT EXISTS idx_characters_game_id ON characters(game_id);
-CREATE INDEX IF NOT EXISTS idx_stat_character_id ON character_stat_field(character_id);
-CREATE INDEX IF NOT EXISTS idx_user_discord_id ON user_profile(discord_id);
-CREATE INDEX IF NOT EXISTS idx_user_current_char_id ON user_profile(current_character_id);
+-- === INVENTORY ITEM FIELDS ===
+CREATE TABLE character_inventory_field (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  inventory_id UUID NOT NULL REFERENCES character_inventory(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,       -- e.g., damage, range, tags, dice, etc.
+  value TEXT NOT NULL,      -- store stringified values like "4d20", "fire", "bleed"
+  meta JSONB DEFAULT '{}',  -- optional array metadata (e.g., { "modifiers": [1, 0, -1] })
+  UNIQUE(inventory_id, name)
+);
+
+-- === INDEXES ===
+CREATE INDEX idx_game_guild_id ON game(guild_id);
+CREATE INDEX idx_character_user_id ON character(user_id);
+CREATE INDEX idx_character_game_id ON character(game_id);
+CREATE INDEX idx_stat_character_id ON character_stat_field(character_id);
+CREATE INDEX idx_inventory_character_id ON character_inventory(character_id);
+CREATE INDEX idx_inventory_field_inventory_id ON character_inventory_field(inventory_id);
+CREATE INDEX idx_player_discord_id ON player(discord_id);
+CREATE INDEX idx_player_current_character_id ON player(current_character_id);

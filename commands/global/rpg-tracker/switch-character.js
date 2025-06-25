@@ -1,6 +1,10 @@
 // commands/global/rpg-tracker/switch-character.js
 
-const { SlashCommandBuilder, ActionRowBuilder, StringSelectMenuBuilder } = require('discord.js');
+const {
+    SlashCommandBuilder,
+    ActionRowBuilder,
+    StringSelectMenuBuilder,
+} = require('discord.js');
 const { getCharactersByUser } = require('../../../store/services/character.service');
 
 module.exports = {
@@ -11,6 +15,13 @@ module.exports = {
     async execute(interaction) {
         const userId = interaction.user.id;
         const guildId = interaction.guild?.id;
+
+        if (!guildId) {
+            return await interaction.reply({
+                content: '⚠️ This command must be used in a server.',
+                ephemeral: true,
+            });
+        }
 
         try {
             const characters = await getCharactersByUser(userId, guildId);
@@ -27,8 +38,8 @@ module.exports = {
                 .setPlaceholder('Choose your character')
                 .addOptions(
                     characters.map(c => ({
-                        label: `${c.name} (Lv ${c.level} ${c.class})`,
-                        description: c.race || 'Unnamed race',
+                        label: `${c.name} (Lv ${c.level ?? 1} ${c.class || 'Unclassed'})`,
+                        description: c.race || 'No race specified',
                         value: c.id,
                     }))
                 );
@@ -41,9 +52,9 @@ module.exports = {
                 ephemeral: true,
             });
         } catch (err) {
-            console.error('Error in /switch-character:', err);
+            console.error('[COMMAND ERROR] /switch-character:', err);
             await interaction.reply({
-                content: '❌ Failed to display character switcher.',
+                content: '❌ Failed to display character switcher. Please try again later.',
                 ephemeral: true,
             });
         }

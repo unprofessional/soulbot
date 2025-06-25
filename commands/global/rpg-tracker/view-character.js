@@ -19,12 +19,19 @@ module.exports = {
         const userId = interaction.user.id;
         const guildId = interaction.guild?.id;
 
+        if (!guildId) {
+            return await interaction.reply({
+                content: '⚠️ This command must be used in a server.',
+                ephemeral: true,
+            });
+        }
+
         try {
-            const allCharacters = await getCharactersByUser(userId);
+            const allCharacters = await getCharactersByUser(userId, guildId);
+
             const character =
-        allCharacters.find(
-            (c) => c.game_id && c.game_id.length && c.guild_id === guildId
-        ) || allCharacters[0];
+                allCharacters.find((c) => c.game_id && c.guild_id === guildId) ||
+                allCharacters[0];
 
             if (!character) {
                 return await interaction.reply({
@@ -43,9 +50,9 @@ module.exports = {
                 ephemeral: true,
             });
         } catch (err) {
-            console.error('Error in /view-character:', err);
+            console.error('[COMMAND ERROR] /view-character:', err);
             await interaction.reply({
-                content: '❌ Failed to retrieve character. Try again later.',
+                content: '❌ Failed to retrieve character. Please try again later.',
                 ephemeral: true,
             });
         }

@@ -3,16 +3,18 @@
 const {
     createCharacter,
     getGame,
-    updateHP,
     updateStat,
     updateCharacterMeta,
 } = require('../../store/services/character.service');
+const {
+    createInventoryItem,
+} = require('../../store/services/inventory.service');
 
 module.exports = {
     /**
-   * Handles modal submissions for character creation, HP/stat updates, and character info editing.
-   * @param {import('discord.js').ModalSubmitInteraction} interaction
-   */
+     * Handles modal submissions for character creation, stat updates, metadata updates, and inventory.
+     * @param {import('discord.js').ModalSubmitInteraction} interaction
+     */
     async handleModal(interaction) {
         const { customId } = interaction;
 
@@ -22,22 +24,22 @@ module.exports = {
                 const name = interaction.fields.getTextInputValue('name');
                 const className = interaction.fields.getTextInputValue('class');
                 const race = interaction.fields.getTextInputValue('race');
-                const maxHp = parseInt(interaction.fields.getTextInputValue('hp'), 10);
+                const rawMaxHp = interaction.fields.getTextInputValue('hp');
 
+                const maxHp = parseInt(rawMaxHp, 10);
                 if (!name || !className || isNaN(maxHp)) {
                     return interaction.reply({
-                        content: '⚠️ Invalid character data. Please check your inputs.',
+                        content: '⚠️ Invalid character input. Make sure name, class, and HP are valid.',
                         ephemeral: true,
                     });
                 }
 
                 const guildId = interaction.guild?.id;
-                const games = await getGame({ guildId });
-                const game = Array.isArray(games) ? games[0] : games;
+                const game = await getGame({ guildId });
 
                 if (!game) {
                     return interaction.reply({
-                        content: '⚠️ No game found for this server. Ask your DM to create one first.',
+                        content: '⚠️ No active game found for this server. Ask your DM to create one.',
                         ephemeral: true,
                     });
                 }
@@ -49,15 +51,8 @@ module.exports = {
                     className,
                     race,
                     level: 1,
-                    hp: maxHp,
-                    maxHp,
                     stats: {
-                        str: 10,
-                        dex: 10,
-                        con: 10,
-                        int: 10,
-                        wis: 10,
-                        cha: 10,
+                        hp: maxHp,
                     },
                 });
 
@@ -74,53 +69,23 @@ module.exports = {
             }
         }
 
-        // === Edit HP ===
-        if (customId.startsWith('editHpModal:')) {
-            const [, characterId] = customId.split(':');
-            try {
-                const newHp = parseInt(interaction.fields.getTextInputValue('currentHp'), 10);
-                const newMax = parseInt(interaction.fields.getTextInputValue('maxHp'), 10);
-
-                if (isNaN(newHp) || isNaN(newMax)) {
-                    return interaction.reply({
-                        content: '⚠️ Invalid HP values.',
-                        ephemeral: true,
-                    });
-                }
-
-                await updateHP(characterId, newHp, newMax);
-
-                return interaction.reply({
-                    content: `❤️ HP updated to **${newHp} / ${newMax}**`,
-                    ephemeral: true,
-                });
-            } catch (err) {
-                console.error('Error in editHpModal:', err);
-                return interaction.reply({
-                    content: '❌ Failed to update HP.',
-                    ephemeral: true,
-                });
-            }
-        }
-
         // === Edit Stat ===
         if (customId.startsWith('editStatModal:')) {
             const [, characterId] = customId.split(':');
             try {
-                const statName = interaction.fields.getTextInputValue('statName')?.toLowerCase();
+                const statName = interaction.fields.getTextInputValue('statName')?.toLowerCase().trim();
                 const statValue = parseInt(interaction.fields.getTextInputValue('statValue'), 10);
 
-                const allowed = ['str', 'dex', 'con', 'int', 'wis', 'cha'];
-                if (!allowed.includes(statName)) {
+                if (!/^[a-zA-Z0-9_]{1,20}$/.test(statName)) {
                     return interaction.reply({
-                        content: `⚠️ Invalid stat name. Use one of: ${allowed.join(', ')}.`,
+                        content: '⚠️ Invalid stat name. Use short alphanumeric identifiers (e.g., `hp`, `mana`).',
                         ephemeral: true,
                     });
                 }
 
                 if (isNaN(statValue)) {
                     return interaction.reply({
-                        content: '⚠️ Invalid stat value.',
+                        content: '⚠️ Invalid stat value. Must be a number.',
                         ephemeral: true,
                     });
                 }
@@ -128,7 +93,7 @@ module.exports = {
                 await updateStat(characterId, statName, statValue);
 
                 return interaction.reply({
-                    content: `🎲 Updated **${statName.toUpperCase()}** to **${statValue}**`,
+                    content: `🎲 Updated **${statName.toUpperCase()}** to **${statValue}**.`,
                     ephemeral: true,
                 });
             } catch (err) {
@@ -152,7 +117,7 @@ module.exports = {
 
                 if (!name || !className || isNaN(level)) {
                     return interaction.reply({
-                        content: '⚠️ Invalid name, class, or level input.',
+                        content: '⚠️ Invalid input. Please provide valid name, class, and level.',
                         ephemeral: true,
                     });
                 }
@@ -173,6 +138,42 @@ module.exports = {
                 console.error('Error in editCharacterModal:', err);
                 return interaction.reply({
                     content: '❌ Failed to update character info.',
+                    ephemeral: true,
+                });
+            }
+        }
+
+        // === Add Inventory Item ===
+        if (customId.startsWith('addInventoryModal:')) {
+            const [, characterId] = customId.split(':');
+            try {
+                const name = interaction.fields.getTextInputValue('name')?.trim();
+                const type = interaction.fields.getTextInputValue('type')?.trim() || null;
+                const description = interaction.fields.getTextInputValue('description')?.trim() || null;
+
+                if (!name || name.length > 100) {
+                    return interaction.reply({
+                        content: '⚠️ Invalid item name.',
+                        ephemeral: true,
+                    });
+                }
+
+                const item = await createInventoryItem({
+                    characterId,
+                    name,
+                    type,
+                    description,
+                    equipped: false, // Default unequipped
+                });
+
+                return interaction.reply({
+                    content: `✅ Added **${item.name}** to inventory.`,
+                    ephemeral: true,
+                });
+            } catch (err) {
+                console.error('Error in addInventoryModal:', err);
+                return interaction.reply({
+                    content: '❌ Failed to add inventory item.',
                     ephemeral: true,
                 });
             }

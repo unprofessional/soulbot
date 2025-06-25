@@ -1,99 +1,24 @@
-// features/rpg-tracker/button_handlers.js
-
 const {
-    SlashCommandBuilder,
-    EmbedBuilder,
-    ActionRowBuilder,
-    ButtonBuilder,
-    ButtonStyle,
     ModalBuilder,
     TextInputBuilder,
     TextInputStyle,
+    ActionRowBuilder,
 } = require('discord.js');
+
 const { getCharactersByUser, getCharacterWithStats } = require('../../store/services/character.service');
+const { deleteInventoryByCharacter } = require('../../store/services/inventory.service');
+const {
+    buildCharacterEmbed,
+    buildCharacterActionRow,
+} = require('./embed_utils');
 
 module.exports = {
-    data: new SlashCommandBuilder()
-        .setName('view-character')
-        .setDescription("View your character's stats for this game's campaign."),
-
-    async execute(interaction) {
-        const userId = interaction.user.id;
-        const guildId = interaction.guild?.id;
-
-        try {
-            const allCharacters = await getCharactersByUser(userId);
-            const character = allCharacters.find(c => c.game_id && c.game_id.length && c.guild_id === guildId) || allCharacters[0];
-
-            if (!character) {
-                return await interaction.reply({
-                    content: '⚠️ No character found. Use `/create-character` to start one.',
-                    ephemeral: true,
-                });
-            }
-
-            const full = await getCharacterWithStats(character.id);
-            const statStr = full.stats.map(s => `**${s.name.toUpperCase()}**: ${s.value}`).join(' | ');
-
-            const embed = new EmbedBuilder()
-                .setTitle(`${full.name} — Level ${full.level} ${full.class}`)
-                .setDescription(`*${full.race || 'Unknown Race'}*`)
-                .addFields(
-                    { name: 'HP', value: `${full.hp} / ${full.max_hp}`, inline: true },
-                    { name: 'Stats', value: statStr || 'N/A', inline: true },
-                )
-                .setFooter({ text: `Created on ${new Date(full.created_at).toLocaleDateString()}` });
-
-            const row = new ActionRowBuilder().addComponents(
-                new ButtonBuilder()
-                    .setCustomId(`edit_hp:${full.id}`)
-                    .setLabel('❤️ Edit HP')
-                    .setStyle(ButtonStyle.Secondary),
-                new ButtonBuilder()
-                    .setCustomId(`edit_stat:${full.id}`)
-                    .setLabel('🎲 Edit Stat')
-                    .setStyle(ButtonStyle.Primary)
-            );
-
-            await interaction.reply({ embeds: [embed], components: [row], ephemeral: true });
-        } catch (err) {
-            console.error('Error in /view-character:', err);
-            await interaction.reply({
-                content: '❌ Failed to retrieve character. Try again later.',
-                ephemeral: true,
-            });
-        }
-    },
-
+    /**
+     * Handles direct button interaction events.
+     * @param {import('discord.js').ButtonInteraction} interaction
+     */
     async handleButton(interaction) {
         const { customId } = interaction;
-
-        // === Edit HP Modal ===
-        if (customId.startsWith('edit_hp:')) {
-            const characterId = customId.split(':')[1];
-
-            const modal = new ModalBuilder()
-                .setCustomId(`editHpModal:${characterId}`)
-                .setTitle('Edit Character HP')
-                .addComponents(
-                    new ActionRowBuilder().addComponents(
-                        new TextInputBuilder()
-                            .setCustomId('currentHp')
-                            .setLabel('Current HP')
-                            .setStyle(TextInputStyle.Short)
-                            .setRequired(true)
-                    ),
-                    new ActionRowBuilder().addComponents(
-                        new TextInputBuilder()
-                            .setCustomId('maxHp')
-                            .setLabel('Max HP')
-                            .setStyle(TextInputStyle.Short)
-                            .setRequired(true)
-                    )
-                );
-
-            return await interaction.showModal(modal);
-        }
 
         // === Edit Stat Modal ===
         if (customId.startsWith('edit_stat:')) {
@@ -106,14 +31,14 @@ module.exports = {
                     new ActionRowBuilder().addComponents(
                         new TextInputBuilder()
                             .setCustomId('statName')
-                            .setLabel('Stat Name (e.g., str, dex, con...)')
+                            .setLabel('Stat Name (e.g., hp, vigor, ranged)')
                             .setStyle(TextInputStyle.Short)
                             .setRequired(true)
                     ),
                     new ActionRowBuilder().addComponents(
                         new TextInputBuilder()
                             .setCustomId('statValue')
-                            .setLabel('New Stat Value')
+                            .setLabel('New Stat Value (integer)')
                             .setStyle(TextInputStyle.Short)
                             .setRequired(true)
                     )
@@ -122,10 +47,105 @@ module.exports = {
             return await interaction.showModal(modal);
         }
 
-        // Unknown button
+        if (customId.startsWith('add_inventory_item:')) {
+            const [, characterId] = customId.split(':');
+
+            const modal = new ModalBuilder()
+                .setCustomId(`addInventoryModal:${characterId}`)
+                .setTitle('Add Inventory Item')
+                .addComponents(
+                    new ActionRowBuilder().addComponents(
+                        new TextInputBuilder()
+                            .setCustomId('name')
+                            .setLabel('Item Name')
+                            .setStyle(TextInputStyle.Short)
+                            .setRequired(true)
+                    ),
+                    new ActionRowBuilder().addComponents(
+                        new TextInputBuilder()
+                            .setCustomId('type')
+                            .setLabel('Item Type (optional)')
+                            .setStyle(TextInputStyle.Short)
+                            .setRequired(false)
+                    ),
+                    new ActionRowBuilder().addComponents(
+                        new TextInputBuilder()
+                            .setCustomId('description')
+                            .setLabel('Description (optional)')
+                            .setStyle(TextInputStyle.Paragraph)
+                            .setRequired(false)
+                    )
+                );
+
+            return await interaction.showModal(modal);
+        }
+
+        if (customId.startsWith('clear_inventory:')) {
+            const [, characterId] = customId.split(':');
+
+            try {
+                await deleteInventoryByCharacter(characterId);
+                return await interaction.reply({
+                    content: '🗑️ Inventory cleared.',
+                    ephemeral: true,
+                });
+            } catch (err) {
+                console.error('Error clearing inventory:', err);
+                return await interaction.reply({
+                    content: '❌ Failed to clear inventory.',
+                    ephemeral: true,
+                });
+            }
+        }
+
+        // Unknown or unsupported button
         return await interaction.reply({
             content: '❌ Unrecognized button interaction.',
             ephemeral: true,
         });
-    }
+    },
+
+    /**
+     * (Optional) Compatibility: shows character view if this module is still being invoked as a command.
+     */
+    async execute(interaction) {
+        const userId = interaction.user.id;
+        const guildId = interaction.guild?.id;
+
+        if (!guildId) {
+            return await interaction.reply({
+                content: '⚠️ This command must be used in a server.',
+                ephemeral: true,
+            });
+        }
+
+        try {
+            const allCharacters = await getCharactersByUser(userId, guildId);
+
+            const character = allCharacters.find(c => c.guild_id === guildId) || allCharacters[0];
+
+            if (!character) {
+                return await interaction.reply({
+                    content: '⚠️ No character found. Use `/create-character` to start one.',
+                    ephemeral: true,
+                });
+            }
+
+            const full = await getCharacterWithStats(character.id);
+            const embed = buildCharacterEmbed(full);
+            const row = buildCharacterActionRow(character.id);
+
+            await interaction.reply({
+                embeds: [embed],
+                components: [row],
+                ephemeral: true,
+            });
+        } catch (err) {
+            console.error('[BUTTON HANDLER ERROR]:', err);
+            await interaction.reply({
+                content: '❌ Failed to load character view.',
+                ephemeral: true,
+            });
+        }
+    },
 };
