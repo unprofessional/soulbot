@@ -1,6 +1,10 @@
+// store/services/inventory.service.js
+
+const CharacterDAO = require('../dao/character.dao.js');
 const CharacterInventoryDAO = require('../dao/character_inventory.dao.js');
 const CharacterInventoryFieldDAO = require('../dao/character_inventory_field.dao.js');
 
+const characterDAO = new CharacterDAO();
 const inventoryDAO = new CharacterInventoryDAO();
 const fieldDAO = new CharacterInventoryFieldDAO();
 
@@ -40,6 +44,17 @@ async function getInventory(characterId) {
 }
 
 /**
+ * Get character metadata along with enriched inventory items.
+ */
+async function getCharacterWithInventory(characterId) {
+    const character = await characterDAO.findById(characterId);
+    if (!character) return null;
+
+    const inventory = await getInventory(characterId);
+    return { ...character, inventory };
+}
+
+/**
  * Update or insert a single field on an item.
  */
 async function updateField(inventoryId, name, value, meta = {}) {
@@ -57,7 +72,7 @@ async function updateFields(inventoryId, fieldMap) {
  * Delete an entire item and all its fields.
  */
 async function deleteItem(inventoryId) {
-    await fieldDAO.deleteByInventory(inventoryId); // precautionary, ON DELETE CASCADE may cover this
+    await fieldDAO.deleteByInventory(inventoryId); // precautionary
     await inventoryDAO.deleteById(inventoryId);
 }
 
@@ -71,6 +86,7 @@ async function setEquipped(inventoryId, equipped) {
 module.exports = {
     createItem,
     getInventory,
+    getCharacterWithInventory,
     updateField,
     updateFields,
     deleteItem,
