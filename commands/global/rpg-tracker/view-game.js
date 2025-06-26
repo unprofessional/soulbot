@@ -1,7 +1,6 @@
-// commands/global/rpg-tracker/view-game.js
-
 const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
 const { getCurrentGame } = require('../../../store/services/player.service');
+const { getGame } = require('../../../store/services/game.service');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -21,7 +20,7 @@ module.exports = {
                 });
             }
 
-            const game = await getCurrentGame(currentGameId);
+            const game = await getGame({ id: currentGameId });
 
             if (!game) {
                 return await interaction.reply({
