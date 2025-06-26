@@ -1,3 +1,5 @@
+// features/rpg-tracker/select_menu_handlers.js
+
 const {
     setCurrentCharacter,
     setCurrentGame,
@@ -73,5 +75,33 @@ module.exports = {
                 });
             }
         }
+
+        // === /switch-game dropdown ===
+        if (customId === 'switchGameDropdown') {
+            const selectedGameId = values?.[0];
+            if (!selectedGameId) {
+                return await interaction.reply({
+                    content: '⚠️ No game selected.',
+                    ephemeral: true,
+                });
+            }
+
+            try {
+                await getOrCreatePlayer(user.id); // ensure player row exists
+                await setCurrentGame(user.id, selectedGameId);
+
+                return await interaction.update({
+                    content: `✅ Switched to selected game.`,
+                    components: [],
+                });
+            } catch (err) {
+                console.error('Error switching game:', err);
+                return await interaction.reply({
+                    content: '❌ Failed to switch game.',
+                    ephemeral: true,
+                });
+            }
+        }
+
     },
 };
