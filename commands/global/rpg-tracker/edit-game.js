@@ -2,9 +2,10 @@
 
 const {
     SlashCommandBuilder,
+    StringSelectMenuBuilder,
+    ActionRowBuilder,
     ButtonBuilder,
     ButtonStyle,
-    ActionRowBuilder,
     EmbedBuilder,
 } = require('discord.js');
 
@@ -47,54 +48,42 @@ module.exports = {
 
             const templates = await getStatTemplates(gameId);
 
-            // Build embeds (max 10 per message, Discord limit)
-            const embeds = templates.slice(0, 10).map((f, index) => {
-                const icon = f.field_type === 'paragraph' ? '📝' : '🔹';
-                const defaultVal = f.default_value ? ` _(default: ${f.default_value})_` : '';
-                return new EmbedBuilder()
-                    .setTitle(`${icon} ${f.label}`)
-                    .setDescription(`Type: **${f.field_type}**${defaultVal}\nSort Order: ${f.sort_order}`)
-                    .setColor(0x3498db)
-                    .setFooter({ text: `Field ${index + 1} of ${templates.length}` });
-            });
+            const options = templates.map((t, i) => ({
+                label: `${i + 1}. ${t.label}`,
+                description: `Type: ${t.field_type} — Default: ${t.default_value || 'None'}`,
+                value: `${t.id}`,
+            }));
 
-            // Only keep 5 components max (Discord API limit)
-            const components = templates.slice(0, 5).map((f, index) => {
-                const row = new ActionRowBuilder();
+            const selectMenu = new StringSelectMenuBuilder()
+                .setCustomId('selectStatField')
+                .setPlaceholder('Select a field to edit')
+                .addOptions(options);
 
-                if (index > 0) {
-                    row.addComponents(
-                        new ButtonBuilder()
-                            .setCustomId(`moveStatFieldUp:${f.id}`)
-                            .setLabel('⬆️ Move Up')
-                            .setStyle(ButtonStyle.Secondary)
-                    );
-                }
+            const actionRow = new ActionRowBuilder().addComponents(selectMenu);
 
-                if (index < templates.length - 1) {
-                    row.addComponents(
-                        new ButtonBuilder()
-                            .setCustomId(`moveStatFieldDown:${f.id}`)
-                            .setLabel('⬇️ Move Down')
-                            .setStyle(ButtonStyle.Secondary)
-                    );
-                }
+            const buttons = new ActionRowBuilder().addComponents(
+                new ButtonBuilder()
+                    .setCustomId('moveStatFieldUp')
+                    .setLabel('⬆️ Move Up')
+                    .setStyle(ButtonStyle.Secondary),
+                new ButtonBuilder()
+                    .setCustomId('moveStatFieldDown')
+                    .setLabel('⬇️ Move Down')
+                    .setStyle(ButtonStyle.Secondary),
+                new ButtonBuilder()
+                    .setCustomId('editStatField')
+                    .setLabel('📝 Edit')
+                    .setStyle(ButtonStyle.Primary),
+                new ButtonBuilder()
+                    .setCustomId('deleteStatField')
+                    .setLabel('🗑️ Delete')
+                    .setStyle(ButtonStyle.Danger)
+            );
 
-                row.addComponents(
-                    new ButtonBuilder()
-                        .setCustomId(`deleteStatField:${f.id}`)
-                        .setLabel('🗑️ Delete')
-                        .setStyle(ButtonStyle.Danger)
-                );
-
-                return row;
-            });
-
-            // Final controls row (always present)
             const globalButtons = new ActionRowBuilder().addComponents(
                 new ButtonBuilder()
                     .setCustomId(`editGameModal:${game.id}`)
-                    .setLabel('📝 Edit Game Details')
+                    .setLabel('⚙️ Edit Game Details')
                     .setStyle(ButtonStyle.Secondary),
                 new ButtonBuilder()
                     .setCustomId(`defineStats:${game.id}`)
@@ -106,13 +95,17 @@ module.exports = {
                     .setStyle(ButtonStyle.Success)
             );
 
-            const limitedComponents = components.slice(0, 4); // up to 4 rows
-            limitedComponents.push(globalButtons); // final row is 5th max
+            const summaryLines = templates.map((f, i) => `${i + 1}. ${f.label} (${f.field_type}${f.default_value ? `, default: ${f.default_value}` : ''})`);
+
+            const embed = new EmbedBuilder()
+                .setTitle(`⚙️ Editing stat template for ${game.name}`)
+                .setDescription('_Select a field from the dropdown below, then use a button to modify it._')
+                .addFields({ name: 'Current Fields', value: summaryLines.join('\n') || '_No fields defined yet._' });
 
             return await interaction.reply({
-                content: `⚙️ Editing stat template for **${game.name}**. Use buttons below each field.`,
-                embeds: embeds,
-                components: limitedComponents,
+                content: `📋 Total Fields: ${templates.length}`,
+                embeds: [embed],
+                components: [actionRow, buttons, globalButtons],
                 ephemeral: true,
             });
 
