@@ -61,25 +61,6 @@ module.exports = {
 
             const actionRow = new ActionRowBuilder().addComponents(selectMenu);
 
-            const buttons = new ActionRowBuilder().addComponents(
-                new ButtonBuilder()
-                    .setCustomId('moveStatFieldUp')
-                    .setLabel('⬆️ Move Up')
-                    .setStyle(ButtonStyle.Secondary),
-                new ButtonBuilder()
-                    .setCustomId('moveStatFieldDown')
-                    .setLabel('⬇️ Move Down')
-                    .setStyle(ButtonStyle.Secondary),
-                new ButtonBuilder()
-                    .setCustomId('editStatField')
-                    .setLabel('📝 Edit')
-                    .setStyle(ButtonStyle.Primary),
-                new ButtonBuilder()
-                    .setCustomId('deleteStatField')
-                    .setLabel('🗑️ Delete')
-                    .setStyle(ButtonStyle.Danger)
-            );
-
             const globalButtons = new ActionRowBuilder().addComponents(
                 new ButtonBuilder()
                     .setCustomId(`editGameModal:${game.id}`)
@@ -105,7 +86,7 @@ module.exports = {
             return await interaction.reply({
                 content: `📋 Total Fields: ${templates.length}`,
                 embeds: [embed],
-                components: [actionRow, buttons, globalButtons],
+                components: [actionRow, globalButtons],
                 ephemeral: true,
             });
 
