@@ -38,16 +38,20 @@ class PlayerDAO {
         if (!player) throw new Error(`Player not found: ${discordId}`);
 
         const sql = `
-            INSERT INTO player_server_link (player_id, guild_id, role, current_game_id, current_character_id)
-            VALUES ($1, $2, $3, $4, $5)
-            ON CONFLICT (player_id, guild_id)
-            DO UPDATE SET
-                role = EXCLUDED.role,
-                current_game_id = EXCLUDED.current_game_id,
-                current_character_id = EXCLUDED.current_character_id,
-                updated_at = CURRENT_TIMESTAMP
-            RETURNING *
-        `;
+        INSERT INTO player_server_link (player_id, guild_id, role, current_game_id, current_character_id)
+        VALUES ($1, $2, $3, $4, $5)
+        ON CONFLICT (player_id, guild_id)
+        DO UPDATE SET
+            role = CASE
+                WHEN player_server_link.role = 'gm' THEN 'gm'
+                ELSE EXCLUDED.role
+            END,
+            current_game_id = EXCLUDED.current_game_id,
+            current_character_id = EXCLUDED.current_character_id,
+            updated_at = CURRENT_TIMESTAMP
+        RETURNING *
+    `;
+
         const params = [player.id, guildId, role, currentGameId, currentCharacterId];
         const result = await pool.query(sql, params);
         return result.rows[0];
