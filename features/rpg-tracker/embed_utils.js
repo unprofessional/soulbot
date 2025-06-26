@@ -7,6 +7,29 @@ const {
     ButtonStyle,
 } = require('discord.js');
 
+function buildGameEmbed(game, characters = []) {
+    const embed = new EmbedBuilder()
+        .setTitle(`🎲 ${game.name}`)
+        .setDescription(game.description || '*No description provided.*')
+        .addFields(
+            {
+                name: 'Visibility',
+                value: game.is_public ? '🌐 Public' : '🔒 Private',
+                inline: true,
+            },
+            {
+                name: 'Character Count',
+                value: `${characters.length}`,
+                inline: true,
+            }
+        )
+        .setFooter({ text: `Created by ${game.created_by}` })
+        .setTimestamp(new Date(game.created_at));
+
+    return embed;
+}
+
+
 function buildCharacterEmbed(character) {
     const statMap = Object.fromEntries(character.stats.map(s => [s.name.toLowerCase(), s.value]));
     const statStr = character.stats
@@ -70,8 +93,8 @@ function buildInventoryActionRow(characterId) {
     );
 }
 
-
 module.exports = {
+    buildGameEmbed,
     buildCharacterEmbed,
     buildCharacterActionRow,
     buildInventoryEmbed,

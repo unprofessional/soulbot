@@ -1,6 +1,10 @@
-const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
+// commands/global/rpg-tracker/view-game.js
+
+const { SlashCommandBuilder } = require('discord.js');
 const { getCurrentGame } = require('../../../store/services/player.service');
 const { getGame } = require('../../../store/services/game.service');
+const { getCharactersByGame } = require('../../../store/services/character.service');
+const { buildGameEmbed } = require('../../../features/rpg-tracker/embed_utils');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -29,15 +33,8 @@ module.exports = {
                 });
             }
 
-            const embed = new EmbedBuilder()
-                .setTitle(`🎲 ${game.name}`)
-                .setDescription(game.description || '*No description provided.*')
-                .addFields(
-                    { name: 'Game ID', value: game.id, inline: false },
-                    { name: 'Visibility', value: game.is_public ? '🌐 Public' : '🔒 Private', inline: true }
-                )
-                .setFooter({ text: `Created by ${game.created_by}` })
-                .setTimestamp(new Date(game.created_at));
+            const characters = await getCharactersByGame(currentGameId);
+            const embed = buildGameEmbed(game, characters);
 
             return await interaction.reply({
                 embeds: [embed],
