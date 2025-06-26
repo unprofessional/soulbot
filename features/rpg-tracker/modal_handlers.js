@@ -236,7 +236,18 @@ module.exports = {
 
         // === Set Temporary Character Field from Modal ===
         if (customId.startsWith('setCharacterField:')) {
+            console.log('🛠️ Handling setCharacterField modal...');
+            console.log('customId:', customId);
+
             const fieldKey = customId.split(':').slice(1).join(':'); // ✅ grabs "core:name"
+            console.log('fieldKey:', fieldKey);
+
+            // Debug incoming field IDs from Discord modal
+            console.log(
+                'Received field keys:',
+                [...interaction.fields.fields.keys()]
+            );
+
             const value = interaction.fields.getTextInputValue(fieldKey)?.trim();
 
             if (!fieldKey || !value) {
