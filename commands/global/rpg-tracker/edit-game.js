@@ -47,7 +47,8 @@ module.exports = {
 
             const templates = await getStatTemplates(gameId);
 
-            const embeds = templates.map((f, index) => {
+            // Build embeds (max 10 per message, Discord limit)
+            const embeds = templates.slice(0, 10).map((f, index) => {
                 const icon = f.field_type === 'paragraph' ? '📝' : '🔹';
                 const defaultVal = f.default_value ? ` _(default: ${f.default_value})_` : '';
                 return new EmbedBuilder()
@@ -57,7 +58,8 @@ module.exports = {
                     .setFooter({ text: `Field ${index + 1} of ${templates.length}` });
             });
 
-            const components = templates.map((f, index) => {
+            // Only keep 5 components max (Discord API limit)
+            const components = templates.slice(0, 5).map((f, index) => {
                 const row = new ActionRowBuilder();
 
                 if (index > 0) {
@@ -104,10 +106,13 @@ module.exports = {
                     .setStyle(ButtonStyle.Success)
             );
 
+            const limitedComponents = components.slice(0, 4); // up to 4 rows
+            limitedComponents.push(globalButtons); // final row is 5th max
+
             return await interaction.reply({
                 content: `⚙️ Editing stat template for **${game.name}**. Use buttons below each field.`,
                 embeds: embeds,
-                components: [...components, globalButtons],
+                components: limitedComponents,
                 ephemeral: true,
             });
 
