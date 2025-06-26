@@ -9,6 +9,7 @@ const {
 const { getOrCreatePlayer } = require('../../../store/services/player.service');
 const { getGame, getStatTemplates } = require('../../../store/services/game.service');
 const { getUserDefinedFields } = require('../../../store/services/character.service');
+const { initDraft } = require('../../../store/services/character_draft.service');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -61,6 +62,11 @@ module.exports = {
                 ephemeral: true,
             });
         }
+
+        // ✅ Initialize draft with game_id for validation
+        const draft = initDraft(userId);
+        draft.game_id = gameId;
+        console.log(`🧾 Draft initialized for user ${userId} with game_id: ${gameId}`);
 
         // === Construct dropdown entries ===
         const coreFields = [
