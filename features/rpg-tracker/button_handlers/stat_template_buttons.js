@@ -5,9 +5,11 @@ const {
     TextInputBuilder,
     TextInputStyle,
     ActionRowBuilder,
+    ButtonBuilder,
+    ButtonStyle,
 } = require('discord.js');
 
-const { getStatTemplates } = require('../../../store/services/game.service');
+const { getStatTemplates, getGame } = require('../../../store/services/game.service');
 
 /**
  * Handles stat template-related button interactions.
@@ -106,10 +108,55 @@ async function handle(interaction) {
 
     // === Finish Stat Setup ===
     if (customId.startsWith('finishStatSetup:')) {
-        return await interaction.reply({
-            content: '🎯 Stat template setup complete! You can now invite players to join and create characters.',
-            ephemeral: true,
-        });
+        const [, gameId] = customId.split(':');
+
+        try {
+            const [game, stats] = await Promise.all([
+                getGame({ id: gameId }),
+                getStatTemplates(gameId),
+            ]);
+
+            if (!game) {
+                return await interaction.reply({
+                    content: '❌ Game not found. You may need to recreate it.',
+                    ephemeral: true,
+                });
+            }
+
+            const fieldCount = stats.length;
+            const isPublic = game.is_public;
+
+            const publishBtn = new ButtonBuilder()
+                .setCustomId(`publishGame:${game.id}`)
+                .setLabel('📣 Publish Now')
+                .setStyle(ButtonStyle.Primary);
+
+            const components = isPublic
+                ? []
+                : [new ActionRowBuilder().addComponents(publishBtn)];
+
+            return await interaction.reply({
+                ephemeral: true,
+                content: [
+                    `📋 **Stat Template Setup Complete**`,
+                    ``,
+                    `🟨 You defined **${fieldCount}** custom stat field${fieldCount === 1 ? '' : 's'}.`,
+                    `🔒 Game Visibility: ${isPublic ? '`Public ✅`' : '`Draft ❌`'}`,
+                    ``,
+                    isPublic
+                        ? `Players can now use \`/join-game\` to create characters.`
+                        : `Use the button below to publish your game and allow players to join.`,
+                ].join('\n'),
+                components,
+            });
+
+        } catch (err) {
+            console.error('Error in finishStatSetup:', err);
+            return await interaction.reply({
+                content: '❌ Something went wrong while finalizing your game setup.',
+                ephemeral: true,
+            });
+        }
     }
 }
 

@@ -11,6 +11,7 @@ const {
     addStatTemplates,
     getStatTemplates,
     updateStatTemplate,
+    getGame,
 } = require('../../../store/services/game.service');
 
 /**
@@ -38,6 +39,7 @@ async function handle(interaction) {
                 });
             }
 
+            // Create new field
             await addStatTemplates(gameId, [{
                 label,
                 field_type: fieldType,
@@ -46,8 +48,12 @@ async function handle(interaction) {
                 sort_order: sortOrder,
             }]);
 
-            // Fetch updated field list
-            const allFields = await getStatTemplates(gameId);
+            // Fetch updated stat list + game visibility
+            const [allFields, game] = await Promise.all([
+                getStatTemplates(gameId),
+                getGame({ id: gameId }),
+            ]);
+
             const fieldDescriptions = allFields.map(f => {
                 const icon = f.field_type === 'paragraph' ? '📝' : '🔹';
                 const defaultVal = f.default_value ? ` _(default: ${f.default_value})_` : '';
@@ -57,7 +63,13 @@ async function handle(interaction) {
             const embed = new EmbedBuilder()
                 .setTitle('📋 Current Stat Template')
                 .setDescription(fieldDescriptions.length ? fieldDescriptions.join('\n') : '*No fields yet.*')
-                .setColor(0x00b0f4);
+                .addFields({
+                    name: '🔒 Game Visibility',
+                    value: game.is_public
+                        ? '`Public ✅` — Players can use `/join-game`'
+                        : '`Draft ❌` — Not yet visible to players',
+                })
+                .setColor(game.is_public ? 0x00c851 : 0xffbb33);
 
             const actionRow = new ActionRowBuilder().addComponents(
                 new ButtonBuilder()
