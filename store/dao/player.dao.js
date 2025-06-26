@@ -46,15 +46,15 @@ class PlayerDAO {
                 WHEN player_server_link.role = 'gm' THEN 'gm'
                 ELSE EXCLUDED.role
             END,
-            current_game_id = EXCLUDED.current_game_id,
-            current_character_id = EXCLUDED.current_character_id,
+            current_game_id = COALESCE(EXCLUDED.current_game_id, player_server_link.current_game_id),
+            current_character_id = COALESCE(EXCLUDED.current_character_id, player_server_link.current_character_id),
             updated_at = CURRENT_TIMESTAMP
         RETURNING *
     `;
 
         const params = [player.id, guildId, role, currentGameId, currentCharacterId];
         const result = await pool.query(sql, params);
-        return result.rows[0];
+        return result.rows[0];clear
     }
 
     async getServerLink(discordId, guildId) {

@@ -45,7 +45,10 @@ async function getCurrentCharacter(discordId, guildId) {
  * @returns {Promise<Object>} updated link record
  */
 async function setCurrentGame(discordId, guildId, gameId) {
-    return await playerDAO.setCurrentGame(discordId, guildId, gameId);
+    console.log('[setCurrentGame] Attempting to set:', { discordId, guildId, gameId });
+    const updated = await playerDAO.setCurrentGame(discordId, guildId, gameId);
+    console.log('[setCurrentGame] Updated record:', updated);
+    return updated;
 }
 
 /**
