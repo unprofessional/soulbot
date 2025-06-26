@@ -55,7 +55,7 @@ module.exports = {
             }));
 
             const selectMenu = new StringSelectMenuBuilder()
-                .setCustomId('selectStatField')
+                .setCustomId(`editStatSelect:${game.id}`)
                 .setPlaceholder('Select a field to edit')
                 .addOptions(options);
 
