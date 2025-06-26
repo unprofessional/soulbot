@@ -19,6 +19,7 @@ const {
 const {
     addStatTemplates,
     getStatTemplates,
+    updateGame,
 } = require('../../store/services/game.service');
 
 module.exports = {
@@ -92,6 +93,53 @@ module.exports = {
                 console.error('Error in createStatTemplate modal:', err);
                 return interaction.reply({
                     content: '❌ Failed to add stat template. Please try again.',
+                    ephemeral: true,
+                });
+            }
+        }
+
+        // Inside handleModal()
+
+        if (customId.startsWith('editGameModal:')) {
+            const [, gameId] = customId.split(':');
+
+            try {
+                const name = interaction.fields.getTextInputValue('name')?.trim();
+                const description = interaction.fields.getTextInputValue('description')?.trim();
+
+                if (!name || name.length > 100) {
+                    return interaction.reply({
+                        content: '⚠️ Invalid game name. Please keep it under 100 characters.',
+                        ephemeral: true,
+                    });
+                }
+
+                const game = await updateGame(gameId, { name, description });
+
+                const defineStatsBtn = new ButtonBuilder()
+                    .setCustomId(`defineStats:${game.id}`)
+                    .setLabel('Define Required Stats')
+                    .setStyle(ButtonStyle.Primary);
+
+                const publishBtn = new ButtonBuilder()
+                    .setCustomId(`publishGame:${game.id}`)
+                    .setLabel('📣 Publish Game')
+                    .setStyle(ButtonStyle.Secondary);
+
+                const row = new ActionRowBuilder().addComponents(
+                    defineStatsBtn,
+                    publishBtn
+                );
+
+                return interaction.reply({
+                    content: `🛠️ Game updated to **${game.name}**.`,
+                    components: [row],
+                    ephemeral: true,
+                });
+            } catch (err) {
+                console.error('Error in editGameModal:', err);
+                return interaction.reply({
+                    content: '❌ Failed to update game.',
                     ephemeral: true,
                 });
             }

@@ -19,6 +19,13 @@ async function createGame({ name, description, createdBy, guildId }) {
 }
 
 /**
+ * Update a game's name or description.
+ */
+async function updateGame(gameId, updatePayload) {
+    return gameDAO.update(gameId, updatePayload);
+}
+
+/**
  * Get a game by ID or Discord guild.
  */
 async function getGame({ id, guildId }) {
@@ -58,6 +65,7 @@ async function publishGame(gameId) {
 
 module.exports = {
     createGame,
+    updateGame,
     getGame,
     getStatTemplates,
     addStatTemplates,
