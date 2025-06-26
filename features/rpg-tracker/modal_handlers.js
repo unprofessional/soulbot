@@ -24,7 +24,7 @@ const {
     getStatTemplates,
     updateGame,
 } = require('../../store/services/game.service');
-const { getRemainingRequiredFields, upsertTempCharacterField } = require('../../store/services/character_draft.service');
+const { getRemainingRequiredFields, upsertTempCharacterField, getTempCharacterData } = require('../../store/services/character_draft.service');
 
 module.exports = {
     /**
