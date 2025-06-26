@@ -22,20 +22,32 @@ function initDraft(userId) {
 
 /**
  * Temporarily stores a character field for the user.
+ * Will also inject game_id if passed and not already set.
  * @param {string} userId
  * @param {string} fieldKey - e.g., "core:name", "game:<template_id>"
  * @param {string} value
+ * @param {string|null} gameId - optional game_id to inject into draft
  */
-async function upsertTempCharacterField(userId, fieldKey, value) {
+async function upsertTempCharacterField(userId, fieldKey, value, gameId = null) {
     const draft = initDraft(userId);
     draft[fieldKey] = value;
+
+    if (gameId && !draft.game_id) {
+        draft.game_id = gameId;
+        console.log(`📝 Injected game_id (${gameId}) into draft for user ${userId}`);
+    }
+
+    console.log(`📝 Upserted draft field [${fieldKey}]:`, value);
+    console.log('🗂️  Current draft:', JSON.stringify(draft, null, 2));
 }
 
 /**
  * Returns the current in-memory character draft for the user.
  */
 async function getTempCharacterData(userId) {
-    return drafts.get(getDraftKey(userId)) || null;
+    const draft = drafts.get(getDraftKey(userId)) || null;
+    console.log(`📄 getTempCharacterData(${userId}):`, draft);
+    return draft;
 }
 
 /**
@@ -43,7 +55,16 @@ async function getTempCharacterData(userId) {
  */
 async function getRemainingRequiredFields(userId) {
     const draft = await getTempCharacterData(userId);
-    if (!draft || !draft.game_id) return [];
+
+    if (!draft) {
+        console.warn(`⚠️ No draft found for user ${userId}`);
+        return [];
+    }
+
+    if (!draft.game_id) {
+        console.warn(`⚠️ Draft for user ${userId} missing game_id — cannot compute required fields`);
+        return [];
+    }
 
     const missing = [];
 
@@ -67,6 +88,7 @@ async function getRemainingRequiredFields(userId) {
         }
     }
 
+    console.log(`📋 Remaining required fields for user ${userId}:`, missing);
     return missing;
 }
 
@@ -75,7 +97,9 @@ async function getRemainingRequiredFields(userId) {
  */
 async function isDraftComplete(userId) {
     const remaining = await getRemainingRequiredFields(userId);
-    return remaining.length === 0;
+    const complete = remaining.length === 0;
+    console.log(`✅ isDraftComplete(${userId}) →`, complete);
+    return complete;
 }
 
 /**
@@ -83,6 +107,9 @@ async function isDraftComplete(userId) {
  */
 async function finalizeCharacterCreation(userId, draft) {
     const { game_id } = draft;
+
+    console.log(`🚀 Finalizing character for user ${userId} in game ${game_id}`);
+    console.log('🧾 Draft data:', JSON.stringify(draft, null, 2));
 
     // Pull required core fields
     const name = draft['core:name']?.trim();
@@ -114,6 +141,7 @@ async function finalizeCharacterCreation(userId, draft) {
 
     // Clear the draft now that it's persisted
     drafts.delete(getDraftKey(userId));
+    console.log(`🗑️ Cleared draft for user ${userId}`);
 
     return character;
 }

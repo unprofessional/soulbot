@@ -256,9 +256,17 @@ module.exports = {
                 });
             }
 
-            await upsertTempCharacterField(interaction.user.id, fieldKey, value);
+            // 🔍 Pull existing draft to extract game_id
+            const existingDraft = await getTempCharacterData(interaction.user.id);
+            const gameId = existingDraft?.game_id || null;
+
+            console.log(`📦 Calling upsertTempCharacterField with game_id: ${gameId}`);
+
+            // ✅ Pass gameId into the upsert!
+            await upsertTempCharacterField(interaction.user.id, fieldKey, value, gameId);
 
             const remaining = await getRemainingRequiredFields(interaction.user.id);
+            console.log(`📋 Remaining fields after setting [${fieldKey}]:`, remaining);
 
             if (remaining.length === 0) {
                 const replyData = {
