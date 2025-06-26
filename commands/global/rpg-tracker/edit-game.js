@@ -91,7 +91,7 @@ module.exports = {
             // Final controls row (always present)
             const globalButtons = new ActionRowBuilder().addComponents(
                 new ButtonBuilder()
-                    .setCustomId(`editGameMeta:${game.id}`)
+                    .setCustomId(`editGameModal:${game.id}`)
                     .setLabel('📝 Edit Game Details')
                     .setStyle(ButtonStyle.Secondary),
                 new ButtonBuilder()
