@@ -236,7 +236,7 @@ module.exports = {
 
         // === Set Temporary Character Field from Modal ===
         if (customId.startsWith('setCharacterField:')) {
-            const fieldKey = customId.split(':')[1]; // e.g. 'core:name' or 'game:uuid'
+            const fieldKey = customId.split(':').slice(1).join(':'); // ✅ grabs "core:name"
             const value = interaction.fields.getTextInputValue(fieldKey)?.trim();
 
             if (!fieldKey || !value) {
