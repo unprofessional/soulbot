@@ -1,5 +1,3 @@
-// store/dao/player.dao.js
-
 const { Pool } = require('pg');
 const { pgHost, pgPort, pgUser, pgPass, pgDb } = require('../../config/env_config.js');
 
@@ -12,7 +10,14 @@ const pool = new Pool({
 });
 
 class PlayerDAO {
-    // Create global player record if not exists
+    async findByDiscordId(discordId) {
+        const result = await pool.query(
+            `SELECT * FROM player WHERE discord_id = $1`,
+            [discordId.trim()]
+        );
+        return result.rows[0] || null;
+    }
+
     async createGlobalPlayer(discordId) {
         const sql = `
             INSERT INTO player (discord_id)
@@ -24,37 +29,24 @@ class PlayerDAO {
         return result.rows[0] || await this.findByDiscordId(discordId);
     }
 
-    async findByDiscordId(discordId) {
-        const result = await pool.query(
-            `SELECT * FROM player WHERE discord_id = $1`,
-            [discordId.trim()]
-        );
-        return result.rows[0] || null;
-    }
-
-    // Upsert per-server player context
-    async upsertPlayerServerLink({ discordId, guildId, role = 'player', currentGameId = null, currentCharacterId = null }) {
+    async ensureServerLink(discordId, guildId, role = 'player') {
         const player = await this.findByDiscordId(discordId);
         if (!player) throw new Error(`Player not found: ${discordId}`);
 
         const sql = `
-        INSERT INTO player_server_link (player_id, guild_id, role, current_game_id, current_character_id)
-        VALUES ($1, $2, $3, $4, $5)
-        ON CONFLICT (player_id, guild_id)
-        DO UPDATE SET
-            role = CASE
-                WHEN player_server_link.role = 'gm' THEN 'gm'
-                ELSE EXCLUDED.role
-            END,
-            current_game_id = COALESCE(EXCLUDED.current_game_id, player_server_link.current_game_id),
-            current_character_id = COALESCE(EXCLUDED.current_character_id, player_server_link.current_character_id),
-            updated_at = CURRENT_TIMESTAMP
-        RETURNING *
-    `;
-
-        const params = [player.id, guildId, role, currentGameId, currentCharacterId];
-        const result = await pool.query(sql, params);
-        return result.rows[0];clear
+            INSERT INTO player_server_link (player_id, guild_id, role)
+            VALUES ($1, $2, $3)
+            ON CONFLICT (player_id, guild_id)
+            DO UPDATE SET
+                role = CASE
+                    WHEN player_server_link.role = 'gm' THEN 'gm'
+                    ELSE EXCLUDED.role
+                END,
+                updated_at = CURRENT_TIMESTAMP
+            RETURNING *
+        `;
+        const result = await pool.query(sql, [player.id, guildId, role]);
+        return result.rows[0];
     }
 
     async getServerLink(discordId, guildId) {

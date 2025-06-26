@@ -5,15 +5,16 @@ const playerDAO = new PlayerDAO();
 
 /**
  * Ensures global player record exists and sets up server-specific link.
+ * Used across command, modal, and button flows.
  * @param {string} discordId - Discord user ID
  * @param {string} guildId - Guild/server ID
  * @param {string} role - Optional role: 'player' or 'gm'
  * @returns {Promise<Object>} player_server_link record
  */
 async function getOrCreatePlayer(discordId, guildId, role = 'player') {
-    if (!guildId) throw new Error('guildId is required to upsert player_server_link');
+    if (!guildId) throw new Error('guildId is required');
     await playerDAO.createGlobalPlayer(discordId);
-    return await playerDAO.upsertPlayerServerLink({ discordId, guildId, role });
+    return await playerDAO.ensureServerLink(discordId, guildId, role);
 }
 
 /**
