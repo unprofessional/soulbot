@@ -40,6 +40,14 @@ module.exports = {
             }
 
             let label = selectedField;
+            if (selectedField.startsWith('core:')) {
+                label = `[CORE] ${selectedField.split(':')[1]}`;
+            } else if (selectedField.startsWith('game:')) {
+                label = `[GAME] Field`;
+            } else if (selectedField.startsWith('user:')) {
+                label = `[USER] ${selectedField.split(':')[1]}`;
+            }
+
             const inputStyle =
                 selectedField === 'core:bio'
                     ? TextInputStyle.Paragraph
@@ -47,12 +55,12 @@ module.exports = {
 
             const modal = new ModalBuilder()
                 .setCustomId(`setCharacterField:${selectedField}`)
-                .setTitle(`Enter value for ${label}`)
+                .setTitle(`Enter value for ${label}`.slice(0, 45))
                 .addComponents(
                     new ActionRowBuilder().addComponents(
                         new TextInputBuilder()
                             .setCustomId(selectedField) // ✅ match key like 'core:name'
-                            .setLabel(`Value for ${label}`)
+                            .setLabel(`Value for ${label}`.slice(0, 45))
                             .setStyle(inputStyle)
                             .setRequired(true)
                     )
