@@ -30,6 +30,36 @@ module.exports = {
     async handleSelectMenu(interaction) {
         const { customId, user, values } = interaction;
 
+        // === create-character: stat field selector ===
+        if (customId === 'createCharacterDropdown') {
+            const selectedField = values?.[0];
+            if (!selectedField) {
+                return await interaction.reply({
+                    content: '⚠️ No field selected.',
+                    ephemeral: true,
+                });
+            }
+
+            const modal = new ModalBuilder()
+                .setCustomId(`setCharacterField:${selectedField}`)
+                .setTitle(`Enter value for ${selectedField}`)
+                .addComponents(
+                    new ActionRowBuilder().addComponents(
+                        new TextInputBuilder()
+                            .setCustomId('value')
+                            .setLabel(`Value for ${selectedField}`)
+                            .setStyle(
+                                selectedField.toLowerCase() === 'bio'
+                                    ? TextInputStyle.Paragraph
+                                    : TextInputStyle.Short
+                            )
+                            .setRequired(true)
+                    )
+                );
+
+            return await interaction.showModal(modal);
+        }
+
         // === /switch-character dropdown ===
         if (customId === 'switchCharacterDropdown') {
             const selectedId = values?.[0];
@@ -112,30 +142,5 @@ module.exports = {
             }
         }
 
-        // === create-character: stat field selector ===
-        if (customId === 'createCharacterDropdown') {
-            const selectedField = values?.[0];
-            if (!selectedField) {
-                return await interaction.reply({
-                    content: '⚠️ No field selected.',
-                    ephemeral: true,
-                });
-            }
-
-            const modal = new ModalBuilder()
-                .setCustomId(`setCharacterField:${selectedField}`)
-                .setTitle(`Enter value for ${selectedField}`)
-                .addComponents(
-                    new ActionRowBuilder().addComponents(
-                        new TextInputBuilder()
-                            .setCustomId('value')
-                            .setLabel(`Value for ${selectedField}`)
-                            .setStyle(TextInputStyle.Short)
-                            .setRequired(true)
-                    )
-                );
-
-            return await interaction.showModal(modal);
-        }
     },
 };
