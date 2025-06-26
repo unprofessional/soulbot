@@ -1,8 +1,7 @@
-// commands/global/rpg-tracker/view-games.js
+// commands/global/rpg-tracker/list-games.js
 
 const { SlashCommandBuilder } = require('discord.js');
 const { getGame } = require('../../../store/services/game.service');
-const { getOrCreatePlayer } = require('../../../store/services/player.service');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -21,7 +20,6 @@ module.exports = {
         }
 
         try {
-            // const player = await getOrCreatePlayer(userId);
             const games = await getGame({ guildId });
 
             if (!games?.length) {
@@ -40,7 +38,7 @@ module.exports = {
             });
 
             await interaction.reply({
-                content: `🎲 **Games in this server:**\n\n${rows.join('\n')}`,
+                content: `🎲 **Games in this server:**\n\n${rows.join('\n\n')}`, // Double newline
                 ephemeral: true,
             });
         } catch (err) {
