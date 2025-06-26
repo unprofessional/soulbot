@@ -62,7 +62,7 @@ module.exports = {
             });
         }
 
-        // Construct dropdown entries
+        // === Construct dropdown entries ===
         const coreFields = [
             { name: 'name', label: '[CORE] Name' },
             { name: 'bio', label: '[CORE] Bio' },
@@ -70,23 +70,45 @@ module.exports = {
             { name: 'visibility', label: '[CORE] Visibility' },
         ];
 
-        const gameFields = statTemplates.map(f => ({
+        const gameFields = (statTemplates || []).map(f => ({
             name: f.name,
             label: `[GAME] ${f.label || f.name}`,
         }));
 
-        const userFieldsFormatted = (userFields || []).map(f => ({
-            name: f.name,
-            label: `[USER] ${f.label || f.name}`,
-        }));
+        const userFieldsFormatted = (userFields || [])
+            .filter(f => f?.name && typeof f.name === 'string') // Ensure valid name
+            .map(f => ({
+                name: f.name,
+                label: `[USER] ${f.label || f.name}`,
+            }));
 
         const allFields = [...coreFields, ...gameFields, ...userFieldsFormatted];
+
+        // 🔍 Safety check for invalid entries
+        const invalidFields = allFields.filter(f => !f.label || !f.name);
+        if (invalidFields.length > 0) {
+            console.warn('[create-character] Skipping invalid fields:', invalidFields);
+        }
+
+        const safeFields = allFields.filter(f =>
+            typeof f.label === 'string' &&
+            typeof f.name === 'string' &&
+            f.label.trim() &&
+            f.name.trim()
+        );
+
+        if (!safeFields.length) {
+            return interaction.reply({
+                content: '⚠️ No valid fields found to show in the dropdown.',
+                ephemeral: true,
+            });
+        }
 
         const menu = new StringSelectMenuBuilder()
             .setCustomId('createCharacterDropdown')
             .setPlaceholder('Choose a character field to define')
             .addOptions(
-                allFields.map(f => ({
+                safeFields.map(f => ({
                     label: f.label,
                     value: f.name,
                 }))
