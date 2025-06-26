@@ -1,6 +1,6 @@
 // features/rpg-tracker/modal_handlers/character_edit_modals.js
 
-const { updateStat, updateCharacterMeta } = require('../../store/services/character.service');
+const { updateStat, updateCharacterMeta } = require('../../../store/services/character.service');
 
 /**
  * Handles modals related to character stat or metadata editing.

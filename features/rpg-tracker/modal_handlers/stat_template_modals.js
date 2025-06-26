@@ -11,7 +11,7 @@ const {
     addStatTemplates,
     getStatTemplates,
     updateStatTemplate,
-} = require('../../store/services/game.service');
+} = require('../../../store/services/game.service');
 
 /**
  * Handles modals related to stat template creation and editing.

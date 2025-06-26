@@ -7,7 +7,7 @@ const {
     ActionRowBuilder,
 } = require('discord.js');
 
-const { getStatTemplates } = require('../../store/services/game.service');
+const { getStatTemplates } = require('../../../store/services/game.service');
 
 /**
  * Handles stat template-related button interactions.

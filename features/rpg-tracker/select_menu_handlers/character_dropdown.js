@@ -9,16 +9,16 @@ const {
 
 const {
     setCurrentCharacter,
-} = require('../../store/services/player.service');
+} = require('../../../store/services/player.service');
 
 const {
     getCharacterWithStats,
-} = require('../../store/services/character.service');
+} = require('../../../store/services/character.service');
 
 const {
     buildCharacterEmbed,
     buildCharacterActionRow,
-} = require('../button_handlers/embed_utils');
+} = require('../embed_utils');
 
 /**
  * Handles character dropdown menus.

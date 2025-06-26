@@ -3,13 +3,13 @@
 const {
     buildCharacterEmbed,
     buildCharacterActionRow,
-} = require('./embed_utils');
+} = require('../embed_utils');
 
 const {
     isDraftComplete,
     getTempCharacterData,
     finalizeCharacterCreation,
-} = require('../../store/services/character_draft.service');
+} = require('../../../store/services/character_draft.service');
 
 /**
  * Handles character creation final submission.

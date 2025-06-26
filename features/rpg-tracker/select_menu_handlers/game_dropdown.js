@@ -3,7 +3,7 @@
 const {
     getOrCreatePlayer,
     setCurrentGame,
-} = require('../../store/services/player.service');
+} = require('../../../store/services/player.service');
 
 /**
  * Handles game selection dropdowns (join or switch game).

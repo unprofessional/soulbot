@@ -1,14 +1,14 @@
 // features/rpg-tracker/button_handlers/fallback_buttons.js
 
 const {
-    getCharactersByUser,
-    getCharacterWithStats,
-} = require('../../store/services/character.service');
-
-const {
     buildCharacterEmbed,
     buildCharacterActionRow,
-} = require('./embed_utils');
+} = require('../embed_utils');
+
+const {
+    getCharactersByUser,
+    getCharacterWithStats,
+} = require('../../../store/services/character.service');
 
 /**
  * Fallback for unknown buttons or default character view.

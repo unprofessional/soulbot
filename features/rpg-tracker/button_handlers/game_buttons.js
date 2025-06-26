@@ -7,8 +7,8 @@ const {
     ActionRowBuilder,
 } = require('discord.js');
 
-const { getOrCreatePlayer } = require('../../store/services/player.service');
-const { publishGame } = require('../../store/services/game.service');
+const { getOrCreatePlayer } = require('../../../store/services/player.service');
+const { publishGame } = require('../../../store/services/game.service');
 
 /**
  * Handles game management buttons (edit, publish).

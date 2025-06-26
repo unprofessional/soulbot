@@ -11,15 +11,15 @@ const {
 
 const {
     getCharacterWithStats,
-} = require('../../store/services/character.service');
+} = require('../../../store/services/character.service');
 const {
     deleteInventoryByCharacter,
-} = require('../../store/services/inventory.service');
+} = require('../../../store/services/inventory.service');
 
 const {
     buildInventoryEmbed,
     buildInventoryActionRow,
-} = require('./embed_utils');
+} = require('../embed_utils');
 
 /**
  * Handles inventory-related button interactions.

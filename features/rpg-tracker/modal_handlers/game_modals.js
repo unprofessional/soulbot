@@ -6,7 +6,7 @@ const {
     ButtonStyle,
 } = require('discord.js');
 
-const { updateGame } = require('../../store/services/game.service');
+const { updateGame } = require('../../../store/services/game.service');
 
 /**
  * Handles modals related to game editing.

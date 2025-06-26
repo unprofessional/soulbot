@@ -1,6 +1,6 @@
 // features/rpg-tracker/modal_handlers/inventory_modals.js
 
-const { createItem } = require('../../store/services/inventory.service');
+const { createItem } = require('../../../store/services/inventory.service');
 
 /**
  * Handles modals related to inventory item creation.

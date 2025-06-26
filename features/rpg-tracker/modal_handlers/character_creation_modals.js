@@ -9,16 +9,16 @@ const {
 
 const {
     getOrCreatePlayer,
-} = require('../../store/services/player.service');
+} = require('../../../store/services/player.service');
 const {
-    getStatTemplates,
     createCharacter,
-} = require('../../store/services/character.service');
+} = require('../../../store/services/character.service');
 const {
     getRemainingRequiredFields,
     upsertTempCharacterField,
     getTempCharacterData,
-} = require('../../store/services/character_draft.service');
+} = require('../../../store/services/character_draft.service');
+const { getStatTemplates } = require('../../../store/services/game.service');
 
 /**
  * Handles modals related to character creation.
