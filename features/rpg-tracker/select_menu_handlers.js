@@ -5,13 +5,22 @@ const {
     setCurrentGame,
     getOrCreatePlayer,
 } = require('../../store/services/player.service');
+
 const {
     getCharacterWithStats,
 } = require('../../store/services/character.service');
+
 const {
     buildCharacterEmbed,
     buildCharacterActionRow,
 } = require('./embed_utils');
+
+const {
+    ModalBuilder,
+    TextInputBuilder,
+    TextInputStyle,
+    ActionRowBuilder,
+} = require('discord.js');
 
 module.exports = {
     /**
@@ -103,5 +112,30 @@ module.exports = {
             }
         }
 
+        // === create-character: stat field selector ===
+        if (customId === 'createCharacterDropdown') {
+            const selectedField = values?.[0];
+            if (!selectedField) {
+                return await interaction.reply({
+                    content: '⚠️ No field selected.',
+                    ephemeral: true,
+                });
+            }
+
+            const modal = new ModalBuilder()
+                .setCustomId(`setCharacterField:${selectedField}`)
+                .setTitle(`Enter value for ${selectedField}`)
+                .addComponents(
+                    new ActionRowBuilder().addComponents(
+                        new TextInputBuilder()
+                            .setCustomId('value')
+                            .setLabel(`Value for ${selectedField}`)
+                            .setStyle(TextInputStyle.Short)
+                            .setRequired(true)
+                    )
+                );
+
+            return await interaction.showModal(modal);
+        }
     },
 };

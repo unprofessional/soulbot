@@ -3,6 +3,7 @@ const {
     ButtonBuilder,
     ButtonStyle,
     EmbedBuilder,
+    StringSelectMenuBuilder,
 } = require('discord.js');
 
 const {
@@ -21,6 +22,7 @@ const {
     getStatTemplates,
     updateGame,
 } = require('../../store/services/game.service');
+const { getRemainingRequiredFields, upsertTempCharacterField } = require('../../store/services/character_draft.service');
 
 module.exports = {
     /**
@@ -229,6 +231,49 @@ module.exports = {
                 });
             }
         }
+
+        if (customId.startsWith('setCharacterField:')) {
+            const fieldName = customId.split(':')[1];
+            const value = interaction.fields.getTextInputValue('value');
+
+            // Example: Store to Redis, temp DB, or in-memory store
+            await upsertTempCharacterField(interaction.user.id, fieldName, value);
+
+            const remaining = await getRemainingRequiredFields(interaction.user.id);
+
+            if (remaining.length === 0) {
+                return await interaction.reply({
+                    content: '✅ All required fields are filled! Submit when ready:',
+                    components: [
+                        new ActionRowBuilder().addComponents(
+                            new ButtonBuilder()
+                                .setCustomId('submitNewCharacter')
+                                .setLabel('Submit Character')
+                                .setStyle(ButtonStyle.Success)
+                        )
+                    ],
+                    ephemeral: true,
+                });
+            }
+
+            // Otherwise return to dropdown
+            const menu = new StringSelectMenuBuilder()
+                .setCustomId('createCharacterDropdown')
+                .setPlaceholder('Choose next field to define')
+                .addOptions(
+                    remaining.map(field => ({
+                        label: field.label,
+                        value: field.name,
+                    }))
+                );
+
+            await interaction.reply({
+                content: `✅ Saved **${fieldName}**. Choose next field:`,
+                components: [new ActionRowBuilder().addComponents(menu)],
+                ephemeral: true,
+            });
+        }
+
 
         // === Edit Stat ===
         if (customId.startsWith('editStatModal:')) {

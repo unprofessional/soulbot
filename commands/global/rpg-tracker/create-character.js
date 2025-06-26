@@ -2,14 +2,13 @@
 
 const {
     SlashCommandBuilder,
-    ModalBuilder,
-    TextInputBuilder,
-    TextInputStyle,
     ActionRowBuilder,
+    StringSelectMenuBuilder,
 } = require('discord.js');
 
 const { getOrCreatePlayer } = require('../../../store/services/player.service');
 const { getGame, getStatTemplates } = require('../../../store/services/game.service');
+const { getUserDefinedFields } = require('../../../store/services/character.service');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -54,6 +53,7 @@ module.exports = {
         }
 
         const statTemplates = await getStatTemplates(gameId);
+        const userFields = await getUserDefinedFields(userId); // optional — can return []
 
         if (!statTemplates.length) {
             return interaction.reply({
@@ -62,26 +62,42 @@ module.exports = {
             });
         }
 
-        const fields = statTemplates.slice(0, 5);
+        // Construct dropdown entries
+        const coreFields = [
+            { name: 'name', label: '[CORE] Name' },
+            { name: 'bio', label: '[CORE] Bio' },
+            { name: 'avatar_url', label: '[CORE] Avatar URL' },
+            { name: 'visibility', label: '[CORE] Visibility' },
+        ];
 
-        const modal = new ModalBuilder()
-            .setCustomId(`createCharacterModal:${gameId}`)
-            .setTitle('Create New Character');
+        const gameFields = statTemplates.map(f => ({
+            name: f.name,
+            label: `[GAME] ${f.label || f.name}`,
+        }));
 
-        for (const field of fields) {
-            const input = new TextInputBuilder()
-                .setCustomId(field.id)
-                .setLabel(field.label.slice(0, 45))
-                .setRequired(Boolean(field.is_required))
-                .setStyle(field.field_type === 'paragraph' ? TextInputStyle.Paragraph : TextInputStyle.Short);
+        const userFieldsFormatted = (userFields || []).map(f => ({
+            name: f.name,
+            label: `[USER] ${f.label || f.name}`,
+        }));
 
-            if (field.default_value) {
-                input.setValue(field.default_value.slice(0, 4000));
-            }
+        const allFields = [...coreFields, ...gameFields, ...userFieldsFormatted];
 
-            modal.addComponents(new ActionRowBuilder().addComponents(input));
-        }
+        const menu = new StringSelectMenuBuilder()
+            .setCustomId('createCharacterDropdown')
+            .setPlaceholder('Choose a character field to define')
+            .addOptions(
+                allFields.map(f => ({
+                    label: f.label,
+                    value: f.name,
+                }))
+            );
 
-        return interaction.showModal(modal);
+        const row = new ActionRowBuilder().addComponents(menu);
+
+        return await interaction.reply({
+            content: '🧬 Select a field to begin character creation:',
+            components: [row],
+            ephemeral: true,
+        });
     },
 };

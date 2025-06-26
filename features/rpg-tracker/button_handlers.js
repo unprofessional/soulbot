@@ -17,6 +17,10 @@ const {
 } = require('./embed_utils');
 const { getOrCreatePlayer } = require('../../store/services/player.service');
 const { publishGame } = require('../../store/services/game.service');
+const {
+    getTempCharacterData,
+    finalizeCharacterCreation,
+} = require('../../store/services/character_draft.service');
 
 module.exports = {
     /**
@@ -125,6 +129,33 @@ module.exports = {
                 console.error('Error publishing game:', err);
                 return interaction.reply({
                     content: '❌ Failed to publish game. Please try again later.',
+                    ephemeral: true,
+                });
+            }
+        }
+
+        // === Submit Character ===
+        if (customId === 'submitNewCharacter') {
+            try {
+                const data = await getTempCharacterData(interaction.user.id);
+
+                if (!data || !data.name) {
+                    return await interaction.reply({
+                        content: '⚠️ Missing required character fields.',
+                        ephemeral: true,
+                    });
+                }
+
+                const character = await finalizeCharacterCreation(interaction.user.id, data);
+
+                return await interaction.reply({
+                    content: `✅ Character **${character.name}** created successfully!`,
+                    ephemeral: true,
+                });
+            } catch (err) {
+                console.error('Error submitting character:', err);
+                return await interaction.reply({
+                    content: '❌ Failed to submit character. Please try again.',
                     ephemeral: true,
                 });
             }
