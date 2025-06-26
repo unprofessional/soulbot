@@ -46,32 +46,68 @@ module.exports = {
             }
 
             const templates = await getStatTemplates(gameId);
-            const rows = templates.map(f => {
+
+            const embeds = templates.map((f, index) => {
                 const icon = f.field_type === 'paragraph' ? '📝' : '🔹';
                 const defaultVal = f.default_value ? ` _(default: ${f.default_value})_` : '';
-                return `${icon} **${f.label}**${defaultVal}`;
+                return new EmbedBuilder()
+                    .setTitle(`${icon} ${f.label}`)
+                    .setDescription(`Type: **${f.field_type}**${defaultVal}\nSort Order: ${f.sort_order}`)
+                    .setColor(0x3498db)
+                    .setFooter({ text: `Field ${index + 1} of ${templates.length}` });
             });
 
-            const embed = new EmbedBuilder()
-                .setTitle('📋 Current Stat Template')
-                .setDescription(rows.length ? rows.join('\n') : '*No stat fields defined yet.*')
-                .setColor(0x00b0f4);
+            const components = templates.map((f, index) => {
+                const row = new ActionRowBuilder();
 
-            const buttons = new ActionRowBuilder().addComponents(
+                if (index > 0) {
+                    row.addComponents(
+                        new ButtonBuilder()
+                            .setCustomId(`moveStatFieldUp:${f.id}`)
+                            .setLabel('⬆️ Move Up')
+                            .setStyle(ButtonStyle.Secondary)
+                    );
+                }
+
+                if (index < templates.length - 1) {
+                    row.addComponents(
+                        new ButtonBuilder()
+                            .setCustomId(`moveStatFieldDown:${f.id}`)
+                            .setLabel('⬇️ Move Down')
+                            .setStyle(ButtonStyle.Secondary)
+                    );
+                }
+
+                row.addComponents(
+                    new ButtonBuilder()
+                        .setCustomId(`deleteStatField:${f.id}`)
+                        .setLabel('🗑️ Delete')
+                        .setStyle(ButtonStyle.Danger)
+                );
+
+                return row;
+            });
+
+            // Final controls row (always present)
+            const globalButtons = new ActionRowBuilder().addComponents(
                 new ButtonBuilder()
-                    .setCustomId(`defineStats:${gameId}`)
-                    .setLabel('➕ Add Another Stat')
+                    .setCustomId(`editGameMeta:${game.id}`)
+                    .setLabel('📝 Edit Game Details')
+                    .setStyle(ButtonStyle.Secondary),
+                new ButtonBuilder()
+                    .setCustomId(`defineStats:${game.id}`)
+                    .setLabel('➕ Add Required Stat')
                     .setStyle(ButtonStyle.Primary),
                 new ButtonBuilder()
-                    .setCustomId(`finishStatSetup:${gameId}`)
+                    .setCustomId(`finishStatSetup:${game.id}`)
                     .setLabel('✅ Done')
                     .setStyle(ButtonStyle.Success)
             );
 
             return await interaction.reply({
-                content: `⚙️ You can add or update stat fields for **${game.name}** below.`,
-                embeds: [embed],
-                components: [buttons],
+                content: `⚙️ Editing stat template for **${game.name}**. Use buttons below each field.`,
+                embeds: embeds,
+                components: [...components, globalButtons],
                 ephemeral: true,
             });
 
