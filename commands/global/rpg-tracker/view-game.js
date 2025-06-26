@@ -2,7 +2,6 @@
 
 const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
 const { getCurrentGame } = require('../../../store/services/player.service');
-const { getGameById } = require('../../../store/services/game.service');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -22,7 +21,7 @@ module.exports = {
                 });
             }
 
-            const game = await getGameById(currentGameId);
+            const game = await getCurrentGame(currentGameId);
 
             if (!game) {
                 return await interaction.reply({

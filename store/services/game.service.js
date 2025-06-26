@@ -35,6 +35,21 @@ async function getGame({ id, guildId }) {
 }
 
 /**
+ * Get all games created by a user, optionally filtered by guild.
+ */
+async function getGamesByUser(userId, guildId = null) {
+    const allGames = await gameDAO.findByUser(userId);
+
+    // Optional: Filter by guild ID if provided
+    if (guildId) {
+        return allGames.filter(g => g.guild_id === guildId);
+    }
+
+    return allGames;
+}
+
+
+/**
  * Get all stat templates for a game.
  */
 async function getStatTemplates(gameId) {
@@ -67,6 +82,7 @@ module.exports = {
     createGame,
     updateGame,
     getGame,
+    getGamesByUser,
     getStatTemplates,
     addStatTemplates,
     clearStatTemplates,

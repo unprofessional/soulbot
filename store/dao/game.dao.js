@@ -46,6 +46,19 @@ class GameDAO {
         return result.rows[0] || null;
     }
 
+    async findByUser(userId) {
+        const result = await pool.query(
+            `
+            SELECT *
+            FROM game
+            WHERE created_by = $1
+            ORDER BY created_at DESC
+            `,
+            [userId]
+        );
+        return result.rows;
+    }
+
     async findByGuild(guildId) {
         if (!guildId) return [];
         const result = await pool.query(
