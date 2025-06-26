@@ -50,14 +50,14 @@ async function handle(interaction) {
 
         try {
             const guildId = interaction.guild?.id;
-            if (!guildId) {
-                return await interaction.reply({
-                    content: '❌ Could not determine guild ID.',
-                    ephemeral: true,
-                });
-            }
+            const userId = interaction.user.id;
 
-            const player = await getOrCreatePlayer(user.id, guildId);
+            console.log('[publishGame] userId:', userId);
+            console.log('[publishGame] guildId:', guildId);
+
+            const player = await getOrCreatePlayer(userId, guildId);
+
+            console.log('[publishGame] player server link:', player);
 
             if (player?.role !== 'gm' || player.current_game_id !== gameId) {
                 return await interaction.reply({
@@ -72,6 +72,7 @@ async function handle(interaction) {
                 content: `📣 Game **${result.name}** is now published! Players can now see and join it using \`/join-game\`.`,
                 ephemeral: true,
             });
+
         } catch (err) {
             console.error('Error publishing game:', err);
             return await interaction.reply({
@@ -80,6 +81,7 @@ async function handle(interaction) {
             });
         }
     }
+
 }
 
 module.exports = { handle };
