@@ -1,6 +1,13 @@
 // features/rpg-tracker/select_menu_handlers.js
 
 const {
+    ModalBuilder,
+    TextInputBuilder,
+    TextInputStyle,
+    ActionRowBuilder,
+} = require('discord.js');
+
+const {
     setCurrentCharacter,
     setCurrentGame,
     getOrCreatePlayer,
@@ -15,13 +22,6 @@ const {
     buildCharacterActionRow,
 } = require('./embed_utils');
 
-const {
-    ModalBuilder,
-    TextInputBuilder,
-    TextInputStyle,
-    ActionRowBuilder,
-} = require('discord.js');
-
 module.exports = {
     /**
      * Handles select menu interactions like character switching or joining games.
@@ -30,7 +30,6 @@ module.exports = {
     async handleSelectMenu(interaction) {
         const { customId, user, values } = interaction;
 
-        // === create-character: stat field selector ===
         if (customId === 'createCharacterDropdown') {
             const selectedField = values?.[0];
             if (!selectedField) {
@@ -40,19 +39,21 @@ module.exports = {
                 });
             }
 
+            let label = selectedField;
+            const inputStyle =
+                selectedField === 'core:bio'
+                    ? TextInputStyle.Paragraph
+                    : TextInputStyle.Short;
+
             const modal = new ModalBuilder()
                 .setCustomId(`setCharacterField:${selectedField}`)
-                .setTitle(`Enter value for ${selectedField}`)
+                .setTitle(`Enter value for ${label}`)
                 .addComponents(
                     new ActionRowBuilder().addComponents(
                         new TextInputBuilder()
                             .setCustomId('value')
-                            .setLabel(`Value for ${selectedField}`)
-                            .setStyle(
-                                selectedField.toLowerCase() === 'bio'
-                                    ? TextInputStyle.Paragraph
-                                    : TextInputStyle.Short
-                            )
+                            .setLabel(`Value for ${label}`)
+                            .setStyle(inputStyle)
                             .setRequired(true)
                     )
                 );
@@ -99,7 +100,7 @@ module.exports = {
             }
 
             try {
-                await getOrCreatePlayer(user.id); // ensure exists
+                await getOrCreatePlayer(user.id);
                 await setCurrentGame(user.id, selectedGameId);
 
                 return await interaction.update({
@@ -126,7 +127,7 @@ module.exports = {
             }
 
             try {
-                await getOrCreatePlayer(user.id); // ensure player row exists
+                await getOrCreatePlayer(user.id);
                 await setCurrentGame(user.id, selectedGameId);
 
                 return await interaction.update({
@@ -141,6 +142,5 @@ module.exports = {
                 });
             }
         }
-
     },
 };

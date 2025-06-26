@@ -1,5 +1,3 @@
-// features/rpg-tracker/button_handlers.js
-
 const {
     ModalBuilder,
     TextInputBuilder,
@@ -9,17 +7,34 @@ const {
     ButtonStyle,
 } = require('discord.js');
 
-const { getCharactersByUser, getCharacterWithStats } = require('../../store/services/character.service');
-const { deleteInventoryByCharacter } = require('../../store/services/inventory.service');
+const {
+    getCharactersByUser,
+    getCharacterWithStats,
+} = require('../../store/services/character.service');
+
+const {
+    deleteInventoryByCharacter,
+} = require('../../store/services/inventory.service');
+
 const {
     buildCharacterEmbed,
     buildCharacterActionRow,
+    buildInventoryEmbed,
+    buildInventoryActionRow,
 } = require('./embed_utils');
-const { getOrCreatePlayer } = require('../../store/services/player.service');
-const { publishGame } = require('../../store/services/game.service');
+
+const {
+    getOrCreatePlayer,
+} = require('../../store/services/player.service');
+
+const {
+    publishGame,
+} = require('../../store/services/game.service');
+
 const {
     getTempCharacterData,
     finalizeCharacterCreation,
+    isDraftComplete,
 } = require('../../store/services/character_draft.service');
 
 module.exports = {
@@ -28,13 +43,14 @@ module.exports = {
      * @param {import('discord.js').ButtonInteraction} interaction
      */
     async handleButton(interaction) {
-        const { customId } = interaction;
+        const { customId, user } = interaction;
 
+        // === Edit Game Modal ===
         if (customId.startsWith('editGameModal:')) {
             const [, gameId] = customId.split(':');
 
             const modal = new ModalBuilder()
-                .setCustomId(`editGameModal:${gameId}`) // same ID for modal submission
+                .setCustomId(`editGameModal:${gameId}`)
                 .setTitle('Edit Game Details')
                 .addComponents(
                     new ActionRowBuilder().addComponents(
@@ -55,7 +71,6 @@ module.exports = {
 
             return await interaction.showModal(modal);
         }
-
 
         // === Define Required Stats Modal ===
         if (customId.startsWith('defineStats:')) {
@@ -98,7 +113,7 @@ module.exports = {
             return await interaction.showModal(modal);
         }
 
-        // === Finalize stat setup confirmation ===
+        // === Finish Stat Setup ===
         if (customId.startsWith('finishStatSetup:')) {
             return await interaction.reply({
                 content: '🎯 Stat template setup complete! You can now invite players to join and create characters.',
@@ -106,7 +121,7 @@ module.exports = {
             });
         }
 
-        // === GM Publishes game to make public for players ===
+        // === Publish Game ===
         if (customId.startsWith('publishGame:')) {
             const [, gameId] = customId.split(':');
             try {
@@ -137,20 +152,23 @@ module.exports = {
         // === Submit Character ===
         if (customId === 'submitNewCharacter') {
             try {
-                const data = await getTempCharacterData(interaction.user.id);
+                const userId = user.id;
 
-                if (!data || !data.name) {
+                const complete = await isDraftComplete(userId);
+                if (!complete) {
                     return await interaction.reply({
-                        content: '⚠️ Missing required character fields.',
+                        content: '⚠️ Your character is missing required fields. Please finish filling them out.',
                         ephemeral: true,
                     });
                 }
 
-                const character = await finalizeCharacterCreation(interaction.user.id, data);
+                const draft = await getTempCharacterData(userId);
+                const character = await finalizeCharacterCreation(userId, draft);
 
-                return await interaction.reply({
+                return await interaction.update({
                     content: `✅ Character **${character.name}** created successfully!`,
-                    ephemeral: true,
+                    embeds: [buildCharacterEmbed(character)],
+                    components: [buildCharacterActionRow(character.id)],
                 });
             } catch (err) {
                 console.error('Error submitting character:', err);
@@ -222,7 +240,27 @@ module.exports = {
             return await interaction.showModal(modal);
         }
 
-        // === Trigger inventory clear confirmation ===
+        // === View Inventory ===
+        if (customId.startsWith('view_inventory:')) {
+            const [, characterId] = customId.split(':');
+            try {
+                const character = await getCharacterWithStats(characterId);
+
+                return await interaction.reply({
+                    embeds: [buildInventoryEmbed(character)],
+                    components: [buildInventoryActionRow(character.id)],
+                    ephemeral: true,
+                });
+            } catch (err) {
+                console.error('Error viewing inventory:', err);
+                return await interaction.reply({
+                    content: '❌ Failed to load inventory.',
+                    ephemeral: true,
+                });
+            }
+        }
+
+        // === Clear Inventory Confirm Prompt ===
         if (customId.startsWith('clear_inventory:')) {
             const [, characterId] = customId.split(':');
 
@@ -244,7 +282,7 @@ module.exports = {
             });
         }
 
-        // === Confirm inventory deletion ===
+        // === Confirm Clear Inventory ===
         if (customId.startsWith('confirm_clear_inventory:')) {
             const [, characterId] = customId.split(':');
 
@@ -263,7 +301,7 @@ module.exports = {
             }
         }
 
-        // === Cancel inventory deletion ===
+        // === Cancel Clear Inventory ===
         if (customId === 'cancel_clear_inventory') {
             return await interaction.update({
                 content: '❎ Inventory deletion cancelled.',
@@ -271,7 +309,7 @@ module.exports = {
             });
         }
 
-        // === Unknown / fallback ===
+        // === Fallback ===
         return await interaction.reply({
             content: '❌ Unrecognized button interaction.',
             ephemeral: true,
@@ -279,7 +317,7 @@ module.exports = {
     },
 
     /**
-     * (Optional) Compatibility: shows character view if this module is still being invoked as a command.
+     * Compatibility fallback: shows character view via command usage
      */
     async execute(interaction) {
         const userId = interaction.user.id;
@@ -304,17 +342,14 @@ module.exports = {
             }
 
             const full = await getCharacterWithStats(character.id);
-            const embed = buildCharacterEmbed(full);
-            const row = buildCharacterActionRow(character.id);
-
-            await interaction.reply({
-                embeds: [embed],
-                components: [row],
+            return await interaction.reply({
+                embeds: [buildCharacterEmbed(full)],
+                components: [buildCharacterActionRow(character.id)],
                 ephemeral: true,
             });
         } catch (err) {
             console.error('[BUTTON HANDLER ERROR]:', err);
-            await interaction.reply({
+            return await interaction.reply({
                 content: '❌ Failed to load character view.',
                 ephemeral: true,
             });

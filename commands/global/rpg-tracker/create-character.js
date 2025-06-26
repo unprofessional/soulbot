@@ -64,21 +64,19 @@ module.exports = {
 
         // === Construct dropdown entries ===
         const coreFields = [
-            { name: 'name', label: '[CORE] Name' },
-            { name: 'bio', label: '[CORE] Bio' },
-            { name: 'avatar_url', label: '[CORE] Avatar URL' },
-            { name: 'visibility', label: '[CORE] Visibility' },
+            { name: 'core:name', label: '[CORE] Name' },
+            { name: 'core:bio', label: '[CORE] Bio' },
+            { name: 'core:avatar_url', label: '[CORE] Avatar URL' },
+            { name: 'core:visibility', label: '[CORE] Visibility' },
         ];
-
         const gameFields = (statTemplates || []).map(f => ({
-            name: f.name,
-            label: `[GAME] ${f.label || f.name}`,
+            name: `game:${f.id}`,
+            label: `[GAME] ${f.label || f.id}`,
         }));
-
         const userFieldsFormatted = (userFields || [])
-            .filter(f => f?.name && typeof f.name === 'string') // Ensure valid name
+            .filter(f => f?.name && typeof f.name === 'string')
             .map(f => ({
-                name: f.name,
+                name: `user:${f.name}`,
                 label: `[USER] ${f.label || f.name}`,
             }));
 

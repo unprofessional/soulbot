@@ -1,8 +1,7 @@
-// store/services/character_draft.service.js
-
 const CharacterDAO = require('../dao/character.dao');
 const CharacterStatFieldDAO = require('../dao/character_stat_field.dao');
 const { getStatTemplates } = require('./game.service');
+
 const characterDAO = new CharacterDAO();
 const statFieldDAO = new CharacterStatFieldDAO();
 
@@ -21,54 +20,95 @@ function initDraft(userId) {
     return drafts.get(key);
 }
 
-async function upsertTempCharacterField(userId, fieldName, value) {
+/**
+ * Sets a temporary field in the user's draft.
+ * @param {string} userId
+ * @param {string} fieldKey - e.g. "core:name" or "game:uuid"
+ * @param {string} value
+ */
+async function upsertTempCharacterField(userId, fieldKey, value) {
     const draft = initDraft(userId);
-    draft[fieldName] = value;
+    draft[fieldKey] = value;
 }
 
+/**
+ * Returns the current in-memory draft for a user.
+ */
 async function getTempCharacterData(userId) {
     return drafts.get(getDraftKey(userId)) || null;
 }
 
+/**
+ * Returns an array of missing required fields (core + game)
+ */
 async function getRemainingRequiredFields(userId) {
     const draft = await getTempCharacterData(userId);
     if (!draft || !draft.game_id) return [];
 
-    const statTemplates = await getStatTemplates(draft.game_id);
-    const missing = statTemplates.filter(t => t.is_required && !draft[t.name]);
+    const missing = [];
 
-    return missing.map(f => ({ name: f.name, label: f.label }));
+    // Check required CORE fields
+    const requiredCore = ['name'];
+    for (const field of requiredCore) {
+        const key = `core:${field}`;
+        if (!draft[key] || !draft[key].trim()) {
+            missing.push({ name: key, label: `[CORE] ${field}` });
+        }
+    }
+
+    // Check required GAME-defined fields
+    const statTemplates = await getStatTemplates(draft.game_id);
+    for (const template of statTemplates) {
+        if (template.is_required) {
+            const key = `game:${template.id}`;
+            if (!draft[key] || !draft[key].trim()) {
+                missing.push({ name: key, label: `[GAME] ${template.label}` });
+            }
+        }
+    }
+
+    return missing;
 }
 
+/**
+ * Returns true if all required fields are filled in the draft.
+ */
+async function isDraftComplete(userId) {
+    const remaining = await getRemainingRequiredFields(userId);
+    return remaining.length === 0;
+}
+
+/**
+ * Finalizes character creation by writing to DB from draft.
+ */
 async function finalizeCharacterCreation(userId, draft) {
     const {
         game_id,
-        name,
-        class: clazz,
-        race,
-        level = 1,
-        notes = null,
-        ...stats
     } = draft;
+
+    // Extract core fields
+    const name = draft['core:name']?.trim();
+    const avatar_url = draft['core:avatar_url']?.trim() || null;
+    const bio = draft['core:bio']?.trim() || null;
+    const visibility = draft['core:visibility'] || 'private';
 
     const character = await characterDAO.create({
         user_id: userId,
         game_id,
         name,
-        class: clazz,
-        race,
-        level,
-        notes,
+        avatar_url,
+        bio,
+        visibility,
     });
 
-    // Match stats with actual stat templates
-    const templates = await getStatTemplates(game_id);
-    const templateIdMap = Object.fromEntries(templates.map(t => [t.name, t.id]));
-
+    // Extract stat field values
+    const statTemplates = await getStatTemplates(game_id);
     const statMap = {};
-    for (const [key, val] of Object.entries(stats)) {
-        if (templateIdMap[key]) {
-            statMap[templateIdMap[key]] = val;
+
+    for (const template of statTemplates) {
+        const key = `game:${template.id}`;
+        if (draft[key]) {
+            statMap[template.id] = draft[key];
         }
     }
 
@@ -84,5 +124,6 @@ module.exports = {
     upsertTempCharacterField,
     getTempCharacterData,
     getRemainingRequiredFields,
+    isDraftComplete,
     finalizeCharacterCreation,
 };

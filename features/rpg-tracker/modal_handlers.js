@@ -1,3 +1,5 @@
+// features/rpg-tracker/modal_handlers.js
+
 const {
     ActionRowBuilder,
     ButtonBuilder,
@@ -232,12 +234,20 @@ module.exports = {
             }
         }
 
+        // === Set Temporary Character Field from Modal ===
         if (customId.startsWith('setCharacterField:')) {
-            const fieldName = customId.split(':')[1];
-            const value = interaction.fields.getTextInputValue('value');
+            const fieldKey = customId.split(':')[1]; // e.g. 'core:name' or 'game:uuid'
+            const value = interaction.fields.getTextInputValue('value')?.trim();
 
-            // Example: Store to Redis, temp DB, or in-memory store
-            await upsertTempCharacterField(interaction.user.id, fieldName, value);
+            if (!fieldKey || !value) {
+                return interaction.reply({
+                    content: '⚠️ Missing field key or value.',
+                    ephemeral: true,
+                });
+            }
+
+            // Store in memory (or Redis later)
+            await upsertTempCharacterField(interaction.user.id, fieldKey, value);
 
             const remaining = await getRemainingRequiredFields(interaction.user.id);
 
@@ -256,7 +266,7 @@ module.exports = {
                 });
             }
 
-            // Otherwise return to dropdown
+            // Show dropdown with remaining fields
             const menu = new StringSelectMenuBuilder()
                 .setCustomId('createCharacterDropdown')
                 .setPlaceholder('Choose next field to define')
@@ -267,13 +277,12 @@ module.exports = {
                     }))
                 );
 
-            await interaction.reply({
-                content: `✅ Saved **${fieldName}**. Choose next field:`,
+            return interaction.reply({
+                content: `✅ Saved **${fieldKey}**. Choose next field:`,
                 components: [new ActionRowBuilder().addComponents(menu)],
                 ephemeral: true,
             });
         }
-
 
         // === Edit Stat ===
         if (customId.startsWith('editStatModal:')) {

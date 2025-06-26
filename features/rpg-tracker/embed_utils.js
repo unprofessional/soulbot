@@ -1,5 +1,3 @@
-// features/rpg-tracker/embed_utils.js
-
 const {
     EmbedBuilder,
     ActionRowBuilder,
@@ -29,17 +27,23 @@ function buildGameEmbed(game, characters = []) {
     return embed;
 }
 
-
 function buildCharacterEmbed(character) {
-    const statMap = Object.fromEntries(character.stats.map(s => [s.name.toLowerCase(), s.value]));
-    const statStr = character.stats
-        .map(s => `**${s.name.toUpperCase()}**: ${s.value}`)
+    // Ensure each stat has a 'label' (fallback to 'name' or 'template_id')
+    const statStr = (character.stats || [])
+        .map(s => {
+            const label = s.label || s.name || s.template_id || '???';
+            return `**${label.toUpperCase()}**: ${s.value}`;
+        })
         .join(' | ') || 'No stats found';
+
+    const statMap = Object.fromEntries(
+        (character.stats || []).map(s => [s.label?.toLowerCase() || s.name?.toLowerCase(), s.value])
+    );
 
     const hp = statMap.hp ?? '—';
     const maxHp = statMap.max_hp ?? '—';
 
-    const embed = new EmbedBuilder()
+    return new EmbedBuilder()
         .setTitle(`${character.name} — Level ${character.level || 1} ${character.class || 'Unclassed'}`)
         .setDescription(`*${character.race || 'Unknown Race'}*`)
         .addFields(
@@ -49,8 +53,6 @@ function buildCharacterEmbed(character) {
         .setFooter({
             text: `Created on ${new Date(character.created_at).toLocaleDateString()}`,
         });
-
-    return embed;
 }
 
 function buildCharacterActionRow(characterId) {
@@ -62,6 +64,10 @@ function buildCharacterActionRow(characterId) {
         new ButtonBuilder()
             .setCustomId(`edit_character:${characterId}`)
             .setLabel('📝 Edit Info')
+            .setStyle(ButtonStyle.Secondary),
+        new ButtonBuilder()
+            .setCustomId(`view_inventory:${characterId}`)
+            .setLabel('📦 Inventory')
             .setStyle(ButtonStyle.Secondary)
     );
 }
