@@ -29,7 +29,15 @@ module.exports = {
         }
 
         try {
-            const currentGameId = await getCurrentGame(userId);
+            const currentGameId = await getCurrentGame(userId, guildId);
+
+            if (!currentGameId) {
+                return await interaction.reply({
+                    content: '⚠️ No active game found. Use `/switch-game` or `/join-game` to select one.',
+                    ephemeral: true,
+                });
+            }
+
             const allCharacters = await getCharactersByUser(userId, currentGameId);
 
             if (!allCharacters.length) {
@@ -42,7 +50,6 @@ module.exports = {
             const character = allCharacters[0];
             const full = await getCharacterWithStats(character.id);
 
-            // Run game access validation
             const { warning } = await validateGameAccess({ gameId: full.game_id, userId });
 
             const embed = buildCharacterEmbed(full);

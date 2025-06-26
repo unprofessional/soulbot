@@ -2,6 +2,7 @@
 
 const { SlashCommandBuilder, ActionRowBuilder, StringSelectMenuBuilder } = require('discord.js');
 const { getGame } = require('../../../store/services/game.service');
+const { getOrCreatePlayer } = require('../../../store/services/player.service');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -19,11 +20,12 @@ module.exports = {
             });
         }
 
+        // Ensure player and server link exists (but don't assign a game yet)
+        await getOrCreatePlayer(userId, guildId);
+
         const games = await getGame({ guildId });
 
-        // Filter out games that are:
-        // 1. Not marked public
-        // 2. Created by the current user (already the GM/player)
+        // Filter out games that are not public or were created by the user
         const eligibleGames = games.filter(game =>
             game.is_public && game.created_by !== userId
         );

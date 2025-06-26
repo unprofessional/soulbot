@@ -1,52 +1,60 @@
+// store/services/player.service.js
+
 const PlayerDAO = require('../dao/player.dao.js');
 const playerDAO = new PlayerDAO();
 
 /**
- * Retrieves a player by Discord ID or creates one if not found.
- * @param {string} discordId 
- * @param {string} role 
- * @returns {Promise<Object>} player record
+ * Ensures global player record exists and sets up server-specific link.
+ * @param {string} discordId - Discord user ID
+ * @param {string} guildId - Guild/server ID
+ * @param {string} role - Optional role: 'player' or 'gm'
+ * @returns {Promise<Object>} player_server_link record
  */
-async function getOrCreatePlayer(discordId, role = 'player') {
-    return await playerDAO.create({ discordId, role });
+async function getOrCreatePlayer(discordId, guildId, role = 'player') {
+    await playerDAO.createGlobalPlayer(discordId);
+    return await playerDAO.upsertPlayerServerLink({ discordId, guildId, role });
 }
 
 /**
- * Updates the current active character ID for a given player.
+ * Sets the current active character for a player in a specific server.
  * @param {string} discordId 
+ * @param {string} guildId 
  * @param {string} characterId 
- * @returns {Promise<Object>} updated player record
+ * @returns {Promise<Object>} updated link record
  */
-async function setCurrentCharacter(discordId, characterId) {
-    return await playerDAO.setCurrentCharacter(discordId, characterId);
+async function setCurrentCharacter(discordId, guildId, characterId) {
+    return await playerDAO.setCurrentCharacter(discordId, guildId, characterId);
 }
 
 /**
- * Returns the currently selected character ID for a player.
+ * Retrieves the current character ID for a player in a specific server.
  * @param {string} discordId 
+ * @param {string} guildId 
  * @returns {Promise<string|null>}
  */
-async function getCurrentCharacter(discordId) {
-    return await playerDAO.getCurrentCharacter(discordId);
+async function getCurrentCharacter(discordId, guildId) {
+    return await playerDAO.getCurrentCharacter(discordId, guildId);
 }
 
 /**
- * Updates the current active game ID for a given player.
+ * Sets the current active game for a player in a specific server.
  * @param {string} discordId 
+ * @param {string} guildId 
  * @param {string} gameId 
- * @returns {Promise<Object>} updated player record
+ * @returns {Promise<Object>} updated link record
  */
-async function setCurrentGame(discordId, gameId) {
-    return await playerDAO.setCurrentGame(discordId, gameId);
+async function setCurrentGame(discordId, guildId, gameId) {
+    return await playerDAO.setCurrentGame(discordId, guildId, gameId);
 }
 
 /**
- * Returns the currently selected game ID for a player.
+ * Retrieves the current game ID for a player in a specific server.
  * @param {string} discordId 
+ * @param {string} guildId 
  * @returns {Promise<string|null>}
  */
-async function getCurrentGame(discordId) {
-    return await playerDAO.getCurrentGame(discordId);
+async function getCurrentGame(discordId, guildId) {
+    return await playerDAO.getCurrentGame(discordId, guildId);
 }
 
 module.exports = {

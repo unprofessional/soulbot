@@ -3,7 +3,10 @@
 const { SlashCommandBuilder } = require('discord.js');
 const { getCurrentCharacter } = require('../../../store/services/player.service');
 const { getCharacterWithInventory } = require('../../../store/services/inventory.service');
-const { buildInventoryEmbed, buildInventoryActionRow } = require('../../../features/rpg-tracker/embed_utils');
+const {
+    buildInventoryEmbed,
+    buildInventoryActionRow,
+} = require('../../../features/rpg-tracker/embed_utils');
 const { validateGameAccess } = require('../../../features/rpg-tracker/validate_game_access');
 
 module.exports = {
@@ -13,9 +16,17 @@ module.exports = {
 
     async execute(interaction) {
         const userId = interaction.user.id;
+        const guildId = interaction.guild?.id;
+
+        if (!guildId) {
+            return await interaction.reply({
+                content: '⚠️ This command must be used in a server.',
+                ephemeral: true,
+            });
+        }
 
         try {
-            const characterId = await getCurrentCharacter(userId);
+            const characterId = await getCurrentCharacter(userId, guildId);
             if (!characterId) {
                 return await interaction.reply({
                     content: '⚠️ No active character selected. Use `/switch-character` first.',

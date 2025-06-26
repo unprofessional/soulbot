@@ -29,7 +29,14 @@ module.exports = {
         }
 
         try {
-            const currentGameId = await getCurrentGame(userId);
+            const currentGameId = await getCurrentGame(userId, guildId);
+            if (!currentGameId) {
+                return interaction.reply({
+                    content: '⚠️ No active game found. Use `/switch-game` first.',
+                    ephemeral: true,
+                });
+            }
+
             const characters = await getCharactersByUser(userId, currentGameId);
             const character = characters[0];
 

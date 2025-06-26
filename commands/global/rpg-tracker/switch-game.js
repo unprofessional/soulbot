@@ -25,6 +25,7 @@ module.exports = {
         }
 
         try {
+            // Get all games the user owns or has created in this server
             const allGames = await getGamesByUser(userId, guildId);
 
             const accessibleGames = [];
@@ -38,7 +39,7 @@ module.exports = {
 
             if (!accessibleGames.length) {
                 return await interaction.reply({
-                    content: '⚠️ You have no accessible games.',
+                    content: '⚠️ You have no accessible games in this server.',
                     ephemeral: true,
                 });
             }
@@ -48,7 +49,7 @@ module.exports = {
                 .setPlaceholder('Choose your game')
                 .addOptions(
                     accessibleGames.map(g => ({
-                        label: g.name,
+                        label: g.name.slice(0, 100),
                         description: g.description?.slice(0, 90) || 'No description.',
                         value: g.id,
                     }))

@@ -6,7 +6,7 @@ const {
     StringSelectMenuBuilder,
 } = require('discord.js');
 
-const { getOrCreatePlayer } = require('../../../store/services/player.service');
+const { getOrCreatePlayer, getCurrentGame } = require('../../../store/services/player.service');
 const { getGame, getStatTemplates } = require('../../../store/services/game.service');
 const { getUserDefinedFields } = require('../../../store/services/character.service');
 const { initDraft } = require('../../../store/services/character_draft.service');
@@ -27,9 +27,10 @@ module.exports = {
             });
         }
 
-        const player = await getOrCreatePlayer(userId);
-        const gameId = player?.current_game_id;
+        // Ensure player link for this guild
+        await getOrCreatePlayer(userId, guildId);
 
+        const gameId = await getCurrentGame(userId, guildId);
         if (!gameId) {
             return interaction.reply({
                 content: '⚠️ You haven’t joined a game yet. Use `/join-game` to select one.',
@@ -38,7 +39,6 @@ module.exports = {
         }
 
         const game = await getGame({ id: gameId });
-
         if (!game) {
             return interaction.reply({
                 content: '⚠️ Your currently joined game no longer exists.',

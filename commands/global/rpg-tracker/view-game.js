@@ -13,13 +13,21 @@ module.exports = {
 
     async execute(interaction) {
         const userId = interaction.user.id;
+        const guildId = interaction.guildId;
+
+        if (!guildId) {
+            return await interaction.reply({
+                content: '⚠️ You must use this command in a server.',
+                ephemeral: true,
+            });
+        }
 
         try {
-            const currentGameId = await getCurrentGame(userId);
+            const currentGameId = await getCurrentGame(userId, guildId);
 
             if (!currentGameId) {
                 return await interaction.reply({
-                    content: '⚠️ You do not have an active game. Use `/switch-game` to select one.',
+                    content: '⚠️ You do not have an active game in this server. Use `/switch-game` to select one.',
                     ephemeral: true,
                 });
             }

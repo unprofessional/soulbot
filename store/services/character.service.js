@@ -1,16 +1,23 @@
+// store/services/character.service.js
+
 const CharacterDAO = require('../dao/character.dao.js');
 const CharacterStatFieldDAO = require('../dao/character_stat_field.dao.js');
 const CharacterCustomFieldDAO = require('../dao/character_custom_field.dao.js');
 const PlayerDAO = require('../dao/player.dao.js');
 const { getStatTemplates } = require('./game.service.js');
+const { getCurrentGame } = require('./player.service.js');
 
 const characterDAO = new CharacterDAO();
 const statDAO = new CharacterStatFieldDAO();
 const customDAO = new CharacterCustomFieldDAO();
 const playerDAO = new PlayerDAO();
 
+/**
+ * Creates a character and sets it as the current one for the user in this guild.
+ */
 async function createCharacter({
     userId,
+    guildId,
     gameId,
     name,
     clazz,
@@ -38,7 +45,8 @@ async function createCharacter({
         await customDAO.bulkUpsert(character.id, customFields);
     }
 
-    await playerDAO.setCurrentCharacter(userId, character.id);
+    // Patch: Now sets character by user and guild context
+    await playerDAO.setCurrentCharacter(userId, guildId, character.id);
 
     return character;
 }
@@ -47,10 +55,10 @@ async function getCharacterWithStats(characterId) {
     const character = await characterDAO.findById(characterId);
     if (!character) return null;
 
-    const stats = await statDAO.findByCharacter(characterId); // { template_id, value }
-    const custom = await customDAO.findByCharacter(characterId); // [{ name, value }]
+    const stats = await statDAO.findByCharacter(characterId);
+    const custom = await customDAO.findByCharacter(characterId);
 
-    const templates = await getStatTemplates(character.game_id); // [{ id, label, field_type }]
+    const templates = await getStatTemplates(character.game_id);
     const templateMap = Object.fromEntries(templates.map(t => [t.id, t]));
 
     const enrichedStats = stats.map(stat => {
@@ -69,9 +77,15 @@ async function getCharacterWithStats(characterId) {
     };
 }
 
-async function getCharactersByUser(userId, gameId = null) {
+/**
+ * Returns all characters belonging to a user for the current game in this guild.
+ */
+async function getCharactersByUser(userId, guildId) {
+    const currentGameId = await getCurrentGame(userId, guildId);
+    if (!currentGameId) return [];
+
     const all = await characterDAO.findByUser(userId);
-    return gameId ? all.filter(c => c.game_id === gameId) : all;
+    return all.filter(c => c.game_id === currentGameId);
 }
 
 async function getCharactersByGame(gameId) {
@@ -79,7 +93,7 @@ async function getCharactersByGame(gameId) {
 }
 
 async function updateStat(characterId, statName, newValue) {
-    return statDAO.create(characterId, statName, newValue); // upsert
+    return statDAO.create(characterId, statName, newValue);
 }
 
 async function updateStats(characterId, statMap) {
@@ -97,7 +111,7 @@ async function deleteCharacter(characterId) {
 }
 
 async function getUserDefinedFields(userId) {
-    // In future: support per-user custom field templates
+    // Placeholder: future user template support
     return [];
 }
 

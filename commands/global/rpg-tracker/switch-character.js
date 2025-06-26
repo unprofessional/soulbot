@@ -26,7 +26,14 @@ module.exports = {
         }
 
         try {
-            const currentGameId = await getCurrentGame(userId);
+            const currentGameId = await getCurrentGame(userId, guildId);
+            if (!currentGameId) {
+                return await interaction.reply({
+                    content: '⚠️ You don’t have an active game in this server. Use `/switch-game` or `/join-game` first.',
+                    ephemeral: true,
+                });
+            }
+
             const allCharacters = await getCharactersByUser(userId, currentGameId);
 
             const eligibleCharacters = [];

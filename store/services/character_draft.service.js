@@ -1,3 +1,5 @@
+// store/services/character_draft.service.js
+
 const CharacterDAO = require('../dao/character.dao');
 const CharacterStatFieldDAO = require('../dao/character_stat_field.dao');
 const { getStatTemplates } = require('./game.service');

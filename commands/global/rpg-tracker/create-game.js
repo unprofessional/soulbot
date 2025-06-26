@@ -43,9 +43,11 @@ module.exports = {
                 guildId,
             });
 
-            // Ensure player record (as GM) and auto-join the game
-            await getOrCreatePlayer(userId, 'gm');
-            await setCurrentGame(userId, game.id);
+            // Ensure global player + per-server link (GM role)
+            await getOrCreatePlayer(userId, guildId, 'gm');
+
+            // Set current game for this player in this guild
+            await setCurrentGame(userId, guildId, game.id);
 
             const defineStatsBtn = new ButtonBuilder()
                 .setCustomId(`defineStats:${game.id}`)

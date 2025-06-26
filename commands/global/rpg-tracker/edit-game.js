@@ -10,7 +10,10 @@ const {
 } = require('discord.js');
 
 const { getGame, getStatTemplates } = require('../../../store/services/game.service');
-const { getOrCreatePlayer } = require('../../../store/services/player.service');
+const {
+    getOrCreatePlayer,
+    getCurrentGame,
+} = require('../../../store/services/player.service');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -29,8 +32,9 @@ module.exports = {
         }
 
         try {
-            const player = await getOrCreatePlayer(userId);
-            const gameId = player?.current_game_id;
+            await getOrCreatePlayer(userId, guildId); // ensure player + context
+
+            const gameId = await getCurrentGame(userId, guildId);
             if (!gameId) {
                 return await interaction.reply({
                     content: '⚠️ No active game found. Use `/create-game` or `/switch-game`.',
@@ -76,12 +80,17 @@ module.exports = {
                     .setStyle(ButtonStyle.Success)
             );
 
-            const summaryLines = templates.map((f, i) => `${i + 1}. ${f.label} (${f.field_type}${f.default_value ? `, default: ${f.default_value}` : ''})`);
+            const summaryLines = templates.map((f, i) =>
+                `${i + 1}. ${f.label} (${f.field_type}${f.default_value ? `, default: ${f.default_value}` : ''})`
+            );
 
             const embed = new EmbedBuilder()
                 .setTitle(`⚙️ Editing stat template for ${game.name}`)
                 .setDescription('_Select a field from the dropdown below, then use a button to modify it._')
-                .addFields({ name: 'Current Fields', value: summaryLines.join('\n') || '_No fields defined yet._' });
+                .addFields({
+                    name: 'Current Fields',
+                    value: summaryLines.join('\n') || '_No fields defined yet._',
+                });
 
             return await interaction.reply({
                 content: `📋 Total Fields: ${templates.length}`,

@@ -2,6 +2,7 @@
 
 const { SlashCommandBuilder } = require('discord.js');
 const { getGame } = require('../../../store/services/game.service');
+const { getCurrentGame } = require('../../../store/services/player.service');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -29,16 +30,21 @@ module.exports = {
                 });
             }
 
+            // Get the user's current game in this server
+            const currentGameId = await getCurrentGame(userId, guildId);
+
             const rows = games.map(game => {
                 const isGM = game.created_by === userId;
                 const visibility = game.is_public ? '✅ Public' : '🔒 Private';
                 const creatorTag = isGM ? '🛠️ You are the GM' : '';
-                const parts = [`• **${game.name}**`, visibility, creatorTag].filter(Boolean);
+                const activeTag = game.id === currentGameId ? '⭐ Active' : '';
+
+                const parts = [`• **${game.name}**`, visibility, creatorTag, activeTag].filter(Boolean);
                 return parts.join(' — ');
             });
 
             await interaction.reply({
-                content: `🎲 **Games in this server:**\n\n${rows.join('\n\n')}`, // Double newline
+                content: `🎲 **Games in this server:**\n\n${rows.join('\n\n')}`, // Double newline between games
                 ephemeral: true,
             });
         } catch (err) {
