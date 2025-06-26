@@ -239,20 +239,19 @@ module.exports = {
             console.log('🛠️ Handling setCharacterField modal...');
             console.log('customId:', customId);
 
-            const fieldKey = customId.split(':').slice(1).join(':'); // ✅ grabs "core:name"
+            const fieldKey = customId.split(':').slice(1).join(':'); // e.g. "core:name"
             console.log('fieldKey:', fieldKey);
 
-            // Debug incoming field IDs from Discord modal
-            console.log(
-                'Received field keys:',
-                [...interaction.fields.fields.keys()]
-            );
+            const fieldKeys = [...interaction.fields.fields.keys()];
+            console.log('Received field keys:', fieldKeys);
 
             const value = interaction.fields.getTextInputValue(fieldKey)?.trim();
 
             if (!fieldKey || !value) {
+                const msg = '⚠️ Missing field key or value.';
+                console.warn(msg, { fieldKey, value });
                 return interaction.reply({
-                    content: '⚠️ Missing field key or value.',
+                    content: msg,
                     ephemeral: true,
                 });
             }
@@ -262,7 +261,7 @@ module.exports = {
             const remaining = await getRemainingRequiredFields(interaction.user.id);
 
             if (remaining.length === 0) {
-                return await interaction.reply({
+                const replyData = {
                     content: '✅ All required fields are filled! Submit when ready:',
                     components: [
                         new ActionRowBuilder().addComponents(
@@ -270,10 +269,16 @@ module.exports = {
                                 .setCustomId('submitNewCharacter')
                                 .setLabel('Submit Character')
                                 .setStyle(ButtonStyle.Success)
-                        )
+                        ),
                     ],
                     ephemeral: true,
-                });
+                };
+
+                if (interaction.replied || interaction.deferred) {
+                    return interaction.editReply(replyData);
+                } else {
+                    return interaction.reply(replyData);
+                }
             }
 
             const menu = new StringSelectMenuBuilder()
@@ -286,11 +291,17 @@ module.exports = {
                     }))
                 );
 
-            return interaction.reply({
+            const replyData = {
                 content: `✅ Saved **${fieldKey}**. Choose next field:`,
                 components: [new ActionRowBuilder().addComponents(menu)],
                 ephemeral: true,
-            });
+            };
+
+            if (interaction.replied || interaction.deferred) {
+                return interaction.editReply(replyData);
+            } else {
+                return interaction.reply(replyData);
+            }
         }
 
         // === Edit Stat ===
