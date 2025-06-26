@@ -1,14 +1,14 @@
-// store/services/character.service.js
-
 const CharacterDAO = require('../dao/character.dao.js');
 const CharacterStatFieldDAO = require('../dao/character_stat_field.dao.js');
+const CharacterCustomFieldDAO = require('../dao/character_custom_field.dao.js');
 const PlayerDAO = require('../dao/player.dao.js');
 
 const characterDAO = new CharacterDAO();
 const statDAO = new CharacterStatFieldDAO();
+const customDAO = new CharacterCustomFieldDAO();
 const playerDAO = new PlayerDAO();
 
-async function createCharacter({ userId, gameId, name, clazz, race, level = 1, notes = null, stats = {} }) {
+async function createCharacter({ userId, gameId, name, clazz, race, level = 1, notes = null, stats = {}, customFields = {} }) {
     const character = await characterDAO.create({
         user_id: userId,
         game_id: gameId,
@@ -23,6 +23,10 @@ async function createCharacter({ userId, gameId, name, clazz, race, level = 1, n
         await statDAO.bulkUpsert(character.id, stats);
     }
 
+    if (customFields && typeof customFields === 'object') {
+        await customDAO.bulkUpsert(character.id, customFields);
+    }
+
     await playerDAO.setCurrentCharacter(userId, character.id);
 
     return character;
@@ -33,7 +37,9 @@ async function getCharacterWithStats(characterId) {
     if (!character) return null;
 
     const stats = await statDAO.findByCharacter(characterId);
-    return { ...character, stats };
+    const custom = await customDAO.findByCharacter(characterId);
+
+    return { ...character, stats, customFields: custom };
 }
 
 async function getCharactersByUser(userId, gameId = null) {
@@ -59,7 +65,16 @@ async function updateCharacterMeta(characterId, fields) {
 
 async function deleteCharacter(characterId) {
     await statDAO.deleteByCharacter(characterId);
+    await customDAO.deleteByCharacter(characterId);
     await characterDAO.delete(characterId);
+}
+
+/**
+ * For now, return an empty array or scaffold from persisted definitions later.
+ */
+async function getUserDefinedFields(userId) {
+    // In future: load per-user field templates (e.g., via `character_custom_field_template` table)
+    return [];
 }
 
 module.exports = {
@@ -71,4 +86,5 @@ module.exports = {
     updateStats,
     updateCharacterMeta,
     deleteCharacter,
+    getUserDefinedFields,
 };
