@@ -26,6 +26,33 @@ module.exports = {
     async handleButton(interaction) {
         const { customId } = interaction;
 
+        if (customId.startsWith('editGameModal:')) {
+            const [, gameId] = customId.split(':');
+
+            const modal = new ModalBuilder()
+                .setCustomId(`editGameModal:${gameId}`) // same ID for modal submission
+                .setTitle('Edit Game Details')
+                .addComponents(
+                    new ActionRowBuilder().addComponents(
+                        new TextInputBuilder()
+                            .setCustomId('name')
+                            .setLabel('Game Name')
+                            .setStyle(TextInputStyle.Short)
+                            .setRequired(true)
+                    ),
+                    new ActionRowBuilder().addComponents(
+                        new TextInputBuilder()
+                            .setCustomId('description')
+                            .setLabel('Game Description')
+                            .setStyle(TextInputStyle.Paragraph)
+                            .setRequired(false)
+                    )
+                );
+
+            return await interaction.showModal(modal);
+        }
+
+
         // === Define Required Stats Modal ===
         if (customId.startsWith('defineStats:')) {
             const [, gameId] = customId.split(':');

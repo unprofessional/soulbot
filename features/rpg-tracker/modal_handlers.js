@@ -98,8 +98,7 @@ module.exports = {
             }
         }
 
-        // Inside handleModal()
-
+        // === GM UPDATE Game Name and Desc ===
         if (customId.startsWith('editGameModal:')) {
             const [, gameId] = customId.split(':');
 
