@@ -54,6 +54,30 @@ class StatTemplateDAO {
         return result.rows;
     }
 
+    async updateById(templateId, updates = {}) {
+        const fields = [];
+        const values = [];
+        let idx = 1;
+
+        for (const [key, val] of Object.entries(updates)) {
+            fields.push(`${key} = $${idx++}`);
+            values.push(val);
+        }
+
+        if (!fields.length) return null;
+
+        const sql = `
+            UPDATE stat_template
+            SET ${fields.join(', ')}
+            WHERE id = $${idx}
+            RETURNING *
+        `;
+
+        values.push(templateId);
+        const result = await pool.query(sql, values);
+        return result.rows[0];
+    }
+
     async deleteByGame(gameId) {
         await pool.query(`DELETE FROM stat_template WHERE game_id = $1`, [gameId]);
     }

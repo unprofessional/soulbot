@@ -48,12 +48,18 @@ async function getGamesByUser(userId, guildId = null) {
     return allGames;
 }
 
-
 /**
  * Get all stat templates for a game.
  */
 async function getStatTemplates(gameId) {
     return statTemplateDAO.findByGame(gameId);
+}
+
+/**
+ * Update an individual stat template field.
+ */
+async function updateStatTemplate(statId, updatePayload) {
+    return statTemplateDAO.updateById(statId, updatePayload);
 }
 
 /**
@@ -84,6 +90,7 @@ module.exports = {
     getGame,
     getGamesByUser,
     getStatTemplates,
+    updateStatTemplate,
     addStatTemplates,
     clearStatTemplates,
     publishGame,

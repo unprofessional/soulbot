@@ -23,6 +23,7 @@ const {
     addStatTemplates,
     getStatTemplates,
     updateGame,
+    updateStatTemplate,
 } = require('../../store/services/game.service');
 const { getRemainingRequiredFields, upsertTempCharacterField, getTempCharacterData } = require('../../store/services/character_draft.service');
 
@@ -143,6 +144,40 @@ module.exports = {
                 console.error('Error in editGameModal:', err);
                 return interaction.reply({
                     content: '❌ Failed to update game.',
+                    ephemeral: true,
+                });
+            }
+        }
+
+        // === Edit Stat Template Field ===
+        if (customId.startsWith('editStatTemplateModal:')) {
+            const [, statId] = customId.split(':');
+            try {
+                const label = interaction.fields.getTextInputValue('label')?.trim();
+                const defaultValue = interaction.fields.getTextInputValue('default_value')?.trim();
+                const fieldType = interaction.fields.getTextInputValue('field_type')?.trim().toLowerCase();
+
+                if (!label || !['short', 'paragraph'].includes(fieldType)) {
+                    return interaction.reply({
+                        content: '⚠️ Invalid input. Field type must be `short` or `paragraph`.',
+                        ephemeral: true,
+                    });
+                }
+
+                const updated = await updateStatTemplate(statId, {
+                    label,
+                    default_value: defaultValue,
+                    field_type: fieldType,
+                });
+
+                return interaction.reply({
+                    content: `✅ Updated stat field **${updated.label}**.`,
+                    ephemeral: true,
+                });
+            } catch (err) {
+                console.error('Error in editStatTemplateModal:', err);
+                return interaction.reply({
+                    content: '❌ Failed to update stat template.',
                     ephemeral: true,
                 });
             }

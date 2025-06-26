@@ -29,6 +29,7 @@ const {
 
 const {
     publishGame,
+    getStatTemplates,
 } = require('../../store/services/game.service');
 
 const {
@@ -107,6 +108,54 @@ module.exports = {
                             .setLabel('Sort Order (e.g. 0 = top, 100 = bottom)')
                             .setStyle(TextInputStyle.Short)
                             .setRequired(false)
+                    )
+                );
+
+            return await interaction.showModal(modal);
+        }
+
+        // === Edit Stat Template Modal ===
+        if (customId.startsWith('edit_stat_template:')) {
+            const [, statFieldId] = customId.split(':');
+
+            // You could optionally fetch existing data for this stat ID if needed
+            const statTemplates = await getStatTemplates();
+            const currentField = statTemplates.find(f => f.id === statFieldId);
+
+            if (!currentField) {
+                return await interaction.reply({
+                    content: '❌ Could not find stat template to edit.',
+                    ephemeral: true,
+                });
+            }
+
+            const modal = new ModalBuilder()
+                .setCustomId(`editStatTemplateModal:${statFieldId}`)
+                .setTitle('Edit Required Stat Field')
+                .addComponents(
+                    new ActionRowBuilder().addComponents(
+                        new TextInputBuilder()
+                            .setCustomId('label')
+                            .setLabel('Field Label')
+                            .setStyle(TextInputStyle.Short)
+                            .setValue(currentField.label)
+                            .setRequired(true)
+                    ),
+                    new ActionRowBuilder().addComponents(
+                        new TextInputBuilder()
+                            .setCustomId('default_value')
+                            .setLabel('Default Value')
+                            .setStyle(TextInputStyle.Short)
+                            .setValue(currentField.default_value || '')
+                            .setRequired(false)
+                    ),
+                    new ActionRowBuilder().addComponents(
+                        new TextInputBuilder()
+                            .setCustomId('field_type')
+                            .setLabel('Field Type ("short" or "paragraph")')
+                            .setStyle(TextInputStyle.Short)
+                            .setValue(currentField.field_type)
+                            .setRequired(true)
                     )
                 );
 
