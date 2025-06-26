@@ -237,7 +237,7 @@ module.exports = {
         // === Set Temporary Character Field from Modal ===
         if (customId.startsWith('setCharacterField:')) {
             const fieldKey = customId.split(':')[1]; // e.g. 'core:name' or 'game:uuid'
-            const value = interaction.fields.getTextInputValue('value')?.trim();
+            const value = interaction.fields.getTextInputValue(fieldKey)?.trim();
 
             if (!fieldKey || !value) {
                 return interaction.reply({
@@ -246,7 +246,6 @@ module.exports = {
                 });
             }
 
-            // Store in memory (or Redis later)
             await upsertTempCharacterField(interaction.user.id, fieldKey, value);
 
             const remaining = await getRemainingRequiredFields(interaction.user.id);
@@ -266,7 +265,6 @@ module.exports = {
                 });
             }
 
-            // Show dropdown with remaining fields
             const menu = new StringSelectMenuBuilder()
                 .setCustomId('createCharacterDropdown')
                 .setPlaceholder('Choose next field to define')

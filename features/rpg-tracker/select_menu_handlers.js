@@ -51,7 +51,7 @@ module.exports = {
                 .addComponents(
                     new ActionRowBuilder().addComponents(
                         new TextInputBuilder()
-                            .setCustomId('value')
+                            .setCustomId(selectedField) // ✅ match key like 'core:name'
                             .setLabel(`Value for ${label}`)
                             .setStyle(inputStyle)
                             .setRequired(true)
