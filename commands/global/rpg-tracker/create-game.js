@@ -66,13 +66,21 @@ module.exports = {
                 content: [
                     `✅ Created game **${game.name}** and set it as your active campaign.`,
                     ``,
-                    `Characters in this game can include **required stats** (defined by you) and **optional custom fields** (added by players).`,
+                    `**Character Stat Fields:**`,
+                    `• 🟦 **System Fields** (always included):`,
+                    `   - Name`,
+                    `   - Avatar URL`,
+                    `   - Bio`,
+                    `• 🟨 **Game Fields** (you define these)`,
+                    `   - Ex: HP, Strength, Skills, etc.`,
                     ``,
-                    `Use the buttons below to define your stat template or publish the game.`,
+                    `Use the buttons below to define your required game-specific stat fields or to publish the game.`,
+                    `_You do **not** need to redefine system fields._`,
                 ].join('\n'),
                 components: [row],
                 ephemeral: true,
             });
+
         } catch (err) {
             console.error('[COMMAND ERROR] /create-game:', err);
             await interaction.reply({
