@@ -49,7 +49,15 @@ async function handle(interaction) {
         const [, gameId] = customId.split(':');
 
         try {
-            const player = await getOrCreatePlayer(user.id);
+            const guildId = interaction.guild?.id;
+            if (!guildId) {
+                return await interaction.reply({
+                    content: '❌ Could not determine guild ID.',
+                    ephemeral: true,
+                });
+            }
+
+            const player = await getOrCreatePlayer(user.id, guildId);
 
             if (player?.role !== 'gm' || player.current_game_id !== gameId) {
                 return await interaction.reply({

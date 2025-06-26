@@ -11,6 +11,7 @@ const playerDAO = new PlayerDAO();
  * @returns {Promise<Object>} player_server_link record
  */
 async function getOrCreatePlayer(discordId, guildId, role = 'player') {
+    if (!guildId) throw new Error('guildId is required to upsert player_server_link');
     await playerDAO.createGlobalPlayer(discordId);
     return await playerDAO.upsertPlayerServerLink({ discordId, guildId, role });
 }
