@@ -30,16 +30,16 @@ module.exports = {
     async handleSelectMenu(interaction) {
         const { customId, user, values } = interaction;
 
+        const selected = values?.[0];
+        if (!selected) {
+            return await interaction.reply({
+                content: '⚠️ No selection made.',
+                ephemeral: true,
+            });
+        }
+
         // === /create-character dropdown ===
         if (customId === 'createCharacterDropdown') {
-            const selected = values?.[0];
-            if (!selected) {
-                return await interaction.reply({
-                    content: '⚠️ No field selected.',
-                    ephemeral: true,
-                });
-            }
-
             const [selectedField, rawLabel] = selected.split('|');
             const label = rawLabel || selectedField; // fallback
 
@@ -65,17 +65,9 @@ module.exports = {
 
         // === /switch-character dropdown ===
         if (customId === 'switchCharacterDropdown') {
-            const selectedId = values?.[0];
-            if (!selectedId) {
-                return await interaction.reply({
-                    content: '⚠️ No character selected.',
-                    ephemeral: true,
-                });
-            }
-
             try {
-                await setCurrentCharacter(user.id, selectedId);
-                const character = await getCharacterWithStats(selectedId);
+                await setCurrentCharacter(user.id, selected);
+                const character = await getCharacterWithStats(selected);
 
                 return await interaction.update({
                     content: `✅ Switched to **${character.name}**!`,
@@ -92,54 +84,37 @@ module.exports = {
         }
 
         // === /join-game dropdown ===
-        if (customId === 'joinGameDropdown') {
-            const selectedGameId = values?.[0];
-            if (!selectedGameId) {
-                return await interaction.reply({
-                    content: '⚠️ No game selected.',
-                    ephemeral: true,
-                });
-            }
-
+        if (customId === 'joinGameDropdown' || customId === 'switchGameDropdown') {
             try {
                 await getOrCreatePlayer(user.id);
-                await setCurrentGame(user.id, selectedGameId);
+                await setCurrentGame(user.id, selected);
 
                 return await interaction.update({
-                    content: `✅ You have joined the selected game.`,
+                    content: `✅ You have ${customId === 'joinGameDropdown' ? 'joined' : 'switched to'} the selected game.`,
                     components: [],
                 });
             } catch (err) {
-                console.error('Error joining game:', err);
+                console.error('Error joining or switching game:', err);
                 return await interaction.reply({
-                    content: '❌ Failed to join game.',
+                    content: '❌ Failed to join or switch game.',
                     ephemeral: true,
                 });
             }
         }
 
-        // === /switch-game dropdown ===
-        if (customId === 'switchGameDropdown') {
-            const selectedGameId = values?.[0];
-            if (!selectedGameId) {
-                return await interaction.reply({
-                    content: '⚠️ No game selected.',
-                    ephemeral: true,
-                });
-            }
+        // === Edit Game Stat Template Dropdown ===
+        if (customId.startsWith('editStatSelect:')) {
+            // const [, gameId] = customId.split(':');
 
             try {
-                await getOrCreatePlayer(user.id);
-                await setCurrentGame(user.id, selectedGameId);
-
-                return await interaction.update({
-                    content: `✅ Switched to selected game.`,
-                    components: [],
+                return await interaction.reply({
+                    content: `🔧 You selected stat field ID: \`${selected}\` for editing.`,
+                    ephemeral: true,
                 });
             } catch (err) {
-                console.error('Error switching game:', err);
+                console.error('Error selecting stat field to edit:', err);
                 return await interaction.reply({
-                    content: '❌ Failed to switch game.',
+                    content: '❌ Failed to select stat field.',
                     ephemeral: true,
                 });
             }
