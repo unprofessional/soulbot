@@ -30,37 +30,31 @@ module.exports = {
     async handleSelectMenu(interaction) {
         const { customId, user, values } = interaction;
 
+        // === /create-character dropdown ===
         if (customId === 'createCharacterDropdown') {
-            const selectedField = values?.[0];
-            if (!selectedField) {
+            const selected = values?.[0];
+            if (!selected) {
                 return await interaction.reply({
                     content: '⚠️ No field selected.',
                     ephemeral: true,
                 });
             }
 
-            let label = selectedField;
-            if (selectedField.startsWith('core:')) {
-                label = `[CORE] ${selectedField.split(':')[1]}`;
-            } else if (selectedField.startsWith('game:')) {
-                label = `[GAME] Field`;
-            } else if (selectedField.startsWith('user:')) {
-                label = `[USER] ${selectedField.split(':')[1]}`;
-            }
+            const [selectedField, rawLabel] = selected.split('|');
+            const label = rawLabel || selectedField; // fallback
 
-            const inputStyle =
-                selectedField === 'core:bio'
-                    ? TextInputStyle.Paragraph
-                    : TextInputStyle.Short;
+            const inputStyle = selectedField === 'core:bio'
+                ? TextInputStyle.Paragraph
+                : TextInputStyle.Short;
 
             const modal = new ModalBuilder()
                 .setCustomId(`setCharacterField:${selectedField}`)
-                .setTitle(`Enter value for ${label}`.slice(0, 45))
+                .setTitle(`Enter value for ${label}`)
                 .addComponents(
                     new ActionRowBuilder().addComponents(
                         new TextInputBuilder()
-                            .setCustomId(selectedField) // ✅ match key like 'core:name'
-                            .setLabel(`Value for ${label}`.slice(0, 45))
+                            .setCustomId(selectedField)
+                            .setLabel(`Value for ${label}`)
                             .setStyle(inputStyle)
                             .setRequired(true)
                     )

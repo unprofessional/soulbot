@@ -2,7 +2,7 @@
 
 const { SlashCommandBuilder } = require('discord.js');
 const { getCurrentGame } = require('../../../store/services/player.service');
-const { getGame } = require('../../../store/services/game.service');
+const { getGame, getStatTemplates } = require('../../../store/services/game.service');
 const { getCharactersByGame } = require('../../../store/services/character.service');
 const { buildGameEmbed } = require('../../../features/rpg-tracker/embed_utils');
 
@@ -34,7 +34,9 @@ module.exports = {
             }
 
             const characters = await getCharactersByGame(currentGameId);
-            const embed = buildGameEmbed(game, characters);
+            const statTemplates = await getStatTemplates(currentGameId);
+
+            const embed = buildGameEmbed(game, characters, statTemplates);
 
             return await interaction.reply({
                 embeds: [embed],
