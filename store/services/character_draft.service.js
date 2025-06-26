@@ -147,6 +147,7 @@ async function finalizeCharacterCreation(userId, draft) {
 }
 
 module.exports = {
+    initDraft,
     upsertTempCharacterField,
     getTempCharacterData,
     getRemainingRequiredFields,
