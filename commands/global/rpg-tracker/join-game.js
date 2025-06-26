@@ -21,16 +21,20 @@ module.exports = {
 
         const games = await getGame({ guildId });
 
-        // Filter out games that are either:
-        // 1. Created by the user (GM)
-        // 2. Not marked public
+        // Filter out games that are:
+        // 1. Not marked public
+        // 2. Created by the current user (already the GM/player)
         const eligibleGames = games.filter(game =>
-            game.created_by !== userId && game.is_public === true
+            game.is_public && game.created_by !== userId
         );
 
         if (!eligibleGames.length) {
             return interaction.reply({
-                content: '⚠️ There are no joinable public games in this server. You cannot join a game you created.',
+                content: [
+                    '📭 There are no joinable public games in this server right now.',
+                    '',
+                    'If you created a game, you’re already considered a player as the **Game Master**.',
+                ].join('\n'),
                 ephemeral: true,
             });
         }
