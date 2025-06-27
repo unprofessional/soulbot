@@ -58,7 +58,7 @@ async function handle(interaction) {
                 const isNew = f.label?.trim().toLowerCase() === label.toLowerCase();
                 const icon = f.field_type === 'paragraph' ? '📝' : '🔹';
                 const defaultVal = f.default_value ? ` _(default: ${f.default_value})_` : '';
-                return `${icon} ${isNew ? '**➕ ' : '**'}${f.label}**${defaultVal}`;
+                return `${icon} ${isNew ? '**🆕 ' : '**'}${f.label}**${defaultVal}`;
             });
 
             const embed = new EmbedBuilder()
