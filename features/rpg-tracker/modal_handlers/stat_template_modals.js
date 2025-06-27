@@ -55,9 +55,10 @@ async function handle(interaction) {
             ]);
 
             const fieldDescriptions = allFields.map(f => {
+                const isNew = f.label?.trim().toLowerCase() === label.toLowerCase();
                 const icon = f.field_type === 'paragraph' ? '📝' : '🔹';
                 const defaultVal = f.default_value ? ` _(default: ${f.default_value})_` : '';
-                return `${icon} **${f.label}**${defaultVal}`;
+                return `${icon} ${isNew ? '**➕ ' : '**'}${f.label}**${defaultVal}`;
             });
 
             const embed = new EmbedBuilder()
@@ -82,11 +83,10 @@ async function handle(interaction) {
                     .setStyle(ButtonStyle.Success)
             );
 
-            return interaction.reply({
-                content: `✅ Added stat field **${label}**.`,
+            await interaction.deferUpdate(); // avoids duplicate response error
+            await interaction.editReply({
                 embeds: [embed],
                 components: [actionRow],
-                ephemeral: true,
             });
 
         } catch (err) {
