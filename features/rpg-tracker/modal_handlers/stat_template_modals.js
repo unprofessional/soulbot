@@ -1,6 +1,13 @@
 // features/rpg-tracker/modal_handlers/stat_template_modals.js
 
 const {
+    ModalBuilder,
+    TextInputBuilder,
+    TextInputStyle,
+    ActionRowBuilder,
+} = require('discord.js');
+
+const {
     addStatTemplates,
     getStatTemplates,
     updateStatTemplate,
@@ -107,4 +114,57 @@ async function handle(interaction) {
     }
 }
 
-module.exports = { handle };
+/**
+ * Builds a modal for stat template creation or editing.
+ * @param {Object} options
+ * @param {string} options.gameId - Required for creation
+ * @param {Object} [options.field] - Optional, for editing
+ */
+function buildStatTemplateModal({ gameId, field }) {
+    const isEdit = !!field;
+    const id = isEdit ? `editStatTemplateModal:${field.id}` : `createStatTemplate:${gameId}`;
+    const title = isEdit ? 'Edit Required Stat Field' : 'Add Required Stat Field';
+
+    return new ModalBuilder()
+        .setCustomId(id)
+        .setTitle(title)
+        .addComponents(
+            new ActionRowBuilder().addComponents(
+                new TextInputBuilder()
+                    .setCustomId('label')
+                    .setLabel('Field Label (e.g. HP, Class, Strength)')
+                    .setStyle(TextInputStyle.Short)
+                    .setValue(field?.label || '')
+                    .setRequired(true)
+            ),
+            new ActionRowBuilder().addComponents(
+                new TextInputBuilder()
+                    .setCustomId('default_value')
+                    .setLabel('Default Value (optional)')
+                    .setStyle(TextInputStyle.Short)
+                    .setValue(field?.default_value || '')
+                    .setRequired(false)
+            ),
+            new ActionRowBuilder().addComponents(
+                new TextInputBuilder()
+                    .setCustomId('field_type')
+                    .setLabel('Field Type ("short" or "paragraph")')
+                    .setStyle(TextInputStyle.Short)
+                    .setValue(field?.field_type || '')
+                    .setRequired(true)
+            ),
+            new ActionRowBuilder().addComponents(
+                new TextInputBuilder()
+                    .setCustomId('sort_order')
+                    .setLabel('Sort Order (e.g. 0 = top, 100 = bottom)')
+                    .setStyle(TextInputStyle.Short)
+                    .setValue(field?.sort_order?.toString() || '0')
+                    .setRequired(false)
+            )
+        );
+}
+
+module.exports = {
+    handle,
+    buildStatTemplateModal,
+};
