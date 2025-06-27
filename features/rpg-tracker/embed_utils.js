@@ -50,69 +50,111 @@ function buildGameEmbed(game, characters = [], statTemplates = []) {
 }
 
 function buildCharacterEmbed(character) {
-    const embed = new EmbedBuilder();
+    const embed = new EmbedBuilder()
+        .setFooter({
+            text: `Created on ${new Date(character.created_at).toLocaleDateString()}`,
+        });
 
-    // === Avatar (Left Column) ===
+    // === Visibility Badge ===
+    const visibility = (character.visibility || '').toLowerCase();
+    let visibilityEmoji = '❓';
+    if (visibility === 'public') visibilityEmoji = '🔓';
+    if (visibility === 'private') visibilityEmoji = '🔒';
+    const visibilityLabel = visibility.charAt(0).toUpperCase() + visibility.slice(1);
+
+    // === Left-Aligned Avatar + Name + Visibility
     if (character.avatar_url) {
-        embed.setThumbnail(character.avatar_url);
+        embed.setAuthor({
+            name: `${character.name || 'Unnamed Character'}   ${visibilityEmoji} ${visibilityLabel}`,
+            iconURL: character.avatar_url,
+        });
+    } else {
+        embed.setAuthor({
+            name: `${character.name || 'Unnamed Character'}   ${visibilityEmoji} ${visibilityLabel}`,
+        });
     }
 
-    // === Header (Right Column) ===
-    const name = character.name || 'Unnamed Character';
-    const visibility = (character.visibility || 'private').toLowerCase();
-    const visibilityEmoji = visibility === 'public' ? '🔓' : '🔒';
-    const visibilityLabel = `${visibilityEmoji} ${visibility.charAt(0).toUpperCase() + visibility.slice(1)}`;
-
-    embed.setTitle(name);
-    embed.addFields(
-        { name: 'Visibility', value: visibilityLabel, inline: true }
+    // === Description (Bio)
+    embed.setDescription(
+        character.bio
+            ? `_${character.bio}_`
+            : '*No bio provided.*'
     );
 
-    // === Extract GAME Stats (excluding core + HP/Max HP) ===
-    const allStats = character.stats || [];
-    const coreFields = ['name', 'avatar_url', 'bio', 'visibility'];
-    const excluded = ['hp', 'max_hp', ...coreFields];
-    const gameStats = allStats.filter(s => !excluded.includes((s.name || s.label || '').toLowerCase()));
+    // === Build Stat Map
+    const statMap = Object.fromEntries(
+        (character.stats || []).map(s => [
+            (s.label || s.name || '').toLowerCase(),
+            s.value
+        ])
+    );
+    const hp = statMap.hp;
+    const maxHp = statMap.max_hp;
 
-    // Sort by GM-defined order
-    const sorted = gameStats.sort((a, b) => {
-        const aIndex = a.sort_index ?? a.template_sort_index ?? 999;
-        const bIndex = b.sort_index ?? b.template_sort_index ?? 999;
-        return aIndex - bIndex;
-    });
-
-    // Split into columns (2 cols, growing rows every 2 stats after first 10)
-    const leftStats = [];
-    const rightStats = [];
-
-    sorted.forEach((s, i) => {
-        const str = `**${s.label}**: ${s.value}`;
-        if (i % 2 === 0) leftStats.push(str);
-        else rightStats.push(str);
-    });
-
-    const maxRows = Math.ceil(sorted.length / 2);
-    for (let i = 0; i < maxRows; i++) {
-        const left = leftStats[i] ?? '\u200B';
-        const right = rightStats[i] ?? '\u200B';
-        embed.addFields(
-            { name: '\u200B', value: left, inline: true },
-            { name: '\u200B', value: right, inline: true }
-        );
+    // === Inline Core Fields: Class, Level, HP
+    if (character.class) {
+        embed.addFields({
+            name: 'Class',
+            value: character.class,
+            inline: true,
+        });
+    }
+    if (character.level) {
+        embed.addFields({
+            name: 'Level',
+            value: String(character.level),
+            inline: true,
+        });
+    }
+    if (hp || maxHp) {
+        embed.addFields({
+            name: 'HP',
+            value: `${hp ?? '—'} / ${maxHp ?? '—'}`,
+            inline: true,
+        });
     }
 
-    // === Bio (below) ===
-    if (character.bio) {
-        embed.setDescription(`_${character.bio}_`);
-    }
+    // === GAME Stat Fields (2-column grid layout)
+    const filteredStats = (character.stats || [])
+        .filter(s => {
+            const key = (s.label || '').toLowerCase();
+            return key !== 'hp' && key !== 'max_hp';
+        })
+        .sort((a, b) => {
+            const aIndex = a.sort_index ?? a.template_sort_index ?? 999;
+            const bIndex = b.sort_index ?? b.template_sort_index ?? 999;
+            return aIndex - bIndex;
+        });
 
-    // === Footer & Timestamp ===
-    embed.setFooter({
-        text: `Created on ${new Date(character.created_at).toLocaleDateString()}`,
+    const left = [];
+    const right = [];
+
+    filteredStats.forEach((stat, i) => {
+        const entry = `**${stat.label}**: ${stat.value}`;
+        (i % 2 === 0 ? left : right).push(entry);
     });
+
+    if (left.length || right.length) {
+        embed.addFields({
+            name: 'Stats',
+            value:
+                left.map((l, i) => {
+                    const r = right[i] || '';
+                    return `${l.padEnd(25)} ${r}`;
+                }).join('\n'),
+            inline: false,
+        });
+    } else {
+        embed.addFields({
+            name: 'Stats',
+            value: '_No stats found_',
+            inline: false,
+        });
+    }
 
     return embed;
 }
+
 
 function buildCharacterActionRow(characterId) {
     return new ActionRowBuilder().addComponents(
