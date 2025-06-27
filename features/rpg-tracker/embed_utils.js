@@ -128,6 +128,10 @@ function buildCharacterActionRow(characterId) {
         new ButtonBuilder()
             .setCustomId(`view_inventory:${characterId}`)
             .setLabel('📦 Inventory')
+            .setStyle(ButtonStyle.Secondary),
+        new ButtonBuilder()
+            .setCustomId(`toggle_visibility:${characterId}`)
+            .setLabel('👁️ Toggle Visibility')
             .setStyle(ButtonStyle.Secondary)
     );
 }
