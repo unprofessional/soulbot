@@ -15,7 +15,7 @@ const { publishGame } = require('../../../store/services/game.service');
  * @param {import('discord.js').ButtonInteraction} interaction
  */
 async function handle(interaction) {
-    const { customId, user } = interaction;
+    const { customId } = interaction;
 
     // === Edit Game Modal ===
     if (customId.startsWith('editGameModal:')) {

@@ -21,6 +21,15 @@ const {
 } = require('../embed_utils');
 
 /**
+ * Truncates a string to max 45 characters for use in Modal titles.
+ * @param {string} str 
+ * @returns {string}
+ */
+function truncateTitle(str) {
+    return str.length > 45 ? str.slice(0, 42) + '...' : str;
+}
+
+/**
  * Handles character dropdown menus.
  * @param {import('discord.js').StringSelectMenuInteraction} interaction
  */
@@ -46,7 +55,7 @@ async function handle(interaction) {
 
         const modal = new ModalBuilder()
             .setCustomId(`setCharacterField:${selectedField}`)
-            .setTitle(`Enter value for ${label}`)
+            .setTitle(truncateTitle(`Enter value for ${label}`))
             .addComponents(
                 new ActionRowBuilder().addComponents(
                     new TextInputBuilder()
