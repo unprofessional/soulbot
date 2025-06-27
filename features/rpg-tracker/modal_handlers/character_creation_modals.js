@@ -111,7 +111,7 @@ async function handle(interaction) {
 
     // === Set a Single Character Field from Modal ===
     if (customId.startsWith('setCharacterField:')) {
-        const [, combined] = customId.split(':');
+        const combined = customId.split(':').slice(1).join(':');
         const [fieldKey, labelRaw] = combined.split('|');
         const label = labelRaw || fieldKey;
 
