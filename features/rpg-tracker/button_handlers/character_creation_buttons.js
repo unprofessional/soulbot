@@ -11,6 +11,10 @@ const {
     finalizeCharacterCreation,
 } = require('../../../store/services/character_draft.service');
 
+const {
+    getCharacterWithStats,
+} = require('../../../store/services/character.service');
+
 /**
  * Handles character creation final submission.
  * @param {import('discord.js').ButtonInteraction} interaction
@@ -33,10 +37,11 @@ async function handle(interaction) {
 
         const draft = await getTempCharacterData(userId);
         const character = await finalizeCharacterCreation(userId, draft);
+        const fullCharacter = await getCharacterWithStats(character.id);
 
         return await interaction.update({
             content: `✅ Character **${character.name}** created successfully!`,
-            embeds: [buildCharacterEmbed(character)],
+            embeds: [buildCharacterEmbed(fullCharacter)],
             components: [buildCharacterActionRow(character.id)],
         });
     } catch (err) {
