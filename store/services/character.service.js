@@ -101,7 +101,18 @@ async function updateStats(characterId, statMap) {
 }
 
 async function updateCharacterMeta(characterId, fields) {
-    return characterDAO.updateMeta(characterId, fields);
+    const existing = await characterDAO.findById(characterId);
+    if (!existing) throw new Error('Character not found');
+
+    const merged = {
+        name: existing.name,
+        avatar_url: existing.avatar_url,
+        bio: existing.bio,
+        visibility: existing.visibility,
+        ...fields, // override with incoming
+    };
+
+    return characterDAO.updateMeta(characterId, merged);
 }
 
 async function deleteCharacter(characterId) {

@@ -31,7 +31,7 @@ async function handle(interaction) {
         const current = (full.visibility || 'private').toLowerCase();
         const newVisibility = current === 'private' ? 'public' : 'private';
 
-        await updateCharacterMeta(characterId, 'core:visibility', newVisibility);
+        await updateCharacterMeta(characterId, { visibility: newVisibility });
 
         const updated = await getCharacterWithStats(characterId);
 
