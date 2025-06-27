@@ -71,11 +71,16 @@ async function getRemainingRequiredFields(userId) {
     const missing = [];
 
     // === Required core fields ===
-    const requiredCore = ['name'];
+    const requiredCore = [
+        { name: 'core:name', label: '[CORE] Name' },
+        { name: 'core:bio', label: '[CORE] Bio' },
+        { name: 'core:avatar_url', label: '[CORE] Avatar URL' },
+    ];
+
     for (const core of requiredCore) {
-        const key = `core:${core}`;
-        if (!draft[key] || !draft[key].trim()) {
-            missing.push({ name: key, label: `[CORE] ${core}` });
+        const value = draft[core.name];
+        if (!value || !value.trim()) {
+            missing.push(core);
         }
     }
 
