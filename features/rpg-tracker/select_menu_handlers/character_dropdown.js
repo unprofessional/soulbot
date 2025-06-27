@@ -21,12 +21,14 @@ const {
 } = require('../embed_utils');
 
 /**
- * Truncates a string to max 45 characters for use in Modal titles.
- * @param {string} str 
+ * Truncates a string to a maximum length, appending ellipsis if necessary.
+ * Used to comply with Discord limits (e.g. 45 for titles/labels).
+ * @param {string} str - The string to truncate.
+ * @param {number} maxLength - Maximum allowed length.
  * @returns {string}
  */
-function truncateTitle(str) {
-    return str.length > 45 ? str.slice(0, 42) + '...' : str;
+function truncate(str, maxLength = 45) {
+    return str.length > maxLength ? str.slice(0, maxLength - 3) + '...' : str;
 }
 
 /**
@@ -55,12 +57,12 @@ async function handle(interaction) {
 
         const modal = new ModalBuilder()
             .setCustomId(`setCharacterField:${selectedField}`)
-            .setTitle(truncateTitle(`Enter value for ${label}`))
+            .setTitle(truncate(`Enter value for ${label}`, 45))
             .addComponents(
                 new ActionRowBuilder().addComponents(
                     new TextInputBuilder()
                         .setCustomId(selectedField)
-                        .setLabel(`Value for ${label}`)
+                        .setLabel(truncate(`Value for ${label}`, 45))
                         .setStyle(inputStyle)
                         .setRequired(true)
                 )
