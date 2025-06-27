@@ -38,7 +38,8 @@ module.exports = {
                 });
             }
 
-            const allCharacters = await getCharactersByUser(userId, currentGameId);
+            // ✅ FIXED: use `guildId` instead of `currentGameId`
+            const allCharacters = await getCharactersByUser(userId, guildId);
 
             if (!allCharacters.length) {
                 return await interaction.reply({
