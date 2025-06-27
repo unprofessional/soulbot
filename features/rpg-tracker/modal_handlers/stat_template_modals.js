@@ -63,7 +63,7 @@ async function handle(interaction) {
 
             const embed = new EmbedBuilder()
                 .setTitle('📋 Current Stat Template')
-                .setDescription(fieldDescriptions.length ? fieldDescriptions.join('\n') : '*No fields yet.*')
+                .setDescription(fieldDescriptions.length ? fieldDescriptions.join('\n') + '\n' : '*No fields yet.*' + '\n')
                 .addFields({
                     name: '🔒 Game Visibility',
                     value: game.is_public
