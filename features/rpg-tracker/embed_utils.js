@@ -56,24 +56,9 @@ function buildCharacterEmbed(character) {
         ])
     );
 
-    const hp = statMap.hp ?? '—';
-    const maxHp = statMap.max_hp ?? '—';
-
-    const statStr = (character.stats || [])
-        .filter(s => s.label?.toLowerCase() !== 'hp' && s.label?.toLowerCase() !== 'max_hp')
-        .map(s => {
-            const label = s.label || s.name || s.template_id || '???';
-            return `**${label}**: ${s.value}`;
-        })
-        .join(' | ') || 'No stats found';
-
     const embed = new EmbedBuilder()
-        .setTitle(`${character.name}`)
+        .setTitle(character.name || 'Unnamed Character')
         .setDescription(character.bio ? `_${character.bio}_` : '*No bio provided.*')
-        .addFields(
-            { name: 'HP', value: `${hp} / ${maxHp}`, inline: true },
-            { name: 'Stats', value: statStr, inline: false }
-        )
         .setFooter({
             text: `Created on ${new Date(character.created_at).toLocaleDateString()}`,
         });
@@ -81,6 +66,33 @@ function buildCharacterEmbed(character) {
     if (character.avatar_url) {
         embed.setThumbnail(character.avatar_url);
     }
+
+    // === HP Section ===
+    const hp = statMap.hp;
+    const maxHp = statMap.max_hp;
+    if (hp || maxHp) {
+        embed.addFields({
+            name: 'HP',
+            value: `${hp ?? '—'} / ${maxHp ?? '—'}`,
+            inline: true,
+        });
+    }
+
+    // === Other Stat Fields ===
+    const filteredStats = (character.stats || []).filter(s => {
+        const label = s.label?.toLowerCase();
+        return label !== 'hp' && label !== 'max_hp';
+    });
+
+    const statStr = filteredStats.length
+        ? filteredStats.map(s => `**${s.label}**: ${s.value}`).join('\n')
+        : '_No stats found_';
+
+    embed.addFields({
+        name: 'Stats',
+        value: statStr,
+        inline: false,
+    });
 
     return embed;
 }
