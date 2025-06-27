@@ -111,7 +111,9 @@ async function handle(interaction) {
 
     // === Set a Single Character Field from Modal ===
     if (customId.startsWith('setCharacterField:')) {
-        const fieldKey = customId.split(':').slice(1).join(':');
+        const [, combined] = customId.split(':');
+        const [fieldKey, labelRaw] = combined.split('|');
+        const label = labelRaw || fieldKey;
         const value = interaction.fields.getTextInputValue(fieldKey)?.trim();
 
         if (!fieldKey || !value) {
@@ -153,12 +155,12 @@ async function handle(interaction) {
             .addOptions(
                 remaining.map(field => ({
                     label: field.label,
-                    value: field.name,
+                    value: `${field.name}|${field.label}`, // ensure round-trip
                 }))
             );
 
         const replyData = {
-            content: `✅ Saved **${fieldKey}**. Choose next field:`,
+            content: `✅ Saved **${label}**. Choose next field:`,
             components: [new ActionRowBuilder().addComponents(menu)],
             ephemeral: true,
         };
