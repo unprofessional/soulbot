@@ -1,11 +1,5 @@
 // features/rpg-tracker/modal_handlers/stat_template_modals.js
 
-const {
-    ActionRowBuilder,
-    ButtonBuilder,
-    ButtonStyle,
-    EmbedBuilder,
-} = require('discord.js');
 
 const {
     addStatTemplates,
@@ -13,6 +7,11 @@ const {
     updateStatTemplate,
     getGame,
 } = require('../../../store/services/game.service');
+
+const {
+    buildGameStatTemplateEmbed,
+    buildGameStatActionRow,
+} = require('../embeds/game_stat_embed');
 
 /**
  * Handles modals related to stat template creation and editing.
@@ -54,34 +53,8 @@ async function handle(interaction) {
                 getGame({ id: gameId }),
             ]);
 
-            const fieldDescriptions = allFields.map(f => {
-                const isNew = f.label?.trim().toLowerCase() === label.toLowerCase();
-                const icon = f.field_type === 'paragraph' ? '📝' : '🔹';
-                const defaultVal = f.default_value ? ` _(default: ${f.default_value})_` : '';
-                return `${icon} ${isNew ? '**🆕 ' : '**'}${f.label}**${defaultVal}`;
-            });
-
-            const embed = new EmbedBuilder()
-                .setTitle('📋 Current Stat Template')
-                .setDescription(fieldDescriptions.length ? fieldDescriptions.join('\n') + '\n' : '*No fields yet.*' + '\n')
-                .addFields({
-                    name: '🔒 Game Visibility',
-                    value: game.is_public
-                        ? '`Public ✅` — Players can use `/join-game`'
-                        : '`Draft ❌` — Not yet visible to players',
-                })
-                .setColor(game.is_public ? 0x00c851 : 0xffbb33);
-
-            const actionRow = new ActionRowBuilder().addComponents(
-                new ButtonBuilder()
-                    .setCustomId(`defineStats:${gameId}`)
-                    .setLabel('➕ Add Another Stat')
-                    .setStyle(ButtonStyle.Primary),
-                new ButtonBuilder()
-                    .setCustomId(`finishStatSetup:${gameId}`)
-                    .setLabel('✅ Done')
-                    .setStyle(ButtonStyle.Success)
-            );
+            const embed = buildGameStatTemplateEmbed(allFields, game, label);
+            const actionRow = buildGameStatActionRow(gameId);
 
             await interaction.deferUpdate(); // avoids duplicate response error
             await interaction.editReply({
