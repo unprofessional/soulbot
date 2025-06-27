@@ -49,23 +49,27 @@ function buildGameEmbed(game, characters = [], statTemplates = []) {
 }
 
 function buildCharacterEmbed(character) {
-    const statStr = (character.stats || [])
-        .map(s => {
-            const label = s.label || s.name || s.template_id || '???';
-            return `**${label.toUpperCase()}**: ${s.value}`;
-        })
-        .join(' | ') || 'No stats found';
-
     const statMap = Object.fromEntries(
-        (character.stats || []).map(s => [s.label?.toLowerCase() || s.name?.toLowerCase(), s.value])
+        (character.stats || []).map(s => [
+            (s.label || s.name || '').toLowerCase(),
+            s.value
+        ])
     );
 
     const hp = statMap.hp ?? '—';
     const maxHp = statMap.max_hp ?? '—';
 
-    return new EmbedBuilder()
-        .setTitle(`${character.name} — Level ${character.level || 1} ${character.class || 'Unclassed'}`)
-        .setDescription(`*${character.race || 'Unknown Race'}*`)
+    const statStr = (character.stats || [])
+        .filter(s => s.label?.toLowerCase() !== 'hp' && s.label?.toLowerCase() !== 'max_hp')
+        .map(s => {
+            const label = s.label || s.name || s.template_id || '???';
+            return `**${label}**: ${s.value}`;
+        })
+        .join(' | ') || 'No stats found';
+
+    const embed = new EmbedBuilder()
+        .setTitle(`${character.name}`)
+        .setDescription(character.bio ? `_${character.bio}_` : '*No bio provided.*')
         .addFields(
             { name: 'HP', value: `${hp} / ${maxHp}`, inline: true },
             { name: 'Stats', value: statStr, inline: false }
@@ -73,6 +77,12 @@ function buildCharacterEmbed(character) {
         .setFooter({
             text: `Created on ${new Date(character.created_at).toLocaleDateString()}`,
         });
+
+    if (character.avatar_url) {
+        embed.setThumbnail(character.avatar_url);
+    }
+
+    return embed;
 }
 
 function buildCharacterActionRow(characterId) {
