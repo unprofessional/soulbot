@@ -11,6 +11,11 @@ const {
 
 const { getStatTemplates, getGame } = require('../../../store/services/game.service');
 
+const {
+    buildGameStatTemplateEmbed,
+    buildGameStatActionRow,
+} = require('../embeds/game_stat_embed');
+
 /**
  * Handles stat template-related button interactions.
  * @param {import('discord.js').ButtonInteraction} interaction
@@ -123,31 +128,14 @@ async function handle(interaction) {
                 });
             }
 
-            const fieldCount = stats.length;
-            const isPublic = game.is_public;
+            // Build new embed and buttons
+            const newEmbed = buildGameStatTemplateEmbed(stats, game);
+            const newButtons = buildGameStatActionRow(gameId);
 
-            const publishBtn = new ButtonBuilder()
-                .setCustomId(`publishGame:${game.id}`)
-                .setLabel('📣 Publish Now')
-                .setStyle(ButtonStyle.Primary);
-
-            const components = isPublic
-                ? []
-                : [new ActionRowBuilder().addComponents(publishBtn)];
-
-            return await interaction.reply({
-                ephemeral: true,
-                content: [
-                    `📋 **Stat Template Setup Complete**`,
-                    ``,
-                    `🟨 You defined **${fieldCount}** custom stat field${fieldCount === 1 ? '' : 's'}.`,
-                    `🔒 Game Visibility: ${isPublic ? '`Public ✅`' : '`Draft ❌`'}`,
-                    ``,
-                    isPublic
-                        ? `Players can now use \`/join-game\` to create characters.`
-                        : `Use the button below to publish your game and allow players to join.`,
-                ].join('\n'),
-                components,
+            await interaction.deferUpdate();
+            await interaction.editReply({
+                embeds: [newEmbed],
+                components: [newButtons],
             });
 
         } catch (err) {

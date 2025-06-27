@@ -1,3 +1,5 @@
+// features/rpg-tracker/embeds/game_stat_embed.js
+
 const {
     EmbedBuilder,
     ActionRowBuilder,
