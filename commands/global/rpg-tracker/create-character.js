@@ -89,7 +89,7 @@ module.exports = {
         const allFields = [...coreFields, ...gameFields, ...userFieldsFormatted];
 
         // 🔍 Safety check for invalid entries
-        const invalidFields = allFields.filter(f => !f.label || !f.name);
+        const invalidFields = allFields.filter(f => !f.label || !f.name || !f.name.includes(':'));
         if (invalidFields.length > 0) {
             console.warn('[create-character] Skipping invalid fields:', invalidFields);
         }
@@ -98,7 +98,8 @@ module.exports = {
             typeof f.label === 'string' &&
             typeof f.name === 'string' &&
             f.label.trim() &&
-            f.name.trim()
+            f.name.trim() &&
+            f.name.includes(':')
         );
 
         if (!safeFields.length) {
@@ -108,13 +109,17 @@ module.exports = {
             });
         }
 
+        // 🧪 Debug print for dropdown values
+        console.log('[create-character] Dropdown values (field keys):', safeFields.map(f => f.name));
+        console.log('[create-character] Dropdown labels:', safeFields.map(f => f.label));
+
         const menu = new StringSelectMenuBuilder()
             .setCustomId('createCharacterDropdown')
             .setPlaceholder('Choose a character field to define')
             .addOptions(
                 safeFields.map(f => ({
                     label: f.label,
-                    value: f.name,
+                    value: `${f.name}|${f.label}`, // full round-trip string
                 }))
             );
 
