@@ -60,20 +60,22 @@ async function handle(interaction) {
             let clazz = '';
             let race = '';
             let level = 1;
+            let bio = '';
+            let avatar_url = '';
             const statFields = {};
 
             for (const template of statTemplates) {
                 const value = interaction.fields.getTextInputValue(template.id)?.trim() || '';
-
-                // Infer metadata from labels
                 const lowerLabel = template.label.toLowerCase();
+
                 if (lowerLabel === 'name') name = value || name;
                 else if (lowerLabel === 'class' || lowerLabel === 'role') clazz = value || clazz;
                 else if (lowerLabel === 'race' || lowerLabel === 'origin') race = value || race;
                 else if (lowerLabel === 'level') {
                     const parsed = parseInt(value, 10);
                     if (!isNaN(parsed)) level = parsed;
-                }
+                } else if (lowerLabel === 'bio') bio = value;
+                else if (lowerLabel === 'avatar url') avatar_url = value;
 
                 statFields[template.id] = value;
             }
@@ -92,6 +94,8 @@ async function handle(interaction) {
                 clazz,
                 race,
                 level,
+                bio,
+                avatar_url,
                 stats: statFields,
             });
 
