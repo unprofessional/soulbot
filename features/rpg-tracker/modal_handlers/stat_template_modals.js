@@ -146,7 +146,7 @@ function buildStatTemplateModal({ gameId, field }) {
             new ActionRowBuilder().addComponents(
                 new TextInputBuilder()
                     .setCustomId('field_type')
-                    .setLabel('Input Type: "short" (1-line) or "paragraph" (multi-line)')
+                    .setLabel('Field Type: short (1-line) or paragraph')
                     .setStyle(TextInputStyle.Short)
                     .setValue(field?.field_type || 'short')
                     .setRequired(true)
