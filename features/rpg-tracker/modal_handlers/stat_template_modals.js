@@ -44,7 +44,6 @@ async function handle(interaction) {
                 });
             }
 
-            // Create new field
             await addStatTemplates(gameId, [{
                 label,
                 field_type: fieldType,
@@ -53,7 +52,6 @@ async function handle(interaction) {
                 sort_order: sortOrder,
             }]);
 
-            // Fetch updated stat list + game visibility
             const [allFields, game] = await Promise.all([
                 getStatTemplates(gameId),
                 getGame({ id: gameId }),
@@ -62,7 +60,7 @@ async function handle(interaction) {
             const embed = buildGameStatTemplateEmbed(allFields, game, label);
             const actionRow = buildGameStatActionRow(gameId);
 
-            await interaction.deferUpdate(); // avoids duplicate response error
+            await interaction.deferUpdate();
             await interaction.editReply({
                 embeds: [embed],
                 components: [actionRow],
@@ -148,15 +146,15 @@ function buildStatTemplateModal({ gameId, field }) {
             new ActionRowBuilder().addComponents(
                 new TextInputBuilder()
                     .setCustomId('field_type')
-                    .setLabel('Field Type ("short" or "paragraph")')
+                    .setLabel('Input Type: "short" (1-line) or "paragraph" (multi-line)')
                     .setStyle(TextInputStyle.Short)
-                    .setValue(field?.field_type || '')
+                    .setValue(field?.field_type || 'short')
                     .setRequired(true)
             ),
             new ActionRowBuilder().addComponents(
                 new TextInputBuilder()
                     .setCustomId('sort_order')
-                    .setLabel('Sort Order (e.g. 0 = top, 100 = bottom)')
+                    .setLabel('Sort Order (lower = higher up)')
                     .setStyle(TextInputStyle.Short)
                     .setValue(field?.sort_order?.toString() || '0')
                     .setRequired(false)
