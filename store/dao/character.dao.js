@@ -12,20 +12,19 @@ const pool = new Pool({
 });
 
 class CharacterDAO {
-    async create({ user_id, game_id, name, class: clazz, race, level = 1, notes = null }) {
+    async create({ user_id, game_id, name, avatar_url = null, bio = null, visibility = 'private' }) {
         const sql = `
-            INSERT INTO character (user_id, game_id, name, class, race, level, notes)
-            VALUES ($1, $2, $3, $4, $5, $6, $7)
+            INSERT INTO character (user_id, game_id, name, avatar_url, bio, visibility)
+            VALUES ($1, $2, $3, $4, $5, $6)
             RETURNING *
         `;
         const params = [
             user_id.trim(),
             game_id,
             name,
-            clazz || null,
-            race || null,
-            level,
-            notes,
+            avatar_url,
+            bio,
+            visibility,
         ];
         const result = await pool.query(sql, params);
         return result.rows[0];
@@ -60,20 +59,19 @@ class CharacterDAO {
         return result.rows;
     }
 
-    async updateMeta(characterId, { name, class: clazz, race, level, notes }) {
+    async updateMeta(characterId, { name, avatar_url, bio, visibility }) {
         const sql = `
             UPDATE character
             SET name = $1,
-                class = $2,
-                race = $3,
-                level = $4,
-                notes = $5
-            WHERE id = $6
+                avatar_url = $2,
+                bio = $3,
+                visibility = $4
+            WHERE id = $5
             RETURNING *
         `;
         const result = await pool.query(
             sql,
-            [name, clazz || null, race || null, level, notes, characterId]
+            [name, avatar_url || null, bio || null, visibility || 'private', characterId]
         );
         return result.rows[0];
     }
