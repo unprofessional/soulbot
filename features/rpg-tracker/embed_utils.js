@@ -12,6 +12,7 @@ function buildGameEmbed(game, characters = [], statTemplates = []) {
         { name: 'core:name', label: 'Name' },
         { name: 'core:avatar_url', label: 'Avatar URL' },
         { name: 'core:bio', label: 'Bio' },
+        { name: 'core:visibility', label: 'Visibility' },
     ];
 
     const gameFieldLines = statTemplates.map(t => `• ${t.label || t.id}`);
@@ -49,13 +50,6 @@ function buildGameEmbed(game, characters = [], statTemplates = []) {
 }
 
 function buildCharacterEmbed(character) {
-    const statMap = Object.fromEntries(
-        (character.stats || []).map(s => [
-            (s.label || s.name || '').toLowerCase(),
-            s.value
-        ])
-    );
-
     const embed = new EmbedBuilder()
         .setTitle(character.name || 'Unnamed Character')
         .setDescription(character.bio ? `_${character.bio}_` : '*No bio provided.*')
@@ -67,9 +61,27 @@ function buildCharacterEmbed(character) {
         embed.setThumbnail(character.avatar_url);
     }
 
+    // === Visibility Badge ===
+    const visibility = (character.visibility || '').toLowerCase();
+    let visibilityEmoji = '❓';
+    if (visibility === 'public') visibilityEmoji = '🔓';
+    if (visibility === 'private') visibilityEmoji = '🔒';
+    embed.addFields({
+        name: 'Visibility',
+        value: `${visibilityEmoji} ${visibility.charAt(0).toUpperCase() + visibility.slice(1)}`,
+        inline: true,
+    });
+
     // === HP Section ===
+    const statMap = Object.fromEntries(
+        (character.stats || []).map(s => [
+            (s.label || s.name || '').toLowerCase(),
+            s.value
+        ])
+    );
     const hp = statMap.hp;
     const maxHp = statMap.max_hp;
+
     if (hp || maxHp) {
         embed.addFields({
             name: 'HP',
@@ -78,11 +90,17 @@ function buildCharacterEmbed(character) {
         });
     }
 
-    // === Other Stat Fields ===
-    const filteredStats = (character.stats || []).filter(s => {
-        const label = s.label?.toLowerCase();
-        return label !== 'hp' && label !== 'max_hp';
-    });
+    // === Other Stat Fields (sorted) ===
+    const filteredStats = (character.stats || [])
+        .filter(s => {
+            const key = (s.label || '').toLowerCase();
+            return key !== 'hp' && key !== 'max_hp';
+        })
+        .sort((a, b) => {
+            const aIndex = a.sort_index ?? a.template_sort_index ?? 999;
+            const bIndex = b.sort_index ?? b.template_sort_index ?? 999;
+            return aIndex - bIndex;
+        });
 
     const statStr = filteredStats.length
         ? filteredStats.map(s => `**${s.label}**: ${s.value}`).join('\n')
