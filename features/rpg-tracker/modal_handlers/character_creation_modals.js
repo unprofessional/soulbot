@@ -114,11 +114,33 @@ async function handle(interaction) {
         const [, combined] = customId.split(':');
         const [fieldKey, labelRaw] = combined.split('|');
         const label = labelRaw || fieldKey;
-        const value = interaction.fields.getTextInputValue(fieldKey)?.trim();
 
-        if (!fieldKey || !value) {
+        console.log('[SetCharacterFieldModal] full customId:', customId);
+        console.log('[SetCharacterFieldModal] fieldKey:', fieldKey);
+        console.log('[SetCharacterFieldModal] label:', label);
+
+        if (!fieldKey || !fieldKey.includes(':')) {
+            console.warn('[SetCharacterFieldModal] Invalid or missing fieldKey:', fieldKey);
             return interaction.reply({
-                content: '⚠️ Missing field key or value.',
+                content: '⚠️ Invalid field key. Please restart character creation.',
+                ephemeral: true,
+            });
+        }
+
+        let value;
+        try {
+            value = interaction.fields.getTextInputValue(fieldKey)?.trim();
+        } catch (err) {
+            console.error(`[SetCharacterFieldModal] Error accessing field "${fieldKey}":`, err);
+            return interaction.reply({
+                content: `❌ Unable to find or parse field \`${fieldKey}\`. Please restart character creation.`,
+                ephemeral: true,
+            });
+        }
+
+        if (!value) {
+            return interaction.reply({
+                content: '⚠️ No value was entered.',
                 ephemeral: true,
             });
         }
@@ -155,7 +177,7 @@ async function handle(interaction) {
             .addOptions(
                 remaining.map(field => ({
                     label: field.label,
-                    value: `${field.name}|${field.label}`, // ensure round-trip
+                    value: `${field.name}|${field.label}`,
                 }))
             );
 

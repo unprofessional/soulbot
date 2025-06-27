@@ -48,8 +48,20 @@ async function handle(interaction) {
 
     // === /create-character dropdown ===
     if (customId === 'createCharacterDropdown') {
+        console.log('[CreateCharacterDropdown] raw selected value:', selected);
         const [selectedField, rawLabel] = selected.split('|');
         const label = rawLabel || selectedField;
+
+        console.log('[CreateCharacterDropdown] parsed fieldKey:', selectedField);
+        console.log('[CreateCharacterDropdown] parsed label:', label);
+
+        if (!selectedField.includes(':')) {
+            console.warn('[CreateCharacterDropdown] Invalid fieldKey:', selectedField);
+            return await interaction.reply({
+                content: '⚠️ Invalid field selected. Please run `/create-character` again.',
+                ephemeral: true,
+            });
+        }
 
         const inputStyle = selectedField === 'core:bio'
             ? TextInputStyle.Paragraph
