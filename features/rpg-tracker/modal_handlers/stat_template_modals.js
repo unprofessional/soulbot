@@ -1,5 +1,3 @@
-// features/rpg-tracker/modal_handlers/stat_template_modals.js
-
 const {
     ModalBuilder,
     TextInputBuilder,
@@ -39,7 +37,7 @@ async function handle(interaction) {
             const sortOrder = isNaN(parseInt(sortOrderRaw)) ? 0 : parseInt(sortOrderRaw, 10);
 
             if (!label || !['short', 'paragraph'].includes(fieldType)) {
-                return interaction.reply({
+                return await interaction.reply({
                     content: '⚠️ Please provide a valid label and field type ("short" or "paragraph").',
                     ephemeral: true,
                 });
@@ -59,7 +57,7 @@ async function handle(interaction) {
             ]);
 
             const embed = buildGameStatTemplateEmbed(allFields, game, label);
-            const actionRow = buildGameStatActionRow(gameId);
+            const actionRow = buildGameStatActionRow(gameId, allFields);
 
             await interaction.deferUpdate();
             await interaction.editReply({
@@ -76,6 +74,7 @@ async function handle(interaction) {
         }
     }
 
+    // === GM Edit Existing Stat Field ===
     if (customId.startsWith('editStatTemplateModal:')) {
         const [, statId] = customId.split(':');
 
@@ -87,7 +86,7 @@ async function handle(interaction) {
             const sortOrder = isNaN(parseInt(sortOrderRaw)) ? 0 : parseInt(sortOrderRaw, 10);
 
             if (!label || !['short', 'paragraph'].includes(fieldType)) {
-                return interaction.reply({
+                return await interaction.reply({
                     content: '⚠️ Invalid input. Field type must be `short` or `paragraph`.',
                     ephemeral: true,
                 });
@@ -100,12 +99,11 @@ async function handle(interaction) {
                 sort_order: sortOrder,
             });
 
-            // ✅ Fetch the game ID associated with the stat
             const fieldRecord = await getStatTemplateById(statId);
             const gameId = fieldRecord?.game_id;
 
             if (!gameId) {
-                return interaction.reply({
+                return await interaction.reply({
                     content: '❌ Could not determine the game associated with this field.',
                     ephemeral: true,
                 });
@@ -133,8 +131,6 @@ async function handle(interaction) {
             });
         }
     }
-
-
 }
 
 /**

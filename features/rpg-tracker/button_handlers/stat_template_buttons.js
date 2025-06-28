@@ -1,18 +1,21 @@
-// features/rpg-tracker/button_handlers/stat_template_buttons.js
-
 const {
     ActionRowBuilder,
     StringSelectMenuBuilder,
 } = require('discord.js');
 
-const { getStatTemplates, getGame } = require('../../../store/services/game.service');
+const {
+    getStatTemplates,
+    getGame,
+} = require('../../../store/services/game.service');
 
 const {
     buildGameStatTemplateEmbed,
     buildGameStatActionRow,
 } = require('../embeds/game_stat_embed');
 
-const { buildStatTemplateModal } = require('../modal_handlers/stat_template_modals');
+const {
+    buildStatTemplateModal,
+} = require('../modal_handlers/stat_template_modals');
 
 /**
  * Handles stat template-related button interactions.
@@ -28,7 +31,7 @@ async function handle(interaction) {
         return await interaction.showModal(modal);
     }
 
-    // === Edit Stats Button (triggers dropdown)
+    // === Edit Stats Button (trigger dropdown on the same message)
     if (customId.startsWith('editStats:')) {
         const [, gameId] = customId.split(':');
 
@@ -61,11 +64,12 @@ async function handle(interaction) {
             .addOptions(options);
 
         const actionRow = new ActionRowBuilder().addComponents(selectMenu);
+        const updatedEmbed = buildGameStatTemplateEmbed(statTemplates, game);
 
-        return await interaction.reply({
+        return await interaction.update({
             content: `🎲 Select a field to edit for **${game.name}**`,
+            embeds: [updatedEmbed],
             components: [actionRow],
-            ephemeral: true,
         });
     }
 
