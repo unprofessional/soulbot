@@ -1,4 +1,7 @@
-// features/rpg-tracker/button_handlers/stat_template_buttons.js
+const {
+    ActionRowBuilder,
+    StringSelectMenuBuilder,
+} = require('discord.js');
 
 const { getStatTemplates, getGame } = require('../../../store/services/game.service');
 
@@ -23,7 +26,7 @@ async function handle(interaction) {
         return await interaction.showModal(modal);
     }
 
-    // === Edit Stats Button (trigger dropdown) ===
+    // === Edit Stats Button (triggers dropdown)
     if (customId.startsWith('editStats:')) {
         const [, gameId] = customId.split(':');
 
@@ -37,18 +40,25 @@ async function handle(interaction) {
             });
         }
 
+        if (!statTemplates.length) {
+            return await interaction.reply({
+                content: '⚠️ No stats to edit yet. Use "Define Required Stats" first.',
+                ephemeral: true,
+            });
+        }
+
         const options = statTemplates.map((f, i) => ({
             label: `${i + 1}. ${f.label}`,
             description: `Type: ${f.field_type} — Default: ${f.default_value || 'None'}`,
             value: f.id,
         }));
 
-        const selectMenu = new interaction.client.discord.StringSelectMenuBuilder()
+        const selectMenu = new StringSelectMenuBuilder()
             .setCustomId(`editStatSelect:${gameId}`)
             .setPlaceholder('Select a stat field to edit')
             .addOptions(options);
 
-        const actionRow = new interaction.client.discord.ActionRowBuilder().addComponents(selectMenu);
+        const actionRow = new ActionRowBuilder().addComponents(selectMenu);
 
         return await interaction.reply({
             content: `🎲 Select a field to edit for **${game.name}**`,
@@ -92,9 +102,8 @@ async function handle(interaction) {
                 });
             }
 
-            // Build new embed and buttons
             const newEmbed = buildGameStatTemplateEmbed(stats, game);
-            const newButtons = buildGameStatActionRow(gameId);
+            const newButtons = buildGameStatActionRow(gameId, stats);
 
             await interaction.deferUpdate();
             await interaction.editReply({
