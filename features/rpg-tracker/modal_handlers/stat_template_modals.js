@@ -14,9 +14,8 @@ const {
 } = require('../../../store/services/game.service');
 
 const {
-    buildGameStatTemplateEmbed,
-    buildGameStatActionRow,
-} = require('../embeds/game_stat_embed');
+    rebuildCreateGameResponse,
+} = require('../utils/rebuild_create_game_response');
 
 /**
  * Handles modals related to stat template creation and editing.
@@ -56,14 +55,10 @@ async function handle(interaction) {
                 getGame({ id: gameId }),
             ]);
 
-            const embed = buildGameStatTemplateEmbed(allFields, game, label);
-            const actionRow = buildGameStatActionRow(gameId, allFields);
+            const response = rebuildCreateGameResponse(game, allFields, label);
 
             await interaction.deferUpdate();
-            await interaction.editReply({
-                embeds: [embed],
-                components: [actionRow],
-            });
+            await interaction.editReply(response);
 
         } catch (err) {
             console.error('Error in createStatTemplate modal:', err);
@@ -114,14 +109,10 @@ async function handle(interaction) {
                 getGame({ id: gameId }),
             ]);
 
-            const newEmbed = buildGameStatTemplateEmbed(allFields, game, label);
-            const newButtons = buildGameStatActionRow(gameId, allFields);
+            const response = rebuildCreateGameResponse(game, allFields, label);
 
             await interaction.deferUpdate();
-            await interaction.editReply({
-                embeds: [newEmbed],
-                components: [newButtons],
-            });
+            await interaction.editReply(response);
 
         } catch (err) {
             console.error('Error in editStatTemplateModal:', err);
