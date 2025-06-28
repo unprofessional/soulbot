@@ -50,7 +50,7 @@ function buildGameStatActionRow(gameId) {
             .setLabel('➕ Add Another Stat')
             .setStyle(ButtonStyle.Primary),
         new ButtonBuilder()
-            .setCustomId(`editStatSelect:${gameId}`)
+            .setCustomId(`editStats:${gameId}`)
             .setLabel('🎲 Edit Stat')
             .setStyle(ButtonStyle.Secondary),
         new ButtonBuilder()

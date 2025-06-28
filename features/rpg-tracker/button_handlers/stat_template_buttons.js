@@ -23,6 +23,40 @@ async function handle(interaction) {
         return await interaction.showModal(modal);
     }
 
+    // === Edit Stats Button (trigger dropdown) ===
+    if (customId.startsWith('editStats:')) {
+        const [, gameId] = customId.split(':');
+
+        const game = await getGame({ id: gameId });
+        const statTemplates = await getStatTemplates(gameId);
+
+        if (!game || game.created_by !== interaction.user.id) {
+            return await interaction.reply({
+                content: '⚠️ Only the GM can edit this game.',
+                ephemeral: true,
+            });
+        }
+
+        const options = statTemplates.map((f, i) => ({
+            label: `${i + 1}. ${f.label}`,
+            description: `Type: ${f.field_type} — Default: ${f.default_value || 'None'}`,
+            value: f.id,
+        }));
+
+        const selectMenu = new interaction.client.discord.StringSelectMenuBuilder()
+            .setCustomId(`editStatSelect:${gameId}`)
+            .setPlaceholder('Select a stat field to edit')
+            .addOptions(options);
+
+        const actionRow = new interaction.client.discord.ActionRowBuilder().addComponents(selectMenu);
+
+        return await interaction.reply({
+            content: `🎲 Select a field to edit for **${game.name}**`,
+            components: [actionRow],
+            ephemeral: true,
+        });
+    }
+
     // === Edit Stat Template Modal ===
     if (customId.startsWith('edit_stat_template:')) {
         const [, statFieldId] = customId.split(':');
