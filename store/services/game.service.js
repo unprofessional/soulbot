@@ -55,6 +55,10 @@ async function getStatTemplates(gameId) {
     return statTemplateDAO.findByGame(gameId);
 }
 
+async function getStatTemplateById(statId) {
+    return statTemplateDAO.findById(statId);
+}
+
 /**
  * Update an individual stat template field.
  */
@@ -90,6 +94,7 @@ module.exports = {
     getGame,
     getGamesByUser,
     getStatTemplates,
+    getStatTemplateById,
     updateStatTemplate,
     addStatTemplates,
     clearStatTemplates,

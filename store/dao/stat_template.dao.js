@@ -44,6 +44,17 @@ class StatTemplateDAO {
         return created;
     }
 
+    async findById(statId) {
+        const sql = `
+        SELECT * FROM stat_template
+        WHERE id = $1
+        LIMIT 1
+    `;
+        const result = await pool.query(sql, [statId]);
+        return result.rows[0] || null;
+    }
+
+
     async findByGame(gameId) {
         const sql = `
             SELECT * FROM stat_template

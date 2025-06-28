@@ -12,6 +12,7 @@ const {
     getStatTemplates,
     updateStatTemplate,
     getGame,
+    getStatTemplateById,
 } = require('../../../store/services/game.service');
 
 const {
@@ -75,7 +76,6 @@ async function handle(interaction) {
         }
     }
 
-    // === GM Edit Existing Stat Field ===
     if (customId.startsWith('editStatTemplateModal:')) {
         const [, statId] = customId.split(':');
 
@@ -93,18 +93,16 @@ async function handle(interaction) {
                 });
             }
 
-            const updated = await updateStatTemplate(statId, {
+            await updateStatTemplate(statId, {
                 label,
                 default_value: defaultValue,
                 field_type: fieldType,
                 sort_order: sortOrder,
             });
 
-            // === Refresh embed and action row ===
-            // You’ll need to find the gameId from the stat template record
-            const statTemplates = await getStatTemplates(); // you may want to filter here
-            const updatedField = statTemplates.find(f => f.id === statId);
-            const gameId = updatedField?.game_id;
+            // ✅ Fetch the game ID associated with the stat
+            const fieldRecord = await getStatTemplateById(statId);
+            const gameId = fieldRecord?.game_id;
 
             if (!gameId) {
                 return interaction.reply({
@@ -135,6 +133,7 @@ async function handle(interaction) {
             });
         }
     }
+
 
 }
 
