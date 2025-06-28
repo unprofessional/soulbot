@@ -16,17 +16,9 @@ const {
 } = require('../../../store/services/game.service');
 
 const {
-    getOrCreatePlayer,
-} = require('../../../store/services/player.service');
-
-const {
     buildGameStatTemplateEmbed,
     buildGameStatActionRow,
 } = require('../embeds/game_stat_embed');
-
-const {
-    updateTrackedMessageOrReply,
-} = require('../utils/context_utils');
 
 /**
  * Handles modals related to stat template creation and editing.
@@ -34,11 +26,6 @@ const {
  */
 async function handle(interaction) {
     const { customId } = interaction;
-    const userId = interaction.user.id;
-    const guildId = interaction.guildId;
-
-    // Fetch playerId for context
-    const player = await getOrCreatePlayer(userId, guildId);
 
     // === GM Create Default Game Stat Field ===
     if (customId.startsWith('createStatTemplate:')) {
@@ -72,9 +59,13 @@ async function handle(interaction) {
             ]);
 
             const embed = buildGameStatTemplateEmbed(allFields, game, label);
-            const actionRow = buildGameStatActionRow(gameId, allFields);
+            const actionRow = buildGameStatActionRow(gameId);
 
-            return await updateTrackedMessageOrReply(interaction, player.id, gameId, embed, [actionRow]);
+            await interaction.deferUpdate();
+            await interaction.editReply({
+                embeds: [embed],
+                components: [actionRow],
+            });
 
         } catch (err) {
             console.error('Error in createStatTemplate modal:', err);
@@ -85,7 +76,6 @@ async function handle(interaction) {
         }
     }
 
-    // === GM Edit Existing Stat Field ===
     if (customId.startsWith('editStatTemplateModal:')) {
         const [, statId] = customId.split(':');
 
@@ -110,6 +100,7 @@ async function handle(interaction) {
                 sort_order: sortOrder,
             });
 
+            // ✅ Fetch the game ID associated with the stat
             const fieldRecord = await getStatTemplateById(statId);
             const gameId = fieldRecord?.game_id;
 
@@ -128,7 +119,11 @@ async function handle(interaction) {
             const newEmbed = buildGameStatTemplateEmbed(allFields, game, label);
             const newButtons = buildGameStatActionRow(gameId, allFields);
 
-            return await updateTrackedMessageOrReply(interaction, player.id, gameId, newEmbed, [newButtons]);
+            await interaction.deferUpdate();
+            await interaction.editReply({
+                embeds: [newEmbed],
+                components: [newButtons],
+            });
 
         } catch (err) {
             console.error('Error in editStatTemplateModal:', err);
@@ -138,6 +133,8 @@ async function handle(interaction) {
             });
         }
     }
+
+
 }
 
 /**
