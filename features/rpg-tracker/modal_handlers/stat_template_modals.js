@@ -1,3 +1,5 @@
+// features/rpg-tracker/modal_handlers/stat_template_modals.js
+
 const {
     ModalBuilder,
     TextInputBuilder,
@@ -14,13 +16,17 @@ const {
 } = require('../../../store/services/game.service');
 
 const {
+    getOrCreatePlayer,
+} = require('../../../store/services/player.service');
+
+const {
     buildGameStatTemplateEmbed,
     buildGameStatActionRow,
 } = require('../embeds/game_stat_embed');
 
 const {
     updateTrackedMessageOrReply,
-} = require('../utils/context_utils'); // 👈 new import
+} = require('../utils/context_utils');
 
 /**
  * Handles modals related to stat template creation and editing.
@@ -28,6 +34,11 @@ const {
  */
 async function handle(interaction) {
     const { customId } = interaction;
+    const userId = interaction.user.id;
+    const guildId = interaction.guildId;
+
+    // Fetch playerId for context
+    const player = await getOrCreatePlayer(userId, guildId);
 
     // === GM Create Default Game Stat Field ===
     if (customId.startsWith('createStatTemplate:')) {
@@ -63,7 +74,7 @@ async function handle(interaction) {
             const embed = buildGameStatTemplateEmbed(allFields, game, label);
             const actionRow = buildGameStatActionRow(gameId, allFields);
 
-            return await updateTrackedMessageOrReply(interaction, gameId, embed, [actionRow]);
+            return await updateTrackedMessageOrReply(interaction, player.id, gameId, embed, [actionRow]);
 
         } catch (err) {
             console.error('Error in createStatTemplate modal:', err);
@@ -117,7 +128,7 @@ async function handle(interaction) {
             const newEmbed = buildGameStatTemplateEmbed(allFields, game, label);
             const newButtons = buildGameStatActionRow(gameId, allFields);
 
-            return await updateTrackedMessageOrReply(interaction, gameId, newEmbed, [newButtons]);
+            return await updateTrackedMessageOrReply(interaction, player.id, gameId, newEmbed, [newButtons]);
 
         } catch (err) {
             console.error('Error in editStatTemplateModal:', err);
