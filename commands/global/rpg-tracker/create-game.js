@@ -3,6 +3,8 @@
 const { SlashCommandBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
 const { createGame } = require('../../../store/services/game.service');
 const { getOrCreatePlayer, setCurrentGame } = require('../../../store/services/player.service');
+const { persistInteractionContext } = require('../../../features/rpg-tracker/utils/context_utils');
+
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -64,7 +66,7 @@ module.exports = {
                 publishBtn
             );
 
-            await interaction.reply({
+            const reply = await interaction.reply({
                 content: [
                     `✅ Created game **${game.name}** and set it as your active campaign.`,
                     ``,
@@ -82,7 +84,12 @@ module.exports = {
                 ].join('\n'),
                 components: [row],
                 ephemeral: true,
+                fetchReply: true, // 👈 Needed to get the message ID
             });
+
+            // Persist context for later modal or button updates
+            await persistInteractionContext(userId, game.id, reply.id);
+
 
         } catch (err) {
             console.error('[COMMAND ERROR] /create-game:', err);

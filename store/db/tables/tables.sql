@@ -135,6 +135,18 @@ CREATE TABLE character_inventory_field (
   UNIQUE(inventory_id, name)
 );
 
+-- === DISCORD USER INTERACTION TRACKER FOR BETTER UI / UX ===
+CREATE TABLE player_interactions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id TEXT NOT NULL REFERENCES player(id) ON DELETE CASCADE,
+    game_id UUID NOT NULL REFERENCES game(id) ON DELETE CASCADE,
+    message_id TEXT NOT NULL,
+    interaction_type TEXT DEFAULT 'game_stat_template',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE (user_id, game_id, interaction_type)
+);
+
+
 -- === INDEXES ===
 -- Game + Guild lookup
 CREATE INDEX idx_game_guild_id ON game(guild_id);

@@ -1,5 +1,3 @@
-// features/rpg-tracker/modal_handlers/stat_template_modals.js
-
 const {
     ModalBuilder,
     TextInputBuilder,
@@ -19,6 +17,10 @@ const {
     buildGameStatTemplateEmbed,
     buildGameStatActionRow,
 } = require('../embeds/game_stat_embed');
+
+const {
+    updateTrackedMessageOrReply,
+} = require('../utils/context_utils'); // 👈 new import
 
 /**
  * Handles modals related to stat template creation and editing.
@@ -59,13 +61,9 @@ async function handle(interaction) {
             ]);
 
             const embed = buildGameStatTemplateEmbed(allFields, game, label);
-            const actionRow = buildGameStatActionRow(gameId);
+            const actionRow = buildGameStatActionRow(gameId, allFields);
 
-            await interaction.deferUpdate();
-            await interaction.editReply({
-                embeds: [embed],
-                components: [actionRow],
-            });
+            return await updateTrackedMessageOrReply(interaction, gameId, embed, [actionRow]);
 
         } catch (err) {
             console.error('Error in createStatTemplate modal:', err);
@@ -76,6 +74,7 @@ async function handle(interaction) {
         }
     }
 
+    // === GM Edit Existing Stat Field ===
     if (customId.startsWith('editStatTemplateModal:')) {
         const [, statId] = customId.split(':');
 
@@ -100,7 +99,6 @@ async function handle(interaction) {
                 sort_order: sortOrder,
             });
 
-            // ✅ Fetch the game ID associated with the stat
             const fieldRecord = await getStatTemplateById(statId);
             const gameId = fieldRecord?.game_id;
 
@@ -119,11 +117,7 @@ async function handle(interaction) {
             const newEmbed = buildGameStatTemplateEmbed(allFields, game, label);
             const newButtons = buildGameStatActionRow(gameId, allFields);
 
-            await interaction.deferUpdate();
-            await interaction.editReply({
-                embeds: [newEmbed],
-                components: [newButtons],
-            });
+            return await updateTrackedMessageOrReply(interaction, gameId, newEmbed, [newButtons]);
 
         } catch (err) {
             console.error('Error in editStatTemplateModal:', err);
@@ -133,8 +127,6 @@ async function handle(interaction) {
             });
         }
     }
-
-
 }
 
 /**
