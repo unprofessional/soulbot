@@ -51,7 +51,7 @@ module.exports = {
             });
 
             // Ensure global player + per-server link (GM role)
-            const player = await getOrCreatePlayer(discordUserId, guildId, 'gm');
+            const playerLink = await getOrCreatePlayer(discordUserId, guildId, 'gm');
 
             // Set current game for this player in this guild
             await setCurrentGame(discordUserId, guildId, game.id);
@@ -91,8 +91,8 @@ module.exports = {
                 fetchReply: true,
             });
 
-            // Persist interaction context for later updates
-            await persistInteractionContext(player.id, game.id, reply.id);
+            // Persist interaction context using actual player_id from player table
+            await persistInteractionContext(playerLink.player_id, game.id, reply.id);
 
         } catch (err) {
             console.error('[COMMAND ERROR] /create-game:', err);
