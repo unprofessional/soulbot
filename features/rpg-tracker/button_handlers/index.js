@@ -18,6 +18,7 @@ module.exports = {
 
         if (
             customId.startsWith('defineStats:') ||
+            customId.startsWith('editStats:') ||
             customId.startsWith('edit_stat_template:') ||
             customId.startsWith('finishStatSetup:')
         ) {
