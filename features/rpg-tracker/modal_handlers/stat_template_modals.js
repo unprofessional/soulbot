@@ -83,6 +83,8 @@ async function handle(interaction) {
             const label = interaction.fields.getTextInputValue('label')?.trim();
             const defaultValue = interaction.fields.getTextInputValue('default_value')?.trim();
             const fieldType = interaction.fields.getTextInputValue('field_type')?.trim().toLowerCase();
+            const sortOrderRaw = interaction.fields.getTextInputValue('sort_order')?.trim();
+            const sortOrder = isNaN(parseInt(sortOrderRaw)) ? 0 : parseInt(sortOrderRaw, 10);
 
             if (!label || !['short', 'paragraph'].includes(fieldType)) {
                 return interaction.reply({
@@ -95,11 +97,34 @@ async function handle(interaction) {
                 label,
                 default_value: defaultValue,
                 field_type: fieldType,
+                sort_order: sortOrder,
             });
 
-            return interaction.reply({
-                content: `✅ Updated stat field **${updated.label}**.`,
-                ephemeral: true,
+            // === Refresh embed and action row ===
+            // You’ll need to find the gameId from the stat template record
+            const statTemplates = await getStatTemplates(); // you may want to filter here
+            const updatedField = statTemplates.find(f => f.id === statId);
+            const gameId = updatedField?.game_id;
+
+            if (!gameId) {
+                return interaction.reply({
+                    content: '❌ Could not determine the game associated with this field.',
+                    ephemeral: true,
+                });
+            }
+
+            const [allFields, game] = await Promise.all([
+                getStatTemplates(gameId),
+                getGame({ id: gameId }),
+            ]);
+
+            const newEmbed = buildGameStatTemplateEmbed(allFields, game, label);
+            const newButtons = buildGameStatActionRow(gameId, allFields);
+
+            await interaction.deferUpdate();
+            await interaction.editReply({
+                embeds: [newEmbed],
+                components: [newButtons],
             });
 
         } catch (err) {
@@ -110,6 +135,7 @@ async function handle(interaction) {
             });
         }
     }
+
 }
 
 /**

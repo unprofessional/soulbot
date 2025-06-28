@@ -1,3 +1,5 @@
+// features/rpg-tracker/button_handlers/stat_template_buttons.js
+
 const {
     ActionRowBuilder,
     StringSelectMenuBuilder,
