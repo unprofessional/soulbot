@@ -3,6 +3,8 @@
 const {
     ActionRowBuilder,
     StringSelectMenuBuilder,
+    ButtonBuilder,
+    ButtonStyle,
 } = require('discord.js');
 
 const {
@@ -11,13 +13,12 @@ const {
 } = require('../../../store/services/game.service');
 
 const {
-    buildGameStatTemplateEmbed,
-    buildGameStatActionRow,
-} = require('../embeds/game_stat_embed');
-
-const {
     buildStatTemplateModal,
 } = require('../modal_handlers/stat_template_modals');
+
+const {
+    rebuildCreateGameResponse,
+} = require('../utils/rebuild_create_game_response');
 
 /**
  * Handles stat template-related button interactions.
@@ -33,12 +34,14 @@ async function handle(interaction) {
         return await interaction.showModal(modal);
     }
 
-    // === Edit Stats Button (trigger dropdown on the same message)
+    // === Edit Stats Button (show dropdown and cancel option)
     if (customId.startsWith('editStats:')) {
         const [, gameId] = customId.split(':');
 
-        const game = await getGame({ id: gameId });
-        const statTemplates = await getStatTemplates(gameId);
+        const [game, statTemplates] = await Promise.all([
+            getGame({ id: gameId }),
+            getStatTemplates(gameId),
+        ]);
 
         if (!game || game.created_by !== interaction.user.id) {
             return await interaction.reply({
@@ -65,17 +68,22 @@ async function handle(interaction) {
             .setPlaceholder('Select a stat field to edit')
             .addOptions(options);
 
-        const actionRow = new ActionRowBuilder().addComponents(selectMenu);
-        const updatedEmbed = buildGameStatTemplateEmbed(statTemplates, game);
+        const selectRow = new ActionRowBuilder().addComponents(selectMenu);
+        const cancelRow = new ActionRowBuilder().addComponents(
+            new ButtonBuilder()
+                .setCustomId(`cancelStatEdit:${gameId}`)
+                .setLabel('⬅️ Go Back')
+                .setStyle(ButtonStyle.Secondary)
+        );
 
         return await interaction.update({
             content: `🎲 Select a field to edit for **${game.name}**`,
-            embeds: [updatedEmbed],
-            components: [actionRow],
+            embeds: [rebuildCreateGameResponse(game, statTemplates).embed],
+            components: [selectRow, cancelRow],
         });
     }
 
-    // === Edit Stat Template Modal ===
+    // === Edit Stat Template Modal trigger (via direct button, not used currently) ===
     if (customId.startsWith('edit_stat_template:')) {
         const [, statFieldId] = customId.split(':');
 
@@ -93,7 +101,25 @@ async function handle(interaction) {
         return await interaction.showModal(modal);
     }
 
-    // === Finish Stat Setup ===
+    // === Cancel Edit Stat (go back to main /create-game view)
+    if (customId.startsWith('cancelStatEdit:')) {
+        const [, gameId] = customId.split(':');
+
+        const [game, fields] = await Promise.all([
+            getGame({ id: gameId }),
+            getStatTemplates(gameId),
+        ]);
+
+        const { content, embed, buttons } = rebuildCreateGameResponse(game, fields);
+
+        return await interaction.update({
+            content,
+            embeds: [embed],
+            components: [buttons],
+        });
+    }
+
+    // === Finalize Stat Setup (refreshes embed/buttons cleanly)
     if (customId.startsWith('finishStatSetup:')) {
         const [, gameId] = customId.split(':');
 
@@ -110,15 +136,14 @@ async function handle(interaction) {
                 });
             }
 
-            const newEmbed = buildGameStatTemplateEmbed(stats, game);
-            const newButtons = buildGameStatActionRow(gameId, stats);
+            const { content, embed, buttons } = rebuildCreateGameResponse(game, stats);
 
             await interaction.deferUpdate();
             await interaction.editReply({
-                embeds: [newEmbed],
-                components: [newButtons],
+                content,
+                embeds: [embed],
+                components: [buttons],
             });
-
         } catch (err) {
             console.error('Error in finishStatSetup:', err);
             return await interaction.reply({
