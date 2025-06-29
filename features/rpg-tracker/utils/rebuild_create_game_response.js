@@ -16,13 +16,14 @@ function buildGameSetupMessage(game, context = 'create', statTemplates = []) {
         lines.push(`🎲 Viewing game **${game.name}**.`);
     }
 
+    lines.push('');
+
     if (game.description?.trim()) {
         const desc = game.description.trim().slice(0, 200);
         lines.push(`> ${desc}${game.description.length > 200 ? '…' : ''}`);
     }
 
     lines.push('');
-    lines.push(`**Character Stat Fields:**`);
     lines.push(` - 🟦 **System Fields** (always included):`);
     lines.push(`  - Name`);
     lines.push(`  - Avatar URL`);
