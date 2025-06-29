@@ -1,5 +1,3 @@
-// features/rpg-tracker/embeds/game_stat_embed.js
-
 const {
     EmbedBuilder,
     ActionRowBuilder,
@@ -24,6 +22,8 @@ function buildGameStatTemplateEmbed(fields, game, highlightLabel = null) {
         highlightLabel,
     });
 
+    const ZWSP = '\u200B'; // Avoid literal ZWSP for ESLint compatibility
+
     const fieldLines = fields.map((f, index) => {
         const rawLabel = f.label;
         const rawDefault = f.default_value;
@@ -42,8 +42,7 @@ function buildGameStatTemplateEmbed(fields, game, highlightLabel = null) {
         const labelText = isNew ? `🆕 ${safeLabel}` : safeLabel;
         const defaultStr = safeDefault ? ` _(default: ${safeDefault})_` : '';
 
-        // Prefix each line with a zero-width space to prevent Discord's embed parser from treating it as a list item
-        const ZWSP = '\u200B';
+        // Prefix each line with ZWSP to prevent Discord from misparsing it
         const finalLine = `${ZWSP}${icon} **${labelText}**${defaultStr}`;
 
         console.log(`[field ${index}]`, {
