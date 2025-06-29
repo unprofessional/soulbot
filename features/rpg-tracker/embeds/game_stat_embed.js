@@ -19,8 +19,11 @@ function buildGameStatTemplateEmbed(fields, game, highlightLabel = null) {
     const fieldLines = fields.map(f => {
         const isNew = highlightLabel && f.label?.toLowerCase() === highlightLabel.toLowerCase();
         const icon = f.field_type === 'paragraph' ? '📝' : '🔹';
-        const defaultStr = f.default_value ? ` _(default: ${f.default_value})_` : '';
-        return `${icon} ${isNew ? '**🆕 ' : '**'}${f.label}**${defaultStr}`;
+        const label = f.label?.trim() || 'Unnamed';
+        const defaultStr = f.default_value?.trim()
+            ? ` _(default: ${f.default_value.trim()})_`
+            : '';
+        return `${icon} ${isNew ? '**🆕 ' : '**'}${label}**${defaultStr}`;
     });
 
     const embed = new EmbedBuilder()
