@@ -24,7 +24,7 @@ function buildGameSetupMessage(game, context = 'create', statTemplates = []) {
     }
 
     lines.push('');
-    lines.push(`🟦 **SYSTEM Fields** (always included):`);
+    lines.push(`🟦 **SYSTEM Character Fields** (always included):`);
     lines.push(`- Name`);
     lines.push(`- Avatar URL`);
     lines.push(`- Bio`);

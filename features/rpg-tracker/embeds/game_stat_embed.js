@@ -24,7 +24,7 @@ function buildGameStatTemplateEmbed(fields, game, highlightLabel = null) {
     });
 
     const embed = new EmbedBuilder()
-        .setTitle('📋 GAME Stats')
+        .setTitle('📋 GAME Character Stats')
         .setDescription([
             fieldLines.length ? fieldLines.join('\n') : '*No stats defined yet.*',
             '',
