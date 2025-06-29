@@ -25,18 +25,14 @@ function buildGameStatTemplateEmbed(fields, game, highlightLabel = null) {
 
     const embed = new EmbedBuilder()
         .setTitle('📋 Current Stat Template')
-        .addFields(
-            {
-                name: '📊 Stat Fields',
-                value: fieldLines.length ? fieldLines.join('\n') : '*No stats defined yet.*'
-            },
-            {
-                name: '🔒 Game Visibility',
-                value: game.is_public
-                    ? '`Public ✅` — Players can use `/join-game`'
-                    : '`Draft ❌` — Not yet visible to players'
-            }
-        )
+        .setDescription([
+            fieldLines.length ? fieldLines.join('\n') : '*No stats defined yet.*',
+            '',
+            '**Game Visibility**',
+            game.is_public
+                ? '`Public ✅` — Players can use `/join-game`'
+                : '`Draft ❌` — Not yet visible to players',
+        ].join('\n'))
         .setColor(game.is_public ? 0x00c851 : 0xffbb33);
 
     return embed;
@@ -44,23 +40,23 @@ function buildGameStatTemplateEmbed(fields, game, highlightLabel = null) {
 
 /**
  * Button row for use under the stat embed after `/create-game`
- * @param {Object} game - The full game object
+ * @param {string} gameId
  * @returns {ActionRowBuilder}
  */
-function buildGameStatActionRow(game) {
+function buildGameStatActionRow(gameId) {
     return new ActionRowBuilder().addComponents(
         new ButtonBuilder()
-            .setCustomId(`defineStats:${game.id}`)
+            .setCustomId(`defineStats:${gameId}`)
             .setLabel('➕ Add Another Stat')
             .setStyle(ButtonStyle.Primary),
         new ButtonBuilder()
-            .setCustomId(`editStats:${game.id}`)
+            .setCustomId(`editStats:${gameId}`)
             .setLabel('🎲 Edit Stat')
             .setStyle(ButtonStyle.Secondary),
         new ButtonBuilder()
-            .setCustomId(`togglePublishGame:${game.id}`)
-            .setLabel(game.is_public ? '🙈 Unpublish Game' : '📣 Publish Game')
-            .setStyle(game.is_public ? ButtonStyle.Danger : ButtonStyle.Success)
+            .setCustomId(`publishGame:${gameId}`)
+            .setLabel('📣 Publish Now')
+            .setStyle(ButtonStyle.Success)
     );
 }
 
