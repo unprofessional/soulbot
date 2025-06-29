@@ -24,6 +24,7 @@ module.exports = {
             customId.startsWith('defineStats:') ||
             customId.startsWith('editStats:') ||
             customId.startsWith('deleteStats:') ||
+            customId.startsWith('confirmDeleteStat:') ||
             customId.startsWith('edit_stat_template:') ||
             customId.startsWith('finishStatSetup:')
         ) {

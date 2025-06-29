@@ -3,12 +3,10 @@
 const {
     getStatTemplates,
     getStatTemplateById,
-    deleteStatTemplate,
-    getGame,
 } = require('../../../store/services/game.service');
 
 const { buildStatTemplateModal } = require('../modal_handlers/stat_template_modals');
-const { rebuildCreateGameResponse } = require('../utils/rebuild_create_game_response');
+const { ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
 
 /**
  * Handles stat template field selection menus (edit and delete).
@@ -50,7 +48,7 @@ async function handle(interaction) {
         }
     }
 
-    // === Handle Delete Stat Select ===
+    // === Handle Delete Stat Select (ask for confirmation) ===
     if (customId.startsWith('deleteStatSelect:')) {
         try {
             const [, gameId] = customId.split(':');
@@ -63,18 +61,26 @@ async function handle(interaction) {
                 });
             }
 
-            await deleteStatTemplate(selected);
+            const confirmRow = new ActionRowBuilder().addComponents(
+                new ButtonBuilder()
+                    .setCustomId(`confirmDeleteStat:${selected}`)
+                    .setLabel('✅ Confirm Delete')
+                    .setStyle(ButtonStyle.Danger),
+                new ButtonBuilder()
+                    .setCustomId(`finishStatSetup:${gameId}`)
+                    .setLabel('❌ Cancel')
+                    .setStyle(ButtonStyle.Secondary)
+            );
 
-            const [game, remainingStats] = await Promise.all([
-                getGame({ id: gameId }),
-                getStatTemplates(gameId),
-            ]);
-
-            return await interaction.update(rebuildCreateGameResponse(game, remainingStats));
+            return await interaction.update({
+                content: `🗑️ Are you sure you want to delete stat **${field.label}**?`,
+                embeds: [],
+                components: [confirmRow],
+            });
         } catch (err) {
-            console.error('Error deleting stat field:', err);
+            console.error('Error selecting stat field to delete:', err);
             return await interaction.reply({
-                content: '❌ Failed to delete stat field.',
+                content: '❌ Failed to prepare delete confirmation.',
                 ephemeral: true,
             });
         }

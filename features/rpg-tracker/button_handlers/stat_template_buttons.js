@@ -1,3 +1,5 @@
+// features/rpg-tracker/button_handlers/stat_template_buttons.js
+
 const {
     ActionRowBuilder,
     StringSelectMenuBuilder,
@@ -7,16 +9,13 @@ const {
 
 const {
     getStatTemplates,
+    getStatTemplateById,
+    deleteStatTemplate,
     getGame,
 } = require('../../../store/services/game.service');
 
-const {
-    buildStatTemplateModal,
-} = require('../modal_handlers/stat_template_modals');
-
-const {
-    rebuildCreateGameResponse,
-} = require('../utils/rebuild_create_game_response');
+const { buildStatTemplateModal } = require('../modal_handlers/stat_template_modals');
+const { rebuildCreateGameResponse } = require('../utils/rebuild_create_game_response');
 
 /**
  * Handles stat template-related button interactions.
@@ -124,6 +123,36 @@ async function handle(interaction) {
             embeds: [],
             components: [actionRow, cancelRow],
         });
+    }
+
+    // === Confirm Delete Stat ===
+    if (customId.startsWith('confirmDeleteStat:')) {
+        const [, statId] = customId.split(':');
+
+        try {
+            const stat = await getStatTemplateById(statId);
+            if (!stat) {
+                return await interaction.reply({
+                    content: '❌ That stat no longer exists.',
+                    ephemeral: true,
+                });
+            }
+
+            await deleteStatTemplate(statId);
+
+            const [game, updatedStats] = await Promise.all([
+                getGame({ id: stat.game_id }),
+                getStatTemplates(stat.game_id),
+            ]);
+
+            return await interaction.update(rebuildCreateGameResponse(game, updatedStats));
+        } catch (err) {
+            console.error('Error confirming stat deletion:', err);
+            return await interaction.reply({
+                content: '❌ Failed to delete stat.',
+                ephemeral: true,
+            });
+        }
     }
 
     // === Edit Stat Template Modal ===
