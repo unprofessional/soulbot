@@ -21,6 +21,8 @@ const {
 const { getOrCreatePlayer } = require('../../../store/services/player.service');
 const { publishGame } = require('../../../store/services/game.service');
 
+const { rebuildCreateGameResponse } = require('../utils/rebuild_create_game_response');
+
 /**
  * Handles game management buttons (edit, publish).
  * @param {import('discord.js').ButtonInteraction} interaction
@@ -112,14 +114,10 @@ async function handle(interaction) {
 
             const updatedGame = await togglePublish(gameId);
             const statTemplates = await getStatTemplates(gameId);
-            const embed = buildGameStatTemplateEmbed(statTemplates, updatedGame);
-            const components = [buildGameStatActionRow(gameId)];
 
-            return await interaction.update({
-                content: `🔄 Visibility toggled. Game is now **${updatedGame.is_public ? 'Public ✅' : 'Draft ❌'}**.`,
-                embeds: [embed],
-                components,
-            });
+            const rebuilt = rebuildCreateGameResponse(updatedGame, statTemplates);
+
+            return await interaction.update(rebuilt);
 
         } catch (err) {
             console.error('Error toggling publish state:', err);
