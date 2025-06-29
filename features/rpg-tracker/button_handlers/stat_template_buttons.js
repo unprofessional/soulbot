@@ -3,8 +3,6 @@
 const {
     ActionRowBuilder,
     StringSelectMenuBuilder,
-    ButtonBuilder,
-    ButtonStyle,
 } = require('discord.js');
 
 const {
@@ -13,12 +11,13 @@ const {
 } = require('../../../store/services/game.service');
 
 const {
-    buildStatTemplateModal,
-} = require('../modal_handlers/stat_template_modals');
+    buildGameStatTemplateEmbed,
+    buildGameStatActionRow,
+} = require('../embeds/game_stat_embed');
 
 const {
-    rebuildCreateGameResponse,
-} = require('../utils/rebuild_create_game_response');
+    buildStatTemplateModal,
+} = require('../modal_handlers/stat_template_modals');
 
 /**
  * Handles stat template-related button interactions.
@@ -38,10 +37,8 @@ async function handle(interaction) {
     if (customId.startsWith('editStats:')) {
         const [, gameId] = customId.split(':');
 
-        const [game, statTemplates] = await Promise.all([
-            getGame({ id: gameId }),
-            getStatTemplates(gameId),
-        ]);
+        const game = await getGame({ id: gameId });
+        const statTemplates = await getStatTemplates(gameId);
 
         if (!game || game.created_by !== interaction.user.id) {
             return await interaction.reply({
@@ -57,40 +54,24 @@ async function handle(interaction) {
             });
         }
 
-        const options = statTemplates
-            .filter((f) => typeof f.label === 'string' && f.label.trim().length > 0 && typeof f.id === 'string')
-            .map((f, i) => ({
-                label: `${i + 1}. ${f.label.trim()}`,
-                description: `Type: ${f.field_type} — Default: ${f.default_value || 'None'}`,
-                value: f.id,
-            }));
-
-        if (!options.length) {
-            return await interaction.reply({
-                content: '⚠️ No valid stat labels found. Please edit or recreate your stat fields.',
-                ephemeral: true,
-            });
-        }
+        const options = statTemplates.map((f, i) => ({
+            label: `${i + 1}. ${f.label}`,
+            description: `Type: ${f.field_type} — Default: ${f.default_value || 'None'}`,
+            value: f.id,
+        }));
 
         const selectMenu = new StringSelectMenuBuilder()
             .setCustomId(`editStatSelect:${gameId}`)
             .setPlaceholder('Select a stat field to edit')
             .addOptions(options);
 
-        const selectRow = new ActionRowBuilder().addComponents(selectMenu);
-        const cancelRow = new ActionRowBuilder().addComponents(
-            new ButtonBuilder()
-                .setCustomId(`cancelStatEdit:${gameId}`)
-                .setLabel('⬅️ Go Back')
-                .setStyle(ButtonStyle.Secondary)
-        );
-
-        const { embed } = rebuildCreateGameResponse(game, statTemplates);
+        const actionRow = new ActionRowBuilder().addComponents(selectMenu);
+        const updatedEmbed = buildGameStatTemplateEmbed(statTemplates, game);
 
         return await interaction.update({
             content: `🎲 Select a field to edit for **${game.name}**`,
-            embeds: [embed],
-            components: [selectRow, cancelRow],
+            embeds: [updatedEmbed],
+            components: [actionRow],
         });
     }
 
@@ -112,24 +93,6 @@ async function handle(interaction) {
         return await interaction.showModal(modal);
     }
 
-    // === Cancel Edit Stat (return to /create-game view) ===
-    if (customId.startsWith('cancelStatEdit:')) {
-        const [, gameId] = customId.split(':');
-
-        const [game, fields] = await Promise.all([
-            getGame({ id: gameId }),
-            getStatTemplates(gameId),
-        ]);
-
-        const { content, embed, buttons } = rebuildCreateGameResponse(game, fields);
-
-        return await interaction.update({
-            content,
-            embeds: [embed],
-            components: [buttons],
-        });
-    }
-
     // === Finish Stat Setup ===
     if (customId.startsWith('finishStatSetup:')) {
         const [, gameId] = customId.split(':');
@@ -147,13 +110,13 @@ async function handle(interaction) {
                 });
             }
 
-            const { content, embed, buttons } = rebuildCreateGameResponse(game, stats);
+            const newEmbed = buildGameStatTemplateEmbed(stats, game);
+            const newButtons = buildGameStatActionRow(gameId, stats);
 
             await interaction.deferUpdate();
             await interaction.editReply({
-                content,
-                embeds: [embed],
-                components: [buttons],
+                embeds: [newEmbed],
+                components: [newButtons],
             });
 
         } catch (err) {
