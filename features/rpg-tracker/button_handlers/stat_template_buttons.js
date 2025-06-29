@@ -2,22 +2,25 @@
 
 const {
     ActionRowBuilder,
+    ButtonBuilder,
+    ButtonStyle,
     StringSelectMenuBuilder,
 } = require('discord.js');
 
 const {
     getStatTemplates,
     getGame,
+    getStatTemplateById,
 } = require('../../../store/services/game.service');
+
+const {
+    buildStatTemplateModal,
+} = require('../modal_handlers/stat_template_modals');
 
 const {
     buildGameStatTemplateEmbed,
     buildGameStatActionRow,
 } = require('../embeds/game_stat_embed');
-
-const {
-    buildStatTemplateModal,
-} = require('../modal_handlers/stat_template_modals');
 
 /**
  * Handles stat template-related button interactions.
@@ -65,7 +68,14 @@ async function handle(interaction) {
             .setPlaceholder('Select a stat field to edit')
             .addOptions(options);
 
-        const actionRow = new ActionRowBuilder().addComponents(selectMenu);
+        const actionRow = new ActionRowBuilder().addComponents(
+            selectMenu,
+            new ButtonBuilder()
+                .setCustomId(`finishStatSetup:${gameId}`)
+                .setLabel('↩️ Cancel / Go Back')
+                .setStyle(ButtonStyle.Secondary)
+        );
+
         const updatedEmbed = buildGameStatTemplateEmbed(statTemplates, game);
 
         return await interaction.update({
@@ -79,21 +89,20 @@ async function handle(interaction) {
     if (customId.startsWith('edit_stat_template:')) {
         const [, statFieldId] = customId.split(':');
 
-        const statTemplates = await getStatTemplates();
-        const currentField = statTemplates.find(f => f.id === statFieldId);
+        const statTemplate = await getStatTemplateById(statFieldId);
 
-        if (!currentField) {
+        if (!statTemplate) {
             return await interaction.reply({
                 content: '❌ Could not find stat template to edit.',
                 ephemeral: true,
             });
         }
 
-        const modal = buildStatTemplateModal({ gameId: null, field: currentField });
+        const modal = buildStatTemplateModal({ gameId: statTemplate.game_id, field: statTemplate });
         return await interaction.showModal(modal);
     }
 
-    // === Finish Stat Setup ===
+    // === Finish Stat Setup (go back to default stat template embed)
     if (customId.startsWith('finishStatSetup:')) {
         const [, gameId] = customId.split(':');
 
@@ -117,6 +126,7 @@ async function handle(interaction) {
             await interaction.editReply({
                 embeds: [newEmbed],
                 components: [newButtons],
+                content: null,
             });
 
         } catch (err) {
