@@ -8,7 +8,15 @@ const {
 } = require('discord.js');
 
 const { getOrCreatePlayer } = require('../../../store/services/player.service');
-const { publishGame } = require('../../../store/services/game.service');
+const {
+    publishGame,
+    getStatTemplates,
+    getGame,
+} = require('../../../store/services/game.service');
+
+const {
+    rebuildCreateGameResponse,
+} = require('../utils/rebuild_create_game_response');
 
 /**
  * Handles game management buttons (edit, publish).
@@ -52,12 +60,7 @@ async function handle(interaction) {
             const guildId = interaction.guild?.id;
             const userId = interaction.user.id;
 
-            console.log('[publishGame] userId:', userId);
-            console.log('[publishGame] guildId:', guildId);
-
             const player = await getOrCreatePlayer(userId, guildId);
-
-            console.log('[publishGame] player server link:', player);
 
             if (player?.role !== 'gm' || player.current_game_id !== gameId) {
                 return await interaction.reply({
@@ -66,12 +69,16 @@ async function handle(interaction) {
                 });
             }
 
-            const result = await publishGame(gameId);
+            // const result = await publishGame(gameId);
+            const [stats, game] = await Promise.all([
+                getStatTemplates(gameId),
+                getGame({ id: gameId }),
+            ]);
 
-            return await interaction.reply({
-                content: `📣 Game **${result.name}** is now published! Players can now see and join it using \`/join-game\`.`,
-                ephemeral: true,
-            });
+            const response = rebuildCreateGameResponse(game, stats);
+
+            await interaction.deferUpdate();
+            await interaction.editReply(response);
 
         } catch (err) {
             console.error('Error publishing game:', err);
@@ -81,7 +88,6 @@ async function handle(interaction) {
             });
         }
     }
-
 }
 
 module.exports = { handle };
