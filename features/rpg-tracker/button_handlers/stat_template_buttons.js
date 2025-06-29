@@ -1,3 +1,5 @@
+// features/rpg-tracker/button_handlers/stat_template_buttons.js
+
 const {
     ActionRowBuilder,
     StringSelectMenuBuilder,
@@ -11,12 +13,13 @@ const {
 } = require('../../../store/services/game.service');
 
 const {
-    buildStatTemplateModal,
-} = require('../modal_handlers/stat_template_modals');
+    buildGameStatTemplateEmbed,
+    buildGameStatActionRow,
+} = require('../embeds/game_stat_embed');
 
 const {
-    rebuildCreateGameResponse,
-} = require('../utils/rebuild_create_game_response');
+    buildStatTemplateModal,
+} = require('../modal_handlers/stat_template_modals');
 
 /**
  * Handles stat template-related button interactions.
@@ -64,18 +67,20 @@ async function handle(interaction) {
             .setPlaceholder('Select a stat field to edit')
             .addOptions(options);
 
-        const cancelButton = new ButtonBuilder()
-            .setCustomId(`finishStatSetup:${gameId}`)
-            .setLabel('↩️ Cancel / Go Back')
-            .setStyle(ButtonStyle.Secondary);
+        const selectRow = new ActionRowBuilder().addComponents(selectMenu);
+        const cancelRow = new ActionRowBuilder().addComponents(
+            new ButtonBuilder()
+                .setCustomId(`finishStatSetup:${gameId}`)
+                .setLabel('↩️ Cancel / Go Back')
+                .setStyle(ButtonStyle.Secondary)
+        );
 
-        const row1 = new ActionRowBuilder().addComponents(selectMenu);
-        const row2 = new ActionRowBuilder().addComponents(cancelButton);
+        const updatedEmbed = buildGameStatTemplateEmbed(statTemplates, game);
 
         return await interaction.update({
             content: `🎲 Select a field to edit for **${game.name}**`,
-            embeds: rebuildCreateGameResponse(game, statTemplates).embeds,
-            components: [row1, row2],
+            embeds: [updatedEmbed],
+            components: [selectRow, cancelRow],
         });
     }
 
@@ -97,7 +102,7 @@ async function handle(interaction) {
         return await interaction.showModal(modal);
     }
 
-    // === Finish Stat Setup ===
+    // === Finish Stat Setup (used as "Cancel / Go Back" also) ===
     if (customId.startsWith('finishStatSetup:')) {
         const [, gameId] = customId.split(':');
 
@@ -114,8 +119,14 @@ async function handle(interaction) {
                 });
             }
 
+            const newEmbed = buildGameStatTemplateEmbed(stats, game);
+            const newButtons = buildGameStatActionRow(gameId, stats);
+
             await interaction.deferUpdate();
-            await interaction.editReply(rebuildCreateGameResponse(game, stats));
+            await interaction.editReply({
+                embeds: [newEmbed],
+                components: [newButtons],
+            });
 
         } catch (err) {
             console.error('Error in finishStatSetup:', err);
