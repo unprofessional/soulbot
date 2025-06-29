@@ -19,10 +19,17 @@ function buildGameStatTemplateEmbed(fields, game, highlightLabel = null) {
     const fieldLines = fields.map(f => {
         const isNew = highlightLabel && f.label?.toLowerCase() === highlightLabel.toLowerCase();
         const icon = f.field_type === 'paragraph' ? '📝' : '🔹';
-        const label = f.label?.trim() || 'Unnamed';
-        const defaultStr = f.default_value?.trim()
+        const label = typeof f.label === 'string' ? f.label.trim() : 'Unnamed';
+
+        if (!label || typeof label !== 'string') {
+            console.warn('[Embed Label Warning]', f);
+        }
+
+        const hasDefault = typeof f.default_value === 'string' && f.default_value.trim().length > 0;
+        const defaultStr = hasDefault
             ? ` _(default: ${f.default_value.trim()})_`
             : '';
+
         return `${icon} ${isNew ? '**🆕 ' : '**'}${label}**${defaultStr}`;
     });
 
