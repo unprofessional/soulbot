@@ -24,7 +24,7 @@ function buildGameStatTemplateEmbed(fields, game, highlightLabel = null) {
     });
 
     const embed = new EmbedBuilder()
-        .setTitle('📋 Current Stat Template')
+        .setTitle('📋 GAME Stats')
         .setDescription([
             fieldLines.length ? fieldLines.join('\n') : '*No stats defined yet.*',
             '',
