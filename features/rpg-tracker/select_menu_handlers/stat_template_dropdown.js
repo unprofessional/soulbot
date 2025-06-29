@@ -70,7 +70,7 @@ async function handle(interaction) {
                 getStatTemplates(gameId),
             ]);
 
-            await interaction.update(rebuildCreateGameResponse(game, remainingStats));
+            return await interaction.update(rebuildCreateGameResponse(game, remainingStats));
         } catch (err) {
             console.error('Error deleting stat field:', err);
             return await interaction.reply({
@@ -80,6 +80,7 @@ async function handle(interaction) {
         }
     }
 
+    // === Fallback: No known customId matched
     return await interaction.reply({
         content: '❌ Unknown stat field menu interaction.',
         ephemeral: true,
