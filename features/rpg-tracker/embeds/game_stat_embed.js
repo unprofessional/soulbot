@@ -1,106 +1,139 @@
-// features/rpg-tracker/embeds/game_stat_embed.js
-
 const {
-    EmbedBuilder,
     ActionRowBuilder,
-    ButtonBuilder,
-    ButtonStyle,
+    StringSelectMenuBuilder,
 } = require('discord.js');
 
-/**
- * Builds the updated embed showing the stat template and visibility.
- * Highlights the `highlightLabel` field if provided.
- * @param {Array<Object>} fields
- * @param {Object} game
- * @param {string} [highlightLabel]
- * @returns {EmbedBuilder}
- */
-function buildGameStatTemplateEmbed(fields, game, highlightLabel = null) {
-    console.log('[buildGameStatTemplateEmbed] Called with:', {
-        gameName: game?.name,
-        gameId: game?.id,
-        isPublic: game?.is_public,
-        fieldCount: fields?.length,
-        highlightLabel,
-    });
+const {
+    getStatTemplates,
+    getGame,
+} = require('../../../store/services/game.service');
 
-    const fieldLines = fields.map((f, index) => {
-        const rawLabel = f.label;
-        const rawDefault = f.default_value;
-        const rawType = f.field_type;
-
-        const isNew = highlightLabel && rawLabel?.toLowerCase() === highlightLabel.toLowerCase();
-        const icon = rawType === 'paragraph' ? '📝' : '🔹';
-
-        const safeLabel = typeof rawLabel === 'string' && rawLabel.trim().length > 0
-            ? rawLabel.trim()
-            : '(Unnamed)';
-        const safeDefault = typeof rawDefault === 'string' && rawDefault.trim().length > 0
-            ? rawDefault.trim()
-            : null;
-
-        const labelText = isNew ? `🆕 ${safeLabel}` : safeLabel;
-        const defaultStr = safeDefault ? ` _(default: ${safeDefault})_` : '';
-
-        const finalLine = `${icon} **${labelText}**${defaultStr}`;
-
-        // Aggressive per-field debug log
-        console.log(`[field ${index}]`, {
-            rawLabel,
-            safeLabel,
-            rawDefault,
-            safeDefault,
-            rawType,
-            icon,
-            isNew,
-            finalLine,
-        });
-
-        return finalLine;
-    });
-
-    const embedDescription = [
-        fieldLines.length ? fieldLines.join('\n') : '*No stats defined yet.*',
-        '',
-        '**Game Visibility**',
-        game.is_public
-            ? '`Public ✅` — Players can use `/join-game`'
-            : '`Draft ❌` — Not yet visible to players',
-    ].join('\n');
-
-    console.log('[buildGameStatTemplateEmbed] Final embed description:', embedDescription);
-
-    const embed = new EmbedBuilder()
-        .setTitle('📋 Current Stat Template')
-        .setDescription(embedDescription)
-        .setColor(game.is_public ? 0x00c851 : 0xffbb33);
-
-    return embed;
-}
-
-/**
- * Button row for use under the stat embed after `/create-game`
- * @param {string} gameId
- * @returns {ActionRowBuilder}
- */
-function buildGameStatActionRow(gameId) {
-    return new ActionRowBuilder().addComponents(
-        new ButtonBuilder()
-            .setCustomId(`defineStats:${gameId}`)
-            .setLabel('➕ Add Another Stat')
-            .setStyle(ButtonStyle.Primary),
-        new ButtonBuilder()
-            .setCustomId(`editStats:${gameId}`)
-            .setLabel('🎲 Edit Stat')
-            .setStyle(ButtonStyle.Secondary),
-        new ButtonBuilder()
-            .setCustomId(`publishGame:${gameId}`)
-            .setLabel('📣 Publish Now')
-            .setStyle(ButtonStyle.Success)
-    );
-}
-
-module.exports = {
+const {
     buildGameStatTemplateEmbed,
     buildGameStatActionRow,
-};
+} = require('../embeds/game_stat_embed');
+
+const {
+    buildStatTemplateModal,
+} = require('../modal_handlers/stat_template_modals');
+
+/**
+ * Handles stat template-related button interactions.
+ * @param {import('discord.js').ButtonInteraction} interaction
+ */
+async function handle(interaction) {
+    const { customId } = interaction;
+
+    // === Define Required Stats Modal ===
+    if (customId.startsWith('defineStats:')) {
+        const [, gameId] = customId.split(':');
+        const modal = buildStatTemplateModal({ gameId });
+        return await interaction.showModal(modal);
+    }
+
+    // === Edit Stats Button (trigger dropdown on the same message)
+    if (customId.startsWith('editStats:')) {
+        const [, gameId] = customId.split(':');
+
+        const game = await getGame({ id: gameId });
+        const statTemplates = await getStatTemplates(gameId);
+
+        if (!game || game.created_by !== interaction.user.id) {
+            return await interaction.reply({
+                content: '⚠️ Only the GM can edit this game.',
+                ephemeral: true,
+            });
+        }
+
+        if (!statTemplates.length) {
+            return await interaction.reply({
+                content: '⚠️ No stats to edit yet. Use "Define Required Stats" first.',
+                ephemeral: true,
+            });
+        }
+
+        const options = statTemplates
+            .filter((f) => typeof f.label === 'string' && f.label.trim().length > 0 && typeof f.id === 'string')
+            .map((f, i) => ({
+                label: `${i + 1}. ${f.label.trim()}`,
+                description: `Type: ${f.field_type} — Default: ${f.default_value || 'None'}`,
+                value: f.id,
+            }));
+
+        if (!options.length) {
+            return await interaction.reply({
+                content: '⚠️ No valid stat labels found. Please edit or recreate your stat fields.',
+                ephemeral: true,
+            });
+        }
+
+        const selectMenu = new StringSelectMenuBuilder()
+            .setCustomId(`editStatSelect:${gameId}`)
+            .setPlaceholder('Select a stat field to edit')
+            .addOptions(options);
+
+        const actionRow = new ActionRowBuilder().addComponents(selectMenu);
+        const updatedEmbed = buildGameStatTemplateEmbed(statTemplates, game);
+
+        return await interaction.update({
+            content: `🎲 Select a field to edit for **${game.name}**`,
+            embeds: [updatedEmbed],
+            components: [actionRow],
+        });
+    }
+
+    // === Edit Stat Template Modal ===
+    if (customId.startsWith('edit_stat_template:')) {
+        const [, statFieldId] = customId.split(':');
+
+        const statTemplates = await getStatTemplates();
+        const currentField = statTemplates.find(f => f.id === statFieldId);
+
+        if (!currentField) {
+            return await interaction.reply({
+                content: '❌ Could not find stat template to edit.',
+                ephemeral: true,
+            });
+        }
+
+        const modal = buildStatTemplateModal({ gameId: null, field: currentField });
+        return await interaction.showModal(modal);
+    }
+
+    // === Finish Stat Setup ===
+    if (customId.startsWith('finishStatSetup:')) {
+        const [, gameId] = customId.split(':');
+
+        try {
+            const [game, stats] = await Promise.all([
+                getGame({ id: gameId }),
+                getStatTemplates(gameId),
+            ]);
+
+            if (!game) {
+                return await interaction.reply({
+                    content: '❌ Game not found. You may need to recreate it.',
+                    ephemeral: true,
+                });
+            }
+
+            const newEmbed = buildGameStatTemplateEmbed(stats, game);
+            const newButtons = buildGameStatActionRow(gameId, stats);
+
+            await interaction.deferUpdate();
+            await interaction.editReply({
+                embeds: [newEmbed],
+                components: [newButtons],
+            });
+
+        } catch (err) {
+            console.error('Error in finishStatSetup:', err);
+            return await interaction.reply({
+                content: '❌ Something went wrong while finalizing your game setup.',
+                ephemeral: true,
+            });
+        }
+    }
+}
+
+module.exports = { handle };
