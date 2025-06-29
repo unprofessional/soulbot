@@ -1,5 +1,3 @@
-// features/rpg-tracker/button_handlers/stat_template_buttons.js
-
 const {
     ActionRowBuilder,
     StringSelectMenuBuilder,
@@ -13,13 +11,12 @@ const {
 } = require('../../../store/services/game.service');
 
 const {
-    buildGameStatTemplateEmbed,
-    buildGameStatActionRow,
-} = require('../embeds/game_stat_embed');
-
-const {
     buildStatTemplateModal,
 } = require('../modal_handlers/stat_template_modals');
+
+const {
+    rebuildCreateGameResponse,
+} = require('../utils/rebuild_create_game_response');
 
 /**
  * Handles stat template-related button interactions.
@@ -67,20 +64,18 @@ async function handle(interaction) {
             .setPlaceholder('Select a stat field to edit')
             .addOptions(options);
 
-        const selectRow = new ActionRowBuilder().addComponents(selectMenu);
-        const cancelRow = new ActionRowBuilder().addComponents(
-            new ButtonBuilder()
-                .setCustomId(`finishStatSetup:${gameId}`)
-                .setLabel('↩️ Cancel / Go Back')
-                .setStyle(ButtonStyle.Secondary)
-        );
+        const cancelBtn = new ButtonBuilder()
+            .setCustomId(`finishStatSetup:${gameId}`)
+            .setLabel('↩️ Cancel / Go Back')
+            .setStyle(ButtonStyle.Secondary);
 
-        const updatedEmbed = buildGameStatTemplateEmbed(statTemplates, game);
+        const actionRow = new ActionRowBuilder().addComponents(selectMenu);
+        const cancelRow = new ActionRowBuilder().addComponents(cancelBtn);
 
         return await interaction.update({
             content: `🎲 Select a field to edit for **${game.name}**`,
-            embeds: [updatedEmbed],
-            components: [selectRow, cancelRow],
+            embeds: [],
+            components: [actionRow, cancelRow],
         });
     }
 
@@ -102,7 +97,7 @@ async function handle(interaction) {
         return await interaction.showModal(modal);
     }
 
-    // === Finish Stat Setup (used as "Cancel / Go Back" also) ===
+    // === Finish Stat Setup / Go Back ===
     if (customId.startsWith('finishStatSetup:')) {
         const [, gameId] = customId.split(':');
 
@@ -119,15 +114,8 @@ async function handle(interaction) {
                 });
             }
 
-            const newEmbed = buildGameStatTemplateEmbed(stats, game);
-            const newButtons = buildGameStatActionRow(gameId, stats);
-
             await interaction.deferUpdate();
-            await interaction.editReply({
-                embeds: [newEmbed],
-                components: [newButtons],
-            });
-
+            await interaction.editReply(rebuildCreateGameResponse(game, stats));
         } catch (err) {
             console.error('Error in finishStatSetup:', err);
             return await interaction.reply({
