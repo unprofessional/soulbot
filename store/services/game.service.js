@@ -39,13 +39,7 @@ async function getGame({ id, guildId }) {
  */
 async function getGamesByUser(userId, guildId = null) {
     const allGames = await gameDAO.findByUser(userId);
-
-    // Optional: Filter by guild ID if provided
-    if (guildId) {
-        return allGames.filter(g => g.guild_id === guildId);
-    }
-
-    return allGames;
+    return guildId ? allGames.filter(g => g.guild_id === guildId) : allGames;
 }
 
 /**
@@ -81,11 +75,17 @@ async function clearStatTemplates(gameId) {
 }
 
 /**
- * 
- * Publish the game to make it public
+ * Publish the game to make it public.
  */
 async function publishGame(gameId) {
     return gameDAO.publish(gameId);
+}
+
+/**
+ * Toggle visibility of the game between public and private.
+ */
+async function toggleGameVisibility(gameId) {
+    return gameDAO.toggleVisibility(gameId);
 }
 
 module.exports = {
@@ -99,4 +99,5 @@ module.exports = {
     addStatTemplates,
     clearStatTemplates,
     publishGame,
+    toggleGameVisibility,
 };

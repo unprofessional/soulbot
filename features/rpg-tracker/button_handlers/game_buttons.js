@@ -9,9 +9,9 @@ const {
 
 const { getOrCreatePlayer } = require('../../../store/services/player.service');
 const {
-    // publishGame,
+    toggleGameVisibility,
     getStatTemplates,
-    getGame,
+    // getGame,
 } = require('../../../store/services/game.service');
 
 const {
@@ -19,7 +19,7 @@ const {
 } = require('../utils/rebuild_create_game_response');
 
 /**
- * Handles game management buttons (edit, publish).
+ * Handles game management buttons (edit, toggle publish).
  * @param {import('discord.js').ButtonInteraction} interaction
  */
 async function handle(interaction) {
@@ -52,8 +52,8 @@ async function handle(interaction) {
         return await interaction.showModal(modal);
     }
 
-    // === Publish Game ===
-    if (customId.startsWith('publishGame:')) {
+    // === Toggle Game Visibility (Publish/Unpublish) ===
+    if (customId.startsWith('togglePublishGame:')) {
         const [, gameId] = customId.split(':');
 
         try {
@@ -61,29 +61,23 @@ async function handle(interaction) {
             const userId = interaction.user.id;
 
             const player = await getOrCreatePlayer(userId, guildId);
-
             if (player?.role !== 'gm' || player.current_game_id !== gameId) {
                 return await interaction.reply({
-                    content: '⚠️ Only the GM of this game can publish it.',
+                    content: '⚠️ Only the GM of this game can toggle visibility.',
                     ephemeral: true,
                 });
             }
 
-            // const result = await publishGame(gameId);
-            const [stats, game] = await Promise.all([
-                getStatTemplates(gameId),
-                getGame({ id: gameId }),
-            ]);
+            const updatedGame = await toggleGameVisibility(gameId);
+            const statTemplates = await getStatTemplates(gameId);
+            const response = rebuildCreateGameResponse(updatedGame, statTemplates);
 
-            const response = rebuildCreateGameResponse(game, stats);
-
-            await interaction.deferUpdate();
-            await interaction.editReply(response);
+            await interaction.update(response);
 
         } catch (err) {
-            console.error('Error publishing game:', err);
+            console.error('Error toggling game visibility:', err);
             return await interaction.reply({
-                content: '❌ Failed to publish game. Please try again later.',
+                content: '❌ Failed to toggle visibility. Please try again later.',
                 ephemeral: true,
             });
         }
