@@ -1,3 +1,5 @@
+// features/rpg-tracker/modal_handlers/stat_template_modals.js
+
 const {
     ModalBuilder,
     TextInputBuilder,
@@ -29,7 +31,7 @@ async function handle(interaction) {
         const [, gameId] = customId.split(':');
 
         try {
-            const label = interaction.fields.getTextInputValue('label')?.trim();
+            const label = interaction.fields.getTextInputValue('label')?.trim().toUpperCase();
             const defaultValue = interaction.fields.getTextInputValue('default_value')?.trim() || null;
             const fieldType = interaction.fields.getTextInputValue('field_type')?.trim().toLowerCase();
             const sortOrderRaw = interaction.fields.getTextInputValue('sort_order')?.trim();
@@ -74,7 +76,7 @@ async function handle(interaction) {
         const [, statId] = customId.split(':');
 
         try {
-            const label = interaction.fields.getTextInputValue('label')?.trim();
+            const label = interaction.fields.getTextInputValue('label')?.trim().toUpperCase();
             const defaultValue = interaction.fields.getTextInputValue('default_value')?.trim();
             const fieldType = interaction.fields.getTextInputValue('field_type')?.trim().toLowerCase();
             const sortOrderRaw = interaction.fields.getTextInputValue('sort_order')?.trim();
@@ -142,7 +144,7 @@ function buildStatTemplateModal({ gameId, field }) {
             new ActionRowBuilder().addComponents(
                 new TextInputBuilder()
                     .setCustomId('label')
-                    .setLabel('Field Label (e.g. HP, Class, Strength)')
+                    .setLabel('Field Label (e.g. HP, CLASS, STRENGTH)')
                     .setStyle(TextInputStyle.Short)
                     .setValue(field?.label || '')
                     .setRequired(true)
