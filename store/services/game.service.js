@@ -67,6 +67,13 @@ async function updateStatTemplate(statId, updatePayload) {
 }
 
 /**
+ * Delete a specific stat template field by ID.
+ */
+async function deleteStatTemplate(statId) {
+    return statTemplateDAO.deleteById(statId);
+}
+
+/**
  * Add one or more stat templates to a game.
  */
 async function addStatTemplates(gameId, templateList) {
@@ -103,6 +110,7 @@ module.exports = {
     getStatTemplates,
     getStatTemplateById,
     updateStatTemplate,
+    deleteStatTemplate,
     addStatTemplates,
     clearStatTemplates,
     publishGame,

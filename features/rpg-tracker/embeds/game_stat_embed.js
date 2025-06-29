@@ -57,7 +57,11 @@ function buildGameStatActionRow(gameId, fields = []) {
             new ButtonBuilder()
                 .setCustomId(`editStats:${gameId}`)
                 .setLabel('🎲 Edit Stat')
-                .setStyle(ButtonStyle.Secondary)
+                .setStyle(ButtonStyle.Secondary),
+            new ButtonBuilder()
+                .setCustomId(`deleteStats:${gameId}`)
+                .setLabel('🗑️ Delete Stat')
+                .setStyle(ButtonStyle.Danger)
         );
     }
 

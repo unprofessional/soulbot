@@ -1,5 +1,3 @@
-// features/rpg-tracker/select_menu_handlers/index.js
-
 const characterDropdown = require('./character_dropdown');
 const gameDropdown = require('./game_dropdown');
 const statDropdown = require('./stat_template_dropdown');
@@ -16,7 +14,10 @@ module.exports = {
             return gameDropdown.handle(interaction);
         }
 
-        if (customId.startsWith('editStatSelect:')) {
+        if (
+            customId.startsWith('editStatSelect:') ||
+            customId.startsWith('deleteStatSelect:')
+        ) {
             return statDropdown.handle(interaction);
         }
 

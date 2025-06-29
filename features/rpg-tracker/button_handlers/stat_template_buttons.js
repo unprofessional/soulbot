@@ -32,7 +32,7 @@ async function handle(interaction) {
         return await interaction.showModal(modal);
     }
 
-    // === Edit Stats Button (trigger dropdown on the same message)
+    // === Edit Stats Button (trigger edit dropdown)
     if (customId.startsWith('editStats:')) {
         const [, gameId] = customId.split(':');
 
@@ -74,6 +74,53 @@ async function handle(interaction) {
 
         return await interaction.update({
             content: `🎲 Select a field to edit for **${game.name}**`,
+            embeds: [],
+            components: [actionRow, cancelRow],
+        });
+    }
+
+    // === Delete Stats Button (trigger delete dropdown)
+    if (customId.startsWith('deleteStats:')) {
+        const [, gameId] = customId.split(':');
+
+        const game = await getGame({ id: gameId });
+        const statTemplates = await getStatTemplates(gameId);
+
+        if (!game || game.created_by !== interaction.user.id) {
+            return await interaction.reply({
+                content: '⚠️ Only the GM can delete stat fields.',
+                ephemeral: true,
+            });
+        }
+
+        if (!statTemplates.length) {
+            return await interaction.reply({
+                content: '⚠️ No stats to delete.',
+                ephemeral: true,
+            });
+        }
+
+        const options = statTemplates.map((f, i) => ({
+            label: `${i + 1}. ${f.label}`,
+            description: `Type: ${f.field_type}`,
+            value: f.id,
+        }));
+
+        const selectMenu = new StringSelectMenuBuilder()
+            .setCustomId(`deleteStatSelect:${gameId}`)
+            .setPlaceholder('Select a stat field to delete')
+            .addOptions(options);
+
+        const cancelBtn = new ButtonBuilder()
+            .setCustomId(`finishStatSetup:${gameId}`)
+            .setLabel('↩️ Cancel / Go Back')
+            .setStyle(ButtonStyle.Secondary);
+
+        const actionRow = new ActionRowBuilder().addComponents(selectMenu);
+        const cancelRow = new ActionRowBuilder().addComponents(cancelBtn);
+
+        return await interaction.update({
+            content: `🗑️ Select a stat field to delete from **${game.name}**`,
             embeds: [],
             components: [actionRow, cancelRow],
         });
