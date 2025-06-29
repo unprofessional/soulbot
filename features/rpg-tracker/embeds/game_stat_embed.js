@@ -42,9 +42,10 @@ function buildGameStatTemplateEmbed(fields, game, highlightLabel = null) {
         const labelText = isNew ? `🆕 ${safeLabel}` : safeLabel;
         const defaultStr = safeDefault ? ` _(default: ${safeDefault})_` : '';
 
-        const finalLine = `${icon} **${labelText}**${defaultStr}`;
+        // Prefix each line with a zero-width space to prevent Discord's embed parser from treating it as a list item
+        const ZWSP = '\u200B';
+        const finalLine = `${ZWSP}${icon} **${labelText}**${defaultStr}`;
 
-        // Aggressive per-field debug log
         console.log(`[field ${index}]`, {
             rawLabel,
             safeLabel,
