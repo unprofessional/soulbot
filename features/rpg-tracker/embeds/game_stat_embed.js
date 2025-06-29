@@ -16,33 +16,63 @@ const {
  * @returns {EmbedBuilder}
  */
 function buildGameStatTemplateEmbed(fields, game, highlightLabel = null) {
-    const fieldLines = fields.map(f => {
-        const isNew = highlightLabel && f.label?.toLowerCase() === highlightLabel.toLowerCase();
-        const icon = f.field_type === 'paragraph' ? '📝' : '🔹';
-        const label = typeof f.label === 'string' ? f.label.trim() : 'Unnamed';
-
-        if (!label || typeof label !== 'string') {
-            console.warn('[Embed Label Warning]', f);
-        }
-
-        const hasDefault = typeof f.default_value === 'string' && f.default_value.trim().length > 0;
-        const defaultStr = hasDefault
-            ? ` _(default: ${f.default_value.trim()})_`
-            : '';
-
-        return `${icon} ${isNew ? '**🆕 ' : '**'}${label}**${defaultStr}`;
+    console.log('[buildGameStatTemplateEmbed] Called with:', {
+        gameName: game?.name,
+        gameId: game?.id,
+        isPublic: game?.is_public,
+        fieldCount: fields?.length,
+        highlightLabel,
     });
+
+    const fieldLines = fields.map((f, index) => {
+        const rawLabel = f.label;
+        const rawDefault = f.default_value;
+        const rawType = f.field_type;
+
+        const isNew = highlightLabel && rawLabel?.toLowerCase() === highlightLabel.toLowerCase();
+        const icon = rawType === 'paragraph' ? '📝' : '🔹';
+
+        const safeLabel = typeof rawLabel === 'string' && rawLabel.trim().length > 0
+            ? rawLabel.trim()
+            : '(Unnamed)';
+        const safeDefault = typeof rawDefault === 'string' && rawDefault.trim().length > 0
+            ? rawDefault.trim()
+            : null;
+
+        const labelText = isNew ? `🆕 ${safeLabel}` : safeLabel;
+        const defaultStr = safeDefault ? ` _(default: ${safeDefault})_` : '';
+
+        const finalLine = `${icon} **${labelText}**${defaultStr}`;
+
+        // Aggressive per-field debug log
+        console.log(`[field ${index}]`, {
+            rawLabel,
+            safeLabel,
+            rawDefault,
+            safeDefault,
+            rawType,
+            icon,
+            isNew,
+            finalLine,
+        });
+
+        return finalLine;
+    });
+
+    const embedDescription = [
+        fieldLines.length ? fieldLines.join('\n') : '*No stats defined yet.*',
+        '',
+        '**Game Visibility**',
+        game.is_public
+            ? '`Public ✅` — Players can use `/join-game`'
+            : '`Draft ❌` — Not yet visible to players',
+    ].join('\n');
+
+    console.log('[buildGameStatTemplateEmbed] Final embed description:', embedDescription);
 
     const embed = new EmbedBuilder()
         .setTitle('📋 Current Stat Template')
-        .setDescription([
-            fieldLines.length ? fieldLines.join('\n') : '*No stats defined yet.*',
-            '',
-            '**Game Visibility**',
-            game.is_public
-                ? '`Public ✅` — Players can use `/join-game`'
-                : '`Draft ❌` — Not yet visible to players',
-        ].join('\n'))
+        .setDescription(embedDescription)
         .setColor(game.is_public ? 0x00c851 : 0xffbb33);
 
     return embed;
