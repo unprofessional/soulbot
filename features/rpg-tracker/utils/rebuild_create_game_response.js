@@ -1,33 +1,52 @@
-// features/rpg-tracker/utils/rebuild_create_game_response.js
-
 const { buildGameStatTemplateEmbed, buildGameStatActionRow } = require('../embeds/game_stat_embed');
 
 /**
- * Reconstructs the original /create-game message response.
- * Useful after adding/editing stats to return the full campaign setup view.
- * 
+ * Builds the top-level instructional message for the game setup screen.
+ * @param {Object} game - Game object
+ * @param {'create'|'view'} context - Whether this is from /create-game or /view-game
+ * @returns {string}
+ */
+function buildGameSetupMessage(game, context = 'create') {
+    const lines = [];
+
+    if (context === 'create') {
+        lines.push(`✅ Created game **${game.name}** and set it as your active campaign.`);
+        lines.push('');
+    } else {
+        lines.push(`🎲 Viewing game **${game.name}**.`);
+        lines.push('');
+    }
+
+    lines.push(`**Character Stat Fields:**`);
+    lines.push(` - 🟦 **System Fields** (always included):`);
+    lines.push(`  - Name`);
+    lines.push(`  - Avatar URL`);
+    lines.push(`  - Bio`);
+    lines.push('');
+    lines.push(` - 🟨 **Game Fields** (you define these)`);
+    lines.push(`  - Ex: HP, Strength, Skills, etc.`);
+    lines.push('');
+
+    if (context === 'create') {
+        lines.push(`Use the buttons below to define your required game-specific stat fields or to publish the game.`);
+        lines.push(`_You do **not** need to redefine system fields._`);
+    } else {
+        lines.push(`Use the buttons below to manage stat fields or update game info.`);
+    }
+
+    return lines.join('\n');
+}
+
+/**
+ * Reconstructs the original /create-game or /view-game message response.
  * @param {Object} game - The game object
  * @param {Array<Object>} statTemplates - List of stat fields
  * @param {string} [highlightLabel] - Optional field label to highlight (e.g. newly added)
+ * @param {'create'|'view'} [context='create'] - Determines message copy
  * @returns {{ content: string, embeds: EmbedBuilder[], components: ActionRowBuilder[] }}
  */
-function rebuildCreateGameResponse(game, statTemplates, highlightLabel = null) {
-    const content = [
-        `✅ Created game **${game.name}** and set it as your active campaign.`,
-        ``,
-        `**Character Stat Fields:**`,
-        ` - 🟦 **System Fields** (always included):`,
-        `  - Name`,
-        `  - Avatar URL`,
-        `  - Bio`,
-        ``,
-        ` - 🟨 **Game Fields** (you define these)`,
-        `  - Ex: HP, Strength, Skills, etc.`,
-        ``,
-        `Use the buttons below to define your required game-specific stat fields or to publish the game.`,
-        `_You do **not** need to redefine system fields._`,
-    ].join('\n');
-
+function rebuildCreateGameResponse(game, statTemplates, highlightLabel = null, context = 'create') {
+    const content = buildGameSetupMessage(game, context);
     const embed = buildGameStatTemplateEmbed(statTemplates, game, highlightLabel);
     const buttons = buildGameStatActionRow(game.id, statTemplates);
 

@@ -41,7 +41,7 @@ module.exports = {
             }
 
             const statTemplates = await getStatTemplates(currentGameId);
-            const response = rebuildCreateGameResponse(game, statTemplates);
+            const response = rebuildCreateGameResponse(game, statTemplates, null, 'view');
 
             return await interaction.reply({
                 ...response,
