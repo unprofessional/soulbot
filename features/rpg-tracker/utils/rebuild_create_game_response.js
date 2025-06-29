@@ -13,7 +13,7 @@ function buildGameSetupMessage(game, context = 'create', statTemplates = []) {
     if (context === 'create') {
         lines.push(`✅ Created game **${game.name}** and set it as your active campaign.`);
     } else {
-        lines.push(`🎲 Viewing game **${game.name}**.`);
+        lines.push(`# **${game.name}**`);
     }
 
     lines.push('');
