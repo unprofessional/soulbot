@@ -54,10 +54,16 @@ module.exports = {
                 .setLabel('Define Required Stats')
                 .setStyle(ButtonStyle.Primary);
 
+            // const publishBtn = new ButtonBuilder()
+            //     .setCustomId(`publishGame:${game.id}`)
+            //     .setLabel('📣 Publish Game')
+            //     .setStyle(ButtonStyle.Secondary);
+
             const publishBtn = new ButtonBuilder()
-                .setCustomId(`publishGame:${game.id}`)
-                .setLabel('📣 Publish Game')
-                .setStyle(ButtonStyle.Secondary);
+                .setCustomId(`togglePublishGame:${game.id}`)
+                .setLabel('📣 Toggle Visibility')
+                .setStyle(ButtonStyle.Success)
+
 
             const row = new ActionRowBuilder().addComponents(
                 defineStatsBtn,

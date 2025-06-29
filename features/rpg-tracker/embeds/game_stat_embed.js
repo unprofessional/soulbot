@@ -53,9 +53,13 @@ function buildGameStatActionRow(gameId) {
             .setCustomId(`editStats:${gameId}`)
             .setLabel('🎲 Edit Stat')
             .setStyle(ButtonStyle.Secondary),
+        // new ButtonBuilder()
+        //     .setCustomId(`publishGame:${gameId}`)
+        //     .setLabel('📣 Publish Now')
+        //     .setStyle(ButtonStyle.Success)
         new ButtonBuilder()
-            .setCustomId(`publishGame:${gameId}`)
-            .setLabel('📣 Publish Now')
+            .setCustomId(`togglePublishGame:${gameId}`)
+            .setLabel('📣 Toggle Visibility')
             .setStyle(ButtonStyle.Success)
     );
 }
