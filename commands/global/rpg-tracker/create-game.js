@@ -53,12 +53,7 @@ module.exports = {
                 .setCustomId(`defineStats:${game.id}`)
                 .setLabel('Define Required Stats')
                 .setStyle(ButtonStyle.Primary);
-
-            // const publishBtn = new ButtonBuilder()
-            //     .setCustomId(`publishGame:${game.id}`)
-            //     .setLabel('📣 Publish Game')
-            //     .setStyle(ButtonStyle.Secondary);
-
+                
             const publishBtn = new ButtonBuilder()
                 .setCustomId(`togglePublishGame:${game.id}`)
                 .setLabel('📣 Toggle Visibility')

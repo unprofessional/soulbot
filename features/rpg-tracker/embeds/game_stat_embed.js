@@ -41,27 +41,34 @@ function buildGameStatTemplateEmbed(fields, game, highlightLabel = null) {
 /**
  * Button row for use under the stat embed after `/create-game`
  * @param {string} gameId
+ * @param {Array<Object>} fields
  * @returns {ActionRowBuilder}
  */
-function buildGameStatActionRow(gameId) {
-    return new ActionRowBuilder().addComponents(
+function buildGameStatActionRow(gameId, fields = []) {
+    const row = new ActionRowBuilder().addComponents(
         new ButtonBuilder()
             .setCustomId(`defineStats:${gameId}`)
             .setLabel('➕ Add Another Stat')
-            .setStyle(ButtonStyle.Primary),
-        new ButtonBuilder()
-            .setCustomId(`editStats:${gameId}`)
-            .setLabel('🎲 Edit Stat')
-            .setStyle(ButtonStyle.Secondary),
-        // new ButtonBuilder()
-        //     .setCustomId(`publishGame:${gameId}`)
-        //     .setLabel('📣 Publish Now')
-        //     .setStyle(ButtonStyle.Success)
+            .setStyle(ButtonStyle.Primary)
+    );
+
+    if (fields.length > 0) {
+        row.addComponents(
+            new ButtonBuilder()
+                .setCustomId(`editStats:${gameId}`)
+                .setLabel('🎲 Edit Stat')
+                .setStyle(ButtonStyle.Secondary)
+        );
+    }
+
+    row.addComponents(
         new ButtonBuilder()
             .setCustomId(`togglePublishGame:${gameId}`)
             .setLabel('📣 Toggle Visibility')
             .setStyle(ButtonStyle.Success)
     );
+
+    return row;
 }
 
 module.exports = {

@@ -8,19 +8,12 @@ const {
 } = require('discord.js');
 
 const {
-    // getGame,
     getStatTemplates,
     togglePublish,
+    publishGame,
 } = require('../../../store/services/game.service');
 
-const {
-    buildGameStatTemplateEmbed,
-    buildGameStatActionRow,
-} = require('../embeds/game_stat_embed');
-
 const { getOrCreatePlayer } = require('../../../store/services/player.service');
-const { publishGame } = require('../../../store/services/game.service');
-
 const { rebuildCreateGameResponse } = require('../utils/rebuild_create_game_response');
 
 /**
@@ -127,7 +120,6 @@ async function handle(interaction) {
             });
         }
     }
-
 }
 
 module.exports = { handle };

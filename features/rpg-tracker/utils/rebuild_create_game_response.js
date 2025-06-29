@@ -29,7 +29,7 @@ function rebuildCreateGameResponse(game, statTemplates, highlightLabel = null) {
     ].join('\n');
 
     const embed = buildGameStatTemplateEmbed(statTemplates, game, highlightLabel);
-    const buttons = buildGameStatActionRow(game.id);
+    const buttons = buildGameStatActionRow(game.id, statTemplates);
 
     return {
         content,
