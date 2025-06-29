@@ -9,7 +9,7 @@ const { buildGameStatTemplateEmbed, buildGameStatActionRow } = require('../embed
  * @param {Object} game - The game object
  * @param {Array<Object>} statTemplates - List of stat fields
  * @param {string} [highlightLabel] - Optional field label to highlight (e.g. newly added)
- * @returns {{ content: string, embeds: EmbedBuilder[], components: ActionRowBuilder[] }}
+ * @returns {{ content: string, embeds: object[], components: ActionRowBuilder[] }}
  */
 function rebuildCreateGameResponse(game, statTemplates, highlightLabel = null) {
     const content = [
@@ -33,7 +33,7 @@ function rebuildCreateGameResponse(game, statTemplates, highlightLabel = null) {
 
     return {
         content,
-        embeds: [embed],
+        embeds: [embed.toJSON()],
         components: [buttons],
     };
 }
