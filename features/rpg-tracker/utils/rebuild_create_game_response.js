@@ -25,14 +25,14 @@ function buildGameSetupMessage(game, context = 'create', statTemplates = []) {
 
     lines.push('');
     lines.push(`🟦 **System Fields** (always included):`);
-    lines.push(`  - Name`);
-    lines.push(`  - Avatar URL`);
-    lines.push(`  - Bio`);
+    lines.push(`- Name`);
+    lines.push(`- Avatar URL`);
+    lines.push(`- Bio`);
 
     if (statTemplates.length === 0) {
         lines.push('');
-        lines.push(` - 🟨 **Game Fields** (you define these)`);
-        lines.push(`  - Ex: HP, Strength, Skills, etc.`);
+        lines.push(`🟨 **Game Fields** (you define these)`);
+        lines.push(`- Ex: HP, Strength, Skills, etc.`);
     }
 
     lines.push('');

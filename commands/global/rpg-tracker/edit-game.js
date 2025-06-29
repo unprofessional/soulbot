@@ -15,6 +15,9 @@ const {
     getCurrentGame,
 } = require('../../../store/services/player.service');
 
+/**
+ * DEPRECATED DEPRECATED DEPRECATED DEPRECATED DEPRECATED DEPRECATED 
+ */
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('edit-game')
