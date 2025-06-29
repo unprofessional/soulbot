@@ -1,5 +1,3 @@
-// features/rpg-tracker/button_handlers/stat_template_buttons.js
-
 const {
     ActionRowBuilder,
     StringSelectMenuBuilder,
@@ -34,7 +32,7 @@ async function handle(interaction) {
         return await interaction.showModal(modal);
     }
 
-    // === Edit Stats Button (show dropdown and cancel option)
+    // === Edit Stats Button (trigger dropdown on the same message)
     if (customId.startsWith('editStats:')) {
         const [, gameId] = customId.split(':');
 
@@ -57,11 +55,20 @@ async function handle(interaction) {
             });
         }
 
-        const options = statTemplates.map((f, i) => ({
-            label: `${i + 1}. ${f.label}`,
-            description: `Type: ${f.field_type} — Default: ${f.default_value || 'None'}`,
-            value: f.id,
-        }));
+        const options = statTemplates
+            .filter((f) => typeof f.label === 'string' && f.label.trim().length > 0 && typeof f.id === 'string')
+            .map((f, i) => ({
+                label: `${i + 1}. ${f.label.trim()}`,
+                description: `Type: ${f.field_type} — Default: ${f.default_value || 'None'}`,
+                value: f.id,
+            }));
+
+        if (!options.length) {
+            return await interaction.reply({
+                content: '⚠️ No valid stat labels found. Please edit or recreate your stat fields.',
+                ephemeral: true,
+            });
+        }
 
         const selectMenu = new StringSelectMenuBuilder()
             .setCustomId(`editStatSelect:${gameId}`)
@@ -76,14 +83,16 @@ async function handle(interaction) {
                 .setStyle(ButtonStyle.Secondary)
         );
 
+        const { embed } = rebuildCreateGameResponse(game, statTemplates);
+
         return await interaction.update({
             content: `🎲 Select a field to edit for **${game.name}**`,
-            embeds: [rebuildCreateGameResponse(game, statTemplates).embed],
+            embeds: [embed],
             components: [selectRow, cancelRow],
         });
     }
 
-    // === Edit Stat Template Modal trigger (via direct button, not used currently) ===
+    // === Edit Stat Template Modal ===
     if (customId.startsWith('edit_stat_template:')) {
         const [, statFieldId] = customId.split(':');
 
@@ -101,7 +110,7 @@ async function handle(interaction) {
         return await interaction.showModal(modal);
     }
 
-    // === Cancel Edit Stat (go back to main /create-game view)
+    // === Cancel Edit Stat (return to /create-game view) ===
     if (customId.startsWith('cancelStatEdit:')) {
         const [, gameId] = customId.split(':');
 
@@ -119,7 +128,7 @@ async function handle(interaction) {
         });
     }
 
-    // === Finalize Stat Setup (refreshes embed/buttons cleanly)
+    // === Finish Stat Setup ===
     if (customId.startsWith('finishStatSetup:')) {
         const [, gameId] = customId.split(':');
 
@@ -144,6 +153,7 @@ async function handle(interaction) {
                 embeds: [embed],
                 components: [buttons],
             });
+
         } catch (err) {
             console.error('Error in finishStatSetup:', err);
             return await interaction.reply({
