@@ -12,7 +12,11 @@ module.exports = {
     async handleButton(interaction) {
         const { customId } = interaction;
 
-        if (customId.startsWith('editGameModal:') || customId.startsWith('publishGame:')) {
+        if (
+            customId.startsWith('editGameModal:') ||
+            customId.startsWith('publishGame:') ||
+            customId.startsWith('togglePublishGame:')
+        ) {
             return gameButtons.handle(interaction);
         }
 
