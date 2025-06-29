@@ -7,6 +7,17 @@ const {
     ActionRowBuilder,
 } = require('discord.js');
 
+const {
+    // getGame,
+    getStatTemplates,
+    togglePublish,
+} = require('../../../store/services/game.service');
+
+const {
+    buildGameStatTemplateEmbed,
+    buildGameStatActionRow,
+} = require('../embeds/game_stat_embed');
+
 const { getOrCreatePlayer } = require('../../../store/services/player.service');
 const { publishGame } = require('../../../store/services/game.service');
 
@@ -77,6 +88,43 @@ async function handle(interaction) {
             console.error('Error publishing game:', err);
             return await interaction.reply({
                 content: '❌ Failed to publish game. Please try again later.',
+                ephemeral: true,
+            });
+        }
+    }
+
+    // === Toggle Publish Game ===
+    if (customId.startsWith('togglePublishGame:')) {
+        const [, gameId] = customId.split(':');
+
+        try {
+            const guildId = interaction.guild?.id;
+            const userId = interaction.user.id;
+
+            const player = await getOrCreatePlayer(userId, guildId);
+
+            if (player?.role !== 'gm' || player.current_game_id !== gameId) {
+                return await interaction.reply({
+                    content: '⚠️ Only the GM of this game can change its publish status.',
+                    ephemeral: true,
+                });
+            }
+
+            const updatedGame = await togglePublish(gameId);
+            const statTemplates = await getStatTemplates(gameId);
+            const embed = buildGameStatTemplateEmbed(statTemplates, updatedGame);
+            const components = [buildGameStatActionRow(gameId)];
+
+            return await interaction.update({
+                content: `🔄 Visibility toggled. Game is now **${updatedGame.is_public ? 'Public ✅' : 'Draft ❌'}**.`,
+                embeds: [embed],
+                components,
+            });
+
+        } catch (err) {
+            console.error('Error toggling publish state:', err);
+            return await interaction.reply({
+                content: '❌ Failed to toggle publish state. Try again later.',
                 ephemeral: true,
             });
         }

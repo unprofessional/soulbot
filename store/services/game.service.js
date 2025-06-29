@@ -88,6 +88,13 @@ async function publishGame(gameId) {
     return gameDAO.publish(gameId);
 }
 
+/**
+ * Toggle a game's public visibility (flip is_public).
+ */
+async function togglePublish(gameId) {
+    return gameDAO.togglePublish(gameId);
+}
+
 module.exports = {
     createGame,
     updateGame,
@@ -99,4 +106,5 @@ module.exports = {
     addStatTemplates,
     clearStatTemplates,
     publishGame,
+    togglePublish,
 };

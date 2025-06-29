@@ -85,6 +85,21 @@ class GameDAO {
         return result.rows[0] || null;
     }
 
+    async togglePublish(gameId) {
+        const result = await pool.query(
+            `
+            UPDATE game
+            SET is_public = NOT is_public,
+                updated_at = NOW()
+            WHERE id = $1
+            RETURNING *
+            `,
+            [gameId]
+        );
+        return result.rows[0] || null;
+    }
+
+
 }
 
 module.exports = GameDAO;
