@@ -8,18 +8,10 @@ const {
 } = require('discord.js');
 
 const { getOrCreatePlayer } = require('../../../store/services/player.service');
-const {
-    toggleGameVisibility,
-    getStatTemplates,
-    // getGame,
-} = require('../../../store/services/game.service');
-
-const {
-    rebuildCreateGameResponse,
-} = require('../utils/rebuild_create_game_response');
+const { publishGame } = require('../../../store/services/game.service');
 
 /**
- * Handles game management buttons (edit, toggle publish).
+ * Handles game management buttons (edit, publish).
  * @param {import('discord.js').ButtonInteraction} interaction
  */
 async function handle(interaction) {
@@ -52,36 +44,44 @@ async function handle(interaction) {
         return await interaction.showModal(modal);
     }
 
-    // === Toggle Game Visibility (Publish/Unpublish) ===
-    if (customId.startsWith('togglePublishGame:')) {
+    // === Publish Game ===
+    if (customId.startsWith('publishGame:')) {
         const [, gameId] = customId.split(':');
 
         try {
             const guildId = interaction.guild?.id;
             const userId = interaction.user.id;
 
+            console.log('[publishGame] userId:', userId);
+            console.log('[publishGame] guildId:', guildId);
+
             const player = await getOrCreatePlayer(userId, guildId);
+
+            console.log('[publishGame] player server link:', player);
+
             if (player?.role !== 'gm' || player.current_game_id !== gameId) {
                 return await interaction.reply({
-                    content: '⚠️ Only the GM of this game can toggle visibility.',
+                    content: '⚠️ Only the GM of this game can publish it.',
                     ephemeral: true,
                 });
             }
 
-            const updatedGame = await toggleGameVisibility(gameId);
-            const statTemplates = await getStatTemplates(gameId);
-            const response = rebuildCreateGameResponse(updatedGame, statTemplates);
+            const result = await publishGame(gameId);
 
-            await interaction.update(response);
+            return await interaction.reply({
+                content: `📣 Game **${result.name}** is now published! Players can now see and join it using \`/join-game\`.`,
+                ephemeral: true,
+            });
 
         } catch (err) {
-            console.error('Error toggling game visibility:', err);
+            console.error('Error publishing game:', err);
             return await interaction.reply({
-                content: '❌ Failed to toggle visibility. Please try again later.',
+                content: '❌ Failed to publish game. Please try again later.',
                 ephemeral: true,
             });
         }
     }
+
 }
 
 module.exports = { handle };
