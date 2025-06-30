@@ -107,7 +107,7 @@ module.exports = {
         return await interaction.reply({
             ...response,
             content: existingDraft
-                ? `📂 Resumed your previous draft! Continue filling in the fields below.\n\n${response.content || ''}`
+                ? `⚠️ Resumed your previous draft!\nContinue filling in the fields below.\n\n${response.content || ''}`
                 : response.content,
             ephemeral: true,
         });
