@@ -63,7 +63,7 @@ spec:
             secretKeyRef:
               name: pg-db
               key: PG_DB
-        # TODO: Ollama Config
+        # TODO: Kokoro Config
         - name: STORE_PATH
           value: "/data"
         - name: GUILD_STORE_FILE

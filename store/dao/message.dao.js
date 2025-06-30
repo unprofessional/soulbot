@@ -1,3 +1,5 @@
+// store/dao/message.dao.js
+
 const { Pool } = require('pg');
 const {
     pgHost, pgPort, pgUser, pgPass, pgDb,
@@ -88,19 +90,21 @@ class MessageDAO {
      * @returns {Promise<boolean>} - True if the save was successful.
      */
     async save(structuredMessage) {
-        const { userId, guildId, channelId, content, attachments } = structuredMessage;
+        const { userId, guildId, channelId, messageId, content, attachments, meta } = structuredMessage;
 
         const sql = `
-            INSERT INTO message (user_id, guild_id, channel_id, content, attachments)
-            VALUES ($1, $2, $3, $4, $5)
+            INSERT INTO message (user_id, guild_id, channel_id, message_id, content, attachments, meta)
+            VALUES ($1, $2, $3, $4, $5, $6, $7)
         `;
 
         const params = [
             userId,
             guildId || null,
             channelId || null,
+            messageId,
             content,
             attachments,
+            meta,
         ];
 
         try {
@@ -111,6 +115,56 @@ class MessageDAO {
             return false;
         }
     }
+
+    /**
+     * Find existing messages that contain a specific Twitter/X link.
+     * @param {*} guildId 
+     * @param {*} messageId 
+     * @param {*} url 
+     * @returns 
+     */
+    async findMessagesByLink(guildId, messageId, url) {
+        // Normalize base for both X and Twitter
+        const urlWithoutParams = url.split('?')[0];
+
+        // NOTE: For now, we should just search against `/status/8888888888888888888`
+        // See `message_listeners/core.js`
+
+        const twitterUrl = urlWithoutParams
+            .replace(/^https?:\/\/x\.com/, 'https://twitter.com');
+    
+        const xUrl = urlWithoutParams
+            .replace(/^https?:\/\/twitter\.com/, 'https://x.com');
+    
+        const sql = `
+            SELECT * 
+            FROM message
+            WHERE guild_id = $1 AND (
+                content ILIKE $2 OR content ILIKE $3
+            )
+            AND message_id != $4
+            ORDER BY created_at ASC
+            LIMIT 1
+        `;
+    
+        const params = [
+            guildId,
+            `%${twitterUrl}%`,
+            `%${xUrl}%`,
+            messageId,
+        ];
+    
+        try {
+            console.log('>>>>> MessageDAO > findMessagesByLink > twitterUrl:', twitterUrl);
+            console.log('>>>>> MessageDAO > findMessagesByLink > xUrl:', xUrl);
+            const result = await pool.query(sql, params);
+            return result.rows;
+        } catch (err) {
+            console.error('Error finding messages by link:', err);
+            throw err;
+        }
+    }
+    
 }
 
 module.exports = MessageDAO;

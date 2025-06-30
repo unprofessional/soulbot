@@ -1,91 +1,123 @@
-const path = require('node:path');
+// initial_commands.js
+
 const fs = require('node:fs');
+const path = require('node:path');
 const { Collection, REST, Routes, Events } = require('discord.js');
 require('dotenv').config();
+
+const { DISCORD_CLIENT_ID, DISCORD_BOT_TOKEN } = process.env;
+
+// === Preload handlers to avoid re-requiring per interaction ===
+const buttonHandler = require('./features/rpg-tracker/button_handlers.js');
+const modalHandler = require('./features/rpg-tracker/modal_handlers.js');
+const selectMenuHandler = require('./features/rpg-tracker/select_menu_handlers.js');
+
+/**
+ * Recursively collect all .js files in a directory
+ */
+const getCommandFilesRecursively = (dir) => {
+    const entries = fs.readdirSync(dir, { withFileTypes: true });
+    return entries.flatMap(entry => {
+        const fullPath = path.join(dir, entry.name);
+        if (entry.isDirectory()) {
+            return getCommandFilesRecursively(fullPath);
+        } else if (entry.isFile() && entry.name.endsWith('.js')) {
+            return [fullPath];
+        } else {
+            return [];
+        }
+    });
+};
 
 const initializeCommands = async (client) => {
     client.commands = new Collection();
 
-    const foldersPath = path.join(__dirname, 'commands');
-    const commandFolders = fs.readdirSync(foldersPath);
+    const commandsRootPath = path.resolve(__dirname, 'commands');
+    const commandFiles = getCommandFilesRecursively(commandsRootPath);
 
-    const commands = []; // For registering commands via Discord REST API
-    const clientId = process.env.DISCORD_CLIENT_ID;
+    const commandsForAPI = [];
+    const rest = new REST({ version: '10' }).setToken(DISCORD_BOT_TOKEN);
 
-    // Dynamically load command files
-    for (const folder of commandFolders) {
-        const commandsPath = path.join(foldersPath, folder);
-        const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('.js'));
-        
-        for (const file of commandFiles) {
-            const filePath = path.join(commandsPath, file);
+    for (const filePath of commandFiles) {
+        try {
             const command = require(filePath);
-
-            // if (command.name === 'llm') { // Replace 'llm' with the command you want to remove
-            //     console.log(`Deleting command: ${command.name}`);
-            //     await rest.delete(`${Routes.applicationCommands(clientId)}/${command.id}`);
-            // }
-
-            // Add the command to the client.commands Collection
             if ('data' in command && 'execute' in command) {
                 client.commands.set(command.data.name, command);
-                commands.push(command.data.toJSON()); // For Discord REST API registration
+                commandsForAPI.push(command.data.toJSON());
+                console.log(`✅ Loaded command: /${command.data.name}`);
             } else {
-                console.log(`[WARNING] The command at ${filePath} is missing a required "data" or "execute" property.`);
+                console.warn(`⚠️ Skipped ${filePath}: missing "data" or "execute"`);
             }
+        } catch (err) {
+            console.error(`❌ Error loading command at ${filePath}:`, err);
         }
     }
 
-    // Register commands using Discord's REST API
-    const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_BOT_TOKEN);
-
+    // === Register global application commands ===
     try {
-        console.log('Refreshing application (/) commands...');
-        // const guildId = process.env.DISCORD_GUILD_ID; // Optional: For guild-specific commands
-
-        // console.log('>>>>> initial_commands > clientId: ', clientId);
-        // console.log('>>>>> initial_commands > guildId: ', guildId);
-
-        // if (guildId) {
-        //     // Register commands for a specific guild (useful for development)
-        //     await rest.put(
-        //         Routes.applicationGuildCommands(clientId, guildId),
-        //         { body: commands }
-        //     );
-        //     console.log('Successfully reloaded guild (/) commands.');
-        // } else {
-            // Register global commands
-            await rest.put(
-                Routes.applicationCommands(clientId),
-                { body: commands }
-            );
-            console.log('Successfully reloaded global (/) commands.');
-        // }
-    } catch (error) {
-        console.error('Error refreshing commands:', error);
+        console.log('🔄 Registering global application (/) commands...');
+        await rest.put(Routes.applicationCommands(DISCORD_CLIENT_ID), {
+            body: commandsForAPI,
+        });
+        console.log(`✅ Successfully registered ${commandsForAPI.length} global commands:`);
+        console.table(commandsForAPI.map(c => ({ name: c.name, description: c.description })));
+    } catch (err) {
+        console.error('❌ Error registering application commands:', err);
     }
 
-    // Set up the InteractionCreate listener
+    // === Interaction Handlers ===
     client.on(Events.InteractionCreate, async interaction => {
-        if (!interaction.isChatInputCommand()) return;
-
-        const command = client.commands.get(interaction.commandName);
-
-        if (!command) {
-            console.error(`No command matching ${interaction.commandName} was found.`);
-            return;
-        }
-
         try {
-            await command.execute(interaction);
-        } catch (error) {
-            console.error(`Error executing command ${interaction.commandName}:`, error);
+            if (interaction.isChatInputCommand()) {
+                const command = client.commands.get(interaction.commandName);
+                if (!command) {
+                    console.warn(`⚠️ No command found for: ${interaction.commandName}`);
+                    return;
+                }
+                await command.execute(interaction);
+            }
+
+            else if (interaction.isModalSubmit()) {
+                await modalHandler.handleModal(interaction);
+            }
+
+            else if (interaction.isButton()) {
+                console.log('🔘 Button interaction received:', interaction.customId);
+                await buttonHandler.handleButton(interaction);
+            }
+
+            else if (interaction.isStringSelectMenu()) {
+                await selectMenuHandler.handleSelectMenu(interaction);
+            }
+
+            else {
+                console.warn('⚠️ Unhandled interaction type:', interaction.type);
+            }
+
+        } catch (err) {
+            console.error('❌ Error handling interaction:', err);
+            console.error('❌ Stack trace:', err.stack);
+
+            const replyPayload = {
+                content: 'There was an error while executing this action!',
+                ephemeral: true,
+            };
+
             if (interaction.replied || interaction.deferred) {
-                await interaction.followUp({ content: 'There was an error while executing this command!', ephemeral: true });
+                await interaction.followUp(replyPayload);
             } else {
-                await interaction.reply({ content: 'There was an error while executing this command!', ephemeral: true });
+                await interaction.reply(replyPayload);
             }
         }
+    });
+
+    // Optional: Set bot status when ready
+    client.once(Events.ClientReady, c => {
+        console.log(`🤖 Bot ready: Logged in as ${c.user.tag}`);
+        c.user.setPresence({
+            activities: [{ name: 'Tracking inventories and stats', type: 0 }],
+            status: 'online',
+        });
     });
 
     return client;

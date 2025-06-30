@@ -1,3 +1,5 @@
+// store/services/messages.service.js
+
 const MessageDAO = require('../dao/message.dao.js');
 require('dotenv').config();
 
@@ -11,10 +13,17 @@ const addMessage = async (message) => {
     try {
         const structuredMessage = {
             userId: message.author.id,
-            guildId: message.guild?.id || null, // Handle direct messages
-            channelId: message.channel?.id || null,
+            guildId: message.guild?.id || null, // null if DM
+            channelId: message.channel?.id || null, // null if DM
+            messageId: message.id,  // must exist
             content: message.content || '[Non-text message]',
             attachments: Array.from(message.attachments.values()).map((att) => att.url), // Extract URLs from attachments
+            meta: {
+                ...(message.channel.isThread?.() && { threadId: message.channel.id }),
+                username: message.author.username,
+                channelName: message.channel?.name,
+                guildName: message.guild?.name,
+            },                    
         };
 
         const success = await messageDAO.save(structuredMessage);
@@ -49,7 +58,19 @@ const getMessages = async (options = {}) => {
     }
 };
 
+const findMessagesByLink = async (guildId, messageId, url) => {
+    try {
+        const messages = await messageDAO.findMessagesByLink(guildId, messageId, url);
+        console.log('Messages from link retrieved successfully:', messages);
+        return messages;
+    } catch (err) {
+        console.error('Error in findMessagesByLink service:', err);
+        throw err;
+    }
+}
+
 module.exports = { 
     addMessage,
     getMessages,
+    findMessagesByLink,
 };

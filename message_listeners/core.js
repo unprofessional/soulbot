@@ -29,6 +29,12 @@ const { enforceGoldyRole } = require('../features/role-enforcement/role-enforcem
 const { sendPromptToOllama } = require('../features/ollama/index.js');
 const { fetchImageAsBase64 } = require('../features/ollama/vision.js');
 const { logMessage } = require('../logger/logger.js');
+const { stripQueryParams } = require('../features/twitter-core/utils.js');
+const { findMessagesByLink } = require('../store/services/messages.service.js');
+
+/**
+ * FILE UTILS
+ */
 
 // TODO: Move to "Message Validation"?
 const validationChecksHook = (message) => {
@@ -65,12 +71,39 @@ const isOwner = (message) => {
     return false;
 };
 
+////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////
+
+/**
+ * LINK LOOKUP
+ * 
+ * 1) search for messages... must filter from same server
+ *  - Need to find out how to fetch substring from main text body via SQL...
+ * 
+ * 2) get messageId then use it to "link back" as a reply (no need for webhook)
+ * 
+ * TIPS: we can probably just use the postId (i.e. `1904162608170827790` to check)
+ * 
+ */
+
+// const server = '';
+
+////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////
+
+/**
+ * MEAT OF THIS FILE'S PURPOSE BEGINS HERE
+ */
+
 const initializeListeners = async (client) => {
 
     /**
      * Listen to every message...
      */
     client.on(Events.MessageCreate, async (message) => {
+
+        const guildId = message.guildId;
+        const cachedGuild = client.guilds.cache.get(guildId);
 
         // Logger
         // THIS IS SPAMMY, ONLY USE FOR DEBUGGING!
@@ -81,10 +114,53 @@ const initializeListeners = async (client) => {
 
             await enforceGoldyRole(message);
 
-            /**
-             * This is where the actual Twitter URL listener logic begins
-             */
+            ////////////////////////////////////////////////////////////
+            ////////////////////////////////////////////////////////////
+            // This is where the actual Twitter URL listener logic begins
+            ////////////////////////////////////////////////////////////
+            // FIXME: REFACTOR URL PARSING!!!!
+            ////////////////////////////////////////////////////////////
+            ////////////////////////////////////////////////////////////
             if(twitterFeature.on) {
+
+                if (twitterFeature.on) {
+                    
+                    const KNOWN_X_DOMAINS = [
+                        'twitter.com',
+                        'x.com',
+                        'fixupx.com',
+                        'vxtwitter.com',
+                        // 'd.fxtwitter.com', // for just the media asset(s)... we want full context checking
+                        'fxtwitter.com',
+                        // nitter.net excluded (doesn't allow interaction)
+                    ];
+                    
+                    const twitUrlPattern = /https?:\/\/([\w.-]+)\/\w+\/status\/(?<statusId>\d{1,})/gi;
+                    const matches = [...message.content.matchAll(twitUrlPattern)];
+                    
+                    if (matches.length > 0) {
+                        const match = matches[0];
+                        const statusId = match.groups.statusId;
+                        const domain = match[1].toLowerCase();
+                    
+                        const isKnownDomain = KNOWN_X_DOMAINS.includes(domain);
+                        const isModernId = statusId.length >= 15;
+                    
+                        if (isKnownDomain && (isModernId || domain === 'twitter.com' || domain === 'x.com')) {
+                            console.log('✅ Valid Twitter/X status detected:', match[0]);
+                    
+                            // You can normalize if needed
+                            // const normalizedUrl = `https://x.com/i/web/status/${statusId}`;
+                            // console.log('Normalized URL:', normalizedUrl);
+                    
+                            // Proceed: dupe check, embed suppression, metadata fetch, etc.
+                        }
+                    }
+                    
+                    
+                }
+                
+
                 const twitterUrlPattern = /https?:\/\/twitter\.com\/[a-zA-Z0-9_]+\/status\/\d+/g;
                 const containsTwitterUrl = twitterUrlPattern.test(message.content);
                 const xDotComUrlPattern = /https?:\/\/x\.com\/[a-zA-Z0-9_]+\/status\/\d+/g;
@@ -97,38 +173,62 @@ const initializeListeners = async (client) => {
                         ? message.content.match(xDotComUrlPattern)
                         : message.content.match(twitterUrlPattern);
                     // console.log('>>>>> urls: ', urls);
-                    // message.channel.send(`Twitter/X URL(s) found! urls: ${urls}`);
+                    // message.channel.send(`Twitter/X URL(s) found! urls: ${urls}`);                    
     
-                    const firstUrl = urls[0];
+                    const firstUrl = stripQueryParams(urls[0]);
                     let metadata = {};
 
-                    try {
-                        metadata = await fetchMetadata(firstUrl, message, containsXDotComUrl);
-                        console.log('>>>>> containsTwitterUrl > CALL-fetchMetadata > metadata: ', metadata);
+                    // Just reply with first instance of the link
+                    const foundMessagesFromLink = await findMessagesByLink(guildId, message.id, firstUrl);
+                    console.log('>>>>> containsTwitterUrl > foundMessagesFromLink: ', foundMessagesFromLink);
+                    // Assumes is sorted in DESC
+                    let firstInstance;
+                    // let msgMarkedForDeletion = true;
+                    if (foundMessagesFromLink?.length > 0) {
+                        const filtered = foundMessagesFromLink.filter(
+                            (msg) => String(msg.message_id) !== String(message.id)
+                        );
+                    
+                        firstInstance = filtered[0]; // could still be undefined if none
                     }
-                    catch(err) {
-                        console.log('>>>>> containsTwitterUrl > CALL-fetchMetadata > err: ', err);
-                    }
-
-                    if(metadata?.error) {
-                        message.reply('Post unavailable! Deleted or protected mode?');
+                    if(firstInstance) {
+                        console.log('>>>>> containsTwitterUrl > firstInstance: ', firstInstance);
+                        const messageId = firstInstance.message_id;
+                        const channelId = firstInstance.meta?.thread_id ? firstInstance.meta.threadId : firstInstance.channel_id;
+                        const link = `https://discord.com/channels/${guildId}/${channelId}/${messageId}`;
+                        console.log('>>>>> containsTwitterUrl > link: ', link);
+                        message.reply(`Someone already posted this here: ${link}`);
+                        // msgMarkedForDeletion = false;
                     } else {
-                        if(metadata.qrtURL) {
-                            const qtMetadata = await fetchQTMetadata(metadata.qrtURL, message, containsXDotComUrl);
-                            console.log('>>>>> core > qtMetadata: ', qtMetadata);
-                            metadata.qtMetadata = qtMetadata;
+                        try {
+                            metadata = await fetchMetadata(firstUrl, message, containsXDotComUrl);
+                            // console.log('>>>>> containsTwitterUrl > CALL-fetchMetadata > metadata: ', metadata);
                         }
-        
-                        if (metadata.error) {
-                            message.reply(`Server 500!
-        \`\`\`HTML
-        ${metadata.errorMsg}
-        \`\`\``
-                            );
+                        catch(err) {
+                            // console.log('>>>>> containsTwitterUrl > CALL-fetchMetadata > err: ', err);
+                        }
+    
+                        if(metadata?.error) {
+                            message.reply('Post unavailable! Deleted or protected mode?');
                         } else {
-                            // console.log('>>>>> fetchMetadata > metadata: ', JSON.stringify(metadata, null, 2));
-                            await renderTwitterPost(metadata, message, containsTwitterUrl);
-                            // await message.suppressEmbeds(true);
+                            if(metadata.qrtURL) {
+                                const qtMetadata = await fetchQTMetadata(metadata.qrtURL, message, containsXDotComUrl);
+                                // console.log('>>>>> core > qtMetadata: ', qtMetadata);
+                                metadata.qtMetadata = qtMetadata;
+                            }
+            
+                            if (metadata.error) {
+                                message.reply(`Server 500!
+            \`\`\`HTML
+            ${metadata.errorMsg}
+            \`\`\``
+                                );
+                            } else {
+                                // console.log('>>>>> fetchMetadata > metadata: ', JSON.stringify(metadata, null, 2));
+                                console.log('>>>>> core detect > firstUrl: ', firstUrl);
+                                await renderTwitterPost(metadata, message, firstUrl);
+                                // await message.suppressEmbeds(true);
+                            }
                         }
                     }
                 }
@@ -141,6 +241,7 @@ const initializeListeners = async (client) => {
                 const images = message.attachments.filter(att => att.contentType?.startsWith('image/'));
                 if (images.size > 0) {
                     await message.channel.send('Processing your image, please wait...');
+                    // eslint-disable-next-line no-unused-vars
                     for (const [_, image] of images) {
                         try {
                             // const localPath = `/tempdata/${image.name}`;
@@ -173,6 +274,7 @@ const initializeListeners = async (client) => {
                 const images = message.attachments.filter(att => att.contentType?.startsWith('image/'));
                 if (images.size > 0) {
                     await message.channel.send('Processing your image, please wait...');
+                    // eslint-disable-next-line no-unused-vars
                     for (const [_, image] of images) {
                         try {
                             // const localPath = `/tempdata/${image.name}`;
@@ -198,9 +300,6 @@ const initializeListeners = async (client) => {
         if(!isSelf(message) && !isABot(message) && isOwner(message)) {
 
             // console.log('>>>>> NOT self!!! Reading message!!');
-
-            const guildId = message.guildId;
-            const cachedGuild = client.guilds.cache.get(guildId);
 
             /**
              * Unvalidated

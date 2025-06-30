@@ -1,14 +1,14 @@
 const { SlashCommandBuilder } = require('discord.js');
 const PromiseQueue = require('../../lib/promise_queue');
 const { getMessages } = require('../../store/services/messages.service');
-const { summarizeChatOllama } = require('../../features/ollama');
-const queue = new PromiseQueue(1, 20000); // Max 1 concurrent task, 20 seconds timeout
+const { summarizeChat } = require('../../features/ollama');
+const queue = new PromiseQueue(1, 60000); // Max 1 concurrent task, 20 seconds timeout
 const queueLimit = 3;
 
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('summary')
-        .setDescription('Summarizes the last 50 messages in this channel.'),
+        .setDescription('Summarizes the last 100 messages in this channel.'),
     async execute(interaction) {
         // Check if the queue length exceeds the limit
         if (queue.queue.length >= queueLimit) {
@@ -19,11 +19,11 @@ module.exports = {
         }
         await interaction.deferReply();
         const channelId = interaction.channel.id;
-        const messages = await getMessages({ channelId, limit: 50 });
+        const messages = await getMessages({ channelId, limit: 100 });
         // console.log('>>>>> summary > execute > messages: ', messages);
 
         try {
-            const response = await queue.add(() => summarizeChatOllama(messages));
+            const response = await queue.add(() => summarizeChat(messages));
             const messageToShow = `**Summary:**\n${response}`;
             if (messageToShow.length <= 2000) {
                 await interaction.editReply(messageToShow);

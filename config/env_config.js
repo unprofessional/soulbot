@@ -13,6 +13,7 @@ const runMode = process.env.RUN_MODE || 'development';
 const ollamaHost = process.env.OLLAMA_HOST || '192.168.7.73';
 const ollamaPort = process.env.OLLAMA_PORT || '11434';
 const ollamaChatEndpoint = process.env.OLLAMA_CHAT_ENDPOINT || 'api/chat';
+const ollamaGenerateEndpoint = process.env.OLLAMA_GENERATE_ENDPOINT || 'api/generate';
 const ollamaEmbeddingEndpoint = process.env.OLLAMA_EMBEDDING_ENDPOINT || 'api/embed';
 const ollamaModel = process.env.OLLAMA_MODEL || 'llama3.2-vision:11b';
 const ollamaEmbedModel = process.env.OLLAMA_EMBED_MODEL || 'avr/sfr-embedding-mistral:q4_k_m';
@@ -25,13 +26,17 @@ const pgPass = process.env.PG_PASS;
 const pgDb = process.env.PG_DB;
 
 // chroma
-const chromaHost = process.env.CHROMA_HOST || '192.168.7.210';
+const chromaHost = process.env.CHROMA_HOST || '0.0.0.0';
 const chromaPort = process.env.CHROMA_PORT || '8085';
 const chromaUpsertEndpoint = process.env.CHROMA_UPSERT_ENDPOINT || 'api/v1/upsert';
 
+// Kokoro
+const kokoroUrl = process.env.KOKORO_URL || 'http://kokoro-http-service:8081';
+
 module.exports = {
     token, path, guildFile, channelFile, memberFile, featureFile, runMode,
-    ollamaHost, ollamaPort, ollamaChatEndpoint, ollamaEmbeddingEndpoint, ollamaModel, ollamaEmbedModel,
+    ollamaHost, ollamaPort, ollamaChatEndpoint, ollamaGenerateEndpoint, ollamaEmbeddingEndpoint, ollamaModel, ollamaEmbedModel,
     pgHost, pgPort, pgUser, pgPass, pgDb,
     chromaHost, chromaPort, chromaUpsertEndpoint,
+    kokoroUrl,
 };

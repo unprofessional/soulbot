@@ -1,10 +1,11 @@
 const {
-    ollamaHost, ollamaPort, ollamaChatEndpoint, ollamaModel,
+    ollamaHost, ollamaPort, ollamaChatEndpoint, ollamaGenerateEndpoint,
 } = require('../../config/env_config.js');
+const { chatModel, summaryModel, contextSize } = require('../../config/system_constants.js');
 const { queryChromaDb } = require('./embed.js');
 
-const processChunks = async (response) => {
-    const reader = response.body.getReader();
+const processChunks = async (ollamaResponse) => {
+    const reader = ollamaResponse.body.getReader();
     const decoder = new TextDecoder('utf-8');
     let responseText = '';
     let fullContent = '';
@@ -62,13 +63,14 @@ Categorize the image now and follow the JSON schema strictly.
 `;
     }
     const requestBody = {
-        model: ollamaModel,
+        model: chatModel,
         messages: [
             {
                 role: 'system',
-                content: 'Provide concise responses that do not exceed 2000 characters. ' + 
-                'Avoid asking questions or prompting further interactions, as you do not retain context between requests. ' +
-                'If you do not know, just say you do not know.',
+                content: 'You are a sassy and condescending. ' +
+                'Answer in plain text. Keep it simple and to the point. Do not exceed 2000 characters. ' + 
+                'Each request is in a vacuum since you are being prompted in single-use sessions each time, therefore you cannot remember past references from the user. ' +
+                'Answer questions about the world truthfully. ',
             },
             {
                 role: 'user',
@@ -76,7 +78,8 @@ Categorize the image now and follow the JSON schema strictly.
                 ...(imagePath && { images: [imagePath] }), // Conditionally add 'images' property
             },
         ],
-        keepAlive: -1, // Keep model in memory
+        stream: false,
+        keep_alive: -1, // Keep model in memory
     };
 
     console.log('>>>>> ollama > sendPromptToOllama > requestBody: ', requestBody);
@@ -105,28 +108,29 @@ Categorize the image now and follow the JSON schema strictly.
     }
 }
 
-async function summarizeChatOllama(messages) {
-    const url = `http://${ollamaHost}:${ollamaPort}/${ollamaChatEndpoint}`;
+async function summarizeChat(messages, model = summaryModel) {
+    const url = `http://${ollamaHost}:${ollamaPort}/${ollamaGenerateEndpoint}`;
     const formattedMessages = messages.map(msg => {
         return `(${msg.created_at.toISOString()}) [${msg.user_id}]: ${msg.content}`;
     }).join('\n');
-    let finalUserPrompt = `Summarize this Discord chat log, be brief: ${formattedMessages}`;
+    let finalUserPrompt = `${formattedMessages}`;
     const requestBody = {
-        model: ollamaModel,
-        messages: [
-            {
-                role: 'system',
-                content: 'You are summarizing Discord chat logs. If you cite a user, then remember to use properly formatted Discord user tagging. ' +
-                'Provide concise responses that do not exceed 2000 characters. ' + 
-                'Avoid asking questions or prompting further interactions, as you do not retain context between requests. ' +
-                'If you do not know, just say you do not know.',
-            },
-            {
-                role: 'user',
-                content: finalUserPrompt,
-            },
-        ],
-        keepAlive: -1, // Keep model in memory
+        model,
+        options: {
+            // temperature: 0.2,
+            // top_p: 0.9,
+            // top_k: 40,
+            // repeat_penalty: 1.1,
+            // mirostat: 0,
+            num_ctx: contextSize,
+        },
+        prompt: 'Summarize the Discord chat logs. ' +
+                // 'Be brief and simple. ' + 
+                'Summarize individual user points made and mention them directly via the Discord "<@userId>" syntax: ' +
+                'Do not invite any questions as this is a one-off request in a vacuum. ' +
+                `DiscordChatLog: ${finalUserPrompt} /no_think`,
+        stream: false,
+        keep_alive: -1, // Keep model in memory
     };
 
     console.log('>>>>> ollama > summarizeChatOllama > requestBody: ', requestBody);
@@ -145,10 +149,14 @@ async function summarizeChatOllama(messages) {
             throw new Error(`HTTP error! Status: ${response.status} - ${errorText}`);
         }
 
-        let fullContent = await processChunks(response);
+        const data = await response.json();
+        // console.log('>>> data: ', data);
 
-        console.log('Full concatenated content:', fullContent);
-        return fullContent; // Return the fully concatenated response
+        const summary = data.response
+            .replace(/<think>\s*<\/think>\s*/gi, '') // removes empty <think> tags and surrounding whitespace
+            .trim();
+
+        return summary;
     } catch (error) {
         console.error('Error communicating with Ollama API:', error);
         throw error;
@@ -204,7 +212,8 @@ async function queryWithRAG(userQuery, metadataFilters = {}, numResults = 20) {
 }
 
 module.exports = {
+    processChunks,
     sendPromptToOllama,
-    summarizeChatOllama,
+    summarizeChat,
     queryWithRAG,
 };

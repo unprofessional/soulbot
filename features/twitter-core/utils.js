@@ -1,3 +1,5 @@
+const crypto = require("crypto");
+
 const formatTwitterDate = (twitterDate) => {
 
     // console.log('>>>>> formatTwitterDate > twitterDate: ', twitterDate);
@@ -53,16 +55,16 @@ const formatTwitterDate = (twitterDate) => {
 
 // Find number of associated media
 const filterMediaUrls = (metadata, extensions) => {
-    console.log('!!! filterMediaUrls > metadata.mediaUrls: ', metadata.mediaUrls);
+    // console.log('!!! filterMediaUrls > metadata.mediaUrls: ', metadata.mediaUrls);
     return metadata.mediaUrls.filter((mediaUrl) => {
-        console.log('!!! filterMediaUrls > mediaUrl: ', mediaUrl);
+        // console.log('!!! filterMediaUrls > mediaUrl: ', mediaUrl);
         const mediaUrlParts = mediaUrl.split('.');
-        console.log('!!! filterMediaUrls > mediaUrlParts: ', mediaUrlParts);
+        // console.log('!!! filterMediaUrls > mediaUrlParts: ', mediaUrlParts);
         const fileExtensionWithQueryParams = mediaUrlParts[mediaUrlParts.length - 1];
-        console.log('!!! filterMediaUrls > fileExtensionWithQueryParams: ', fileExtensionWithQueryParams);
+        // console.log('!!! filterMediaUrls > fileExtensionWithQueryParams: ', fileExtensionWithQueryParams);
         const fileExtension = fileExtensionWithQueryParams.split('?')[0];
-        console.log('!!! filterMediaUrls > fileExtension: ', fileExtension);
-        console.log('!!! ================================================');
+        // console.log('!!! filterMediaUrls > fileExtension: ', fileExtension);
+        // console.log('!!! ================================================');
         return extensions.includes(fileExtension);
     });
 };
@@ -82,9 +84,44 @@ const removeTCOLink = (text) => {
     return filteredText;
 };
 
+const stripQueryParams = (url) => {
+    try {
+        const urlOrigin = new URL(url).origin;
+        console.log('>>>>> urlOrigin: ', urlOrigin);
+        const urlPathname = new URL(url).pathname;
+        console.log('>>>>> urlPathname: ', urlPathname);
+        return urlOrigin + urlPathname;
+    } catch (e) {
+        return url; // Fallback for invalid URLs
+    }
+};
+
+const randomNameGenerator = () => {
+    // Word lists
+    const adjectives = [
+        "happy", "bold", "brave", "cool", "eager", "fierce", "gentle",
+        "jolly", "keen", "lucky", "mighty", "noble", "quirky", "swift",
+        "vibrant", "witty", "zealous"
+    ];
+    
+    const nouns = [
+        "turing", "curie", "einstein", "hawking", "newton", "tesla",
+        "lovelace", "hopper", "fermat", "feynman", "bohr", "galileo",
+        "kepler", "gauss", "noether", "darwin"
+    ];
+    const adjective = adjectives[Math.floor(Math.random() * adjectives.length)];
+    const noun = nouns[Math.floor(Math.random() * nouns.length)];
+    const uniqueId = crypto.randomBytes(2).toString("hex"); // 4-char hex
+
+    return `${adjective}-${noun}-${uniqueId}`;
+};
+
 module.exports = {
     formatTwitterDate,
     filterMediaUrls,
     getExtensionFromMediaUrl,
     removeTCOLink,
+    stripQueryParams,
+    randomNameGenerator,
 };
+
