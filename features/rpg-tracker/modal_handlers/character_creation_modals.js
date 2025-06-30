@@ -181,7 +181,6 @@ async function handle(interaction) {
             { name: 'core:name', label: '[CORE] Name' },
             { name: 'core:bio', label: '[CORE] Bio' },
             { name: 'core:avatar_url', label: '[CORE] Avatar URL' },
-            { name: 'core:visibility', label: '[CORE] Visibility' },
             ...statTemplates.map(f => ({ name: `game:${f.id}`, label: `[GAME] ${f.label}` })),
             ...userFields.map(f => ({ name: `user:${f.name}`, label: `[USER] ${f.label || f.name}` })),
         ];
