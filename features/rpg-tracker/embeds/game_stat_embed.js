@@ -48,7 +48,7 @@ function buildGameStatActionRow(gameId, fields = []) {
     const row = new ActionRowBuilder().addComponents(
         new ButtonBuilder()
             .setCustomId(`defineStats:${gameId}`)
-            .setLabel(fields.length > 0 ? 'Define Required Stats' : '➕ Add Another Stat')
+            .setLabel(fields.length < 0 ? 'Define Required Stats' : '➕ Add Another Stat')
             .setStyle(ButtonStyle.Primary)
     );
 

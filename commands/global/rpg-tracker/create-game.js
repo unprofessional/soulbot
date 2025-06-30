@@ -51,9 +51,9 @@ module.exports = {
 
             const defineStatsBtn = new ButtonBuilder()
                 .setCustomId(`defineStats:${game.id}`)
-                .setLabel('Define Required Stats')
+                .setLabel('Define GAME Stats')
                 .setStyle(ButtonStyle.Primary);
-                
+
             const publishBtn = new ButtonBuilder()
                 .setCustomId(`togglePublishGame:${game.id}`)
                 .setLabel('📣 Toggle Visibility')
