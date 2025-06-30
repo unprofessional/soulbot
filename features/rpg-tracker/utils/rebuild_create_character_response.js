@@ -22,9 +22,10 @@ function summarize(value, max = 40) {
  * @param {Array<Object>} statTemplates - Stat fields defined by GM
  * @param {Array<Object>} [userFields=[]] - User-defined reusable stat fields
  * @param {Object} [draftData={}] - In-memory draft data for current user
+ * @param {boolean} includeDropdownHint - Whether to include "use the dropdown" message
  * @returns {string}
  */
-function buildCreateCharacterMessage(game, statTemplates = [], userFields = [], draftData = {}) {
+function buildCreateCharacterMessage(game, statTemplates = [], userFields = [], draftData = {}, includeDropdownHint = true) {
     const lines = [];
 
     lines.push(`# 🧬 Create Character for **${game.name}**`);
@@ -85,8 +86,10 @@ function buildCreateCharacterMessage(game, statTemplates = [], userFields = [], 
         }
     }
 
-    lines.push('');
-    lines.push(`Use the dropdown below to select a field to fill out.`);
+    if (includeDropdownHint) {
+        lines.push('');
+        lines.push(`Use the dropdown below to select a field to fill out.`);
+    }
 
     return lines.join('\n');
 }
@@ -101,30 +104,34 @@ function buildCreateCharacterMessage(game, statTemplates = [], userFields = [], 
  * @returns {{ content: string, components: ActionRowBuilder[], embeds: [] }}
  */
 function rebuildCreateCharacterResponse(game, statTemplates, userFields, fieldOptions, draftData = {}) {
-    const content = buildCreateCharacterMessage(game, statTemplates, userFields, draftData);
+    const includeDropdownHint = fieldOptions.length > 0;
+    const content = buildCreateCharacterMessage(game, statTemplates, userFields, draftData, includeDropdownHint);
 
-    const dropdown = new StringSelectMenuBuilder()
-        .setCustomId('createCharacterDropdown')
-        .setPlaceholder('Choose a character field to define')
-        .addOptions(
-            fieldOptions.map(f => ({
-                label: f.label,
-                value: `${f.name}|${f.label}`,
-            }))
-        );
+    const components = [];
 
-    const dropdownRow = new ActionRowBuilder().addComponents(dropdown);
+    if (fieldOptions.length > 0) {
+        const dropdown = new StringSelectMenuBuilder()
+            .setCustomId('createCharacterDropdown')
+            .setPlaceholder('Choose a character field to define')
+            .addOptions(
+                fieldOptions.map(f => ({
+                    label: f.label,
+                    value: `${f.name}|${f.label}`,
+                }))
+            );
+        components.push(new ActionRowBuilder().addComponents(dropdown));
+    }
 
     const finalizeButton = new ButtonBuilder()
-        .setCustomId('finalizeCharacter')
-        .setLabel('✅ Finalize Character')
+        .setCustomId('submitNewCharacter')
+        .setLabel('✅ Submit Character')
         .setStyle(ButtonStyle.Success);
 
-    const buttonRow = new ActionRowBuilder().addComponents(finalizeButton);
+    components.push(new ActionRowBuilder().addComponents(finalizeButton));
 
     return {
         content,
-        components: [dropdownRow, buttonRow],
+        components,
         embeds: [],
     };
 }
