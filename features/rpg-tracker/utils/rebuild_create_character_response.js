@@ -99,6 +99,7 @@ function rebuildCreateCharacterResponse(game, statTemplates, userFields, fieldOp
 
     const components = [];
 
+    // === Dropdown for fields NOT yet filled ===
     if (fieldOptions.length > 0) {
         const dropdown = new StringSelectMenuBuilder()
             .setCustomId('createCharacterDropdown')
@@ -112,11 +113,46 @@ function rebuildCreateCharacterResponse(game, statTemplates, userFields, fieldOp
         components.push(new ActionRowBuilder().addComponents(dropdown));
     }
 
+    // === Dropdown for EDITING completed fields ===
+    const allFields = [
+        { name: 'core:name', label: '[CORE] Name' },
+        { name: 'core:avatar_url', label: '[CORE] Avatar URL' },
+        { name: 'core:bio', label: '[CORE] Bio' },
+        { name: 'core:visibility', label: '[CORE] Visibility' },
+        ...statTemplates.map(t => ({
+            name: `game:${t.id}`,
+            label: `[GAME] ${t.label}`,
+        })),
+        ...userFields.map(f => ({
+            name: `user:${f.name}`,
+            label: `[USER] ${f.label || f.name}`,
+        })),
+    ];
+
+    const filledFields = allFields.filter(f => {
+        const val = draftData?.[f.name];
+        return val && val.trim?.();
+    });
+
+    if (filledFields.length > 0) {
+        const editDropdown = new StringSelectMenuBuilder()
+            .setCustomId('editCharacterFieldDropdown')
+            .setPlaceholder('📝 Edit a completed field')
+            .addOptions(
+                filledFields.map(f => ({
+                    label: f.label,
+                    value: `${f.name}|${f.label}`,
+                }))
+            );
+        components.push(new ActionRowBuilder().addComponents(editDropdown));
+    }
+
+    // === Submit Button ===
     const submitButton = new ButtonBuilder()
         .setCustomId('submitNewCharacter')
         .setLabel('✅ Submit Character')
         .setStyle(ButtonStyle.Success)
-        .setDisabled(fieldOptions.length > 0); // 🔒 Disable unless all fields filled
+        .setDisabled(fieldOptions.length > 0);
 
     components.push(new ActionRowBuilder().addComponents(submitButton));
 
