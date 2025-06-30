@@ -180,8 +180,8 @@ async function handle(interaction) {
         return interaction.update({
             ...response,
             content: remaining.length === 0
-                ? '✅ All required fields are filled! Submit when ready:'
-                : `✅ Saved **${label}**. Choose next field:`,
+                ? `✅ All required fields are filled! Submit when ready:\n\n${response.content}`
+                : `✅ Saved **${label}**. Choose next field:\n\n${response.content}`,
         });
     }
 
