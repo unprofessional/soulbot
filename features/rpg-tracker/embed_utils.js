@@ -52,12 +52,12 @@ function buildGameEmbed(game, characters = [], statTemplates = []) {
 function buildCharacterEmbed(character) {
     const embed = new EmbedBuilder();
 
-    // === Avatar (Left Column) ===
+    // === Avatar (Featured Image) ===
     if (character.avatar_url) {
-        embed.setThumbnail(character.avatar_url);
+        embed.setImage(character.avatar_url); // 👈 use as large image instead of thumbnail
     }
 
-    // === Header (Right Column) ===
+    // === Header ===
     const name = character.name || 'Unnamed Character';
     const visibility = (character.visibility || 'private').toLowerCase();
     const visibilityEmoji = visibility === 'public' ? '🔓' : '🔒';
@@ -81,7 +81,7 @@ function buildCharacterEmbed(character) {
         return aIndex - bIndex;
     });
 
-    // Split into columns (2 cols, growing rows every 2 stats after first 10)
+    // 2 columns, filling row-wise
     const leftStats = [];
     const rightStats = [];
 
@@ -101,12 +101,12 @@ function buildCharacterEmbed(character) {
         );
     }
 
-    // === Bio (below) ===
+    // === Bio ===
     if (character.bio) {
         embed.setDescription(`_${character.bio}_`);
     }
 
-    // === Footer & Timestamp ===
+    // === Footer ===
     embed.setFooter({
         text: `Created on ${new Date(character.created_at).toLocaleDateString()}`,
     });
