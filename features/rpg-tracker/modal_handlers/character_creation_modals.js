@@ -1,11 +1,5 @@
 // features/rpg-tracker/modal_handlers/character_creation_modals.js
 
-const {
-    ActionRowBuilder,
-    ButtonBuilder,
-    ButtonStyle,
-} = require('discord.js');
-
 const { getOrCreatePlayer } = require('../../../store/services/player.service');
 const { createCharacter, getUserDefinedFields } = require('../../../store/services/character.service');
 const {
@@ -156,37 +150,12 @@ async function handle(interaction) {
 
         await upsertTempCharacterField(interaction.user.id, fieldKey, value, gameId);
 
-        const remaining = await getRemainingRequiredFields(interaction.user.id);
-
         const statTemplates = await getStatTemplates(gameId);
         const userFields = await getUserDefinedFields(interaction.user.id);
         const game = await getGame({ id: gameId });
 
-        if (remaining.length === 0) {
-            // ✅ All fields complete – reuse view with just a Submit button
-            const response = rebuildCreateCharacterResponse(
-                game,
-                statTemplates,
-                userFields,
-                [], // no remaining fields
-                draft
-            );
+        const remaining = await getRemainingRequiredFields(interaction.user.id);
 
-            return interaction.update({
-                content: '✅ All required fields are filled! Submit when ready:',
-                ...response,
-                components: [
-                    new ActionRowBuilder().addComponents(
-                        new ButtonBuilder()
-                            .setCustomId('submitNewCharacter')
-                            .setLabel('✅ Submit Character')
-                            .setStyle(ButtonStyle.Success)
-                    ),
-                ],
-            });
-        }
-
-        // 🌀 Rebuild with updated dropdown for remaining fields
         const allFields = [
             { name: 'core:name', label: '[CORE] Name' },
             { name: 'core:bio', label: '[CORE] Bio' },
@@ -209,10 +178,13 @@ async function handle(interaction) {
         );
 
         return interaction.update({
-            content: `✅ Saved **${label}**. Choose next field:`,
             ...response,
+            content: remaining.length === 0
+                ? '✅ All required fields are filled! Submit when ready:'
+                : `✅ Saved **${label}**. Choose next field:`,
         });
     }
+
 }
 
 module.exports = { handle };
