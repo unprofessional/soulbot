@@ -4,21 +4,17 @@ const {
     ActionRowBuilder,
     ButtonBuilder,
     ButtonStyle,
-    StringSelectMenuBuilder,
 } = require('discord.js');
 
-const {
-    getOrCreatePlayer,
-} = require('../../../store/services/player.service');
-const {
-    createCharacter,
-} = require('../../../store/services/character.service');
+const { getOrCreatePlayer } = require('../../../store/services/player.service');
+const { createCharacter, getUserDefinedFields } = require('../../../store/services/character.service');
 const {
     getRemainingRequiredFields,
     upsertTempCharacterField,
     getTempCharacterData,
 } = require('../../../store/services/character_draft.service');
-const { getStatTemplates } = require('../../../store/services/game.service');
+const { getStatTemplates, getGame } = require('../../../store/services/game.service');
+const { rebuildCreateCharacterResponse } = require('../../utils/rebuild_create_character_response');
 
 /**
  * Handles modals related to character creation.
@@ -27,7 +23,7 @@ const { getStatTemplates } = require('../../../store/services/game.service');
 async function handle(interaction) {
     const { customId } = interaction;
 
-    // === Full Character Creation ===
+    // === Full Character Creation (Legacy Modal) ===
     if (customId.startsWith('createCharacterModal:')) {
         const [, gameId] = customId.split(':');
 
@@ -55,7 +51,7 @@ async function handle(interaction) {
                 });
             }
 
-            // Collect fields
+            // Parse modal fields into structured data
             let name = 'Unnamed';
             let clazz = '';
             let race = '';
@@ -68,9 +64,9 @@ async function handle(interaction) {
                 const value = interaction.fields.getTextInputValue(template.id)?.trim() || '';
                 const lowerLabel = template.label.toLowerCase();
 
-                if (lowerLabel === 'name') name = value || name;
-                else if (lowerLabel === 'class' || lowerLabel === 'role') clazz = value || clazz;
-                else if (lowerLabel === 'race' || lowerLabel === 'origin') race = value || race;
+                if (lowerLabel === 'name') name = value;
+                else if (lowerLabel === 'class' || lowerLabel === 'role') clazz = value;
+                else if (lowerLabel === 'race' || lowerLabel === 'origin') race = value;
                 else if (lowerLabel === 'level') {
                     const parsed = parseInt(value, 10);
                     if (!isNaN(parsed)) level = parsed;
@@ -113,7 +109,7 @@ async function handle(interaction) {
         }
     }
 
-    // === Set a Single Character Field from Modal ===
+    // === Single-Field Character Entry via Modal ===
     if (customId.startsWith('setCharacterField:')) {
         const combined = customId.split(':').slice(1).join(':');
         const [fieldKey, labelRaw] = combined.split('|');
@@ -149,51 +145,75 @@ async function handle(interaction) {
             });
         }
 
-        const existingDraft = await getTempCharacterData(interaction.user.id);
-        const gameId = existingDraft?.game_id || null;
+        const draft = await getTempCharacterData(interaction.user.id);
+        const gameId = draft?.game_id || null;
+        if (!gameId) {
+            return interaction.reply({
+                content: '⚠️ Your draft session is invalid or expired.',
+                ephemeral: true,
+            });
+        }
 
         await upsertTempCharacterField(interaction.user.id, fieldKey, value, gameId);
 
         const remaining = await getRemainingRequiredFields(interaction.user.id);
 
+        // If complete, show submit button
         if (remaining.length === 0) {
-            const replyData = {
-                content: '✅ All required fields are filled! Submit when ready:',
-                components: [
-                    new ActionRowBuilder().addComponents(
-                        new ButtonBuilder()
-                            .setCustomId('submitNewCharacter')
-                            .setLabel('Submit Character')
-                            .setStyle(ButtonStyle.Success)
-                    ),
-                ],
-                ephemeral: true,
-            };
-
             return interaction.replied || interaction.deferred
-                ? interaction.editReply(replyData)
-                : interaction.reply(replyData);
+                ? interaction.editReply({
+                    content: '✅ All required fields are filled! Submit when ready:',
+                    components: [
+                        new ActionRowBuilder().addComponents(
+                            new ButtonBuilder()
+                                .setCustomId('submitNewCharacter')
+                                .setLabel('Submit Character')
+                                .setStyle(ButtonStyle.Success)
+                        ),
+                    ],
+                    ephemeral: true,
+                })
+                : interaction.reply({
+                    content: '✅ All required fields are filled! Submit when ready:',
+                    components: [
+                        new ActionRowBuilder().addComponents(
+                            new ButtonBuilder()
+                                .setCustomId('submitNewCharacter')
+                                .setLabel('Submit Character')
+                                .setStyle(ButtonStyle.Success)
+                        ),
+                    ],
+                    ephemeral: true,
+                });
         }
 
-        const menu = new StringSelectMenuBuilder()
-            .setCustomId('createCharacterDropdown')
-            .setPlaceholder('Choose next field to define')
-            .addOptions(
-                remaining.map(field => ({
-                    label: field.label,
-                    value: `${field.name}|${field.label}`,
-                }))
-            );
+        // Otherwise, rebuild full UX
+        const statTemplates = await getStatTemplates(gameId);
+        const userFields = await getUserDefinedFields(interaction.user.id);
+        const game = await getGame({ id: gameId });
 
-        const replyData = {
-            content: `✅ Saved **${label}**. Choose next field:`,
-            components: [new ActionRowBuilder().addComponents(menu)],
-            ephemeral: true,
-        };
+        const allFields = [
+            { name: 'core:name', label: '[CORE] Name' },
+            { name: 'core:bio', label: '[CORE] Bio' },
+            { name: 'core:avatar_url', label: '[CORE] Avatar URL' },
+            { name: 'core:visibility', label: '[CORE] Visibility' },
+            ...statTemplates.map(f => ({ name: `game:${f.id}`, label: `[GAME] ${f.label}` })),
+            ...userFields.map(f => ({ name: `user:${f.name}`, label: `[USER] ${f.label || f.name}` })),
+        ];
+
+        const response = rebuildCreateCharacterResponse(game, statTemplates, userFields, allFields);
 
         return interaction.replied || interaction.deferred
-            ? interaction.editReply(replyData)
-            : interaction.reply(replyData);
+            ? interaction.editReply({
+                content: `✅ Saved **${label}**. Choose next field:`,
+                ...response,
+                ephemeral: true,
+            })
+            : interaction.reply({
+                content: `✅ Saved **${label}**. Choose next field:`,
+                ...response,
+                ephemeral: true,
+            });
     }
 }
 
