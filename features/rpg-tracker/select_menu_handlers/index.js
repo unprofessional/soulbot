@@ -1,3 +1,5 @@
+// features/rpg-tracker/select_menu_handlers/index.js
+
 const characterDropdown = require('./character_dropdown');
 const gameDropdown = require('./game_dropdown');
 const statDropdown = require('./stat_template_dropdown');
@@ -15,7 +17,10 @@ module.exports = {
             return characterDropdown.handle(interaction);
         }
 
-        if (customId === 'joinGameDropdown' || customId === 'switchGameDropdown') {
+        if (
+            customId === 'joinGameDropdown' ||
+            customId === 'switchGameDropdown'
+        ) {
             return gameDropdown.handle(interaction);
         }
 
