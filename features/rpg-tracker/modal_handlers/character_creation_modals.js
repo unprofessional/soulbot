@@ -159,31 +159,17 @@ async function handle(interaction) {
         const remaining = await getRemainingRequiredFields(interaction.user.id);
 
         if (remaining.length === 0) {
-            return interaction.replied || interaction.deferred
-                ? interaction.editReply({
-                    content: '✅ All required fields are filled! Submit when ready:',
-                    components: [
-                        new ActionRowBuilder().addComponents(
-                            new ButtonBuilder()
-                                .setCustomId('submitNewCharacter')
-                                .setLabel('Submit Character')
-                                .setStyle(ButtonStyle.Success)
-                        ),
-                    ],
-                    ephemeral: true,
-                })
-                : interaction.reply({
-                    content: '✅ All required fields are filled! Submit when ready:',
-                    components: [
-                        new ActionRowBuilder().addComponents(
-                            new ButtonBuilder()
-                                .setCustomId('submitNewCharacter')
-                                .setLabel('Submit Character')
-                                .setStyle(ButtonStyle.Success)
-                        ),
-                    ],
-                    ephemeral: true,
-                });
+            return interaction.update({
+                content: '✅ All required fields are filled! Submit when ready:',
+                components: [
+                    new ActionRowBuilder().addComponents(
+                        new ButtonBuilder()
+                            .setCustomId('submitNewCharacter')
+                            .setLabel('Submit Character')
+                            .setStyle(ButtonStyle.Success)
+                    ),
+                ],
+            });
         }
 
         // Rebuild with only incomplete fields in dropdown
@@ -207,17 +193,10 @@ async function handle(interaction) {
 
         const response = rebuildCreateCharacterResponse(game, statTemplates, userFields, incompleteFields);
 
-        return interaction.replied || interaction.deferred
-            ? interaction.editReply({
-                content: `✅ Saved **${label}**. Choose next field:`,
-                ...response,
-                ephemeral: true,
-            })
-            : interaction.reply({
-                content: `✅ Saved **${label}**. Choose next field:`,
-                ...response,
-                ephemeral: true,
-            });
+        return interaction.update({
+            content: `✅ Saved **${label}**. Choose next field:`,
+            ...response,
+        });
     }
 }
 
