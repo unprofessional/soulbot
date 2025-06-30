@@ -1,6 +1,11 @@
 // features/rpg-tracker/utils/rebuild_create_character_response.js
 
-const { ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
+const {
+    ActionRowBuilder,
+    ButtonBuilder,
+    ButtonStyle,
+    StringSelectMenuBuilder,
+} = require('discord.js');
 
 /**
  * Constructs the character creation content message.
@@ -51,33 +56,37 @@ function buildCreateCharacterMessage(game, statTemplates = [], userFields = []) 
 
 /**
  * Rebuilds the character creation message with dropdown and buttons.
+ * @param {Object} game
+ * @param {Array<Object>} statTemplates
+ * @param {Array<Object>} userFields
+ * @param {Array<{ name: string, label: string }>} fieldOptions
+ * @returns {{ content: string, components: ActionRowBuilder[], embeds: [] }}
  */
 function rebuildCreateCharacterResponse(game, statTemplates, userFields, fieldOptions) {
     const content = buildCreateCharacterMessage(game, statTemplates, userFields);
 
-    const menu = {
-        type: 3, // SELECT_MENU
-        customId: 'createCharacterDropdown',
-        placeholder: 'Choose a character field to define',
-        options: fieldOptions.map(f => ({
-            label: f.label,
-            value: `${f.name}|${f.label}`,
-        })),
-    };
+    const dropdown = new StringSelectMenuBuilder()
+        .setCustomId('createCharacterDropdown')
+        .setPlaceholder('Choose a character field to define')
+        .addOptions(
+            fieldOptions.map(f => ({
+                label: f.label,
+                value: `${f.name}|${f.label}`,
+            }))
+        );
 
-    const row = new ActionRowBuilder().addComponents(
-        new ButtonBuilder()
-            .setCustomId('finalizeCharacter')
-            .setLabel('✅ Finalize Character')
-            .setStyle(ButtonStyle.Success),
-    );
+    const dropdownRow = new ActionRowBuilder().addComponents(dropdown);
+
+    const finalizeButton = new ButtonBuilder()
+        .setCustomId('finalizeCharacter')
+        .setLabel('✅ Finalize Character')
+        .setStyle(ButtonStyle.Success);
+
+    const buttonRow = new ActionRowBuilder().addComponents(finalizeButton);
 
     return {
         content,
-        components: [
-            new ActionRowBuilder().addComponents(menu),
-            row,
-        ],
+        components: [dropdownRow, buttonRow],
         embeds: [],
     };
 }

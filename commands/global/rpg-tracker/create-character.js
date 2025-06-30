@@ -2,8 +2,6 @@
 
 const {
     SlashCommandBuilder,
-    ActionRowBuilder,
-    StringSelectMenuBuilder,
 } = require('discord.js');
 
 const { getOrCreatePlayer, getCurrentGame } = require('../../../store/services/player.service');
@@ -113,16 +111,6 @@ module.exports = {
         // 🧪 Debug print for dropdown values
         console.log('[create-character] Dropdown values (field keys):', safeFields.map(f => f.name));
         console.log('[create-character] Dropdown labels:', safeFields.map(f => f.label));
-
-        const menu = new StringSelectMenuBuilder()
-            .setCustomId('createCharacterDropdown')
-            .setPlaceholder('Choose a character field to define')
-            .addOptions(
-                safeFields.map(f => ({
-                    label: f.label,
-                    value: `${f.name}|${f.label}`, // full round-trip string
-                }))
-            );
 
         const response = rebuildCreateCharacterResponse(game, statTemplates, userFields, safeFields);
 
