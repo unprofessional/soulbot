@@ -6,7 +6,10 @@ module.exports = {
     async handleSelectMenu(interaction) {
         const { customId } = interaction;
 
-        if (customId === 'createCharacterDropdown' || customId === 'switchCharacterDropdown') { // FIXME: Copied from other file as example, we must use correct names here
+        if (
+            customId === 'createCharacterDropdown' ||
+            customId === 'switchCharacterDropdown'
+        ) { // FIXME: Copied from other file as example, we must use correct names here
             return gameStatEmbed.handle(interaction);
         }
 

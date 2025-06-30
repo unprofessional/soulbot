@@ -6,7 +6,12 @@ module.exports = {
     async handleSelectMenu(interaction) {
         const { customId } = interaction;
 
-        if (customId === 'createCharacterDropdown' || customId === 'switchCharacterDropdown') {
+        if (
+            customId === 'createCharacterDropdown' ||
+            customId === 'switchCharacterDropdown' ||
+            customId === 'editCharacterFieldDropdown'
+
+        ) {
             return characterDropdown.handle(interaction);
         }
 

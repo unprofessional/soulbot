@@ -47,7 +47,7 @@ async function handle(interaction) {
     }
 
     // === /create-character dropdown ===
-    if (customId === 'createCharacterDropdown') {
+    if (['createCharacterDropdown', 'editCharacterFieldDropdown'].includes(customId)) {
         console.log('[CreateCharacterDropdown] raw selected value:', selected);
         const [selectedField, rawLabel] = selected.split('|');
         const label = rawLabel || selectedField;
