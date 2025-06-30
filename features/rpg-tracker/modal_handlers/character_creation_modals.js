@@ -158,25 +158,35 @@ async function handle(interaction) {
 
         const remaining = await getRemainingRequiredFields(interaction.user.id);
 
+        const statTemplates = await getStatTemplates(gameId);
+        const userFields = await getUserDefinedFields(interaction.user.id);
+        const game = await getGame({ id: gameId });
+
         if (remaining.length === 0) {
+            // ✅ All fields complete – reuse view with just a Submit button
+            const response = rebuildCreateCharacterResponse(
+                game,
+                statTemplates,
+                userFields,
+                [], // no remaining fields
+                draft
+            );
+
             return interaction.update({
                 content: '✅ All required fields are filled! Submit when ready:',
+                ...response,
                 components: [
                     new ActionRowBuilder().addComponents(
                         new ButtonBuilder()
                             .setCustomId('submitNewCharacter')
-                            .setLabel('Submit Character')
+                            .setLabel('✅ Submit Character')
                             .setStyle(ButtonStyle.Success)
                     ),
                 ],
             });
         }
 
-        // Rebuild with only incomplete fields in dropdown
-        const statTemplates = await getStatTemplates(gameId);
-        const userFields = await getUserDefinedFields(interaction.user.id);
-        const game = await getGame({ id: gameId });
-
+        // 🌀 Rebuild with updated dropdown for remaining fields
         const allFields = [
             { name: 'core:name', label: '[CORE] Name' },
             { name: 'core:bio', label: '[CORE] Bio' },
@@ -195,7 +205,7 @@ async function handle(interaction) {
             statTemplates,
             userFields,
             incompleteFields,
-            draft // ✅ Pass current values for inline display
+            draft
         );
 
         return interaction.update({
