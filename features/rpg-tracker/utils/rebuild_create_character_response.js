@@ -113,7 +113,7 @@ function rebuildCreateCharacterResponse(game, statTemplates, userFields, fieldOp
         components.push(new ActionRowBuilder().addComponents(dropdown));
     }
 
-    // === Dropdown for EDITING completed fields ===
+    // === Dropdown for EDITING completed fields (always if present) ===
     const allFields = [
         { name: 'core:name', label: '[CORE] Name' },
         { name: 'core:avatar_url', label: '[CORE] Avatar URL' },
