@@ -1,13 +1,11 @@
 // commands/global/rpg-tracker/create-character.js
 
-const {
-    SlashCommandBuilder,
-} = require('discord.js');
+const { SlashCommandBuilder } = require('discord.js');
 
 const { getOrCreatePlayer, getCurrentGame } = require('../../../store/services/player.service');
 const { getGame, getStatTemplates } = require('../../../store/services/game.service');
 const { getUserDefinedFields } = require('../../../store/services/character.service');
-const { initDraft } = require('../../../store/services/character_draft.service');
+const { initDraft, getTempCharacterData } = require('../../../store/services/character_draft.service');
 const { rebuildCreateCharacterResponse } = require('../../../features/rpg-tracker/utils/rebuild_create_character_response');
 
 module.exports = {
@@ -26,10 +24,9 @@ module.exports = {
             });
         }
 
-        // Ensure player link for this guild
         await getOrCreatePlayer(userId, guildId);
-
         const gameId = await getCurrentGame(userId, guildId);
+
         if (!gameId) {
             return interaction.reply({
                 content: '⚠️ You haven’t joined a game yet. Use `/join-game` to select one.',
@@ -53,7 +50,7 @@ module.exports = {
         }
 
         const statTemplates = await getStatTemplates(gameId);
-        const userFields = await getUserDefinedFields(userId); // optional — can return []
+        const userFields = await getUserDefinedFields(userId);
 
         if (!statTemplates.length) {
             return interaction.reply({
@@ -62,23 +59,25 @@ module.exports = {
             });
         }
 
-        // ✅ Initialize draft with game_id for validation
+        // ✅ Initialize draft and store game ID
         const draft = initDraft(userId);
         draft.game_id = gameId;
+
         console.log(`🧾 Draft initialized for user ${userId} with game_id: ${gameId}`);
 
-        // === Construct dropdown entries ===
         const coreFields = [
             { name: 'core:name', label: '[CORE] Name' },
             { name: 'core:bio', label: '[CORE] Bio' },
             { name: 'core:avatar_url', label: '[CORE] Avatar URL' },
             { name: 'core:visibility', label: '[CORE] Visibility' },
         ];
-        const gameFields = (statTemplates || []).map(f => ({
+
+        const gameFields = statTemplates.map(f => ({
             name: `game:${f.id}`,
             label: `[GAME] ${f.label || f.id}`,
         }));
-        const userFieldsFormatted = (userFields || [])
+
+        const userFieldsFormatted = userFields
             .filter(f => f?.name && typeof f.name === 'string')
             .map(f => ({
                 name: `user:${f.name}`,
@@ -86,12 +85,6 @@ module.exports = {
             }));
 
         const allFields = [...coreFields, ...gameFields, ...userFieldsFormatted];
-
-        // 🔍 Safety check for invalid entries
-        const invalidFields = allFields.filter(f => !f.label || !f.name || !f.name.includes(':'));
-        if (invalidFields.length > 0) {
-            console.warn('[create-character] Skipping invalid fields:', invalidFields);
-        }
 
         const safeFields = allFields.filter(f =>
             typeof f.label === 'string' &&
@@ -108,16 +101,13 @@ module.exports = {
             });
         }
 
-        // 🧪 Debug print for dropdown values
-        console.log('[create-character] Dropdown values (field keys):', safeFields.map(f => f.name));
-        console.log('[create-character] Dropdown labels:', safeFields.map(f => f.label));
-
-        const response = rebuildCreateCharacterResponse(game, statTemplates, userFields, safeFields);
+        // Pass draft to show filled field ✅s
+        const hydratedDraft = await getTempCharacterData(userId);
+        const response = rebuildCreateCharacterResponse(game, statTemplates, userFields, safeFields, hydratedDraft);
 
         return await interaction.reply({
             ...response,
             ephemeral: true,
         });
-
     },
 };
