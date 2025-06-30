@@ -158,7 +158,6 @@ async function handle(interaction) {
 
         const remaining = await getRemainingRequiredFields(interaction.user.id);
 
-        // If complete, show submit button
         if (remaining.length === 0) {
             return interaction.replied || interaction.deferred
                 ? interaction.editReply({
@@ -187,7 +186,7 @@ async function handle(interaction) {
                 });
         }
 
-        // Otherwise, rebuild full UX
+        // Rebuild with only incomplete fields in dropdown
         const statTemplates = await getStatTemplates(gameId);
         const userFields = await getUserDefinedFields(interaction.user.id);
         const game = await getGame({ id: gameId });
@@ -201,7 +200,12 @@ async function handle(interaction) {
             ...userFields.map(f => ({ name: `user:${f.name}`, label: `[USER] ${f.label || f.name}` })),
         ];
 
-        const response = rebuildCreateCharacterResponse(game, statTemplates, userFields, allFields);
+        const incompleteFields = allFields.filter(f => {
+            const val = draft?.[f.name];
+            return !val || !val.trim();
+        });
+
+        const response = rebuildCreateCharacterResponse(game, statTemplates, userFields, incompleteFields);
 
         return interaction.replied || interaction.deferred
             ? interaction.editReply({
