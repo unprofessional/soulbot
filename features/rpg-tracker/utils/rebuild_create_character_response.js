@@ -29,7 +29,7 @@ function buildCreateCharacterMessage(game, statTemplates = [], userFields = [], 
     }
 
     lines.push('');
-    lines.push(`**Included Fields:**`);
+    lines.push(`**CORE Fields:**`);
 
     const coreFields = [
         'core:name',
@@ -50,7 +50,7 @@ function buildCreateCharacterMessage(game, statTemplates = [], userFields = [], 
     lines.push('');
 
     if (statTemplates.length) {
-        lines.push(`**Game Fields:**`);
+        lines.push(`**GAME Fields:**`);
         for (const t of statTemplates) {
             const key = `game:${t.id}`;
             const value = draftData[key];
