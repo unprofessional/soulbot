@@ -134,6 +134,8 @@ function rebuildCreateCharacterResponse(game, statTemplates, userFields, fieldOp
         return val && val.trim?.();
     });
 
+    console.log('🧪 Filled Fields:', filledFields.map(f => f.name));
+
     if (filledFields.length > 0) {
         const editDropdown = new StringSelectMenuBuilder()
             .setCustomId('editCharacterFieldDropdown')
