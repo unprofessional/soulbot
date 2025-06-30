@@ -69,7 +69,6 @@ module.exports = {
             { name: 'core:name', label: '[CORE] Name' },
             { name: 'core:bio', label: '[CORE] Bio' },
             { name: 'core:avatar_url', label: '[CORE] Avatar URL' },
-            { name: 'core:visibility', label: '[CORE] Visibility' },
         ];
 
         const gameFields = statTemplates.map(f => ({

@@ -45,10 +45,11 @@ function buildCreateCharacterMessage(game, statTemplates = [], userFields = [], 
 
     for (const key of coreFields) {
         const value = draftData[key];
-        if (value && value.trim()) {
-            lines.push(`- [CORE] ${key.split(':')[1]} 🟢 ${summarize(value)}`);
+        const label = key.split(':')[1].replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+        if (value && value.toString().trim()) {
+            lines.push(`- [CORE] ${label} 🟢 ${summarize(value.toString())}`);
         } else {
-            lines.push(`- [CORE] ${key.split(':')[1]}`);
+            lines.push(`- [CORE] ${label}`);
         }
     }
 
@@ -59,8 +60,8 @@ function buildCreateCharacterMessage(game, statTemplates = [], userFields = [], 
         for (const t of statTemplates) {
             const key = `game:${t.id}`;
             const value = draftData[key];
-            if (value && value.trim()) {
-                lines.push(`- [GAME] ${t.label} 🟢 ${summarize(value)}`);
+            if (value && value.toString().trim()) {
+                lines.push(`- [GAME] ${t.label} 🟢 ${summarize(value.toString())}`);
             } else {
                 lines.push(`- [GAME] ${t.label}`);
             }
@@ -75,10 +76,11 @@ function buildCreateCharacterMessage(game, statTemplates = [], userFields = [], 
         for (const f of userFields) {
             const key = `user:${f.name}`;
             const value = draftData[key];
-            if (value && value.trim()) {
-                lines.push(`- [USER] ${f.label || f.name} 🟢 ${summarize(value)}`);
+            const label = f.label || f.name;
+            if (value && value.toString().trim()) {
+                lines.push(`- [USER] ${label} 🟢 ${summarize(value.toString())}`);
             } else {
-                lines.push(`- [USER] ${f.label || f.name}`);
+                lines.push(`- [USER] ${label}`);
             }
         }
     }
