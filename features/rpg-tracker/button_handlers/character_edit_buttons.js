@@ -24,12 +24,18 @@ module.exports = {
             });
 
             const options = editableStats
-                .filter(stat => typeof stat.name === 'string' && stat.name.trim().length > 0)
-                .map(stat => ({
-                    label: String(stat.label || stat.name || 'Unnamed'),
-                    value: String(stat.name),
-                    description: stat.value != null ? `Current: ${stat.value}` : 'No value set',
-                }))
+                .filter(stat =>
+                    (typeof stat.template_id === 'string' && stat.template_id.trim()) ||
+        (typeof stat.name === 'string' && stat.name.trim())
+                )
+                .map(stat => {
+                    const identifier = stat.name || stat.template_id;
+                    return {
+                        label: String(stat.label || identifier || 'Unnamed'),
+                        value: String(identifier),
+                        description: stat.value != null ? `Current: ${stat.value}` : 'No value set',
+                    };
+                })
                 .slice(0, 25);
 
             if (options.length === 0) {
