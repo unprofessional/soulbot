@@ -123,6 +123,7 @@ async function deleteCharacter(characterId) {
 
 async function getUserDefinedFields(userId) {
     // Placeholder: future user template support
+    console.log('>>> getUserDefinedFields > userId: ', userId);
     return [];
 }
 

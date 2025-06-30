@@ -59,7 +59,8 @@ module.exports = {
             });
         }
 
-        // ✅ Initialize draft and store game ID
+        // ✅ Check if user already had a draft
+        const existingDraft = await getTempCharacterData(userId);
         const draft = initDraft(userId);
         draft.game_id = gameId;
 
@@ -100,12 +101,14 @@ module.exports = {
             });
         }
 
-        // Pass draft to show filled field ✅s
         const hydratedDraft = await getTempCharacterData(userId);
         const response = rebuildCreateCharacterResponse(game, statTemplates, userFields, safeFields, hydratedDraft);
 
         return await interaction.reply({
             ...response,
+            content: existingDraft
+                ? '📂 Resumed your previous draft! Continue filling in the fields below.'
+                : response.content,
             ephemeral: true,
         });
     },
