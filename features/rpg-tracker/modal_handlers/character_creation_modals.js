@@ -191,7 +191,13 @@ async function handle(interaction) {
             return !val || !val.trim();
         });
 
-        const response = rebuildCreateCharacterResponse(game, statTemplates, userFields, incompleteFields);
+        const response = rebuildCreateCharacterResponse(
+            game,
+            statTemplates,
+            userFields,
+            incompleteFields,
+            draft // ✅ Pass current values for inline display
+        );
 
         return interaction.update({
             content: `✅ Saved **${label}**. Choose next field:`,
