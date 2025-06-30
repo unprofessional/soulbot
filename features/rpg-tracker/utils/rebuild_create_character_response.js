@@ -41,7 +41,6 @@ function buildCreateCharacterMessage(game, statTemplates = [], userFields = [], 
         'core:name',
         'core:avatar_url',
         'core:bio',
-        'core:visibility',
     ];
 
     for (const key of coreFields) {
