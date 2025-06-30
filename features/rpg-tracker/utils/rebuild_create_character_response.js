@@ -82,8 +82,10 @@ function buildCreateCharacterMessage(game, statTemplates = [], userFields = [], 
     lines.push('');
     if (fieldOptions.length > 0) {
         lines.push(`Use the dropdown below to continue filling out the required fields.`);
+        lines.push('');
     } else {
         lines.push(`✅ All required fields are filled! You can now submit your character.`);
+        lines.push('');
     }
 
     return lines.join('\n');
