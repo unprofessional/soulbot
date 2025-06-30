@@ -10,6 +10,7 @@ const { getOrCreatePlayer, getCurrentGame } = require('../../../store/services/p
 const { getGame, getStatTemplates } = require('../../../store/services/game.service');
 const { getUserDefinedFields } = require('../../../store/services/character.service');
 const { initDraft } = require('../../../store/services/character_draft.service');
+const { rebuildCreateCharacterResponse } = require('../../../features/rpg-tracker/utils/rebuild_create_character_response');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -123,12 +124,12 @@ module.exports = {
                 }))
             );
 
-        const row = new ActionRowBuilder().addComponents(menu);
+        const response = rebuildCreateCharacterResponse(game, statTemplates, userFields, safeFields);
 
         return await interaction.reply({
-            content: '🧬 Select a field to begin character creation:',
-            components: [row],
+            ...response,
             ephemeral: true,
         });
+
     },
 };
