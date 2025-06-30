@@ -18,14 +18,8 @@ function summarize(value, max = 40) {
 
 /**
  * Constructs the character creation content message.
- * @param {Object} game - Game object
- * @param {Array<Object>} statTemplates - Stat fields defined by GM
- * @param {Array<Object>} [userFields=[]] - User-defined reusable stat fields
- * @param {Object} [draftData={}] - In-memory draft data for current user
- * @param {boolean} includeDropdownHint - Whether to include "use the dropdown" message
- * @returns {string}
  */
-function buildCreateCharacterMessage(game, statTemplates = [], userFields = [], draftData = {}, includeDropdownHint = true) {
+function buildCreateCharacterMessage(game, statTemplates = [], userFields = [], draftData = {}, fieldOptions = []) {
     const lines = [];
 
     lines.push(`# 🧬 Create Character for **${game.name}**`);
@@ -85,9 +79,11 @@ function buildCreateCharacterMessage(game, statTemplates = [], userFields = [], 
         }
     }
 
-    if (includeDropdownHint) {
-        lines.push('');
-        lines.push(`Use the dropdown below to select a field to fill out.`);
+    lines.push('');
+    if (fieldOptions.length > 0) {
+        lines.push(`Use the dropdown below to continue filling out the required fields.`);
+    } else {
+        lines.push(`✅ All required fields are filled! You can now submit your character.`);
     }
 
     return lines.join('\n');
@@ -95,16 +91,9 @@ function buildCreateCharacterMessage(game, statTemplates = [], userFields = [], 
 
 /**
  * Rebuilds the character creation message with dropdown and buttons.
- * @param {Object} game
- * @param {Array<Object>} statTemplates
- * @param {Array<Object>} userFields
- * @param {Array<{ name: string, label: string }>} fieldOptions - Remaining fields
- * @param {Object} [draftData={}] - All known draft values
- * @returns {{ content: string, components: ActionRowBuilder[], embeds: [] }}
  */
 function rebuildCreateCharacterResponse(game, statTemplates, userFields, fieldOptions, draftData = {}) {
-    const includeDropdownHint = fieldOptions.length > 0;
-    const content = buildCreateCharacterMessage(game, statTemplates, userFields, draftData, includeDropdownHint);
+    const content = buildCreateCharacterMessage(game, statTemplates, userFields, draftData, fieldOptions);
 
     const components = [];
 
@@ -121,12 +110,13 @@ function rebuildCreateCharacterResponse(game, statTemplates, userFields, fieldOp
         components.push(new ActionRowBuilder().addComponents(dropdown));
     }
 
-    const finalizeButton = new ButtonBuilder()
+    const submitButton = new ButtonBuilder()
         .setCustomId('submitNewCharacter')
         .setLabel('✅ Submit Character')
-        .setStyle(ButtonStyle.Success);
+        .setStyle(ButtonStyle.Success)
+        .setDisabled(fieldOptions.length > 0); // 🔒 Disable unless all fields filled
 
-    components.push(new ActionRowBuilder().addComponents(finalizeButton));
+    components.push(new ActionRowBuilder().addComponents(submitButton));
 
     return {
         content,
