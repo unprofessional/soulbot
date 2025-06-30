@@ -14,7 +14,7 @@ const {
     getTempCharacterData,
 } = require('../../../store/services/character_draft.service');
 const { getStatTemplates, getGame } = require('../../../store/services/game.service');
-const { rebuildCreateCharacterResponse } = require('../../utils/rebuild_create_character_response');
+const { rebuildCreateCharacterResponse } = require('../utils/rebuild_create_character_response');
 
 /**
  * Handles modals related to character creation.
