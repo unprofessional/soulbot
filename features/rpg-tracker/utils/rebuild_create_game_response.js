@@ -11,6 +11,7 @@ function buildGameSetupMessage(game, context = 'create', statTemplates = []) {
     const lines = [];
 
     if (context === 'create') {
+        lines.push(`# **${game.name}**`);
         lines.push(`✅ Created game **${game.name}** and set it as your active campaign.`);
     } else {
         lines.push(`# **${game.name}**`);

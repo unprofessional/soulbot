@@ -67,7 +67,8 @@ module.exports = {
 
             await interaction.reply({
                 content: [
-                    `✅ Created game **${game.name}** and set it as your active campaign.`,
+                    `# **${game.name}**`,
+                    `✅ Created game and set it as your active campaign.`,
                     ``,
                     `**Character Stat Fields:**`,
                     ` - 🟦 **System Fields** (always included):`,
