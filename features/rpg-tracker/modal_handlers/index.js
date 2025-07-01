@@ -10,32 +10,30 @@ module.exports = {
     async handleModal(interaction) {
         const { customId } = interaction;
 
-        // === Game creation/edit modals ===
+        // === Game-related ===
         if (customId.startsWith('editGameModal:')) return gameModals.handle(interaction);
-        if (customId.startsWith('createStatTemplate:') || customId.startsWith('editStatTemplateModal:')) return statTemplateModals.handle(interaction);
-
-        // === Character creation (DRAFT flow) ===
         if (
-            customId.startsWith('createCharacterModal:') || // legacy full modal
-            customId.startsWith('createDraftCharacterField:') // new single-field modal
-        ) {
-            return characterCreationModals.handle(interaction);
-        }
+            customId.startsWith('createStatTemplate:') ||
+            customId.startsWith('editStatTemplateModal:')
+        ) return statTemplateModals.handle(interaction);
 
-        // === Character editing (PERSISTED flow) ===
+        // ✅ DRAFT Character creation flow
+        if (
+            customId.startsWith('createCharacterModal:') ||
+            customId.startsWith('createDraftCharacterField:')
+        ) return characterCreationModals.handle(interaction);
+
+        // ✅ EDIT Existing characters
         if (
             customId.startsWith('editCharacterModal:') ||
             customId.startsWith('editStatModal:') ||
             customId.startsWith('setCharacterField:') ||
             customId.startsWith('editCharacterField:')
-        ) {
-            return characterEditModals.handle(interaction);
-        }
+        ) return characterEditModals.handle(interaction);
 
-        // === Inventory modals ===
+        // === Inventory ===
         if (customId.startsWith('addInventoryModal:')) return inventoryModals.handle(interaction);
 
-        // === Fallback ===
         return interaction.reply({
             content: '❓ Unknown modal submission.',
             ephemeral: true,
