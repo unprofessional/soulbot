@@ -63,7 +63,7 @@ async function handle(interaction) {
             .addComponents(
                 new ActionRowBuilder().addComponents(
                     new TextInputBuilder()
-                        .setCustomId(selectedKey)
+                        .setCustomId(selectedKey) // ✅ This is the fix
                         .setLabel(truncate(`Value for ${label}`))
                         .setStyle(inputStyle)
                         .setValue(value)

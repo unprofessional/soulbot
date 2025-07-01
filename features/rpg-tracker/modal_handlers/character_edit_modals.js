@@ -52,9 +52,11 @@ async function handle(interaction) {
 
         // === Edit CORE Field ===
         if (customId.startsWith('setCharacterField:') || customId.startsWith('editCharacterField:')) {
-            const [, fullKeyWithLabel] = customId.split(':');
-            const [fieldKey] = fullKeyWithLabel.split('|');
-            const [, coreField] = fieldKey.split(':');
+            const parts = customId.split(':');
+            const characterId = parts[1];
+            const fullKeyWithLabel = parts.slice(2).join(':'); // handles ':' in field labels
+            const [fieldKey] = fullKeyWithLabel.split('|');    // e.g. 'core:name'
+            const [, coreField] = fieldKey.split(':');          // 'name'
             const newValue = interaction.fields.getTextInputValue(fieldKey)?.trim();
 
             if (!coreField || typeof newValue !== 'string') {
@@ -65,18 +67,8 @@ async function handle(interaction) {
             }
 
             console.log('[editCharacterField] Submitting field update:', {
-                coreField, newValue, fullKeyWithLabel, fieldKey,
+                characterId, coreField, newValue, fieldKey,
             });
-
-            const characterId = interaction.message.components[0]?.components[0]?.data?.custom_id?.split(':')?.[1];
-
-            if (!characterId) {
-                console.warn('[editCharacterField] Could not resolve characterId from message.');
-                return await interaction.reply({
-                    content: '⚠️ Could not resolve character ID.',
-                    ephemeral: true,
-                });
-            }
 
             await updateCharacterMeta(characterId, { [coreField]: newValue });
 
