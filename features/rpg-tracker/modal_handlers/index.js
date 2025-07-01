@@ -12,14 +12,17 @@ module.exports = {
 
         if (customId.startsWith('editGameModal:')) return gameModals.handle(interaction);
         if (customId.startsWith('createStatTemplate:') || customId.startsWith('editStatTemplateModal:')) return statTemplateModals.handle(interaction);
-        if (customId.startsWith('createCharacterModal:') || customId.startsWith('setCharacterField:')) return characterCreationModals.handle(interaction);
+        if (customId.startsWith('createCharacterModal:')) return characterCreationModals.handle(interaction);
+
         if (
             customId.startsWith('editCharacterModal:') ||
-  customId.startsWith('editStatModal:') ||
-  customId.startsWith('setCharacterField:')
+            customId.startsWith('editStatModal:') ||
+            customId.startsWith('setCharacterField:') ||
+            customId.startsWith('editCharacterField:')
         ) {
             return characterEditModals.handle(interaction);
         }
+
         if (customId.startsWith('addInventoryModal:')) return inventoryModals.handle(interaction);
 
         return interaction.reply({ content: '❓ Unknown modal submission.', ephemeral: true });
