@@ -16,13 +16,13 @@ const {
  * @param {import('discord.js').ModalSubmitInteraction} interaction
  */
 async function handle(interaction) {
-    const { customId } = interaction;
+    try {
+        const { customId } = interaction;
 
-    // === Edit GAME Stat ===
-    if (customId.startsWith('editStatModal:')) {
-        const [, characterId, fieldKey] = customId.split(':');
+        // === Edit GAME Stat ===
+        if (customId.startsWith('editStatModal:')) {
+            const [, characterId, fieldKey] = customId.split(':');
 
-        try {
             const newValue = interaction.fields.getTextInputValue('statValue')?.trim();
 
             if (!fieldKey || typeof newValue !== 'string') {
@@ -32,12 +32,13 @@ async function handle(interaction) {
                 });
             }
 
+            console.log('[editStatModal] Updating stat:', { characterId, fieldKey, newValue });
             await updateStat(characterId, fieldKey, newValue);
 
             await interaction.deferUpdate();
 
             const updated = await getCharacterWithStats(characterId);
-            console.log('[Embed DEBUG] Stats after update:', updated.stats);
+            console.log('[editStatModal] Updated character stats:', updated.stats);
 
             const embed = buildCharacterEmbed(updated);
             const row = buildCharacterActionRow(characterId);
@@ -47,33 +48,30 @@ async function handle(interaction) {
                 embeds: [embed],
                 components: [row],
             });
-        } catch (err) {
-            console.error('Error in editStatModal:', err);
-            return await interaction.reply({
-                content: '❌ Failed to update stat.',
-                ephemeral: true,
-            });
-        }
-    }
-
-    // === Edit CORE Field ===
-    if (customId.startsWith('setCharacterField:')) {
-        const [, fullKeyWithLabel] = customId.split(':');
-        const [fieldKey] = fullKeyWithLabel.split('|'); // core:name|Name → 'core:name'
-
-        const [, coreField] = fieldKey.split(':');
-        const newValue = interaction.fields.getTextInputValue(fieldKey)?.trim();
-
-        if (!coreField || typeof newValue !== 'string') {
-            return await interaction.reply({
-                content: '⚠️ Invalid core field update.',
-                ephemeral: true,
-            });
         }
 
-        try {
+        // === Edit CORE Field ===
+        if (customId.startsWith('setCharacterField:') || customId.startsWith('editCharacterField:')) {
+            const [, fullKeyWithLabel] = customId.split(':');
+            const [fieldKey] = fullKeyWithLabel.split('|');
+            const [, coreField] = fieldKey.split(':');
+            const newValue = interaction.fields.getTextInputValue(fieldKey)?.trim();
+
+            if (!coreField || typeof newValue !== 'string') {
+                return await interaction.reply({
+                    content: '⚠️ Invalid core field update.',
+                    ephemeral: true,
+                });
+            }
+
+            console.log('[editCharacterField] Submitting field update:', {
+                coreField, newValue, fullKeyWithLabel, fieldKey,
+            });
+
             const characterId = interaction.message.components[0]?.components[0]?.data?.custom_id?.split(':')?.[1];
+
             if (!characterId) {
+                console.warn('[editCharacterField] Could not resolve characterId from message.');
                 return await interaction.reply({
                     content: '⚠️ Could not resolve character ID.',
                     ephemeral: true,
@@ -93,20 +91,12 @@ async function handle(interaction) {
                 embeds: [embed],
                 components: [row],
             });
-        } catch (err) {
-            console.error('Error in setCharacterField:', err);
-            return await interaction.reply({
-                content: '❌ Failed to update core field.',
-                ephemeral: true,
-            });
         }
-    }
 
-    // === Edit All Metadata ===
-    if (customId.startsWith('editCharacterModal:')) {
-        const [, characterId] = customId.split(':');
+        // === Edit Full Metadata ===
+        if (customId.startsWith('editCharacterModal:')) {
+            const [, characterId] = customId.split(':');
 
-        try {
             const name = interaction.fields.getTextInputValue('name')?.trim();
             const className = interaction.fields.getTextInputValue('class')?.trim();
             const race = interaction.fields.getTextInputValue('race')?.trim();
@@ -120,6 +110,10 @@ async function handle(interaction) {
                 });
             }
 
+            console.log('[editCharacterModal] Updating metadata:', {
+                name, className, race, level, notes,
+            });
+
             await updateCharacterMeta(characterId, {
                 name,
                 class: className,
@@ -132,13 +126,19 @@ async function handle(interaction) {
                 content: `📝 Character **${name}** updated successfully.`,
                 ephemeral: true,
             });
-        } catch (err) {
-            console.error('Error in editCharacterModal:', err);
-            return await interaction.reply({
-                content: '❌ Failed to update character info.',
-                ephemeral: true,
-            });
         }
+
+        console.warn('[character_edit_modals] No matching modal handler for customId:', customId);
+        return await interaction.reply({
+            content: '❓ Unrecognized modal submission.',
+            ephemeral: true,
+        });
+    } catch (err) {
+        console.error('[character_edit_modals] Uncaught exception in modal handler:', err);
+        return await interaction.reply({
+            content: '❌ An unexpected error occurred while processing your request.',
+            ephemeral: true,
+        });
     }
 }
 
