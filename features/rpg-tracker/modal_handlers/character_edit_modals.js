@@ -18,7 +18,7 @@ const {
 async function handle(interaction) {
     const { customId } = interaction;
 
-    // === Edit Stat ===
+    // === Edit GAME Stat ===
     if (customId.startsWith('editStatModal:')) {
         const [, characterId, fieldKey] = customId.split(':');
 
@@ -33,6 +33,7 @@ async function handle(interaction) {
             }
 
             await updateStat(characterId, fieldKey, newValue);
+
             await interaction.deferUpdate();
 
             const updated = await getCharacterWithStats(characterId);
@@ -55,26 +56,31 @@ async function handle(interaction) {
         }
     }
 
-    // === Edit Core Field ===
-    if (customId.startsWith('editCharacterField:')) {
-        const [, characterId, rawField] = customId.split(':'); // rawField = core:name
-        const [fieldKey] = rawField.split('|'); // full ID is core:name|Name
+    // === Edit CORE Field ===
+    if (customId.startsWith('setCharacterField:')) {
+        const [, fullKeyWithLabel] = customId.split(':');
+        const [fieldKey] = fullKeyWithLabel.split('|'); // core:name|Name → 'core:name'
 
-        const coreField = fieldKey.replace(/^core:/, '');
+        const [, coreField] = fieldKey.split(':');
+        const newValue = interaction.fields.getTextInputValue(fieldKey)?.trim();
+
+        if (!coreField || typeof newValue !== 'string') {
+            return await interaction.reply({
+                content: '⚠️ Invalid core field update.',
+                ephemeral: true,
+            });
+        }
 
         try {
-            const newValue = interaction.fields.getTextInputValue(fieldKey)?.trim();
-
-            if (!coreField || typeof newValue !== 'string') {
+            const characterId = interaction.message.components[0]?.components[0]?.data?.custom_id?.split(':')?.[1];
+            if (!characterId) {
                 return await interaction.reply({
-                    content: '⚠️ Invalid core field update.',
+                    content: '⚠️ Could not resolve character ID.',
                     ephemeral: true,
                 });
             }
 
-            await updateCharacterMeta(characterId, {
-                [coreField]: newValue,
-            });
+            await updateCharacterMeta(characterId, { [coreField]: newValue });
 
             await interaction.deferUpdate();
 
@@ -88,15 +94,15 @@ async function handle(interaction) {
                 components: [row],
             });
         } catch (err) {
-            console.error('Error in editCharacterField:', err);
+            console.error('Error in setCharacterField:', err);
             return await interaction.reply({
-                content: '❌ Failed to update character field.',
+                content: '❌ Failed to update core field.',
                 ephemeral: true,
             });
         }
     }
 
-    // === Edit Character Metadata (multi-field modal) ===
+    // === Edit All Metadata ===
     if (customId.startsWith('editCharacterModal:')) {
         const [, characterId] = customId.split(':');
 
