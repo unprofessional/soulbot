@@ -34,18 +34,15 @@ async function handle(interaction) {
 
             await updateStat(characterId, fieldKey, newValue);
 
-            // Must reply before editReply — even with a placeholder
-            await interaction.reply({
-                content: `🎲 Updated **${fieldKey.toUpperCase()}** to **${newValue}**.`,
-                ephemeral: true,
-            });
+            // Prevent flicker — acknowledge the modal without displaying a message
+            await interaction.deferUpdate();
 
             const updated = await getCharacterWithStats(characterId);
             const embed = buildCharacterEmbed(updated);
             const row = buildCharacterActionRow(characterId);
 
             return await interaction.editReply({
-                content: null, // clear the text message if desired
+                content: null,
                 embeds: [embed],
                 components: [row],
             });
