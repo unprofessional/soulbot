@@ -25,19 +25,34 @@ async function handle(interaction) {
     const [, characterId] = customId.split(':');
     const selectedKey = values?.[0];
 
+    console.log('[editStatSelect] Received interaction for characterId:', characterId);
+    console.log('[editStatSelect] Selected key:', selectedKey);
+
     const character = await getCharacterWithStats(characterId);
+    console.log('[editStatSelect] Hydrated character:', {
+        id: character.id,
+        name: character.name,
+        stats: character.stats?.map(s => ({
+            name: s.name,
+            template_id: s.template_id,
+            label: s.label,
+            value: s.value,
+        })),
+    });
 
     if (!selectedKey) {
+        console.warn('[editStatSelect] No value received from select menu.');
         return await interaction.reply({
             content: '⚠️ No stat selected.',
             ephemeral: true,
         });
     }
 
-    // === Handle CORE fields ===
     if (selectedKey.startsWith('core:')) {
         const [, coreField] = selectedKey.split(':');
         const value = character[coreField] ?? '';
+        console.log(`[editStatSelect] Matched CORE field: ${coreField}, value:`, value);
+
         const label = coreField.charAt(0).toUpperCase() + coreField.slice(1);
         const inputStyle = coreField === 'bio' ? TextInputStyle.Paragraph : TextInputStyle.Short;
 
@@ -58,18 +73,30 @@ async function handle(interaction) {
         return await interaction.showModal(modal);
     }
 
-    // === Handle template-defined or user-defined fields ===
     const stat = (character.stats || []).find(s =>
         s.template_id === selectedKey || s.name === selectedKey
     );
 
     if (!stat) {
-        console.warn('[editStatSelect] Stat not found for:', selectedKey, character.stats);
+        console.warn('[editStatSelect] Could not find stat for:', selectedKey);
+        console.warn('[editStatSelect] Available stats were:', character.stats?.map(s => ({
+            name: s.name,
+            template_id: s.template_id,
+            label: s.label,
+            value: s.value,
+        })));
         return await interaction.reply({
             content: '❌ Could not find that stat field.',
             ephemeral: true,
         });
     }
+
+    console.log('[editStatSelect] Matched STAT field:', {
+        template_id: stat.template_id,
+        name: stat.name,
+        label: stat.label,
+        value: stat.value,
+    });
 
     const label = stat.label || selectedKey;
     const fieldKey = stat.template_id || stat.name;
