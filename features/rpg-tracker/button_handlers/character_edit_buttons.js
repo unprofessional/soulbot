@@ -8,6 +8,7 @@ const {
 const {
     getCharacterWithStats,
 } = require('../../../store/services/character.service');
+const { buildCharacterEmbed } = require('../embed_utils'); // reuse existing embed
 
 module.exports = {
     async handle(interaction) {
@@ -26,7 +27,7 @@ module.exports = {
             const options = editableStats
                 .filter(stat =>
                     (typeof stat.template_id === 'string' && stat.template_id.trim()) ||
-        (typeof stat.name === 'string' && stat.name.trim())
+                    (typeof stat.name === 'string' && stat.name.trim())
                 )
                 .map(stat => {
                     const identifier = stat.name || stat.template_id;
@@ -39,10 +40,10 @@ module.exports = {
                 .slice(0, 25);
 
             if (options.length === 0) {
-                console.warn('[Edit Stat] No valid options to display for character:', characterId, editableStats);
-                return await interaction.reply({
+                return await interaction.update({
                     content: '⚠️ No valid stats to edit.',
-                    ephemeral: true,
+                    embeds: [],
+                    components: [],
                 });
             }
 
@@ -52,11 +53,12 @@ module.exports = {
                 .addOptions(options);
 
             const row = new ActionRowBuilder().addComponents(select);
+            const embed = buildCharacterEmbed(character); // 🧠 show unchanged embed for context
 
-            return await interaction.reply({
-                content: 'Select the stat you want to edit:',
+            return await interaction.update({
+                content: '🛠️ Select the stat you want to edit:',
+                embeds: [embed],
                 components: [row],
-                ephemeral: true,
             });
         }
     }
