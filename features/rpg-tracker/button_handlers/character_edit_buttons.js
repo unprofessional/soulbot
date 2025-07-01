@@ -1,37 +1,63 @@
-// ✅ File: features/rpg-tracker/button_handlers/character_edit_buttons.js
+// features/rpg-tracker/button_handlers/character_edit_buttons.js
+
+const {
+    ActionRowBuilder,
+    StringSelectMenuBuilder,
+} = require('discord.js');
 
 const {
     getCharacterWithStats,
 } = require('../../../store/services/character.service');
-const { getGame, getStatTemplates } = require('../../../store/services/game.service');
-const { getTempCharacterData } = require('../../../store/services/character_draft.service');
-const { rebuildCreateCharacterResponse } = require('../utils/rebuild_create_character_response');
 
 module.exports = {
     async handle(interaction) {
-        const { customId, user, guild } = interaction;
+        const { customId } = interaction;
 
         // === 🎲 Edit Stat Button Pressed ===
         if (customId.startsWith('edit_stat:')) {
             const [, characterId] = customId.split(':');
-
             const character = await getCharacterWithStats(characterId);
-            const game = await getGame({ id: character.game_id });
-            const statTemplates = await getStatTemplates(game.id);
-            const draftData = await getTempCharacterData(user.id, guild.id, game.id);
 
-            const userFields = []; // future use for custom fields
-            const fieldOptions = []; // skip required-field flow
+            const editableStats = (character.stats || []).filter(stat => {
+                const name = (stat.name || '').toLowerCase();
+                return !['name', 'avatar_url', 'bio', 'visibility'].includes(name);
+            });
 
-            const response = rebuildCreateCharacterResponse(
-                game,
-                statTemplates,
-                userFields,
-                fieldOptions,
-                draftData
-            );
+            const options = editableStats
+                .filter(stat =>
+                    (typeof stat.template_id === 'string' && stat.template_id.trim()) ||
+        (typeof stat.name === 'string' && stat.name.trim())
+                )
+                .map(stat => {
+                    const identifier = stat.name || stat.template_id;
+                    return {
+                        label: String(stat.label || identifier || 'Unnamed'),
+                        value: String(identifier),
+                        description: stat.value != null ? `Current: ${stat.value}` : 'No value set',
+                    };
+                })
+                .slice(0, 25);
 
-            return await interaction.update(response);
+            if (options.length === 0) {
+                console.warn('[Edit Stat] No valid options to display for character:', characterId, editableStats);
+                return await interaction.reply({
+                    content: '⚠️ No valid stats to edit.',
+                    ephemeral: true,
+                });
+            }
+
+            const select = new StringSelectMenuBuilder()
+                .setCustomId(`editStatSelect:${characterId}`)
+                .setPlaceholder('Choose a stat to edit')
+                .addOptions(options);
+
+            const row = new ActionRowBuilder().addComponents(select);
+
+            return await interaction.reply({
+                content: 'Select the stat you want to edit:',
+                components: [row],
+                ephemeral: true,
+            });
         }
     }
 };
