@@ -117,7 +117,7 @@ function buildCharacterEmbed(character) {
 function buildCharacterActionRow(characterId) {
     return new ActionRowBuilder().addComponents(
         new ButtonBuilder()
-            .setCustomId(`edit_stat:${characterId}`)
+            .setCustomId(`editStatSelect:${characterId}`)
             .setLabel('🎲 Edit Stat')
             .setStyle(ButtonStyle.Primary),
         new ButtonBuilder()
