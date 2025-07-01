@@ -55,9 +55,12 @@ async function handle(interaction) {
             const parts = customId.split(':');
             const characterId = parts[1];
             const fullKeyWithLabel = parts.slice(2).join(':'); // handles ':' in field labels
-            const [fieldKey] = fullKeyWithLabel.split('|');    // e.g. 'core:name'
-            const [, coreField] = fieldKey.split(':');          // 'name'
-            const newValue = interaction.fields.getTextInputValue(fieldKey)?.trim();
+            const [fieldKey] = fullKeyWithLabel.split('|');    // e.g. 'core:name' or 'name'
+            const [, coreField] = fieldKey.includes(':') ? fieldKey.split(':') : [null, fieldKey];
+
+            const newValue =
+        interaction.fields.getTextInputValue(fieldKey)?.trim() ??
+        interaction.fields.getTextInputValue(coreField)?.trim(); // fallback to just 'name'
 
             if (!coreField || typeof newValue !== 'string') {
                 return await interaction.reply({
