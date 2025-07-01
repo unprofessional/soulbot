@@ -120,10 +120,15 @@ function buildCharacterActionRow(characterId) {
             .setCustomId(`edit_stat:${characterId}`)
             .setLabel('🎲 Edit Stat')
             .setStyle(ButtonStyle.Primary),
-        new ButtonBuilder()
-            .setCustomId(`edit_character:${characterId}`)
-            .setLabel('📝 Edit Info')
-            .setStyle(ButtonStyle.Secondary),
+
+        /**
+         * DEPRECATED
+         */
+
+        // new ButtonBuilder()
+        //     .setCustomId(`edit_character:${characterId}`)
+        //     .setLabel('📝 Edit Info')
+        //     .setStyle(ButtonStyle.Secondary),
         new ButtonBuilder()
             .setCustomId(`view_inventory:${characterId}`)
             .setLabel('📦 Inventory')
