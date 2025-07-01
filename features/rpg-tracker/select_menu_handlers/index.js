@@ -32,7 +32,7 @@ module.exports = {
             return statDropdown.handle(interaction);
         }
 
-        if (customId.startsWith('editStatSelect:')) {
+        if (customId.startsWith('editCharacterStatDropdown:')) {
             return characterStatSelect.handle(interaction);
         }
 

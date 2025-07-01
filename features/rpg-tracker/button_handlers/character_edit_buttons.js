@@ -48,7 +48,7 @@ module.exports = {
             }
 
             const select = new StringSelectMenuBuilder()
-                .setCustomId(`editStatSelect:${characterId}`)
+                .setCustomId(`editCharacterStatDropdown:${characterId}`)
                 .setPlaceholder('Choose a stat to edit')
                 .addOptions(options);
 
