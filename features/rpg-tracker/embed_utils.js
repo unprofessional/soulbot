@@ -114,7 +114,7 @@ function buildCharacterEmbed(character) {
     return embed;
 }
 
-function buildCharacterActionRow(characterId) {
+function buildCharacterActionRow(characterId, visibility = 'private') {
     return new ActionRowBuilder().addComponents(
         new ButtonBuilder()
             .setCustomId(`edit_stat:${characterId}`)
@@ -129,14 +129,25 @@ function buildCharacterActionRow(characterId) {
         //     .setCustomId(`edit_character:${characterId}`)
         //     .setLabel('📝 Edit Info')
         //     .setStyle(ButtonStyle.Secondary),
-        new ButtonBuilder()
-            .setCustomId(`view_inventory:${characterId}`)
-            .setLabel('📦 Inventory')
-            .setStyle(ButtonStyle.Secondary),
+
+        /**
+         * TODO: NOT YET PROPERLY IMPLEMENTED
+         */
+
+        // new ButtonBuilder()
+        //     .setCustomId(`view_inventory:${characterId}`)
+        //     .setLabel('📦 Inventory')
+        //     .setStyle(ButtonStyle.Secondary),
+
         new ButtonBuilder()
             .setCustomId(`toggle_visibility:${characterId}`)
-            .setLabel('👁️ Toggle Visibility')
+            .setLabel(
+                visibility === 'public'
+                    ? '🔒 Unpublish Character'
+                    : '🌐 Publish Character'
+            )
             .setStyle(ButtonStyle.Secondary)
+
     );
 }
 

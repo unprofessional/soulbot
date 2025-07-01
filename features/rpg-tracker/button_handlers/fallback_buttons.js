@@ -51,7 +51,7 @@ async function execute(interaction) {
 
         return await interaction.reply({
             embeds: [buildCharacterEmbed(full)],
-            components: [buildCharacterActionRow(character.id)],
+            components: [buildCharacterActionRow(character.id, character.visibility)],
             ephemeral: true,
         });
     } catch (err) {

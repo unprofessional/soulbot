@@ -41,7 +41,7 @@ async function handle(interaction) {
             console.log('[editStatModal] Updated character stats:', updated.stats);
 
             const embed = buildCharacterEmbed(updated);
-            const row = buildCharacterActionRow(characterId);
+            const row = buildCharacterActionRow(characterId, updated.visibility);
 
             return await interaction.editReply({
                 content: null,
@@ -79,7 +79,7 @@ async function handle(interaction) {
 
             const updated = await getCharacterWithStats(characterId);
             const embed = buildCharacterEmbed(updated);
-            const row = buildCharacterActionRow(characterId);
+            const row = buildCharacterActionRow(characterId, updated.visibility);
 
             return await interaction.editReply({
                 content: null,

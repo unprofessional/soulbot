@@ -54,7 +54,7 @@ module.exports = {
             const { warning } = await validateGameAccess({ gameId: full.game_id, userId });
 
             const embed = buildCharacterEmbed(full);
-            const row = buildCharacterActionRow(character.id);
+            const row = buildCharacterActionRow(character.id, character.visibility);
 
             await interaction.reply({
                 content: warning || undefined,

@@ -1,7 +1,7 @@
 // features/rpg-tracker/modal_handlers/character_creation_modals.js
 
 const { getOrCreatePlayer } = require('../../../store/services/player.service');
-const { createCharacter, getUserDefinedFields } = require('../../../store/services/character.service');
+const { getUserDefinedFields } = require('../../../store/services/character.service');
 const {
     getRemainingRequiredFields,
     upsertTempCharacterField,

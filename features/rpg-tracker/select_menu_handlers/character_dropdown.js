@@ -99,7 +99,7 @@ async function handle(interaction) {
             return await interaction.update({
                 content: `✅ Switched to **${character.name}**!`,
                 embeds: [buildCharacterEmbed(character)],
-                components: [buildCharacterActionRow(character.id)],
+                components: [buildCharacterActionRow(character.id, character.visibility)],
             });
         } catch (err) {
             console.error('Error switching character:', err);
