@@ -11,35 +11,39 @@ async function handle(interaction) {
 
     // === Edit Stat ===
     if (customId.startsWith('editStatModal:')) {
-        const [, characterId] = customId.split(':');
+        const [, characterId, fieldKey] = customId.split(':');
 
         try {
-            const statName = interaction.fields.getTextInputValue('statName')?.toLowerCase().trim();
-            const statValue = parseInt(interaction.fields.getTextInputValue('statValue'), 10);
+            const newValue = interaction.fields.getTextInputValue('statValue')?.trim();
 
-            if (!/^[a-zA-Z0-9_]{1,20}$/.test(statName)) {
-                return interaction.reply({
-                    content: '⚠️ Invalid stat name. Use short alphanumeric identifiers (e.g., `hp`, `mana`).',
+            if (!fieldKey || typeof newValue !== 'string') {
+                return await interaction.reply({
+                    content: '⚠️ Invalid stat update request.',
                     ephemeral: true,
                 });
             }
 
-            if (isNaN(statValue)) {
-                return interaction.reply({
-                    content: '⚠️ Invalid stat value. Must be a number.',
-                    ephemeral: true,
-                });
-            }
+            // Optionally: validate input (example if numeric expected)
+            // const numericValue = parseFloat(newValue);
+            // const isNumeric = !isNaN(numericValue);
 
-            await updateStat(characterId, statName, statValue);
+            // You can enforce numeric-only logic here if needed:
+            // if (!isNumeric) {
+            //     return await interaction.reply({
+            //         content: '⚠️ Stat value must be a number.',
+            //         ephemeral: true,
+            //     });
+            // }
 
-            return interaction.reply({
-                content: `🎲 Updated **${statName.toUpperCase()}** to **${statValue}**.`,
+            await updateStat(characterId, fieldKey, newValue);
+
+            return await interaction.reply({
+                content: `🎲 Updated **${fieldKey.toUpperCase()}** to **${newValue}**.`,
                 ephemeral: true,
             });
         } catch (err) {
             console.error('Error in editStatModal:', err);
-            return interaction.reply({
+            return await interaction.reply({
                 content: '❌ Failed to update stat.',
                 ephemeral: true,
             });
@@ -58,7 +62,7 @@ async function handle(interaction) {
             const notes = interaction.fields.getTextInputValue('notes')?.trim();
 
             if (!name || !className || isNaN(level)) {
-                return interaction.reply({
+                return await interaction.reply({
                     content: '⚠️ Invalid input. Please provide valid name, class, and level.',
                     ephemeral: true,
                 });
@@ -72,13 +76,13 @@ async function handle(interaction) {
                 notes,
             });
 
-            return interaction.reply({
+            return await interaction.reply({
                 content: `📝 Character **${name}** updated successfully.`,
                 ephemeral: true,
             });
         } catch (err) {
             console.error('Error in editCharacterModal:', err);
-            return interaction.reply({
+            return await interaction.reply({
                 content: '❌ Failed to update character info.',
                 ephemeral: true,
             });
