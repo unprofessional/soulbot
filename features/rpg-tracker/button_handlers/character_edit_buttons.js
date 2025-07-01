@@ -1,9 +1,16 @@
+// features/rpg-tracker/button_handlers/character_edit_buttons.js
+
 const {
     ActionRowBuilder,
     StringSelectMenuBuilder,
 } = require('discord.js');
 
 const { getCharacterWithStats } = require('../../../store/services/character.service');
+
+// Utility to safely truncate long descriptions (max 100 characters)
+function truncate(str, max = 100) {
+    return str?.length > max ? str.slice(0, max - 1) + '…' : str;
+}
 
 module.exports = {
     async handle(interaction) {
@@ -35,14 +42,18 @@ module.exports = {
                     return {
                         label: String(stat.label || identifier || 'Unnamed'),
                         value: String(identifier),
-                        description: stat.value != null ? `Current: ${stat.value}` : 'No value set',
+                        description: stat.value != null
+                            ? truncate(`Current: ${stat.value}`)
+                            : 'No value set',
                     };
                 });
 
             const coreOptions = coreFields.map(field => ({
                 label: `[CORE] ${field.label}`,
                 value: field.value,
-                description: field.current ? `Current: ${field.current}` : 'No value set',
+                description: field.current
+                    ? truncate(`Current: ${field.current}`)
+                    : 'No value set',
             }));
 
             const options = [...coreOptions, ...statOptions].slice(0, 25);
