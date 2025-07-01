@@ -1,63 +1,68 @@
-// features/rpg-tracker/button_handlers/character_edit_buttons.js
-
 const {
     ActionRowBuilder,
     StringSelectMenuBuilder,
 } = require('discord.js');
 
-const {
-    getCharacterWithStats,
-} = require('../../../store/services/character.service');
-const { buildCharacterEmbed } = require('../embed_utils'); // reuse existing embed
+const { getCharacterWithStats } = require('../../../store/services/character.service');
 
 module.exports = {
     async handle(interaction) {
         const { customId } = interaction;
 
-        // === 🎲 Edit Stat Button Pressed ===
         if (customId.startsWith('edit_stat:')) {
             const [, characterId] = customId.split(':');
             const character = await getCharacterWithStats(characterId);
+
+            const coreFields = [
+                { value: 'core:name', label: 'Name', type: 'short', current: character.name },
+                { value: 'core:avatar_url', label: 'Avatar URL', type: 'short', current: character.avatar_url },
+                { value: 'core:bio', label: 'Bio', type: 'paragraph', current: character.bio },
+                { value: 'core:visibility', label: 'Visibility', type: 'short', current: character.visibility },
+            ];
 
             const editableStats = (character.stats || []).filter(stat => {
                 const name = (stat.name || '').toLowerCase();
                 return !['name', 'avatar_url', 'bio', 'visibility'].includes(name);
             });
 
-            const options = editableStats
+            const statOptions = editableStats
                 .filter(stat =>
                     (typeof stat.template_id === 'string' && stat.template_id.trim()) ||
                     (typeof stat.name === 'string' && stat.name.trim())
                 )
                 .map(stat => {
-                    const identifier = stat.name || stat.template_id;
+                    const identifier = stat.template_id || stat.name;
                     return {
                         label: String(stat.label || identifier || 'Unnamed'),
                         value: String(identifier),
                         description: stat.value != null ? `Current: ${stat.value}` : 'No value set',
                     };
-                })
-                .slice(0, 25);
+                });
+
+            const coreOptions = coreFields.map(field => ({
+                label: `[CORE] ${field.label}`,
+                value: field.value,
+                description: field.current ? `Current: ${field.current}` : 'No value set',
+            }));
+
+            const options = [...coreOptions, ...statOptions].slice(0, 25);
 
             if (options.length === 0) {
                 return await interaction.update({
-                    content: '⚠️ No valid stats to edit.',
-                    embeds: [],
+                    content: '⚠️ No editable fields found.',
                     components: [],
                 });
             }
 
             const select = new StringSelectMenuBuilder()
-                .setCustomId(`editCharacterStatDropdown:${characterId}`)
-                .setPlaceholder('Choose a stat to edit')
+                .setCustomId(`editStatSelect:${characterId}`)
+                .setPlaceholder('Choose a stat or core field to edit')
                 .addOptions(options);
 
             const row = new ActionRowBuilder().addComponents(select);
-            const embed = buildCharacterEmbed(character); // 🧠 show unchanged embed for context
 
             return await interaction.update({
-                content: '🛠️ Select the stat you want to edit:',
-                embeds: [embed],
+                content: '🛠️ Select the stat or field you want to edit:',
                 components: [row],
             });
         }
