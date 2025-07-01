@@ -38,6 +38,8 @@ async function handle(interaction) {
             await interaction.deferUpdate();
 
             const updated = await getCharacterWithStats(characterId);
+            console.log('[Embed DEBUG] Stats after update:', updated.stats);
+            
             const embed = buildCharacterEmbed(updated);
             const row = buildCharacterActionRow(characterId);
 
