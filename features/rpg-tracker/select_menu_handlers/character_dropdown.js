@@ -68,7 +68,7 @@ async function handle(interaction) {
             : TextInputStyle.Short;
 
         const modal = new ModalBuilder()
-            .setCustomId(`setCharacterField:${selectedField}|${label}`)
+            .setCustomId(`createDraftCharacterField:${selectedField}|${label}`)
             .setTitle(truncate(`Enter value for ${label}`, 45))
             .addComponents(
                 new ActionRowBuilder().addComponents(

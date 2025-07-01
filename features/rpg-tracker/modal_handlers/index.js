@@ -10,10 +10,19 @@ module.exports = {
     async handleModal(interaction) {
         const { customId } = interaction;
 
+        // === Game creation/edit modals ===
         if (customId.startsWith('editGameModal:')) return gameModals.handle(interaction);
         if (customId.startsWith('createStatTemplate:') || customId.startsWith('editStatTemplateModal:')) return statTemplateModals.handle(interaction);
-        if (customId.startsWith('createCharacterModal:')) return characterCreationModals.handle(interaction);
 
+        // === Character creation (DRAFT flow) ===
+        if (
+            customId.startsWith('createCharacterModal:') || // legacy full modal
+            customId.startsWith('createDraftCharacterField:') // new single-field modal
+        ) {
+            return characterCreationModals.handle(interaction);
+        }
+
+        // === Character editing (PERSISTED flow) ===
         if (
             customId.startsWith('editCharacterModal:') ||
             customId.startsWith('editStatModal:') ||
@@ -23,8 +32,13 @@ module.exports = {
             return characterEditModals.handle(interaction);
         }
 
+        // === Inventory modals ===
         if (customId.startsWith('addInventoryModal:')) return inventoryModals.handle(interaction);
 
-        return interaction.reply({ content: '❓ Unknown modal submission.', ephemeral: true });
+        // === Fallback ===
+        return interaction.reply({
+            content: '❓ Unknown modal submission.',
+            ephemeral: true,
+        });
     },
 };

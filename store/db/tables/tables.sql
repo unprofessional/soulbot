@@ -51,10 +51,16 @@ CREATE TABLE stat_template (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   game_id UUID NOT NULL REFERENCES game(id) ON DELETE CASCADE,
   label TEXT NOT NULL,
-  field_type TEXT NOT NULL DEFAULT 'short' CHECK (field_type IN ('short', 'paragraph')),
+
+  -- Now includes 'count' and 'number' field types
+  field_type TEXT NOT NULL DEFAULT 'short'
+    CHECK (field_type IN ('short', 'paragraph', 'number', 'count')),
+
   default_value TEXT,
   is_required BOOLEAN DEFAULT TRUE,
   sort_order INTEGER DEFAULT 0,
+
+  -- New: meta for grouping, scaffold types, roles (e.g. { "scaffold": "count", "role": "current", "group": "HP" })
   meta JSONB DEFAULT '{}'
 );
 
@@ -95,13 +101,17 @@ CREATE TABLE player_server_link (
   UNIQUE(player_id, guild_id)
 );
 
--- === TEMPLATE-BASED STAT FIELDS ===
+-- === TEMPLATE-BASED STAT FIELDS PER CHARACTER ===
 CREATE TABLE character_stat_field (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   character_id UUID NOT NULL REFERENCES character(id) ON DELETE CASCADE,
   template_id UUID NOT NULL REFERENCES stat_template(id) ON DELETE CASCADE,
+
   value TEXT NOT NULL,
+
+  -- meta can store computed info (e.g., derived stats, override flags)
   meta JSONB DEFAULT '{}',
+
   UNIQUE(character_id, template_id)
 );
 
