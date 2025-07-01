@@ -33,13 +33,11 @@ async function handle(interaction) {
             }
 
             await updateStat(characterId, fieldKey, newValue);
-
-            // Prevent flicker — acknowledge the modal without displaying a message
             await interaction.deferUpdate();
 
             const updated = await getCharacterWithStats(characterId);
             console.log('[Embed DEBUG] Stats after update:', updated.stats);
-            
+
             const embed = buildCharacterEmbed(updated);
             const row = buildCharacterActionRow(characterId);
 
@@ -57,7 +55,48 @@ async function handle(interaction) {
         }
     }
 
-    // === Edit Character Metadata ===
+    // === Edit Core Field ===
+    if (customId.startsWith('editCharacterField:')) {
+        const [, characterId, rawField] = customId.split(':'); // rawField = core:name
+        const [fieldKey] = rawField.split('|'); // full ID is core:name|Name
+
+        const coreField = fieldKey.replace(/^core:/, '');
+
+        try {
+            const newValue = interaction.fields.getTextInputValue(fieldKey)?.trim();
+
+            if (!coreField || typeof newValue !== 'string') {
+                return await interaction.reply({
+                    content: '⚠️ Invalid core field update.',
+                    ephemeral: true,
+                });
+            }
+
+            await updateCharacterMeta(characterId, {
+                [coreField]: newValue,
+            });
+
+            await interaction.deferUpdate();
+
+            const updated = await getCharacterWithStats(characterId);
+            const embed = buildCharacterEmbed(updated);
+            const row = buildCharacterActionRow(characterId);
+
+            return await interaction.editReply({
+                content: null,
+                embeds: [embed],
+                components: [row],
+            });
+        } catch (err) {
+            console.error('Error in editCharacterField:', err);
+            return await interaction.reply({
+                content: '❌ Failed to update character field.',
+                ephemeral: true,
+            });
+        }
+    }
+
+    // === Edit Character Metadata (multi-field modal) ===
     if (customId.startsWith('editCharacterModal:')) {
         const [, characterId] = customId.split(':');
 

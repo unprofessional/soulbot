@@ -48,6 +48,7 @@ async function handle(interaction) {
         });
     }
 
+    // === CORE FIELD ===
     if (selectedKey.startsWith('core:')) {
         const [, coreField] = selectedKey.split(':');
         const value = character[coreField] ?? '';
@@ -57,7 +58,7 @@ async function handle(interaction) {
         const inputStyle = coreField === 'bio' ? TextInputStyle.Paragraph : TextInputStyle.Short;
 
         const modal = new ModalBuilder()
-            .setCustomId(`setCharacterField:${selectedKey}|${label}`)
+            .setCustomId(`editCharacterField:${characterId}:${selectedKey}|${label}`)
             .setTitle(truncate(`Edit ${label}`))
             .addComponents(
                 new ActionRowBuilder().addComponents(
@@ -73,6 +74,7 @@ async function handle(interaction) {
         return await interaction.showModal(modal);
     }
 
+    // === STAT FIELD ===
     const stat = (character.stats || []).find(s =>
         s.template_id === selectedKey || s.name === selectedKey
     );
