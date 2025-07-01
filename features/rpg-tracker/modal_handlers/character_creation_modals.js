@@ -18,7 +18,7 @@ async function handle(interaction) {
     const { customId } = interaction;
 
     // === Full Character Creation (Legacy Modal) ===
-    if (customId.startsWith('createCharacterModal:')) {
+    if (customId.startsWith('createDraftCharacterField:')) {
         const [, gameId] = customId.split(':');
 
         try {
