@@ -17,7 +17,7 @@ function truncate(str, max = 45) {
 }
 
 /**
- * Shows stat edit modal after user selects a stat from dropdown.
+ * Shows stat or core field edit modal after user selects from dropdown.
  * @param {import('discord.js').StringSelectMenuInteraction} interaction
  */
 async function handle(interaction) {
@@ -34,6 +34,31 @@ async function handle(interaction) {
         });
     }
 
+    // === Handle CORE fields ===
+    if (selectedKey.startsWith('core:')) {
+        const [, coreField] = selectedKey.split(':');
+        const value = character[coreField] ?? '';
+        const label = coreField.charAt(0).toUpperCase() + coreField.slice(1);
+        const inputStyle = coreField === 'bio' ? TextInputStyle.Paragraph : TextInputStyle.Short;
+
+        const modal = new ModalBuilder()
+            .setCustomId(`setCharacterField:${selectedKey}|${label}`)
+            .setTitle(truncate(`Edit ${label}`))
+            .addComponents(
+                new ActionRowBuilder().addComponents(
+                    new TextInputBuilder()
+                        .setCustomId(selectedKey)
+                        .setLabel(truncate(`Value for ${label}`))
+                        .setStyle(inputStyle)
+                        .setValue(value)
+                        .setRequired(true)
+                )
+            );
+
+        return await interaction.showModal(modal);
+    }
+
+    // === Handle template-defined or user-defined fields ===
     const stat = (character.stats || []).find(s =>
         s.template_id === selectedKey || s.name === selectedKey
     );
@@ -41,7 +66,7 @@ async function handle(interaction) {
     if (!stat) {
         console.warn('[editStatSelect] Stat not found for:', selectedKey, character.stats);
         return await interaction.reply({
-            content: '❌ Stat not found.',
+            content: '❌ Could not find that stat field.',
             ephemeral: true,
         });
     }
