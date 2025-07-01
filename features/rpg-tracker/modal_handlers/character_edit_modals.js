@@ -1,6 +1,15 @@
 // features/rpg-tracker/modal_handlers/character_edit_modals.js
 
-const { updateStat, updateCharacterMeta } = require('../../../store/services/character.service');
+const {
+    getCharacterWithStats,
+    updateStat,
+    updateCharacterMeta,
+} = require('../../../store/services/character.service');
+
+const {
+    buildCharacterEmbed,
+    buildCharacterActionRow,
+} = require('../embed_utils');
 
 /**
  * Handles modals related to character stat or metadata editing.
@@ -23,23 +32,22 @@ async function handle(interaction) {
                 });
             }
 
-            // Optionally: validate input (example if numeric expected)
-            // const numericValue = parseFloat(newValue);
-            // const isNumeric = !isNaN(numericValue);
-
-            // You can enforce numeric-only logic here if needed:
-            // if (!isNumeric) {
-            //     return await interaction.reply({
-            //         content: '⚠️ Stat value must be a number.',
-            //         ephemeral: true,
-            //     });
-            // }
-
             await updateStat(characterId, fieldKey, newValue);
 
-            return await interaction.reply({
+            // Must reply before editReply — even with a placeholder
+            await interaction.reply({
                 content: `🎲 Updated **${fieldKey.toUpperCase()}** to **${newValue}**.`,
                 ephemeral: true,
+            });
+
+            const updated = await getCharacterWithStats(characterId);
+            const embed = buildCharacterEmbed(updated);
+            const row = buildCharacterActionRow(characterId);
+
+            return await interaction.editReply({
+                content: null, // clear the text message if desired
+                embeds: [embed],
+                components: [row],
             });
         } catch (err) {
             console.error('Error in editStatModal:', err);
