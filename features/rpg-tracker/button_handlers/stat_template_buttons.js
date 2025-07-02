@@ -26,17 +26,34 @@ async function handle(interaction) {
     const { customId } = interaction;
 
     // === Define Required Stats Modal ===
-    // if (customId.startsWith('defineStats:')) {
-    //     const [, gameId] = customId.split(':');
-    //     const modal = buildStatTemplateModal({ gameId });
-    //     return await interaction.showModal(modal);
-    // }
     if (customId.startsWith('defineStats:')) {
         const [, gameId] = customId.split(':');
         const row = buildStatTypeDropdown(gameId);
 
         return await interaction.update({
-            content: '➕ Select a stat type to define:',
+            content: [
+                `🧠 **Define a new GAME stat field**`,
+                ``,
+                `Choose the *type* of stat you want to define.`,
+                `⚠️ **Once created, the stat type CANNOT be changed.**`,
+                `If you make a mistake, you must delete the stat and recreate it with the correct type.`,
+                ``,
+                `📌 **Stat Types & Examples:**`,
+                ``,
+                `🔢 **Number** — a single value (no max/current):`,
+                `• Gold, XP, Strength, Agility, Reputation, Kills, Karma`,
+                ``,
+                `🔁 **Count** — tracks both max and current value:`,
+                `• HP, Mana, Charges, Ammo, Sanity`,
+                ``,
+                `💬 **Text (one-line)** — short string inputs:`,
+                `• Race, Class, Allegiance, Faction`,
+                ``,
+                `📝 **Text (multi-line)** — paragraph-style notes:`,
+                `• Personality, History, Abilities, Quirks`,
+                ``,
+                `➡️ Select a stat type from the dropdown below.`,
+            ].join('\n'),
             components: [row],
             embeds: [],
         });
