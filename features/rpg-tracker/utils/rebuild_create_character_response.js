@@ -1,4 +1,3 @@
-/* eslint-disable indent */
 // features/rpg-tracker/utils/rebuild_create_character_response.js
 
 const {
@@ -13,7 +12,7 @@ const {
  */
 function summarize(value, max = 40) {
     if (!value) return '';
-    const cleaned = value.replace(/\\s+/g, ' ').trim();
+    const cleaned = value.replace(/\s+/g, ' ').trim();
     return cleaned.length > max ? `${cleaned.slice(0, max - 1)}…` : cleaned;
 }
 
@@ -32,15 +31,11 @@ function buildCreateCharacterMessage(game, statTemplates = [], userFields = [], 
     lines.push('');
     lines.push(`**CORE Fields:**`);
 
-    const coreFields = [
-        'core:name',
-        'core:avatar_url',
-        'core:bio',
-    ];
+    const coreFields = ['core:name', 'core:avatar_url', 'core:bio'];
 
     for (const key of coreFields) {
         const value = draftData[key];
-        const label = key.split(':')[1].replace(/_/g, ' ').replace(/\\b\\w/g, c => c.toUpperCase());
+        const label = key.split(':')[1].replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
         if (value && value.toString().trim()) {
             lines.push(`- [CORE] ${label} 🟢 ${summarize(value.toString())}`);
         } else {
@@ -56,17 +51,8 @@ function buildCreateCharacterMessage(game, statTemplates = [], userFields = [], 
             if (t.field_type === 'count') {
                 const maxVal = draftData[`game:${t.id}:max`];
                 const curVal = draftData[`game:${t.id}:current`];
-                const displayParts = [];
-
-                if (maxVal && maxVal.toString().trim()) {
-                    displayParts.push(`MAX: ${summarize(maxVal.toString())}`);
-                }
-                if (curVal && curVal.toString().trim()) {
-                    displayParts.push(`CURRENT: ${summarize(curVal.toString())}`);
-                }
-
-                if (displayParts.length) {
-                    lines.push(`- [GAME] ${t.label} 🟢 ${displayParts.join(' / ')}`);
+                if (maxVal || curVal) {
+                    lines.push(`- [GAME] ${t.label} 🟢 ⚔️ ${curVal || maxVal} / ${maxVal}`);
                 } else {
                     lines.push(`- [GAME] ${t.label}`);
                 }
@@ -108,7 +94,7 @@ function buildCreateCharacterMessage(game, statTemplates = [], userFields = [], 
         lines.push('');
     }
 
-    return lines.join('\\n');
+    return lines.join('\n');
 }
 
 /**
@@ -125,10 +111,14 @@ function rebuildCreateCharacterResponse(game, statTemplates, userFields, fieldOp
             .setCustomId('createCharacterDropdown')
             .setPlaceholder('Choose a character field to define')
             .addOptions(
-                fieldOptions.map(f => ({
-                    label: f.label,
-                    value: `${f.name}|${f.label}|${f.type}`,
-                }))
+                fieldOptions.map(f => {
+                    const template = statTemplates.find(t => `game:${t.id}` === f.name);
+                    const fieldType = template?.field_type;
+                    return {
+                        label: f.label,
+                        value: `${f.name}|${f.label}${fieldType ? `|${fieldType}` : ''}`,
+                    };
+                })
             );
         components.push(new ActionRowBuilder().addComponents(dropdown));
     }
@@ -142,10 +132,10 @@ function rebuildCreateCharacterResponse(game, statTemplates, userFields, fieldOp
         ...statTemplates.flatMap(t =>
             t.field_type === 'count'
                 ? [
-                    { name: `game:${t.id}:max`, label: `[GAME] ${t.label} (Max)` },
-                    { name: `game:${t.id}:current`, label: `[GAME] ${t.label} (Current)` },
-                  ]
-                : [{ name: `game:${t.id}`, label: `[GAME] ${t.label}` }]
+                    { name: `game:${t.id}:max`, label: `[GAME] ${t.label} (Max)`, field_type: 'count' },
+                    { name: `game:${t.id}:current`, label: `[GAME] ${t.label} (Current)`, field_type: 'count' },
+                ]
+                : [{ name: `game:${t.id}`, label: `[GAME] ${t.label}`, field_type: t.field_type }]
         ),
         ...userFields.map(f => ({
             name: `user:${f.name}`,
@@ -165,7 +155,7 @@ function rebuildCreateCharacterResponse(game, statTemplates, userFields, fieldOp
             .addOptions(
                 filledFields.map(f => ({
                     label: f.label,
-                    value: `${f.name}|${f.label}|${f.type}`,
+                    value: `${f.name}|${f.label}${f.field_type ? `|${f.field_type}` : ''}`,
                 }))
             );
         components.push(new ActionRowBuilder().addComponents(editDropdown));
