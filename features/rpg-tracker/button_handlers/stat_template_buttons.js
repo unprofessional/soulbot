@@ -28,17 +28,24 @@ async function handle(interaction) {
     // === Define Required Stats Modal ===
     if (customId.startsWith('defineStats:')) {
         const [, gameId] = customId.split(':');
-        const row = buildStatTypeDropdown(gameId);
+        const dropdownRow = buildStatTypeDropdown(gameId);
+
+        const cancelBtn = new ButtonBuilder()
+            .setCustomId(`finishStatSetup:${gameId}`)
+            .setLabel('↩️ Cancel / Go Back')
+            .setStyle(ButtonStyle.Secondary);
+
+        const cancelRow = new ActionRowBuilder().addComponents(cancelBtn);
 
         return await interaction.update({
             content: [
-                `## Define a new GAME stat field**`,
+                `## Define a new GAME stat field`,
                 ``,
                 `### Choose the *type* of stat you want to define.`,
-                `⚠️ Once created, the stat type CANNOT be changed.`,
-                `⚠️ If you make a mistake, you must delete the stat and recreate it with the correct type.`,
+                `⚠️ **Once created, the stat type CANNOT be changed.**`,
+                `If you make a mistake, you must delete the stat and recreate it with the correct type.`,
                 ``,
-                `### **Stat Types & Examples:**`,
+                `### Stat Types & Examples:`,
                 ``,
                 `🔢 **Number** — a single value (no max/current):`,
                 `• Level, Gold, XP, Strength, Agility, Reputation, Kills, Karma`,
@@ -51,12 +58,11 @@ async function handle(interaction) {
                 ``,
                 `📝 **Text (multi-line)** — paragraph-style notes:`,
                 `• Personality, History, Abilities, Quirks`,
-                `(Remember there is already a SYSTEM-provided character BIO field!)`,
+                `_(Remember: every character already has a built-in BIO field.)_`,
                 ``,
                 `Select a stat type from the dropdown below.`,
-                ``,
             ].join('\n'),
-            components: [row],
+            components: [dropdownRow, cancelRow],
             embeds: [],
         });
     }
