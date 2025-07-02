@@ -52,9 +52,9 @@ function buildGameEmbed(game, characters = [], statTemplates = []) {
 function buildCharacterEmbed(character) {
     const embed = new EmbedBuilder();
 
-    // === Avatar (Featured Image) ===
+    // === Avatar ===
     if (character.avatar_url) {
-        embed.setImage(character.avatar_url); // 👈 use as large image instead of thumbnail
+        embed.setImage(character.avatar_url);
     }
 
     // === Header ===
@@ -62,42 +62,60 @@ function buildCharacterEmbed(character) {
     const visibility = (character.visibility || 'private').toLowerCase();
     const visibilityEmoji = visibility === 'public' ? '🔓' : '🔒';
     const visibilityLabel = `${visibilityEmoji} ${visibility.charAt(0).toUpperCase() + visibility.slice(1)}`;
-
     embed.setTitle(name);
-    embed.addFields(
-        { name: 'Visibility', value: visibilityLabel, inline: true }
-    );
+    embed.addFields({ name: 'Visibility', value: visibilityLabel, inline: true });
 
-    // === Extract GAME Stats (excluding core + HP/Max HP) ===
     const allStats = character.stats || [];
     const coreFields = ['name', 'avatar_url', 'bio', 'visibility'];
-    const excluded = ['hp', 'max_hp', ...coreFields];
-    const gameStats = allStats.filter(s => !excluded.includes((s.name || s.label || '').toLowerCase()));
 
-    // Sort by GM-defined order
-    const sorted = gameStats.sort((a, b) => {
-        const aIndex = a.sort_index ?? a.template_sort_index ?? 999;
-        const bIndex = b.sort_index ?? b.template_sort_index ?? 999;
-        return aIndex - bIndex;
-    });
+    // === Group by label to find MAX / CURRENT pairs ===
+    const statMap = new Map(); // label => { max, current, type, sort_index }
 
-    // 2 columns, filling row-wise
+    for (const stat of allStats) {
+        const { name, label, value, type, sort_index, template_sort_index } = stat;
+        const key = (label || '').toUpperCase();
+        if (!key || coreFields.includes(name)) continue;
+
+        const bucket = statMap.get(key) || { label: key, max: null, current: null, type, sort_index: sort_index ?? template_sort_index ?? 999 };
+
+        if (name.includes(':max')) bucket.max = value;
+        else if (name.includes(':current')) bucket.current = value;
+        else bucket.value = value;
+
+        statMap.set(key, bucket);
+    }
+
+    const combined = Array.from(statMap.values());
+
+    // Sort
+    combined.sort((a, b) => a.sort_index - b.sort_index);
+
+    // Build rows
     const leftStats = [];
     const rightStats = [];
 
-    sorted.forEach((s, i) => {
-        const str = `**${s.label}**: ${s.value}`;
-        if (i % 2 === 0) leftStats.push(str);
-        else rightStats.push(str);
-    });
+    for (let i = 0; i < combined.length; i++) {
+        const stat = combined[i];
+        let display = '';
 
-    const maxRows = Math.ceil(sorted.length / 2);
-    for (let i = 0; i < maxRows; i++) {
-        const left = leftStats[i] ?? '\u200B';
-        const right = rightStats[i] ?? '\u200B';
+        if (stat.max !== null) {
+            const current = stat.current ?? stat.max;
+            display = `⚔️ ${stat.label}: ${current} / ${stat.max}`;
+        } else if (stat.value !== undefined) {
+            display = `**${stat.label}**: ${stat.value}`;
+        } else {
+            display = `**${stat.label}**: _Not set_`;
+        }
+
+        if (i % 2 === 0) leftStats.push(display);
+        else rightStats.push(display);
+    }
+
+    const rows = Math.max(leftStats.length, rightStats.length);
+    for (let i = 0; i < rows; i++) {
         embed.addFields(
-            { name: '\u200B', value: left, inline: true },
-            { name: '\u200B', value: right, inline: true }
+            { name: '\u200B', value: leftStats[i] ?? '\u200B', inline: true },
+            { name: '\u200B', value: rightStats[i] ?? '\u200B', inline: true }
         );
     }
 
@@ -107,9 +125,7 @@ function buildCharacterEmbed(character) {
     }
 
     // === Footer ===
-    embed.setFooter({
-        text: `Created on ${new Date(character.created_at).toLocaleDateString()}`,
-    });
+    embed.setFooter({ text: `Created on ${new Date(character.created_at).toLocaleDateString()}` });
 
     return embed;
 }
