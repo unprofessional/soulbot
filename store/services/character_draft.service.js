@@ -10,7 +10,7 @@ const statFieldDAO = new CharacterStatFieldDAO();
 // In-memory store for drafts (replace with Redis for production)
 const drafts = new Map();
 const STALE_TIMEOUT = 1000 * 60 * 30; // 30 minutes
-const MAX_DRAFTS = 1000; // safety limit
+const MAX_DRAFTS = 1000;
 
 function getDraftKey(userId) {
     return `draft:${userId}`;
@@ -31,14 +31,6 @@ function initDraft(userId) {
     return drafts.get(key).data;
 }
 
-/**
- * Temporarily stores a character field for the user.
- * Will also inject game_id if passed and not already set.
- * @param {string} userId
- * @param {string} fieldKey - e.g., "core:name", "game:<template_id>"
- * @param {string} value
- * @param {string|null} gameId - optional game_id to inject into draft
- */
 async function upsertTempCharacterField(userId, fieldKey, value, gameId = null) {
     const key = getDraftKey(userId);
     if (!drafts.has(key)) {
@@ -60,9 +52,6 @@ async function upsertTempCharacterField(userId, fieldKey, value, gameId = null) 
     console.log('🗂️  Current draft:', JSON.stringify(wrapper.data, null, 2));
 }
 
-/**
- * Returns the current in-memory character draft for the user.
- */
 async function getTempCharacterData(userId) {
     const wrapper = drafts.get(getDraftKey(userId)) || null;
     const draft = wrapper ? wrapper.data : null;
@@ -70,9 +59,6 @@ async function getTempCharacterData(userId) {
     return draft;
 }
 
-/**
- * Returns a list of required fields (core + game-defined) that are missing from the draft.
- */
 async function getRemainingRequiredFields(userId) {
     const draft = await getTempCharacterData(userId);
 
@@ -107,30 +93,31 @@ async function getRemainingRequiredFields(userId) {
     for (const template of statTemplates) {
         if (!template.is_required) continue;
 
-        if (template.field_type === 'count') {
-            const maxKey = `game:${template.id}:max`;
-            const curKey = `game:${template.id}:current`;
-            const hasMax = draft[maxKey] && draft[maxKey].trim();
-            const hasCur = draft[curKey] && draft[curKey].trim();
+        const fieldKey = `game:${template.id}`;
 
-            if (!hasMax && !hasCur) {
-                missing.push({ name: `game:${template.id}`, label: `[GAME] ${template.label}` });
+        if (template.field_type === 'count') {
+            const maxKey = `${fieldKey}:max`;
+            const hasMax = draft[maxKey] && draft[maxKey].trim();
+
+            if (!hasMax) {
+                // Only include base field once (not :max or :current)
+                missing.push({ name: fieldKey, label: `[GAME] ${template.label}` });
             }
         } else {
-            const key = `game:${template.id}`;
-            if (!draft[key] || !draft[key].trim()) {
-                missing.push({ name: key, label: `[GAME] ${template.label}` });
+            const value = draft[fieldKey];
+            if (!value || !value.trim()) {
+                missing.push({ name: fieldKey, label: `[GAME] ${template.label}` });
             }
         }
     }
 
-    console.log(`📋 Remaining required fields for user ${userId}:`, missing);
-    return missing;
+    // ✅ Filter out any subfields like :max or :current (just in case)
+    const filtered = missing.filter(f => !f.name.endsWith(':max') && !f.name.endsWith(':current'));
+
+    console.log(`📋 Remaining required fields for user ${userId}:`, filtered);
+    return filtered;
 }
 
-/**
- * Returns true if the draft contains all required core and game-defined fields.
- */
 async function isDraftComplete(userId) {
     const remaining = await getRemainingRequiredFields(userId);
     const complete = remaining.length === 0;
@@ -138,9 +125,6 @@ async function isDraftComplete(userId) {
     return complete;
 }
 
-/**
- * Converts the draft into a finalized character and persists it.
- */
 async function finalizeCharacterCreation(userId, draft) {
     const { game_id } = draft;
 
@@ -164,17 +148,15 @@ async function finalizeCharacterCreation(userId, draft) {
     const statTemplates = await getStatTemplates(game_id);
     const statMap = {};
     for (const template of statTemplates) {
+        const baseKey = `game:${template.id}`;
         if (template.field_type === 'count') {
-            const max = draft[`game:${template.id}:max`];
-            const cur = draft[`game:${template.id}:current`] ?? max;
+            const max = draft[`${baseKey}:max`];
+            const cur = draft[`${baseKey}:current`] ?? max;
             if (max) {
                 statMap[template.id] = `${cur} / ${max}`;
             }
-        } else {
-            const key = `game:${template.id}`;
-            if (draft[key]) {
-                statMap[template.id] = draft[key];
-            }
+        } else if (draft[baseKey]) {
+            statMap[template.id] = draft[baseKey];
         }
     }
 
@@ -186,9 +168,6 @@ async function finalizeCharacterCreation(userId, draft) {
     return character;
 }
 
-/**
- * Purges any drafts that have not been touched within the STALE_TIMEOUT window.
- */
 function purgeStaleDrafts() {
     const now = Date.now();
     for (const [key, { updatedAt }] of drafts.entries()) {
@@ -199,7 +178,6 @@ function purgeStaleDrafts() {
     }
 }
 
-// Periodic cleanup: every 5 minutes
 setInterval(purgeStaleDrafts, 1000 * 60 * 5);
 
 module.exports = {
