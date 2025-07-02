@@ -28,7 +28,7 @@ async function handle(interaction) {
     if (customId.startsWith('createStatModal:')) {
         const [, gameId, fieldType] = customId.split(':');
 
-        const label = interaction.fields.getTextInputValue('label')?.trim();
+        const label = interaction.fields.getTextInputValue('label')?.trim().toUpperCase();
         const defaultValue = interaction.fields.getTextInputValue('default_value')?.trim() || null;
         const sortIndexRaw = interaction.fields.getTextInputValue('sort_index')?.trim();
         const sortIndex = sortIndexRaw ? parseInt(sortIndexRaw, 10) : null;
@@ -62,7 +62,7 @@ async function handle(interaction) {
         const [, statId] = customId.split(':');
 
         try {
-            const label = interaction.fields.getTextInputValue('label')?.trim();
+            const label = interaction.fields.getTextInputValue('label')?.trim().toUpperCase();
             const defaultValue = interaction.fields.getTextInputValue('default_value')?.trim();
             const sortOrderRaw = interaction.fields.getTextInputValue('sort_order')?.trim();
             const sortOrder = isNaN(parseInt(sortOrderRaw)) ? 0 : parseInt(sortOrderRaw, 10);
