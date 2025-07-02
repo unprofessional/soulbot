@@ -32,13 +32,13 @@ async function handle(interaction) {
 
         return await interaction.update({
             content: [
-                `🧠 **Define a new GAME stat field**`,
+                `# Define a new GAME stat field**`,
                 ``,
-                `Choose the *type* of stat you want to define.`,
-                `⚠️ **Once created, the stat type CANNOT be changed.**`,
-                `If you make a mistake, you must delete the stat and recreate it with the correct type.`,
+                `### Choose the *type* of stat you want to define.`,
+                `⚠️ Once created, the stat type CANNOT be changed.`,
+                `⚠️ If you make a mistake, you must delete the stat and recreate it with the correct type.`,
                 ``,
-                `📌 **Stat Types & Examples:**`,
+                `#### **Stat Types & Examples:**`,
                 ``,
                 `🔢 **Number** — a single value (no max/current):`,
                 `• Level, Gold, XP, Strength, Agility, Reputation, Kills, Karma`,
