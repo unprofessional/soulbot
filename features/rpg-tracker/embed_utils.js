@@ -52,45 +52,49 @@ function buildGameEmbed(game, characters = [], statTemplates = []) {
 function buildCharacterEmbed(character) {
     const embed = new EmbedBuilder();
 
-    // === Avatar ===
     if (character.avatar_url) {
         embed.setImage(character.avatar_url);
     }
 
-    // === Header ===
     const name = character.name || 'Unnamed Character';
     const visibility = (character.visibility || 'private').toLowerCase();
     const visibilityEmoji = visibility === 'public' ? '🔓' : '🔒';
     const visibilityLabel = `${visibilityEmoji} ${visibility.charAt(0).toUpperCase() + visibility.slice(1)}`;
+
     embed.setTitle(name);
     embed.addFields({ name: 'Visibility', value: visibilityLabel, inline: true });
 
     const allStats = character.stats || [];
     const coreFields = ['name', 'avatar_url', 'bio', 'visibility'];
 
-    // === Group by label to find MAX / CURRENT pairs ===
-    const statMap = new Map(); // label => { max, current, type, sort_index }
+    const statMap = new Map();
 
     for (const stat of allStats) {
         const { name, label, value, type, sort_index, template_sort_index } = stat;
         const key = (label || '').toUpperCase();
         if (!key || coreFields.includes(name)) continue;
 
-        const bucket = statMap.get(key) || { label: key, max: null, current: null, type, sort_index: sort_index ?? template_sort_index ?? 999 };
+        const bucket = statMap.get(key) || {
+            label: key,
+            max: null,
+            current: null,
+            value: null,
+            type,
+            sort_index: sort_index ?? template_sort_index ?? 999
+        };
 
-        if (name.includes(':max')) bucket.max = value;
-        else if (name.includes(':current')) bucket.current = value;
-        else bucket.value = value;
+        if (typeof name === 'string') {
+            if (name.includes(':max')) bucket.max = value;
+            else if (name.includes(':current')) bucket.current = value;
+            else bucket.value = value;
+        } else {
+            bucket.value = value;
+        }
 
         statMap.set(key, bucket);
     }
 
-    const combined = Array.from(statMap.values());
-
-    // Sort
-    combined.sort((a, b) => a.sort_index - b.sort_index);
-
-    // Build rows
+    const combined = Array.from(statMap.values()).sort((a, b) => a.sort_index - b.sort_index);
     const leftStats = [];
     const rightStats = [];
 
@@ -119,12 +123,10 @@ function buildCharacterEmbed(character) {
         );
     }
 
-    // === Bio ===
     if (character.bio) {
         embed.setDescription(`_${character.bio}_`);
     }
 
-    // === Footer ===
     embed.setFooter({ text: `Created on ${new Date(character.created_at).toLocaleDateString()}` });
 
     return embed;
@@ -137,24 +139,6 @@ function buildCharacterActionRow(characterId, visibility = 'private') {
             .setLabel('🎲 Edit Stat')
             .setStyle(ButtonStyle.Primary),
 
-        /**
-         * DEPRECATED
-         */
-
-        // new ButtonBuilder()
-        //     .setCustomId(`edit_character:${characterId}`)
-        //     .setLabel('📝 Edit Info')
-        //     .setStyle(ButtonStyle.Secondary),
-
-        /**
-         * TODO: NOT YET PROPERLY IMPLEMENTED
-         */
-
-        // new ButtonBuilder()
-        //     .setCustomId(`view_inventory:${characterId}`)
-        //     .setLabel('📦 Inventory')
-        //     .setStyle(ButtonStyle.Secondary),
-
         new ButtonBuilder()
             .setCustomId(`toggle_visibility:${characterId}`)
             .setLabel(
@@ -163,7 +147,6 @@ function buildCharacterActionRow(characterId, visibility = 'private') {
                     : '🌐 Publish Character'
             )
             .setStyle(ButtonStyle.Secondary)
-
     );
 }
 
