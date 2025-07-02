@@ -26,6 +26,37 @@ const {
 async function handle(interaction) {
     const { customId } = interaction;
 
+    // === GM Create DROPDOWN init Game Stats ===
+    if (customId.startsWith('createStatModal:')) {
+        const [, gameId, fieldType] = customId.split(':');
+
+        const label = interaction.fields.getTextInputValue('label')?.trim();
+        const defaultValue = interaction.fields.getTextInputValue('default_value')?.trim() || null;
+        const sortIndexRaw = interaction.fields.getTextInputValue('sort_index')?.trim();
+        const sortIndex = sortIndexRaw ? parseInt(sortIndexRaw, 10) : null;
+
+        if (!label || !['number', 'count', 'text-short', 'text-paragraph'].includes(fieldType)) {
+            return await interaction.reply({
+                content: '⚠️ Invalid input or stat type.',
+                ephemeral: true,
+            });
+        }
+
+        const newStat = await addStatTemplates(gameId, [{
+            label,
+            field_type: fieldType,
+            default_value: defaultValue,
+            sort_index: sortIndex,
+        }]);
+
+        const game = await getGame({ id: gameId });
+        const statTemplates = await getStatTemplates(gameId);
+
+        const response = rebuildCreateGameResponse(game, statTemplates, label);
+
+        return await interaction.update(response);
+    }
+
     // === GM Create Default Game Stat Field ===
     if (customId.startsWith('createStatTemplate:')) {
         const [, gameId] = customId.split(':');

@@ -25,7 +25,7 @@ module.exports = {
 
         const labelInput = new TextInputBuilder()
             .setCustomId('label')
-            .setLabel('Field Label (e.g., HP, Gold, Skills)')
+            .setLabel('Field Label: What\'s it called?')
             .setStyle(TextInputStyle.Short)
             .setRequired(true);
 
@@ -37,7 +37,7 @@ module.exports = {
 
         const sortInput = new TextInputBuilder()
             .setCustomId('sort_index')
-            .setLabel('Sort Order (optional, e.g. 1)')
+            .setLabel('Sort Order (optional): 0=top, 9=lower')
             .setStyle(TextInputStyle.Short)
             .setRequired(false);
 
