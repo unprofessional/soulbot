@@ -35,8 +35,9 @@ async function processCharacterFieldModal(interaction, fieldKey, label, value) {
             });
         }
 
-        await upsertTempCharacterField(interaction.user.id, `${fieldKey}:max`, max, gameId);
-        await upsertTempCharacterField(interaction.user.id, `${fieldKey}:current`, current || max, gameId);
+        // Store a combined value like "3 / 4"
+        const valueToStore = `${current || max} / ${max}`;
+        await upsertTempCharacterField(interaction.user.id, fieldKey, valueToStore, gameId);
     } else {
         await upsertTempCharacterField(interaction.user.id, fieldKey, value, gameId);
     }
@@ -104,13 +105,33 @@ async function handle(interaction) {
         }
 
         try {
-            const value = interaction.fields.getTextInputValue(fieldKey)?.trim();
-            if (!value) {
+            const draft = await getTempCharacterData(interaction.user.id);
+            const gameId = draft?.game_id || null;
+
+            if (!gameId) {
                 return interaction.reply({
-                    content: '⚠️ No value was entered.',
+                    content: '⚠️ Your draft session is invalid or expired.',
                     ephemeral: true,
                 });
             }
+
+            const statTemplates = await getStatTemplates(gameId);
+            const matchingTemplate = statTemplates.find(t => `game:${t.id}` === fieldKey);
+
+            let value = null;
+            if (matchingTemplate?.field_type === 'count') {
+                // Skip extracting value now; processCharacterFieldModal will handle it
+                value = null;
+            } else {
+                value = interaction.fields.getTextInputValue(fieldKey)?.trim();
+                if (!value) {
+                    return interaction.reply({
+                        content: '⚠️ No value was entered.',
+                        ephemeral: true,
+                    });
+                }
+            }
+
             await getOrCreatePlayer(interaction.user.id, interaction.guildId);
             return await processCharacterFieldModal(interaction, fieldKey, label, value);
         } catch (err) {
