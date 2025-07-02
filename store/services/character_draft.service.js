@@ -105,7 +105,18 @@ async function getRemainingRequiredFields(userId) {
     // === Required game-defined stat templates ===
     const statTemplates = await getStatTemplates(draft.game_id);
     for (const template of statTemplates) {
-        if (template.is_required) {
+        if (!template.is_required) continue;
+
+        if (template.field_type === 'count') {
+            const maxKey = `game:${template.id}:max`;
+            const curKey = `game:${template.id}:current`;
+            const hasMax = draft[maxKey] && draft[maxKey].trim();
+            const hasCur = draft[curKey] && draft[curKey].trim();
+
+            if (!hasMax && !hasCur) {
+                missing.push({ name: `game:${template.id}`, label: `[GAME] ${template.label}` });
+            }
+        } else {
             const key = `game:${template.id}`;
             if (!draft[key] || !draft[key].trim()) {
                 missing.push({ name: key, label: `[GAME] ${template.label}` });
@@ -153,9 +164,17 @@ async function finalizeCharacterCreation(userId, draft) {
     const statTemplates = await getStatTemplates(game_id);
     const statMap = {};
     for (const template of statTemplates) {
-        const key = `game:${template.id}`;
-        if (draft[key]) {
-            statMap[template.id] = draft[key];
+        if (template.field_type === 'count') {
+            const max = draft[`game:${template.id}:max`];
+            const cur = draft[`game:${template.id}:current`] ?? max;
+            if (max) {
+                statMap[template.id] = `${cur} / ${max}`;
+            }
+        } else {
+            const key = `game:${template.id}`;
+            if (draft[key]) {
+                statMap[template.id] = draft[key];
+            }
         }
     }
 
