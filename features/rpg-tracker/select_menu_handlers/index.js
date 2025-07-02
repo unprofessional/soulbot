@@ -4,6 +4,7 @@ const characterDropdown = require('./character_dropdown');
 const gameDropdown = require('./game_dropdown');
 const statDropdown = require('./stat_template_dropdown');
 const characterStatSelect = require('./character_stat_select_menu');
+const statTypeDropodown = require('./stat_type_select');
 
 module.exports = {
     async handleSelectMenu(interaction) {
@@ -34,6 +35,10 @@ module.exports = {
 
         if (customId.startsWith('editCharacterStatDropdown:')) {
             return characterStatSelect.handle(interaction);
+        }
+
+        if (customId.startsWith('selectStatType:')) {
+            return statTypeDropodown.handle(interaction);
         }
 
         return interaction.reply({
