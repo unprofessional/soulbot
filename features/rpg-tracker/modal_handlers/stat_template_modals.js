@@ -35,6 +35,11 @@ async function handle(interaction) {
         const sortIndexRaw = interaction.fields.getTextInputValue('sort_index')?.trim();
         const sortIndex = sortIndexRaw ? parseInt(sortIndexRaw, 10) : null;
 
+        console.log('>>> createStatModal: > label: ', label);
+        console.log('>>> createStatModal: > defaultValue: ', defaultValue);
+        console.log('>>> createStatModal: > sortIndexRaw: ', sortIndexRaw);
+        console.log('>>> createStatModal: > sortIndex: ', sortIndex);
+
         if (!label || !['number', 'count', 'text-short', 'text-paragraph'].includes(fieldType)) {
             return await interaction.reply({
                 content: '⚠️ Invalid input or stat type.',
@@ -42,6 +47,7 @@ async function handle(interaction) {
             });
         }
 
+        // eslint-disable-next-line no-unused-vars
         const newStat = await addStatTemplates(gameId, [{
             label,
             field_type: fieldType,
