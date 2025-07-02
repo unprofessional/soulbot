@@ -11,12 +11,12 @@ function buildStatTypeDropdown(gameId) {
         .setPlaceholder('➕ Add a new stat field...')
         .addOptions([
             {
-                label: 'Number (e.g., Gold, XP, Agility, etc)',
+                label: 'Number (ex. Level, EXP, Gold, Agility, etc)',
                 value: 'number',
                 emoji: '🔢',
             },
             {
-                label: 'Count (e.g., HP with current/max)',
+                label: 'Count (ex. HP, MP — current/max)',
                 value: 'count',
                 emoji: '🔁',
             },
