@@ -65,7 +65,7 @@ async function handle(interaction) {
         }
 
         const modal = new ModalBuilder()
-            .setCustomId(`createDraftCharacterField:${selectedField}|${label}`)
+            .setCustomId(`createDraftCharacterField:${selectedField}|${label}|${fieldType || ''}`)
             .setTitle(truncate(`Enter value for ${label}`, 45));
 
         if (fieldType === 'count') {
