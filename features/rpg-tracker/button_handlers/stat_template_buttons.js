@@ -16,6 +16,7 @@ const {
 
 const { buildStatTemplateModal } = require('../modal_handlers/stat_template_modals');
 const { rebuildCreateGameResponse } = require('../utils/rebuild_create_game_response');
+const { buildStatTypeDropdown } = require('../components/stat_type_select');
 
 /**
  * Handles stat template-related button interactions.
@@ -25,10 +26,20 @@ async function handle(interaction) {
     const { customId } = interaction;
 
     // === Define Required Stats Modal ===
+    // if (customId.startsWith('defineStats:')) {
+    //     const [, gameId] = customId.split(':');
+    //     const modal = buildStatTemplateModal({ gameId });
+    //     return await interaction.showModal(modal);
+    // }
     if (customId.startsWith('defineStats:')) {
         const [, gameId] = customId.split(':');
-        const modal = buildStatTemplateModal({ gameId });
-        return await interaction.showModal(modal);
+        const row = buildStatTypeDropdown(gameId);
+
+        return await interaction.update({
+            content: '➕ Select a stat type to define:',
+            components: [row],
+            embeds: [],
+        });
     }
 
     // === Edit Stats Button (trigger edit dropdown)
