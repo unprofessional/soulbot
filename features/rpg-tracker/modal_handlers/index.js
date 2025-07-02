@@ -17,6 +17,11 @@ module.exports = {
             customId.startsWith('editStatTemplateModal:')
         ) return statTemplateModals.handle(interaction);
 
+        if (customId.startsWith('createStatModal:')) {
+            return statTemplateModals.handle(interaction);
+        }
+
+
         // ✅ DRAFT Character creation flow
         if (
             customId.startsWith('createCharacterModal:') ||
