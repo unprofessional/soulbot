@@ -127,7 +127,7 @@ function rebuildCreateCharacterResponse(game, statTemplates, userFields, fieldOp
             .addOptions(
                 fieldOptions.map(f => ({
                     label: f.label,
-                    value: `${f.name}|${f.label}`,
+                    value: `${f.name}|${f.label}|${f.type}`,
                 }))
             );
         components.push(new ActionRowBuilder().addComponents(dropdown));
@@ -165,7 +165,7 @@ function rebuildCreateCharacterResponse(game, statTemplates, userFields, fieldOp
             .addOptions(
                 filledFields.map(f => ({
                     label: f.label,
-                    value: `${f.name}|${f.label}`,
+                    value: `${f.name}|${f.label}|${f.type}`,
                 }))
             );
         components.push(new ActionRowBuilder().addComponents(editDropdown));
