@@ -1,3 +1,4 @@
+/* eslint-disable indent */
 // features/rpg-tracker/utils/rebuild_create_character_response.js
 
 const {
@@ -12,7 +13,7 @@ const {
  */
 function summarize(value, max = 40) {
     if (!value) return '';
-    const cleaned = value.replace(/\s+/g, ' ').trim();
+    const cleaned = value.replace(/\\s+/g, ' ').trim();
     return cleaned.length > max ? `${cleaned.slice(0, max - 1)}…` : cleaned;
 }
 
@@ -39,7 +40,7 @@ function buildCreateCharacterMessage(game, statTemplates = [], userFields = [], 
 
     for (const key of coreFields) {
         const value = draftData[key];
-        const label = key.split(':')[1].replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+        const label = key.split(':')[1].replace(/_/g, ' ').replace(/\\b\\w/g, c => c.toUpperCase());
         if (value && value.toString().trim()) {
             lines.push(`- [CORE] ${label} 🟢 ${summarize(value.toString())}`);
         } else {
@@ -52,12 +53,31 @@ function buildCreateCharacterMessage(game, statTemplates = [], userFields = [], 
     if (statTemplates.length) {
         lines.push(`**GAME Fields:**`);
         for (const t of statTemplates) {
-            const key = `game:${t.id}`;
-            const value = draftData[key];
-            if (value && value.toString().trim()) {
-                lines.push(`- [GAME] ${t.label} 🟢 ${summarize(value.toString())}`);
+            if (t.field_type === 'count') {
+                const maxVal = draftData[`game:${t.id}:max`];
+                const curVal = draftData[`game:${t.id}:current`];
+                const displayParts = [];
+
+                if (maxVal && maxVal.toString().trim()) {
+                    displayParts.push(`MAX: ${summarize(maxVal.toString())}`);
+                }
+                if (curVal && curVal.toString().trim()) {
+                    displayParts.push(`CURRENT: ${summarize(curVal.toString())}`);
+                }
+
+                if (displayParts.length) {
+                    lines.push(`- [GAME] ${t.label} 🟢 ${displayParts.join(' / ')}`);
+                } else {
+                    lines.push(`- [GAME] ${t.label}`);
+                }
             } else {
-                lines.push(`- [GAME] ${t.label}`);
+                const key = `game:${t.id}`;
+                const value = draftData[key];
+                if (value && value.toString().trim()) {
+                    lines.push(`- [GAME] ${t.label} 🟢 ${summarize(value.toString())}`);
+                } else {
+                    lines.push(`- [GAME] ${t.label}`);
+                }
             }
         }
     } else {
@@ -88,7 +108,7 @@ function buildCreateCharacterMessage(game, statTemplates = [], userFields = [], 
         lines.push('');
     }
 
-    return lines.join('\n');
+    return lines.join('\\n');
 }
 
 /**
@@ -119,10 +139,14 @@ function rebuildCreateCharacterResponse(game, statTemplates, userFields, fieldOp
         { name: 'core:avatar_url', label: '[CORE] Avatar URL' },
         { name: 'core:bio', label: '[CORE] Bio' },
         { name: 'core:visibility', label: '[CORE] Visibility' },
-        ...statTemplates.map(t => ({
-            name: `game:${t.id}`,
-            label: `[GAME] ${t.label}`,
-        })),
+        ...statTemplates.flatMap(t =>
+            t.field_type === 'count'
+                ? [
+                    { name: `game:${t.id}:max`, label: `[GAME] ${t.label} (Max)` },
+                    { name: `game:${t.id}:current`, label: `[GAME] ${t.label} (Current)` },
+                  ]
+                : [{ name: `game:${t.id}`, label: `[GAME] ${t.label}` }]
+        ),
         ...userFields.map(f => ({
             name: `user:${f.name}`,
             label: `[USER] ${f.label || f.name}`,
@@ -133,8 +157,6 @@ function rebuildCreateCharacterResponse(game, statTemplates, userFields, fieldOp
         const val = draftData?.[f.name];
         return val && val.trim?.();
     });
-
-    console.log('🧪 Filled Fields:', filledFields.map(f => f.name));
 
     if (filledFields.length > 0) {
         const editDropdown = new StringSelectMenuBuilder()
@@ -149,7 +171,6 @@ function rebuildCreateCharacterResponse(game, statTemplates, userFields, fieldOp
         components.push(new ActionRowBuilder().addComponents(editDropdown));
     }
 
-    // === Submit Button ===
     const submitButton = new ButtonBuilder()
         .setCustomId('submitNewCharacter')
         .setLabel('✅ Submit Character')

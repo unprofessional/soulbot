@@ -1,3 +1,5 @@
+// features/rpg-tracker/utils/rebuild_create_game_response.js
+
 const { buildGameStatTemplateEmbed, buildGameStatActionRow } = require('../embeds/game_stat_embed');
 
 /**
