@@ -59,6 +59,9 @@ async function getTempCharacterData(userId) {
     return draft;
 }
 
+/**
+ * Returns a list of required fields (core + game-defined) that are missing from the draft.
+ */
 async function getRemainingRequiredFields(userId) {
     const draft = await getTempCharacterData(userId);
 
@@ -93,29 +96,31 @@ async function getRemainingRequiredFields(userId) {
     for (const template of statTemplates) {
         if (!template.is_required) continue;
 
-        const fieldKey = `game:${template.id}`;
+        const baseKey = `game:${template.id}`;
 
         if (template.field_type === 'count') {
-            const maxKey = `${fieldKey}:max`;
+            const maxKey = `${baseKey}:max`;
+            const curKey = `${baseKey}:current`;
             const hasMax = draft[maxKey] && draft[maxKey].trim();
+            const hasCur = draft[curKey] && draft[curKey].trim();
+            const combined = draft[baseKey];
 
-            if (!hasMax) {
-                // Only include base field once (not :max or :current)
-                missing.push({ name: fieldKey, label: `[GAME] ${template.label}` });
+            // Allow satisfaction via either count subfields OR combined string like "3 / 4"
+            const hasCombined = combined && combined.includes('/') && combined.trim();
+
+            if (!(hasMax || hasCur || hasCombined)) {
+                missing.push({ name: baseKey, label: `[GAME] ${template.label}` });
             }
         } else {
-            const value = draft[fieldKey];
-            if (!value || !value.trim()) {
-                missing.push({ name: fieldKey, label: `[GAME] ${template.label}` });
+            const key = baseKey;
+            if (!draft[key] || !draft[key].trim()) {
+                missing.push({ name: key, label: `[GAME] ${template.label}` });
             }
         }
     }
 
-    // ✅ Filter out any subfields like :max or :current (just in case)
-    const filtered = missing.filter(f => !f.name.endsWith(':max') && !f.name.endsWith(':current'));
-
-    console.log(`📋 Remaining required fields for user ${userId}:`, filtered);
-    return filtered;
+    console.log(`📋 Remaining required fields for user ${userId}:`, missing);
+    return missing;
 }
 
 async function isDraftComplete(userId) {
