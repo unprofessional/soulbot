@@ -1,5 +1,3 @@
-// features/rpg-tracker/utils/rebuild_create_character_response.js
-
 const {
     ActionRowBuilder,
     ButtonBuilder,
@@ -48,23 +46,25 @@ function buildCreateCharacterMessage(game, statTemplates = [], userFields = [], 
     if (statTemplates.length) {
         lines.push(`**GAME Fields:**`);
         for (const t of statTemplates) {
+            const fieldKey = `game:${t.id}`;
+            let filled = false;
+            let display = '';
+
             if (t.field_type === 'count') {
-                const maxVal = draftData[`game:${t.id}:max`];
-                const curVal = draftData[`game:${t.id}:current`];
-                if (maxVal || curVal) {
-                    lines.push(`- [GAME] ${t.label} 🟢 ⚔️ ${curVal || maxVal} / ${maxVal}`);
-                } else {
-                    lines.push(`- [GAME] ${t.label}`);
+                const meta = draftData[`meta:${fieldKey}`];
+                if (meta?.max != null) {
+                    filled = true;
+                    display = `⚔️ ${meta.current ?? meta.max} / ${meta.max}`;
                 }
             } else {
-                const key = `game:${t.id}`;
-                const value = draftData[key];
+                const value = draftData[fieldKey];
                 if (value && value.toString().trim()) {
-                    lines.push(`- [GAME] ${t.label} 🟢 ${summarize(value.toString())}`);
-                } else {
-                    lines.push(`- [GAME] ${t.label}`);
+                    filled = true;
+                    display = summarize(value.toString());
                 }
             }
+
+            lines.push(`- [GAME] ${t.label}${filled ? ` 🟢 ${display}` : ''}`);
         }
     } else {
         lines.push(`🟨 _GM has not defined any game stat fields yet._`);
