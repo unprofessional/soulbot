@@ -1,5 +1,3 @@
-// features/rpg-tracker/select_menu_handlers/character_stat_select_menu.js
-
 const {
     ModalBuilder,
     TextInputBuilder,
@@ -63,7 +61,7 @@ async function handle(interaction) {
             .addComponents(
                 new ActionRowBuilder().addComponents(
                     new TextInputBuilder()
-                        .setCustomId(selectedKey) // ✅ This is the fix
+                        .setCustomId(selectedKey)
                         .setLabel(truncate(`Value for ${label}`))
                         .setStyle(inputStyle)
                         .setValue(value)
@@ -81,12 +79,6 @@ async function handle(interaction) {
 
     if (!stat) {
         console.warn('[editStatSelect] Could not find stat for:', selectedKey);
-        console.warn('[editStatSelect] Available stats were:', character.stats?.map(s => ({
-            name: s.name,
-            template_id: s.template_id,
-            label: s.label,
-            value: s.value,
-        })));
         return await interaction.reply({
             content: '❌ Could not find that stat field.',
             ephemeral: true,
@@ -103,14 +95,39 @@ async function handle(interaction) {
     const label = stat.label || selectedKey;
     const fieldKey = stat.template_id || stat.name;
 
-    const inputStyle = (stat.field_type === 'paragraph' || stat.meta?.field_type === 'paragraph')
-        ? TextInputStyle.Paragraph
-        : TextInputStyle.Short;
+    const fieldType = stat.field_type || stat.meta?.field_type;
 
-    const modal = new ModalBuilder()
-        .setCustomId(`editStatModal:${characterId}:${fieldKey}`)
-        .setTitle(truncate(`Edit Stat: ${label}`))
-        .addComponents(
+    const modal = new ModalBuilder().setCustomId(`editStatModal:${characterId}:${fieldKey}`);
+    modal.setTitle(truncate(`Edit Stat: ${label}`));
+
+    if (fieldType === 'count' || stat.meta?.max !== undefined) {
+        // === Show 2 fields: MAX + CURRENT ===
+        const max = stat.meta?.max ?? '';
+        const current = stat.meta?.current ?? max;
+
+        modal.addComponents(
+            new ActionRowBuilder().addComponents(
+                new TextInputBuilder()
+                    .setCustomId(`${fieldKey}:max`)
+                    .setLabel(truncate(`Max value for ${label}`))
+                    .setStyle(TextInputStyle.Short)
+                    .setValue(max.toString())
+                    .setRequired(true)
+            ),
+            new ActionRowBuilder().addComponents(
+                new TextInputBuilder()
+                    .setCustomId(`${fieldKey}:current`)
+                    .setLabel(truncate(`Current value for ${label}`))
+                    .setStyle(TextInputStyle.Short)
+                    .setValue(current.toString())
+                    .setRequired(false)
+            )
+        );
+    } else {
+        // === Fallback to single-value modal ===
+        const inputStyle = fieldType === 'paragraph' ? TextInputStyle.Paragraph : TextInputStyle.Short;
+
+        modal.addComponents(
             new ActionRowBuilder().addComponents(
                 new TextInputBuilder()
                     .setCustomId('statValue')
@@ -120,6 +137,7 @@ async function handle(interaction) {
                     .setRequired(true)
             )
         );
+    }
 
     return await interaction.showModal(modal);
 }
