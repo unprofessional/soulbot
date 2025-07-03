@@ -61,7 +61,15 @@ module.exports = {
                         return a.label.localeCompare(b.label);
                     })
                     .slice(0, 4) // num of stats to show
-                    .map(s => `${s.label}: ${s.value}`);
+                    .map(s => {
+                        if (s.field_type === 'count') {
+                            const current = s.meta?.current ?? '?';
+                            const max = s.meta?.max ?? '?';
+                            return `${s.label}: ${current} / ${max}`;
+                        } else {
+                            return `${s.label}: ${s.value}`;
+                        }
+                    });
 
                 const description = topStats.join(' • ') || 'No stats available';
 
