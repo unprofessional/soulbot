@@ -33,7 +33,7 @@ async function handle(interaction) {
         const sortIndexRaw = interaction.fields.getTextInputValue('sort_index')?.trim();
         const sortIndex = sortIndexRaw ? parseInt(sortIndexRaw, 10) : null;
 
-        if (!label || !['number', 'count', 'text-short', 'text-paragraph'].includes(fieldType)) {
+        if (!label || !['number', 'count', 'short', 'paragraph'].includes(fieldType)) {
             return await interaction.reply({
                 content: '⚠️ Invalid input or stat type.',
                 ephemeral: true,

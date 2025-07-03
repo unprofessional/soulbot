@@ -22,12 +22,12 @@ function buildStatTypeDropdown(gameId) {
             },
             {
                 label: 'Short Text (one-line)',
-                value: 'text-short',
+                value: 'short',
                 emoji: '💬',
             },
             {
                 label: 'Paragraph Text (multi-line)',
-                value: 'text-paragraph',
+                value: 'paragraph',
                 emoji: '📝',
             },
         ]);
