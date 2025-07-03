@@ -165,6 +165,9 @@ async function finalizeCharacterCreation(userId, draft) {
         }
     }
 
+    console.log('>>> character_draft.service.js > finalizeCharacterCreation > character.id: ', character.id);
+    console.log('>>> character_draft.service.js > finalizeCharacterCreation > statMap: ', statMap);
+
     await statFieldDAO.bulkUpsert(character.id, statMap);
 
     drafts.delete(getDraftKey(userId));
