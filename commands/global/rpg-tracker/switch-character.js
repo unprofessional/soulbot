@@ -63,12 +63,20 @@ module.exports = {
                 .setCustomId('switchCharacterDropdown')
                 .setPlaceholder('Choose your character')
                 .addOptions(
-                    eligibleCharacters.map(c => ({
-                        label: `${c.name} (Lv ${c.level ?? 1} ${c.class || 'Unclassed'})`,
-                        description: c.race || 'No race specified',
-                        value: c.id,
-                    }))
-                );
+                    eligibleCharacters.map(c => {
+                        const level = c.level ?? 1;
+                        const clazz = c.class || 'Unclassed';
+                        const race = c.race || 'No race';
+                        const visibility = c.visibility === 'private' ? '🔒 Private' : '🌐 Public';
+                        const label = `${c.name} (Lv ${level} ${clazz})`;
+                        const description = `${race} — ${visibility}`;
+                        return {
+                            label: label.length > 100 ? label.slice(0, 97) + '…' : label, // Discord limit is 100
+                            description: description.length > 100 ? description.slice(0, 97) + '…' : description,
+                            value: c.id,
+                        };
+                    })
+                )
 
             const row = new ActionRowBuilder().addComponents(menu);
 
