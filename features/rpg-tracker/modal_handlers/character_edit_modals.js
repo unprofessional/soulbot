@@ -21,15 +21,13 @@ async function handle(interaction) {
 
         // === Edit GAME Stat ===
         if (customId.startsWith('editStatModal:')) {
-            const [, characterId, fieldKey] = customId.split(':');
+            const [, characterId, fieldType, fieldKey] = customId.split(':');
 
-            // Try both single and count-field (max/current) values
-            const directValue = interaction.fields.getTextInputValue('statValue')?.trim();
-            const maxValue = interaction.fields.getTextInputValue(`${fieldKey}:max`)?.trim();
-            const currentValue = interaction.fields.getTextInputValue(`${fieldKey}:current`)?.trim();
+            let newValue;
 
-            if (maxValue !== undefined && maxValue !== null) {
-                // === Count field mode ===
+            if (fieldType === 'count') {
+                const maxValue = interaction.fields.getTextInputValue(`${fieldKey}:max`)?.trim();
+                const currentValue = interaction.fields.getTextInputValue(`${fieldKey}:current`)?.trim();
                 const parsedMax = parseInt(maxValue, 10);
                 const parsedCurrent = currentValue ? parseInt(currentValue, 10) : parsedMax;
 
@@ -48,15 +46,19 @@ async function handle(interaction) {
                     max: parsedMax,
                     current: parsedCurrent,
                 });
-            } else if (directValue !== undefined && typeof directValue === 'string') {
-                // === Single-value stat field ===
-                console.log('[editStatModal] Updating VALUE stat:', { characterId, fieldKey, directValue });
-                await updateStat(characterId, fieldKey, directValue);
             } else {
-                return await interaction.reply({
-                    content: '⚠️ Invalid stat update request.',
-                    ephemeral: true,
-                });
+                // Handle all other field types: number, short, paragraph
+                newValue = interaction.fields.getTextInputValue(fieldKey)?.trim();
+
+                if (typeof newValue !== 'string') {
+                    return await interaction.reply({
+                        content: '⚠️ Invalid stat update.',
+                        ephemeral: true,
+                    });
+                }
+
+                console.log('[editStatModal] Updating VALUE stat:', { characterId, fieldKey, newValue });
+                await updateStat(characterId, fieldKey, newValue);
             }
 
             await interaction.deferUpdate();
