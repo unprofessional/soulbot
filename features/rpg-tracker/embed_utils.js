@@ -6,6 +6,7 @@ const {
     ButtonBuilder,
     ButtonStyle,
 } = require('discord.js');
+const { formatTimeAgo } = require('./utils/time_ago');
 
 function buildGameEmbed(game, characters = [], statTemplates = []) {
     const coreFields = [
@@ -131,7 +132,7 @@ function buildCharacterEmbed(character) {
         embed.setDescription(`_${character.bio}_`);
     }
 
-    embed.setFooter({ text: `Created on ${new Date(character.created_at).toLocaleDateString()}` });
+    embed.setFooter({ text: `Created on ${new Date(character.created_at).toLocaleDateString()} (${formatTimeAgo(character.created_at)})` });
 
     return embed;
 }
