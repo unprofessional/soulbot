@@ -69,26 +69,25 @@ function buildCharacterEmbed(character) {
     const allStats = character.stats || [];
     console.log('📊 Stats array:', allStats);
 
-    const coreFields = ['name', 'avatar_url', 'bio', 'visibility'];
     const statMap = new Map();
 
     for (const stat of allStats) {
-        const { name, label, value, meta = {}, type, sort_index, template_sort_index } = stat;
-        console.log('🔍 Stat:', { name, label, value, meta, type });
+        const { label, value, meta = {}, field_type, template_id } = stat;
+        console.log('🔍 Stat:', { label, value, meta, field_type });
 
-        const key = (label || '').toUpperCase();
-        if (!key || coreFields.includes(name)) continue;
+        const key = (label || template_id || '??').toUpperCase();
+        if (!key) continue;
 
         const bucket = {
             label: key,
             value: null,
             current: null,
             max: null,
-            type,
-            sort_index: sort_index ?? template_sort_index ?? 999,
+            type: field_type,
+            sort_index: stat.sort_index ?? stat.template_sort_index ?? 999,
         };
 
-        if (type === 'count') {
+        if (field_type === 'count') {
             bucket.max = meta.max ?? null;
             bucket.current = meta.current ?? meta.max ?? null;
         } else {
@@ -110,7 +109,7 @@ function buildCharacterEmbed(character) {
 
         if (stat.type === 'count' && stat.max !== null) {
             display = `⚔️ ${stat.label}: ${stat.current ?? stat.max} / ${stat.max}`;
-        } else if (stat.value !== undefined && stat.value !== null) {
+        } else if (stat.value !== undefined && stat.value !== null && stat.value !== '') {
             display = `**${stat.label}**: ${stat.value}`;
         } else {
             display = `**${stat.label}**: _Not set_`;
