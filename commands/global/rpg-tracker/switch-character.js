@@ -35,6 +35,7 @@ module.exports = {
             }
 
             const allCharacters = await getCharactersByUser(userId, currentGameId);
+            console.log('>>> switch-character.js > allCharacters: ', allCharacters);
 
             const eligibleCharacters = [];
 

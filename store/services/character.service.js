@@ -85,7 +85,11 @@ async function getCharactersByUser(userId, guildId) {
     if (!currentGameId) return [];
 
     const all = await characterDAO.findByUser(userId);
-    return all.filter(c => c.game_id === currentGameId);
+    console.log('>>> character.service > getCharactersByUser > all: ', all);
+
+    const results = all.filter(c => c.game_id === currentGameId);
+    console.log('>>> character.service > getCharactersByUser > results: ', results);
+    return results;
 }
 
 async function getCharactersByGame(gameId) {
