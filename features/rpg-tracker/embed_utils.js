@@ -138,21 +138,36 @@ function buildCharacterEmbed(character) {
 }
 
 function buildCharacterActionRow(characterId, visibility = 'private') {
-    return new ActionRowBuilder().addComponents(
-        new ButtonBuilder()
-            .setCustomId(`edit_stat:${characterId}`)
-            .setLabel('🎲 Edit Stat')
-            .setStyle(ButtonStyle.Primary),
+    return [
+        new ActionRowBuilder().addComponents(
+            new ButtonBuilder()
+                .setCustomId(`edit_stat:${characterId}`)
+                .setLabel('🎲 Edit Stat')
+                .setStyle(ButtonStyle.Primary),
 
-        new ButtonBuilder()
-            .setCustomId(`toggle_visibility:${characterId}`)
-            .setLabel(
-                visibility === 'public'
-                    ? '🔒 Unpublish Character'
-                    : '🌐 Publish Character'
-            )
-            .setStyle(ButtonStyle.Secondary)
-    );
+            new ButtonBuilder()
+                .setCustomId(`toggle_visibility:${characterId}`)
+                .setLabel(
+                    visibility === 'public'
+                        ? '🔒 Unpublish Character'
+                        : '🌐 Publish Character'
+                )
+                .setStyle(ButtonStyle.Secondary)
+        ),
+
+        // === Placeholder row for count-based stat control (e.g. HP)
+        new ActionRowBuilder().addComponents(
+            new ButtonBuilder()
+                .setCustomId(`adjustCountStat:${characterId}:dummyStatId:decrement`)
+                .setLabel('➖ HP')
+                .setStyle(ButtonStyle.Secondary),
+
+            new ButtonBuilder()
+                .setCustomId(`adjustCountStat:${characterId}:dummyStatId:increment`)
+                .setLabel('➕ HP')
+                .setStyle(ButtonStyle.Secondary)
+        )
+    ];
 }
 
 function buildInventoryEmbed(character) {
