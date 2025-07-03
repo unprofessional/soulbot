@@ -128,15 +128,11 @@ function rebuildCreateCharacterResponse(game, statTemplates, userFields, fieldOp
         { name: 'core:name', label: '[CORE] Name' },
         { name: 'core:avatar_url', label: '[CORE] Avatar URL' },
         { name: 'core:bio', label: '[CORE] Bio' },
-        { name: 'core:visibility', label: '[CORE] Visibility' },
-        ...statTemplates.flatMap(t =>
-            t.field_type === 'count'
-                ? [
-                    { name: `game:${t.id}:max`, label: `[GAME] ${t.label} (Max)`, field_type: 'count' },
-                    { name: `game:${t.id}:current`, label: `[GAME] ${t.label} (Current)`, field_type: 'count' },
-                ]
-                : [{ name: `game:${t.id}`, label: `[GAME] ${t.label}`, field_type: t.field_type }]
-        ),
+        ...statTemplates.map(t => ({
+            name: `game:${t.id}`,
+            label: `[GAME] ${t.label}`,
+            field_type: t.field_type,
+        })),
         ...userFields.map(f => ({
             name: `user:${f.name}`,
             label: `[USER] ${f.label || f.name}`,
