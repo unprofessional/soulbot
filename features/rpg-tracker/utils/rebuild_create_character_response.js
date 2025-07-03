@@ -54,7 +54,7 @@ function buildCreateCharacterMessage(game, statTemplates = [], userFields = [], 
                 const meta = draftData[`meta:${fieldKey}`];
                 if (meta?.max != null) {
                     filled = true;
-                    display = `⚔️ ${meta.current ?? meta.max} / ${meta.max}`;
+                    display = `${meta.current ?? meta.max} / ${meta.max}`;
                 }
             } else {
                 const value = draftData[fieldKey];

@@ -108,7 +108,7 @@ function buildCharacterEmbed(character) {
         let display = '';
 
         if (stat.type === 'count' && stat.max !== null) {
-            display = `⚔️ ${stat.label}: ${stat.current ?? stat.max} / ${stat.max}`;
+            display = `${stat.label}: ${stat.current ?? stat.max} / ${stat.max}`;
         } else if (stat.value !== undefined && stat.value !== null && stat.value !== '') {
             display = `**${stat.label}**: ${stat.value}`;
         } else {
