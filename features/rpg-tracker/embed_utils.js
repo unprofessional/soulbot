@@ -50,6 +50,8 @@ function buildGameEmbed(game, characters = [], statTemplates = []) {
 }
 
 function buildCharacterEmbed(character) {
+    console.log('🧩 buildCharacterEmbed > character input:', character);
+
     const embed = new EmbedBuilder();
 
     if (character.avatar_url) {
@@ -65,12 +67,15 @@ function buildCharacterEmbed(character) {
     embed.addFields({ name: 'Visibility', value: visibilityLabel, inline: true });
 
     const allStats = character.stats || [];
-    const coreFields = ['name', 'avatar_url', 'bio', 'visibility'];
+    console.log('📊 Stats array:', allStats);
 
+    const coreFields = ['name', 'avatar_url', 'bio', 'visibility'];
     const statMap = new Map();
 
     for (const stat of allStats) {
         const { name, label, value, meta = {}, type, sort_index, template_sort_index } = stat;
+        console.log('🔍 Stat:', { name, label, value, meta, type });
+
         const key = (label || '').toUpperCase();
         if (!key || coreFields.includes(name)) continue;
 
@@ -94,6 +99,8 @@ function buildCharacterEmbed(character) {
     }
 
     const combined = Array.from(statMap.values()).sort((a, b) => a.sort_index - b.sort_index);
+    console.log('🧱 Combined stat buckets:', combined);
+
     const leftStats = [];
     const rightStats = [];
 
