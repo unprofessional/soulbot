@@ -71,15 +71,21 @@ module.exports = {
             { name: 'core:avatar_url', label: '[CORE] Avatar URL' },
         ];
 
-        const gameFields = statTemplates.flatMap(f => {
-            if (f.field_type === 'count') {
-                return [
-                    { name: `game:${f.id}:max`, label: `[GAME] ${f.label} (Max)` },
-                    { name: `game:${f.id}:current`, label: `[GAME] ${f.label} (Current, optional)` },
-                ];
-            } else {
-                return [{ name: `game:${f.id}`, label: `[GAME] ${f.label || f.id}` }];
-            }
+        // const gameFields = statTemplates.flatMap(f => {
+        //     if (f.field_type === 'count') {
+        //         return [
+        //             { name: `game:${f.id}:max`, label: `[GAME] ${f.label} (Max)` },
+        //             { name: `game:${f.id}:current`, label: `[GAME] ${f.label} (Current, optional)` },
+        //         ];
+        //     } else {
+        //         return [{ name: `game:${f.id}`, label: `[GAME] ${f.label || f.id}` }];
+        //     }
+        // });
+
+        const gameFields = statTemplates.map(f => {
+            const name = `game:${f.id}`;
+            const label = `[GAME] ${f.label || f.id}`;
+            return { name, label };
         });
 
         const userFieldsFormatted = userFields
