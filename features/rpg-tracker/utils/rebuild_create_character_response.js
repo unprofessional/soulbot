@@ -123,11 +123,12 @@ function rebuildCreateCharacterResponse(game, statTemplates, userFields, fieldOp
         components.push(new ActionRowBuilder().addComponents(dropdown));
     }
 
-    // === Dropdown for EDITING completed fields (always if present) ===
+    // === Dropdown for EDITING completed fields ===
     const allFields = [
         { name: 'core:name', label: '[CORE] Name' },
         { name: 'core:avatar_url', label: '[CORE] Avatar URL' },
         { name: 'core:bio', label: '[CORE] Bio' },
+        // intentionally omitting core:visibility
         ...statTemplates.map(t => ({
             name: `game:${t.id}`,
             label: `[GAME] ${t.label}`,
@@ -140,8 +141,13 @@ function rebuildCreateCharacterResponse(game, statTemplates, userFields, fieldOp
     ];
 
     const filledFields = allFields.filter(f => {
-        const val = draftData?.[f.name];
-        return val && val.trim?.();
+        if (f.field_type === 'count') {
+            const meta = draftData[`meta:${f.name}`];
+            return meta?.max != null;
+        } else {
+            const val = draftData?.[f.name];
+            return val && val.trim?.();
+        }
     });
 
     if (filledFields.length > 0) {

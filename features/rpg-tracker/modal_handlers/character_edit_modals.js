@@ -23,23 +23,45 @@ async function handle(interaction) {
         if (customId.startsWith('editStatModal:')) {
             const [, characterId, fieldKey] = customId.split(':');
 
-            const newValue = interaction.fields.getTextInputValue('statValue')?.trim();
+            // Try both single and count-field (max/current) values
+            const directValue = interaction.fields.getTextInputValue('statValue')?.trim();
+            const maxValue = interaction.fields.getTextInputValue(`${fieldKey}:max`)?.trim();
+            const currentValue = interaction.fields.getTextInputValue(`${fieldKey}:current`)?.trim();
 
-            if (!fieldKey || typeof newValue !== 'string') {
+            if (maxValue !== undefined && maxValue !== null) {
+                // === Count field mode ===
+                const parsedMax = parseInt(maxValue, 10);
+                const parsedCurrent = currentValue ? parseInt(currentValue, 10) : parsedMax;
+
+                if (isNaN(parsedMax)) {
+                    return await interaction.reply({
+                        content: '⚠️ Invalid MAX value entered.',
+                        ephemeral: true,
+                    });
+                }
+
+                console.log('[editStatModal] Updating COUNT stat:', {
+                    characterId, fieldKey, parsedMax, parsedCurrent,
+                });
+
+                await updateStat(characterId, fieldKey, null, {
+                    max: parsedMax,
+                    current: parsedCurrent,
+                });
+            } else if (directValue !== undefined && typeof directValue === 'string') {
+                // === Single-value stat field ===
+                console.log('[editStatModal] Updating VALUE stat:', { characterId, fieldKey, directValue });
+                await updateStat(characterId, fieldKey, directValue);
+            } else {
                 return await interaction.reply({
                     content: '⚠️ Invalid stat update request.',
                     ephemeral: true,
                 });
             }
 
-            console.log('[editStatModal] Updating stat:', { characterId, fieldKey, newValue });
-            await updateStat(characterId, fieldKey, newValue);
-
             await interaction.deferUpdate();
 
             const updated = await getCharacterWithStats(characterId);
-            console.log('[editStatModal] Updated character stats:', updated.stats);
-
             const embed = buildCharacterEmbed(updated);
             const row = buildCharacterActionRow(characterId, updated.visibility);
 
@@ -55,12 +77,12 @@ async function handle(interaction) {
             const parts = customId.split(':');
             const characterId = parts[1];
             const fullKeyWithLabel = parts.slice(2).join(':'); // handles ':' in field labels
-            const [fieldKey] = fullKeyWithLabel.split('|');    // e.g. 'core:name' or 'name'
+            const [fieldKey] = fullKeyWithLabel.split('|');
             const [, coreField] = fieldKey.includes(':') ? fieldKey.split(':') : [null, fieldKey];
 
             const newValue =
-        interaction.fields.getTextInputValue(fieldKey)?.trim() ??
-        interaction.fields.getTextInputValue(coreField)?.trim(); // fallback to just 'name'
+                interaction.fields.getTextInputValue(fieldKey)?.trim() ??
+                interaction.fields.getTextInputValue(coreField)?.trim();
 
             if (!coreField || typeof newValue !== 'string') {
                 return await interaction.reply({
