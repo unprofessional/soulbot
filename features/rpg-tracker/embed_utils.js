@@ -70,23 +70,22 @@ function buildCharacterEmbed(character) {
     const statMap = new Map();
 
     for (const stat of allStats) {
-        const { name, label, value, type, sort_index, template_sort_index } = stat;
+        const { name, label, value, meta = {}, type, sort_index, template_sort_index } = stat;
         const key = (label || '').toUpperCase();
         if (!key || coreFields.includes(name)) continue;
 
-        const bucket = statMap.get(key) || {
+        const bucket = {
             label: key,
-            max: null,
-            current: null,
             value: null,
+            current: null,
+            max: null,
             type,
-            sort_index: sort_index ?? template_sort_index ?? 999
+            sort_index: sort_index ?? template_sort_index ?? 999,
         };
 
-        if (typeof name === 'string') {
-            if (name.includes(':max')) bucket.max = value;
-            else if (name.includes(':current')) bucket.current = value;
-            else bucket.value = value;
+        if (type === 'count') {
+            bucket.max = meta.max ?? null;
+            bucket.current = meta.current ?? meta.max ?? null;
         } else {
             bucket.value = value;
         }
@@ -102,10 +101,9 @@ function buildCharacterEmbed(character) {
         const stat = combined[i];
         let display = '';
 
-        if (stat.max !== null) {
-            const current = stat.current ?? stat.max;
-            display = `⚔️ ${stat.label}: ${current} / ${stat.max}`;
-        } else if (stat.value !== undefined) {
+        if (stat.type === 'count' && stat.max !== null) {
+            display = `⚔️ ${stat.label}: ${stat.current ?? stat.max} / ${stat.max}`;
+        } else if (stat.value !== undefined && stat.value !== null) {
             display = `**${stat.label}**: ${stat.value}`;
         } else {
             display = `**${stat.label}**: _Not set_`;
