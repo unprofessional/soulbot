@@ -5,14 +5,14 @@ const {
     ActionRowBuilder,
     StringSelectMenuBuilder,
 } = require('discord.js');
-const { getCharactersByUser } = require('../../../store/services/character.service');
+const { getCharactersByGame } = require('../../../store/services/character.service');
 const { getCurrentGame } = require('../../../store/services/player.service');
 const { validateGameAccess } = require('../../../features/rpg-tracker/validate_game_access');
 
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('switch-character')
-        .setDescription('Select one of your characters to make active.'),
+        .setDescription('Select one of your characters from your current game to make active.'),
 
     async execute(interaction) {
         const userId = interaction.user.id;
@@ -29,12 +29,14 @@ module.exports = {
             const currentGameId = await getCurrentGame(userId, guildId);
             if (!currentGameId) {
                 return await interaction.reply({
-                    content: '⚠️ You don’t have an active game in this server. Use `/switch-game` or `/join-game` first.',
+                    content: '⚠️ You don\'t have an active game in this server. Use `/switch-game` or `/join-game` first.',
                     ephemeral: true,
                 });
             }
 
-            const allCharacters = await getCharactersByUser(userId, currentGameId);
+            console.log('>>> switch-character.js > currentGameId: ', currentGameId);
+
+            const allCharacters = await getCharactersByGame(currentGameId); // <-- this is the offending line!
             console.log('>>> switch-character.js > allCharacters: ', allCharacters);
 
             const eligibleCharacters = [];

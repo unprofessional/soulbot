@@ -80,8 +80,9 @@ async function getCharacterWithStats(characterId) {
 /**
  * Returns all characters belonging to a user for the current game in this guild.
  */
-async function getCharactersByUser(userId, guildId) {
+async function getCharactersByUser(userId, guildId) { // <-- GUILD ID, NOT GAME ID!!!
     const currentGameId = await getCurrentGame(userId, guildId);
+    console.log('>>> character.service > getCharactersByUser > currentGameId: ', currentGameId);
     if (!currentGameId) return [];
 
     const all = await characterDAO.findByUser(userId);
