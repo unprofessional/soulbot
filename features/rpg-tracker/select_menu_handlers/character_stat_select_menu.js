@@ -1,3 +1,5 @@
+// features/rpg-tracker/select_menu_handlers/character_stat_select_menu.js
+
 const {
     ModalBuilder,
     TextInputBuilder,
@@ -97,7 +99,8 @@ async function handle(interaction) {
 
     const fieldType = stat.field_type || stat.meta?.field_type;
 
-    const modal = new ModalBuilder().setCustomId(`editStatModal:${characterId}:${fieldKey}`);
+    const modal = new ModalBuilder().setCustomId(`editStatModal:${characterId}:${fieldType}:${fieldKey}`);
+
     modal.setTitle(truncate(`Edit Stat: ${label}`));
 
     if (fieldType === 'count' || stat.meta?.max !== undefined) {
