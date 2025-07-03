@@ -60,7 +60,7 @@ module.exports = {
                         }
                         return a.label.localeCompare(b.label);
                     })
-                    .slice(0, 2)
+                    .slice(0, 4) // num of stats to show
                     .map(s => `${s.label}: ${s.value}`);
 
                 const description = topStats.join(' • ') || 'No stats available';
