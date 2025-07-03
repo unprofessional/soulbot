@@ -132,6 +132,35 @@ async function getUserDefinedFields(userId) {
     return [];
 }
 
+/**
+ * For /switch-character
+ * @param {*} character 
+ * @returns 
+ */
+async function getCharacterSummary(character) {
+    const statFields = await statDAO.findByCharacter(character.id);
+    const templates = await getStatTemplates(character.game_id);
+
+    const templateMap = Object.fromEntries(templates.map(t => [t.id, t]));
+
+    const enriched = statFields
+        .map(field => {
+            const template = templateMap[field.template_id];
+            return {
+                label: template?.label || 'Unknown',
+                sort_order: template?.sort_order ?? 999,
+                value: field.value,
+            };
+        })
+        .sort((a, b) => {
+            if (a.sort_order !== b.sort_order) return a.sort_order - b.sort_order;
+            return a.label.localeCompare(b.label);
+        })
+        .slice(0, 2);
+
+    return enriched;
+}
+
 module.exports = {
     createCharacter,
     getCharacterWithStats,
@@ -142,4 +171,5 @@ module.exports = {
     updateCharacterMeta,
     deleteCharacter,
     getUserDefinedFields,
+    getCharacterSummary,
 };

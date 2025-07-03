@@ -5,7 +5,7 @@ const {
     ActionRowBuilder,
     StringSelectMenuBuilder,
 } = require('discord.js');
-const { getCharactersByGame } = require('../../../store/services/character.service');
+const { getCharactersByGame, getCharacterWithStats } = require('../../../store/services/character.service');
 const { getCurrentGame } = require('../../../store/services/player.service');
 const { validateGameAccess } = require('../../../features/rpg-tracker/validate_game_access');
 
@@ -34,12 +34,10 @@ module.exports = {
                 });
             }
 
-            console.log('>>> switch-character.js > currentGameId: ', currentGameId);
+            console.log('>>> switch-character.js > currentGameId:', currentGameId);
 
-            const allCharacters = await getCharactersByGame(currentGameId); // <-- this is the offending line!
-            console.log('>>> switch-character.js > allCharacters: ', allCharacters);
-
-            const eligibleCharacters = [];
+            const allCharacters = await getCharactersByGame(currentGameId);
+            const eligibleOptions = [];
 
             for (const character of allCharacters) {
                 const { valid } = await validateGameAccess({
@@ -47,12 +45,34 @@ module.exports = {
                     userId,
                 });
 
-                if (valid) {
-                    eligibleCharacters.push(character);
-                }
+                if (!valid) continue;
+
+                const fullCharacter = await getCharacterWithStats(character.id);
+                const level = fullCharacter.level ?? 1;
+                const clazz = fullCharacter.class || 'Unclassed';
+                const label = `${fullCharacter.name} (Lv ${level} ${clazz})`;
+
+                const topStats = (fullCharacter.stats || [])
+                    .slice()
+                    .sort((a, b) => {
+                        if ((a.sort_order ?? 999) !== (b.sort_order ?? 999)) {
+                            return (a.sort_order ?? 999) - (b.sort_order ?? 999);
+                        }
+                        return a.label.localeCompare(b.label);
+                    })
+                    .slice(0, 2)
+                    .map(s => `${s.label}: ${s.value}`);
+
+                const description = topStats.join(' • ') || 'No stats available';
+
+                eligibleOptions.push({
+                    label: label.length > 100 ? label.slice(0, 97) + '…' : label,
+                    description: description.length > 100 ? description.slice(0, 97) + '…' : description,
+                    value: fullCharacter.id,
+                });
             }
 
-            if (!eligibleCharacters.length) {
+            if (!eligibleOptions.length) {
                 return await interaction.reply({
                     content: '⚠️ You have no characters in published or accessible games.',
                     ephemeral: true,
@@ -62,21 +82,7 @@ module.exports = {
             const menu = new StringSelectMenuBuilder()
                 .setCustomId('switchCharacterDropdown')
                 .setPlaceholder('Choose your character')
-                .addOptions(
-                    eligibleCharacters.map(c => {
-                        const level = c.level ?? 1;
-                        const clazz = c.class || 'Unclassed';
-                        const race = c.race || 'No race';
-                        const visibility = c.visibility === 'private' ? '🔒 Private' : '🌐 Public';
-                        const label = `${c.name} (Lv ${level} ${clazz})`;
-                        const description = `${race} — ${visibility}`;
-                        return {
-                            label: label.length > 100 ? label.slice(0, 97) + '…' : label, // Discord limit is 100
-                            description: description.length > 100 ? description.slice(0, 97) + '…' : description,
-                            value: c.id,
-                        };
-                    })
-                )
+                .addOptions(eligibleOptions);
 
             const row = new ActionRowBuilder().addComponents(menu);
 
