@@ -48,30 +48,17 @@ async function processCharacterFieldModal(interaction, fieldKey, label, value) {
         await upsertTempCharacterField(interaction.user.id, fieldKey, value, gameId);
     }
 
-    // ✅ Re-fetch fresh draft after upsert
     const draft = await getTempCharacterData(interaction.user.id);
     const userFields = await getUserDefinedFields(interaction.user.id);
     const game = await getGame({ id: gameId });
     const remaining = await getRemainingRequiredFields(interaction.user.id);
 
-    const allFields = [
-        { name: 'core:name', label: '[CORE] Name' },
-        { name: 'core:bio', label: '[CORE] Bio' },
-        { name: 'core:avatar_url', label: '[CORE] Avatar URL' },
-        ...statTemplates.map(f => ({ name: `game:${f.id}`, label: `[GAME] ${f.label}` })),
-        ...userFields.map(f => ({ name: `user:${f.name}`, label: `[USER] ${f.label || f.name}` })),
-    ];
-
-    const incompleteFields = allFields.filter(f => {
-        const val = draft?.[f.name];
-        return !val || !val.trim?.();
-    });
-
+    // ✅ Use remaining directly for dropdown options
     const response = rebuildCreateCharacterResponse(
         game,
         statTemplates,
         userFields,
-        incompleteFields,
+        remaining,
         draft
     );
 
