@@ -1,3 +1,5 @@
+// features/rpg-tracker/modal_handlers/character_creation_modals.js
+
 const { getOrCreatePlayer } = require('../../../store/services/player.service');
 const { getUserDefinedFields } = require('../../../store/services/character.service');
 const {
@@ -9,8 +11,8 @@ const { getStatTemplates, getGame } = require('../../../store/services/game.serv
 const { rebuildCreateCharacterResponse } = require('../utils/rebuild_create_character_response');
 
 async function processCharacterFieldModal(interaction, fieldKey, label, value) {
-    const draft = await getTempCharacterData(interaction.user.id);
-    const gameId = draft?.game_id || null;
+    const initialDraft = await getTempCharacterData(interaction.user.id);
+    const gameId = initialDraft?.game_id || null;
 
     if (!gameId) {
         return interaction.reply({
@@ -41,12 +43,13 @@ async function processCharacterFieldModal(interaction, fieldKey, label, value) {
             max,
         };
 
-        // Store value as null and data in meta
         await upsertTempCharacterField(interaction.user.id, fieldKey, null, gameId, meta);
     } else {
         await upsertTempCharacterField(interaction.user.id, fieldKey, value, gameId);
     }
 
+    // ✅ Re-fetch fresh draft after upsert
+    const draft = await getTempCharacterData(interaction.user.id);
     const userFields = await getUserDefinedFields(interaction.user.id);
     const game = await getGame({ id: gameId });
     const remaining = await getRemainingRequiredFields(interaction.user.id);
@@ -61,7 +64,7 @@ async function processCharacterFieldModal(interaction, fieldKey, label, value) {
 
     const incompleteFields = allFields.filter(f => {
         const val = draft?.[f.name];
-        return !val || !val.trim();
+        return !val || !val.trim?.();
     });
 
     const response = rebuildCreateCharacterResponse(
