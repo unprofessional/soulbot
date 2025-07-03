@@ -8,6 +8,7 @@ const {
 const { getCharactersByGame, getCharacterWithStats } = require('../../../store/services/character.service');
 const { getCurrentGame } = require('../../../store/services/player.service');
 const { validateGameAccess } = require('../../../features/rpg-tracker/validate_game_access');
+const { formatTimeAgo } = require('../../../features/rpg-tracker/utils/time_ago');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -48,9 +49,7 @@ module.exports = {
                 if (!valid) continue;
 
                 const fullCharacter = await getCharacterWithStats(character.id);
-                const level = fullCharacter.level ?? 1;
-                const clazz = fullCharacter.class || 'Unclassed';
-                const label = `${fullCharacter.name} (Lv ${level} ${clazz})`;
+                const label = `${fullCharacter.name} — ${formatTimeAgo(fullCharacter.created_at)}`;
 
                 const topStats = (fullCharacter.stats || [])
                     .slice()
