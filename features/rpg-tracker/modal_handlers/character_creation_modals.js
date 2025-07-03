@@ -1,5 +1,3 @@
-// features/rpg-tracker/modal_handlers/character_creation_modals.js
-
 const { getOrCreatePlayer } = require('../../../store/services/player.service');
 const { getUserDefinedFields } = require('../../../store/services/character.service');
 const {
@@ -25,19 +23,26 @@ async function processCharacterFieldModal(interaction, fieldKey, label, value) {
     const matchingTemplate = statTemplates.find(t => `game:${t.id}` === fieldKey);
 
     if (matchingTemplate?.field_type === 'count') {
-        const max = interaction.fields.getTextInputValue(`${fieldKey}:max`)?.trim();
-        const current = interaction.fields.getTextInputValue(`${fieldKey}:current`)?.trim();
+        const maxRaw = interaction.fields.getTextInputValue(`${fieldKey}:max`)?.trim();
+        const currentRaw = interaction.fields.getTextInputValue(`${fieldKey}:current`)?.trim();
 
-        if (!max) {
+        const max = parseInt(maxRaw, 10);
+        const current = currentRaw ? parseInt(currentRaw, 10) : max;
+
+        if (isNaN(max)) {
             return interaction.reply({
-                content: '⚠️ Max value is required for count fields.',
+                content: '⚠️ Max value must be a number.',
                 ephemeral: true,
             });
         }
 
-        // Store a combined value like "3 / 4"
-        const valueToStore = `${current || max} / ${max}`;
-        await upsertTempCharacterField(interaction.user.id, fieldKey, valueToStore, gameId);
+        const meta = {
+            current: isNaN(current) ? max : current,
+            max,
+        };
+
+        // Store value as null and data in meta
+        await upsertTempCharacterField(interaction.user.id, fieldKey, null, gameId, meta);
     } else {
         await upsertTempCharacterField(interaction.user.id, fieldKey, value, gameId);
     }
@@ -119,10 +124,7 @@ async function handle(interaction) {
             const matchingTemplate = statTemplates.find(t => `game:${t.id}` === fieldKey);
 
             let value = null;
-            if (matchingTemplate?.field_type === 'count') {
-                // Skip extracting value now; processCharacterFieldModal will handle it
-                value = null;
-            } else {
+            if (matchingTemplate?.field_type !== 'count') {
                 value = interaction.fields.getTextInputValue(fieldKey)?.trim();
                 if (!value) {
                     return interaction.reply({

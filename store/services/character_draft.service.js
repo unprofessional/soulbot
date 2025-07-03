@@ -31,7 +31,7 @@ function initDraft(userId) {
     return drafts.get(key).data;
 }
 
-async function upsertTempCharacterField(userId, fieldKey, value, gameId = null) {
+async function upsertTempCharacterField(userId, fieldKey, value, gameId = null, meta = null) {
     const key = getDraftKey(userId);
     if (!drafts.has(key)) {
         initDraft(userId);
@@ -40,7 +40,14 @@ async function upsertTempCharacterField(userId, fieldKey, value, gameId = null) 
     const wrapper = drafts.get(key);
     if (!wrapper) return;
 
+    // Store value
     wrapper.data[fieldKey] = value;
+
+    // If meta provided, store it under meta:<fieldKey>
+    if (meta) {
+        wrapper.data[`meta:${fieldKey}`] = meta;
+    }
+
     wrapper.updatedAt = Date.now();
 
     if (gameId && !wrapper.data.game_id) {
@@ -49,6 +56,9 @@ async function upsertTempCharacterField(userId, fieldKey, value, gameId = null) 
     }
 
     console.log(`📝 Upserted draft field [${fieldKey}]:`, value);
+    if (meta) {
+        console.log(`📦 Stored meta for [${fieldKey}]:`, meta);
+    }
     console.log('🗂️  Current draft:', JSON.stringify(wrapper.data, null, 2));
 }
 
@@ -99,22 +109,14 @@ async function getRemainingRequiredFields(userId) {
         const baseKey = `game:${template.id}`;
 
         if (template.field_type === 'count') {
-            const maxKey = `${baseKey}:max`;
-            const curKey = `${baseKey}:current`;
-            const hasMax = draft[maxKey] && draft[maxKey].trim();
-            const hasCur = draft[curKey] && draft[curKey].trim();
-            const combined = draft[baseKey];
-
-            // Allow satisfaction via either count subfields OR combined string like "3 / 4"
-            const hasCombined = combined && combined.includes('/') && combined.trim();
-
-            if (!(hasMax || hasCur || hasCombined)) {
+            const meta = draft[`meta:${baseKey}`];
+            if (!meta || !meta.max) {
                 missing.push({ name: baseKey, label: `[GAME] ${template.label}` });
             }
         } else {
-            const key = baseKey;
-            if (!draft[key] || !draft[key].trim()) {
-                missing.push({ name: key, label: `[GAME] ${template.label}` });
+            const val = draft[baseKey];
+            if (!val || !val.trim()) {
+                missing.push({ name: baseKey, label: `[GAME] ${template.label}` });
             }
         }
     }
@@ -155,13 +157,21 @@ async function finalizeCharacterCreation(userId, draft) {
     for (const template of statTemplates) {
         const baseKey = `game:${template.id}`;
         if (template.field_type === 'count') {
-            const max = draft[`${baseKey}:max`];
-            const cur = draft[`${baseKey}:current`] ?? max;
-            if (max) {
-                statMap[template.id] = `${cur} / ${max}`;
+            const meta = draft[`meta:${baseKey}`];
+            if (meta?.max != null) {
+                statMap[template.id] = {
+                    value: null,
+                    meta: {
+                        current: meta.current ?? meta.max,
+                        max: meta.max,
+                    },
+                };
             }
         } else if (draft[baseKey]) {
-            statMap[template.id] = draft[baseKey];
+            statMap[template.id] = {
+                value: draft[baseKey],
+                meta: null,
+            };
         }
     }
 
