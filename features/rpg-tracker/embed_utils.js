@@ -148,9 +148,13 @@ function buildCharacterEmbed(character) {
     // Add stat grid fields in chunks of 2 (to enforce 2-column layout)
     const displayStrings = parsedStats.gridFields.map(formatStatDisplay);
     for (let i = 0; i < displayStrings.length; i += 2) {
+        const left = displayStrings[i] ?? '\u200B';
+        const right = displayStrings[i + 1] ?? '\u200B';
+
         embed.addFields(
-            { name: '\u200B', value: displayStrings[i] ?? '\u200B', inline: true },
-            { name: '\u200B', value: displayStrings[i + 1] ?? '\u200B', inline: true }
+            { name: '\u200B', value: left, inline: true },
+            { name: '\u200B', value: right, inline: true },
+            { name: '\u200B', value: '\u200B', inline: true } // Filler column to enforce 2-col layout
         );
     }
 
