@@ -1,13 +1,12 @@
+// features/rpg-tracker/button_handlers/adjust_count_buttons.js
+
 const {
     ActionRowBuilder,
     StringSelectMenuBuilder,
 } = require('discord.js');
 
 const { getCharacterWithStats } = require('../../../store/services/character.service');
-const {
-    buildCharacterEmbed,
-    buildCharacterActionRow,
-} = require('../embed_utils');
+const { renderCharacterView } = require('../utils/render_character_view');
 
 async function handle(interaction) {
     const [, characterId] = interaction.customId.split(':');
@@ -23,11 +22,7 @@ async function handle(interaction) {
 
     const countStats = character.stats.filter(s => s.field_type === 'count');
     if (!countStats.length) {
-        return await interaction.update({
-            content: '⚠️ This character has no count-type stats to adjust.',
-            embeds: [buildCharacterEmbed(character)],
-            components: [buildCharacterActionRow(character.id, character.visibility)],
-        });
+        return await interaction.update(renderCharacterView(character));
     }
 
     const options = countStats.map(stat => ({
@@ -43,10 +38,12 @@ async function handle(interaction) {
 
     const dropdownRow = new ActionRowBuilder().addComponents(dropdown);
 
+    const base = renderCharacterView(character);
+
     return await interaction.update({
+        ...base,
         content: '➕/➖ Select the stat you want to adjust:',
-        embeds: [buildCharacterEmbed(character)],
-        components: [buildCharacterActionRow(character.id, character.visibility), dropdownRow],
+        components: [...base.components, dropdownRow],
     });
 }
 
