@@ -1,11 +1,11 @@
 // features/rpg-tracker/button_handlers/adjust_count_buttons.js
 
-const { getCharacterWithStats } = require('../../../store/services/character.service');
-
 const {
     ActionRowBuilder,
     StringSelectMenuBuilder,
 } = require('discord.js');
+const { getCharacterWithStats } = require('../../../store/services/character.service');
+const { rebuildCreateCharacterResponse } = require('../utils/rebuild_create_character_response');
 
 async function handle(interaction) {
     const [, characterId] = interaction.customId.split(':');
@@ -14,35 +14,37 @@ async function handle(interaction) {
     if (!character) {
         return await interaction.update({
             content: '⚠️ Character not found.',
+            embeds: [],
             components: [],
         });
     }
 
     const countStats = character.stats.filter(s => s.field_type === 'count');
-    if (countStats.length === 0) {
+
+    if (!countStats.length) {
         return await interaction.update({
             content: '⚠️ This character has no count-type stats to adjust.',
-            components: [],
+            ...rebuildCreateCharacterResponse(character), // fallback to original view
         });
     }
 
-    const select = new StringSelectMenuBuilder()
-        .setCustomId(`adjustCountSelect:${characterId}`)
-        .setPlaceholder('Choose a stat to adjust')
-        .addOptions(
-            countStats.map(stat => ({
-                label: stat.label,
-                value: `adjust:${stat.template_id}`,
-                description: `Current: ${stat.meta?.current ?? stat.meta?.max ?? '??'} / ${stat.meta?.max ?? '??'}`,
-            }))
-        );
+    const options = countStats.map((stat, i) => ({
+        label: stat.label,
+        value: `adjust:${stat.template_id}`,
+        description: `Current: ${stat.meta?.current ?? stat.meta?.max ?? '??'} / ${stat.meta?.max ?? '??'}`,
+    }));
 
-    const row = new ActionRowBuilder().addComponents(select);
+    const dropdown = new StringSelectMenuBuilder()
+        .setCustomId(`adjustCountSelect:${characterId}`)
+        .setPlaceholder('Select a stat to adjust')
+        .addOptions(options);
+
+    const dropdownRow = new ActionRowBuilder().addComponents(dropdown);
 
     return await interaction.update({
-        content: 'Select a stat to adjust:',
-        components: [row],
-        embeds: [], // clear embeds, optional
+        content: `➕/➖ Select a stat to adjust for **${character.name}**`,
+        embeds: [],
+        components: [dropdownRow],
     });
 }
 
