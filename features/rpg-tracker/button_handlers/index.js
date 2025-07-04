@@ -55,7 +55,11 @@ module.exports = {
             return inventoryButtons.handle(interaction);
         }
 
-        if (customId.startsWith('adjust_stats:')) {
+        if (
+            customId.startsWith('adjust_stats:') ||
+            customId.startsWith('decrementCount:') ||
+            customId.startsWith('incrementCount:')
+        ) {
             return adjustCountButtons.handle(interaction);
         }
 
