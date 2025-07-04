@@ -7,6 +7,7 @@ const charEditButtons = require('./character_edit_buttons');
 const toggleVisibilityButton = require('./toggle_visibility');
 const inventoryButtons = require('./inventory_buttons');
 const fallbackButtons = require('./fallback_buttons');
+const adjustCountButtons = require('./adjust_count_buttons');
 
 module.exports = {
     async handleButton(interaction) {
@@ -51,6 +52,10 @@ module.exports = {
             customId === 'cancel_clear_inventory'
         ) {
             return inventoryButtons.handle(interaction);
+        }
+
+        if (customId.startsWith('adjust_stats:')) {
+            return adjustCountButtons.handle(interaction);
         }
 
         return fallbackButtons.handle(interaction);
