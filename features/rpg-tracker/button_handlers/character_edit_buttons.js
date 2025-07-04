@@ -3,9 +3,12 @@
 const {
     ActionRowBuilder,
     StringSelectMenuBuilder,
+    ButtonBuilder,
+    ButtonStyle,
 } = require('discord.js');
 
 const { getCharacterWithStats } = require('../../../store/services/character.service');
+const { renderCharacterView } = require('../utils/render_character_view');
 
 // Utility to safely truncate long descriptions (max 100 characters)
 function truncate(str, max = 100) {
@@ -19,6 +22,14 @@ module.exports = {
         if (customId.startsWith('edit_stat:')) {
             const [, characterId] = customId.split(':');
             const character = await getCharacterWithStats(characterId);
+
+            if (!character) {
+                return await interaction.update({
+                    content: '⚠️ Character not found.',
+                    embeds: [],
+                    components: [],
+                });
+            }
 
             const coreFields = [
                 { value: 'core:name', label: 'Name', type: 'short', current: character.name },
@@ -61,20 +72,30 @@ module.exports = {
             if (options.length === 0) {
                 return await interaction.update({
                     content: '⚠️ No editable fields found.',
-                    components: [],
+                    ...renderCharacterView(character),
                 });
             }
 
-            const select = new StringSelectMenuBuilder()
+            const dropdown = new StringSelectMenuBuilder()
                 .setCustomId(`editCharacterStatDropdown:${characterId}`)
                 .setPlaceholder('Choose a stat or core field to edit')
                 .addOptions(options);
 
-            const row = new ActionRowBuilder().addComponents(select);
+            const dropdownRow = new ActionRowBuilder().addComponents(dropdown);
+
+            const cancelButton = new ButtonBuilder()
+                .setCustomId(`goBackToCharacter:${characterId}`)
+                .setLabel('↩️ Cancel / Go Back')
+                .setStyle(ButtonStyle.Secondary);
+
+            const cancelRow = new ActionRowBuilder().addComponents(cancelButton);
+
+            const base = renderCharacterView(character);
 
             return await interaction.update({
+                ...base,
                 content: '🛠️ Select the stat or field you want to edit:',
-                components: [row],
+                components: [...base.components, dropdownRow, cancelRow],
             });
         }
     }
