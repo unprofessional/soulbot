@@ -5,6 +5,7 @@ const gameDropdown = require('./game_dropdown');
 const statDropdown = require('./stat_template_dropdown');
 const characterStatSelect = require('./character_stat_select_menu');
 const statTypeDropodown = require('./stat_type_select');
+const adjustCountSelectHandler = require('./adjust_count_select');
 
 module.exports = {
     async handleSelectMenu(interaction) {
@@ -39,6 +40,10 @@ module.exports = {
 
         if (customId.startsWith('selectStatType:')) {
             return statTypeDropodown.handle(interaction);
+        }
+
+        if (customId.startsWith('adjustCountSelect:')) {
+            return adjustCountSelectHandler.handle(interaction);
         }
 
         return interaction.reply({
