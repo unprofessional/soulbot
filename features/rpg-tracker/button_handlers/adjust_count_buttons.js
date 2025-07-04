@@ -42,10 +42,14 @@ async function handle(interaction) {
     const dropdownRow = new ActionRowBuilder().addComponents(dropdown);
 
     return await interaction.update({
-        content: `➕/➖ Select a stat to adjust for **${character.name}**`,
-        embeds: [],
-        components: [dropdownRow],
+        content: '➕/➖ Select the stat you want to adjust:',
+        ...rebuildCreateCharacterResponse(character),
+        components: [
+            ...rebuildCreateCharacterResponse(character).components,
+            dropdownRow,
+        ],
     });
+
 }
 
 module.exports = { handle };
