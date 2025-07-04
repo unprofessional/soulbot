@@ -59,7 +59,7 @@ function parseCharacterStats(stats) {
 
 function formatStatDisplay(stat) {
     if (stat.type === 'count' && stat.max !== null) {
-        return `${stat.label}: ${stat.current ?? stat.max} / ${stat.max}`;
+        return `**${stat.label}**: ${stat.current ?? stat.max} / ${stat.max}`;
     } else if (stat.value !== undefined && stat.value !== null && stat.value !== '') {
         return `**${stat.label}**: ${stat.value}`;
     } else {
