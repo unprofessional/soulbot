@@ -131,9 +131,6 @@ function buildCharacterEmbed(character) {
     }
 
     const name = character.name || 'Unnamed Character';
-    const visibility = (character.visibility || 'private').toLowerCase();
-    const visibilityEmoji = visibility === 'public' ? '🔓' : '🔒';
-    const visibilityLabel = `${visibilityEmoji} ${visibility.charAt(0).toUpperCase() + visibility.slice(1)}`;
 
     embed.setTitle(name);
 
@@ -157,22 +154,15 @@ function buildCharacterEmbed(character) {
         );
     }
 
-    const isPublic = visibility === 'public';
-    embed.addFields(
-        { name: '\u200B', value: '\u200B', inline: true },
-        {
-            name: '\u200B',
-            value: isPublic ? '🌐 **Published**' : '🔒 **Not Published**',
-            inline: true,
-        }
-    );
-
     if (character.bio) {
         embed.setDescription(`_${character.bio}_`);
     }
 
+    const isPublic = (character.visibility || 'private').toLowerCase() === 'public';
+    const pubLabel = isPublic ? '🌐 Published' : '🔒 Not Published';
+
     embed.setFooter({
-        text: `Created on ${new Date(character.created_at).toLocaleDateString()} (${formatTimeAgo(character.created_at)})`,
+        text: `${pubLabel} • Created on ${new Date(character.created_at).toLocaleDateString()} (${formatTimeAgo(character.created_at)})`,
     });
 
     return embed;
