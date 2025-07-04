@@ -161,6 +161,24 @@ async function getCharacterSummary(character) {
     return enriched;
 }
 
+/**
+ * Updates a single key inside the stat's meta object.
+ */
+async function updateStatMetaField(characterId, templateId, metaKey, newValue) {
+    const existingStats = await statDAO.findByCharacter(characterId);
+    const target = existingStats.find(s => s.template_id === templateId);
+
+    if (!target) throw new Error(`Stat ${templateId} not found on character ${characterId}`);
+
+    const updatedMeta = {
+        ...(target.meta || {}),
+        [metaKey]: newValue,
+    };
+
+    // Preserve existing value field
+    return statDAO.create(characterId, templateId, target.value ?? '', updatedMeta);
+}
+
 module.exports = {
     createCharacter,
     getCharacterWithStats,
@@ -172,4 +190,5 @@ module.exports = {
     deleteCharacter,
     getUserDefinedFields,
     getCharacterSummary,
+    updateStatMetaField,
 };
