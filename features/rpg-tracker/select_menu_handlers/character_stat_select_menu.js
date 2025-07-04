@@ -133,7 +133,7 @@ async function handle(interaction) {
         modal.addComponents(
             new ActionRowBuilder().addComponents(
                 new TextInputBuilder()
-                    .setCustomId('statValue')
+                    .setCustomId(fieldKey)
                     .setLabel(truncate(`New value for ${label}`))
                     .setStyle(inputStyle)
                     .setValue(stat.value ?? '')
