@@ -3,6 +3,8 @@
 const {
     ActionRowBuilder,
     StringSelectMenuBuilder,
+    ButtonBuilder,
+    ButtonStyle,
 } = require('discord.js');
 
 const { getCharacterWithStats } = require('../../../store/services/character.service');
@@ -38,12 +40,19 @@ async function handle(interaction) {
 
     const dropdownRow = new ActionRowBuilder().addComponents(dropdown);
 
+    const cancelButton = new ButtonBuilder()
+        .setCustomId(`goBackToCharacter:${characterId}`)
+        .setLabel('↩️ Cancel / Go Back')
+        .setStyle(ButtonStyle.Secondary);
+
+    const cancelRow = new ActionRowBuilder().addComponents(cancelButton);
+
     const base = renderCharacterView(character);
 
     return await interaction.update({
         ...base,
         content: '➕/➖ Select the stat you want to adjust:',
-        components: [...base.components, dropdownRow],
+        components: [...base.components, dropdownRow, cancelRow],
     });
 }
 
