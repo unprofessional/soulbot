@@ -8,6 +8,7 @@ const toggleVisibilityButton = require('./toggle_visibility');
 const inventoryButtons = require('./inventory_buttons');
 const fallbackButtons = require('./fallback_buttons');
 const adjustCountButtons = require('./adjust_count_buttons');
+const characterViewButtons = require('./character_view_buttons');
 
 module.exports = {
     async handleButton(interaction) {
@@ -56,6 +57,10 @@ module.exports = {
 
         if (customId.startsWith('adjust_stats:')) {
             return adjustCountButtons.handle(interaction);
+        }
+
+        if (customId.startsWith('goBackToCharacter:')) {
+            return characterViewButtons.handle(interaction);
         }
 
         return fallbackButtons.handle(interaction);
