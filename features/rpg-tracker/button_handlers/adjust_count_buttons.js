@@ -1,11 +1,13 @@
-// features/rpg-tracker/button_handlers/adjust_count_buttons.js
-
 const {
     ActionRowBuilder,
     StringSelectMenuBuilder,
 } = require('discord.js');
+
 const { getCharacterWithStats } = require('../../../store/services/character.service');
-const { rebuildCreateCharacterResponse } = require('../utils/rebuild_create_character_response');
+const {
+    buildCharacterEmbed,
+    buildCharacterActionRow,
+} = require('../embed_utils');
 
 async function handle(interaction) {
     const [, characterId] = interaction.customId.split(':');
@@ -20,15 +22,15 @@ async function handle(interaction) {
     }
 
     const countStats = character.stats.filter(s => s.field_type === 'count');
-
     if (!countStats.length) {
         return await interaction.update({
             content: '⚠️ This character has no count-type stats to adjust.',
-            ...rebuildCreateCharacterResponse(character), // fallback to original view
+            embeds: [buildCharacterEmbed(character)],
+            components: [buildCharacterActionRow(character.id, character.visibility)],
         });
     }
 
-    const options = countStats.map((stat, i) => ({
+    const options = countStats.map(stat => ({
         label: stat.label,
         value: `adjust:${stat.template_id}`,
         description: `Current: ${stat.meta?.current ?? stat.meta?.max ?? '??'} / ${stat.meta?.max ?? '??'}`,
@@ -43,13 +45,9 @@ async function handle(interaction) {
 
     return await interaction.update({
         content: '➕/➖ Select the stat you want to adjust:',
-        ...rebuildCreateCharacterResponse(character),
-        components: [
-            ...rebuildCreateCharacterResponse(character).components,
-            dropdownRow,
-        ],
+        embeds: [buildCharacterEmbed(character)],
+        components: [buildCharacterActionRow(character.id, character.visibility), dropdownRow],
     });
-
 }
 
 module.exports = { handle };
