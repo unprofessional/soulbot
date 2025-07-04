@@ -136,7 +136,6 @@ function buildCharacterEmbed(character) {
     const visibilityLabel = `${visibilityEmoji} ${visibility.charAt(0).toUpperCase() + visibility.slice(1)}`;
 
     embed.setTitle(name);
-    embed.addFields({ name: 'Visibility', value: visibilityLabel, inline: true });
 
     const parsedStats = parseCharacterStats(character.stats || []);
 
@@ -157,6 +156,16 @@ function buildCharacterEmbed(character) {
             { name: '\u200B', value: displayStrings[i + 1] ?? '\u200B', inline: true }
         );
     }
+
+    const isPublic = visibility === 'public';
+    embed.addFields(
+        { name: '\u200B', value: '\u200B', inline: true },
+        {
+            name: '\u200B',
+            value: isPublic ? '🌐 **Published**' : '🔒 **Not Published**',
+            inline: true,
+        }
+    );
 
     if (character.bio) {
         embed.setDescription(`_${character.bio}_`);
