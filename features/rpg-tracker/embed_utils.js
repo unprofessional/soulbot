@@ -101,11 +101,34 @@ function buildCharacterEmbed(character) {
     const combined = Array.from(statMap.values()).sort((a, b) => a.sort_index - b.sort_index);
     console.log('🧱 Combined stat buckets:', combined);
 
+    const paragraphStats = [];
+    const columnStats = [];
+
+    for (const stat of combined) {
+        if (stat.type === 'paragraph') {
+            const val = (stat.value || '').trim();
+            if (!val) continue;
+            paragraphStats.push({
+                name: `**${stat.label}**`,
+                value: val.length > 100 ? val.slice(0, 97) + '…' : val,
+                inline: false,
+            });
+        } else {
+            columnStats.push(stat);
+        }
+    }
+
+    // Add paragraph fields first
+    for (const para of paragraphStats) {
+        embed.addFields(para);
+    }
+
+    // Then render remaining stats as 2-column rows
     const leftStats = [];
     const rightStats = [];
 
-    for (let i = 0; i < combined.length; i++) {
-        const stat = combined[i];
+    for (let i = 0; i < columnStats.length; i++) {
+        const stat = columnStats[i];
         let display = '';
 
         if (stat.type === 'count' && stat.max !== null) {
@@ -132,7 +155,9 @@ function buildCharacterEmbed(character) {
         embed.setDescription(`_${character.bio}_`);
     }
 
-    embed.setFooter({ text: `Created on ${new Date(character.created_at).toLocaleDateString()} (${formatTimeAgo(character.created_at)})` });
+    embed.setFooter({
+        text: `Created on ${new Date(character.created_at).toLocaleDateString()} (${formatTimeAgo(character.created_at)})`,
+    });
 
     return embed;
 }
