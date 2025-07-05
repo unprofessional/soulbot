@@ -28,6 +28,15 @@ async function handle(interaction) {
     // === Define Required Stats Modal ===
     if (customId.startsWith('defineStats:')) {
         const [, gameId] = customId.split(':');
+        const game = await getGame({ id: gameId });
+
+        if (!game || game.created_by !== interaction.user.id) {
+            return await interaction.reply({
+                content: '⚠️ Only the GM can define new stat fields.',
+                ephemeral: true,
+            });
+        }
+
         const dropdownRow = buildStatTypeDropdown(gameId);
 
         const cancelBtn = new ButtonBuilder()
