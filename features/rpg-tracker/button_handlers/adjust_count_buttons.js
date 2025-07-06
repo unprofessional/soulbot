@@ -77,28 +77,6 @@ async function handle(interaction) {
         });
     }
 
-    // === Stat Selected (Dropdown)
-    if (customId.startsWith('adjustStatSelect:')) {
-        const [, characterId] = customId.split(':');
-        const [selected] = interaction.values; // e.g. 'adjust:template_id'
-        const [, statId] = selected.split(':');
-
-        const modal = new ModalBuilder()
-            .setCustomId(`adjustStatModal:${characterId}:${statId}`)
-            .setTitle(`Adjust Stat Value`);
-
-        const input = new TextInputBuilder()
-            .setCustomId('deltaValue')
-            .setLabel('How much to add/subtract?')
-            .setPlaceholder('Enter a number like 3 or -2')
-            .setStyle(TextInputStyle.Short)
-            .setRequired(true);
-
-        const row = new ActionRowBuilder().addComponents(input);
-        modal.addComponents(row);
-
-        return await interaction.showModal(modal);
-    }
 }
 
 module.exports = { handle };
