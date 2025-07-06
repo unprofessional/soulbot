@@ -42,7 +42,7 @@ async function handle(interaction) {
                     characterId, fieldKey, parsedMax, parsedCurrent,
                 });
 
-                await updateStat(characterId, fieldKey, null, {
+                await updateStat(characterId, fieldKey, String(parsedCurrent), {
                     max: parsedMax,
                     current: parsedCurrent,
                 });
@@ -78,7 +78,7 @@ async function handle(interaction) {
         if (customId.startsWith('setCharacterField:') || customId.startsWith('editCharacterField:')) {
             const parts = customId.split(':');
             const characterId = parts[1];
-            const fullKeyWithLabel = parts.slice(2).join(':'); // handles ':' in field labels
+            const fullKeyWithLabel = parts.slice(2).join(':');
             const [fieldKey] = fullKeyWithLabel.split('|');
             const [, coreField] = fieldKey.includes(':') ? fieldKey.split(':') : [null, fieldKey];
 
@@ -175,7 +175,7 @@ async function handle(interaction) {
                 const max = parseInt(stat.meta?.max ?? 9999);
                 const next = Math.max(0, Math.min(current + delta, max));
 
-                await updateStat(characterId, statId, null, {
+                await updateStat(characterId, statId, String(next), {
                     ...stat.meta,
                     current: next,
                 });
@@ -183,7 +183,7 @@ async function handle(interaction) {
                 const val = parseInt(stat.value ?? 0);
                 const next = val + delta;
 
-                await updateStat(characterId, statId, next);
+                await updateStat(characterId, statId, String(next));
             } else {
                 return await interaction.reply({
                     content: `⚠️ Cannot adjust stat of type: ${stat.field_type}`,
