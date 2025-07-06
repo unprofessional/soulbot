@@ -143,60 +143,6 @@ async function handle(interaction) {
             });
         }
 
-        // === Adjust STAT by delta (from Adjust Stats flow)
-        if (customId.startsWith('adjustStatModal:')) {
-            const [, characterId, statId] = customId.split(':');
-
-            const deltaRaw = interaction.fields.getTextInputValue('deltaValue')?.trim();
-            const delta = parseInt(deltaRaw, 10);
-
-            if (isNaN(delta)) {
-                return await interaction.reply({
-                    content: '⚠️ Invalid number entered.',
-                    ephemeral: true,
-                });
-            }
-
-            const character = await getCharacterWithStats(characterId);
-            const stat = character.stats.find(s => s.template_id === statId);
-            if (!stat) {
-                return await interaction.reply({
-                    content: `⚠️ Stat not found.`,
-                    ephemeral: true,
-                });
-            }
-
-            if (stat.field_type === 'count') {
-                const current = parseInt(stat.meta?.current ?? stat.meta?.max ?? 0);
-                const max = parseInt(stat.meta?.max ?? 9999);
-                // const next = Math.max(0, Math.min(current + delta, max)); // if we want to clamp within 0 to max range
-                const next = current + delta;
-
-                await updateStatMetaField(characterId, statId, 'current', next);
-            } else if (stat.field_type === 'number') {
-                const val = parseInt(stat.value ?? 0);
-                const next = val + delta;
-
-                await updateStat(characterId, statId, String(next));
-            } else {
-                return await interaction.reply({
-                    content: `⚠️ Cannot adjust stat of type: ${stat.field_type}`,
-                    ephemeral: true,
-                });
-            }
-
-            const updated = await getCharacterWithStats(characterId);
-            const embed = buildCharacterEmbed(updated);
-            const row = buildCharacterActionRow(characterId, updated.visibility);
-
-            return await interaction.reply({
-                content: `✅ Updated **${stat.label}** by ${delta > 0 ? '+' : ''}${delta}.`,
-                embeds: [embed],
-                components: [row],
-                ephemeral: true,
-            });
-        }
-
         console.warn('[character_edit_modals] No matching modal handler for customId:', customId);
         return await interaction.reply({
             content: '❓ Unrecognized modal submission.',

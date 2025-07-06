@@ -1,3 +1,5 @@
+// features/rpg-tracker/components/stat_type_select.js
+
 const { ActionRowBuilder, StringSelectMenuBuilder } = require('discord.js');
 
 /**

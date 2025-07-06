@@ -5,6 +5,7 @@ const statTemplateModals = require('./stat_template_modals');
 const characterCreationModals = require('./character_creation_modals');
 const characterEditModals = require('./character_edit_modals');
 const inventoryModals = require('./inventory_modals');
+const statCalculatorModal = require('././stat_calculator_modal');
 
 module.exports = {
     async handleModal(interaction) {
@@ -33,9 +34,10 @@ module.exports = {
             customId.startsWith('editCharacterModal:') ||
             customId.startsWith('editStatModal:') ||
             customId.startsWith('setCharacterField:') ||
-            customId.startsWith('editCharacterField:') ||
-            customId.startsWith('adjustStatModal:')
+            customId.startsWith('editCharacterField:')
         ) return characterEditModals.handle(interaction);
+
+        if(customId.startsWith('adjustStatModal:')) return statCalculatorModal.handle(interaction);
 
         // === Inventory ===
         if (customId.startsWith('addInventoryModal:')) return inventoryModals.handle(interaction);

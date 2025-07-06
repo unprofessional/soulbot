@@ -43,7 +43,6 @@ module.exports = {
         }
 
         if (
-            customId.startsWith('adjustCountSelect:') ||
             customId.startsWith('adjustStatSelect:')
         ) {
             return adjustNumericStatSelectHandler.handle(interaction);
