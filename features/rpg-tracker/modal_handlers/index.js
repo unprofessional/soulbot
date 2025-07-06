@@ -33,7 +33,8 @@ module.exports = {
             customId.startsWith('editCharacterModal:') ||
             customId.startsWith('editStatModal:') ||
             customId.startsWith('setCharacterField:') ||
-            customId.startsWith('editCharacterField:')
+            customId.startsWith('editCharacterField:') ||
+            customId.startsWith('adjustStatModal:')
         ) return characterEditModals.handle(interaction);
 
         // === Inventory ===
