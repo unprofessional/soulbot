@@ -169,7 +169,8 @@ async function handle(interaction) {
             if (stat.field_type === 'count') {
                 const current = parseInt(stat.meta?.current ?? stat.meta?.max ?? 0);
                 const max = parseInt(stat.meta?.max ?? 9999);
-                const next = Math.max(0, Math.min(current + delta, max));
+                // const next = Math.max(0, Math.min(current + delta, max)); // if we want to clamp within 0 to max range
+                const next = current + delta;
 
                 await updateStatMetaField(characterId, statId, 'current', next);
             } else if (stat.field_type === 'number') {
