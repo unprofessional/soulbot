@@ -1,71 +1,32 @@
 // features/rpg-tracker/select_menu_handlers/adjust_count_select.js
 
 const {
-    ButtonBuilder,
-    ButtonStyle,
+    ModalBuilder,
+    TextInputBuilder,
+    TextInputStyle,
     ActionRowBuilder,
-    EmbedBuilder,
 } = require('discord.js');
-
-const { getCharacterWithStats } = require('../../../store/services/character.service');
 
 async function handle(interaction) {
     const [selected] = interaction.values;
     const [, statId] = selected.split(':'); // value is like `adjust:<statId>`
     const [, characterId] = interaction.customId.split(':');
 
-    const character = await getCharacterWithStats(characterId);
-    if (!character) {
-        return await interaction.update({
-            content: '❌ Character not found.',
-            embeds: [],
-            components: [],
-        });
-    }
+    const modal = new ModalBuilder()
+        .setCustomId(`adjustStatModal:${characterId}:${statId}`)
+        .setTitle('Adjust Stat Value');
 
-    const stat = character.stats.find(s => s.template_id === statId);
-    if (!stat || stat.field_type !== 'count') {
-        return await interaction.update({
-            content: '❌ That stat is no longer valid or not a count field.',
-            embeds: [],
-            components: [],
-        });
-    }
+    const deltaInput = new TextInputBuilder()
+        .setCustomId('deltaValue')
+        .setLabel('Amount to add or subtract (e.g. -2 or 5)')
+        .setStyle(TextInputStyle.Short)
+        .setRequired(true)
+        .setPlaceholder('Enter a number');
 
-    const current = stat.meta?.current ?? stat.meta?.max ?? 0;
-    const max = stat.meta?.max ?? '?';
+    const row = new ActionRowBuilder().addComponents(deltaInput);
+    modal.addComponents(row);
 
-    const embed = new EmbedBuilder()
-        .setTitle(`Adjust **${stat.label}**`)
-        .setDescription(`Current Value: **${current} / ${max}**`)
-        .setColor(0x00b0f4);
-
-    const decrementBtn = new ButtonBuilder()
-        .setCustomId(`decrementCount:${characterId}:${statId}`)
-        .setLabel('➖')
-        .setStyle(ButtonStyle.Danger);
-
-    const incrementBtn = new ButtonBuilder()
-        .setCustomId(`incrementCount:${characterId}:${statId}`)
-        .setLabel('➕')
-        .setStyle(ButtonStyle.Success);
-
-    const goBackBtn = new ButtonBuilder()
-        .setCustomId(`adjust_stats:${characterId}`)
-        .setLabel('↩️ Back to Stat Select')
-        .setStyle(ButtonStyle.Secondary);
-
-    const row = new ActionRowBuilder().addComponents(
-        decrementBtn,
-        incrementBtn,
-        goBackBtn
-    );
-
-    return await interaction.update({
-        content: `⚙️ Adjusting stat for **${character.name}**`,
-        embeds: [embed],
-        components: [row],
-    });
+    return await interaction.showModal(modal);
 }
 
 module.exports = { handle };
