@@ -1,3 +1,5 @@
+// features/rpg-tracker/utils/rebuild_create_game_response.js
+
 const { buildGameStatTemplateEmbed, buildGameStatActionRow } = require('../embeds/game_stat_embed');
 
 /**
@@ -54,17 +56,24 @@ function buildGameSetupMessage(game, context = 'create', statTemplates = []) {
  * @param {Array<Object>} statTemplates - List of stat fields
  * @param {string} [highlightLabel] - Optional field label to highlight (e.g. newly added)
  * @param {'create'|'view'} [context='create'] - Determines message copy
+ * @param {string} [viewerUserId] - The user ID of the viewer (used to hide GM-only buttons)
  * @returns {{ content: string, embeds: EmbedBuilder[], components: ActionRowBuilder[] }}
  */
-function rebuildCreateGameResponse(game, statTemplates, highlightLabel = null, context = 'create') {
+function rebuildCreateGameResponse(game, statTemplates, highlightLabel = null, context = 'create', viewerUserId = null) {
     const content = buildGameSetupMessage(game, context, statTemplates);
     const embed = buildGameStatTemplateEmbed(statTemplates, game, highlightLabel);
-    const buttons = buildGameStatActionRow(game.id, statTemplates);
+
+    const components = [];
+    if (!viewerUserId || game.created_by === viewerUserId) {
+        // Only include buttons if viewer is the GM
+        const buttons = buildGameStatActionRow(game.id, statTemplates);
+        components.push(buttons);
+    }
 
     return {
         content,
         embeds: [embed],
-        components: [buttons],
+        components,
     };
 }
 

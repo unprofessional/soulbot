@@ -6,11 +6,8 @@ const {
     getCharacterWithStats,
 } = require('../../../store/services/character.service');
 const { getCurrentGame } = require('../../../store/services/player.service');
-const {
-    buildCharacterEmbed,
-    buildCharacterActionRow,
-} = require('../../../features/rpg-tracker/embed_utils');
 const { validateGameAccess } = require('../../../features/rpg-tracker/validate_game_access');
+const { renderCharacterView } = require('../../../features/rpg-tracker/utils/render_character_view');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -38,7 +35,6 @@ module.exports = {
                 });
             }
 
-            // ✅ FIXED: use `guildId` instead of `currentGameId`
             const allCharacters = await getCharactersByUser(userId, guildId);
 
             if (!allCharacters.length) {
@@ -52,14 +48,11 @@ module.exports = {
             const full = await getCharacterWithStats(character.id);
 
             const { warning } = await validateGameAccess({ gameId: full.game_id, userId });
-
-            const embed = buildCharacterEmbed(full);
-            const row = buildCharacterActionRow(character.id);
+            const view = renderCharacterView(full);
 
             await interaction.reply({
-                content: warning || undefined,
-                embeds: [embed],
-                components: [row],
+                ...view,
+                content: warning || view.content,
                 ephemeral: true,
             });
         } catch (err) {

@@ -20,7 +20,9 @@ function buildGameStatTemplateEmbed(fields, game, highlightLabel = null) {
         const isNew = highlightLabel && f.label?.toLowerCase() === highlightLabel.toLowerCase();
         const icon = f.field_type === 'paragraph' ? '📝' : '🔹';
         const defaultStr = f.default_value ? ` _(default: ${f.default_value})_` : '';
-        return `${icon} ${isNew ? '**🆕 ' : '**'}${f.label}**${defaultStr}`;
+        const labelWithType = `${f.label} \`${f.field_type}\``;
+        return `${icon} ${isNew ? '**🆕 ' : '**'}${labelWithType}**${defaultStr}`;
+
     });
 
     const embed = new EmbedBuilder()

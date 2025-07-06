@@ -1,56 +1,122 @@
 // features/rpg-tracker/modal_handlers/character_edit_modals.js
 
-const { updateStat, updateCharacterMeta } = require('../../../store/services/character.service');
+const {
+    getCharacterWithStats,
+    updateStat,
+    updateCharacterMeta,
+    updateStatMetaField,
+} = require('../../../store/services/character.service');
+
+const {
+    buildCharacterEmbed,
+    buildCharacterActionRow,
+} = require('../embed_utils');
 
 /**
  * Handles modals related to character stat or metadata editing.
  * @param {import('discord.js').ModalSubmitInteraction} interaction
  */
 async function handle(interaction) {
-    const { customId } = interaction;
+    try {
+        const { customId } = interaction;
 
-    // === Edit Stat ===
-    if (customId.startsWith('editStatModal:')) {
-        const [, characterId] = customId.split(':');
+        // === Edit GAME Stat ===
+        if (customId.startsWith('editStatModal:')) {
+            const [, characterId, fieldType, fieldKey] = customId.split(':');
 
-        try {
-            const statName = interaction.fields.getTextInputValue('statName')?.toLowerCase().trim();
-            const statValue = parseInt(interaction.fields.getTextInputValue('statValue'), 10);
+            let newValue;
 
-            if (!/^[a-zA-Z0-9_]{1,20}$/.test(statName)) {
-                return interaction.reply({
-                    content: '⚠️ Invalid stat name. Use short alphanumeric identifiers (e.g., `hp`, `mana`).',
-                    ephemeral: true,
+            if (fieldType === 'count') {
+                const maxValue = interaction.fields.getTextInputValue(`${fieldKey}:max`)?.trim();
+                const currentValue = interaction.fields.getTextInputValue(`${fieldKey}:current`)?.trim();
+                const parsedMax = parseInt(maxValue, 10);
+                const parsedCurrent = currentValue ? parseInt(currentValue, 10) : parsedMax;
+
+                if (isNaN(parsedMax)) {
+                    return await interaction.reply({
+                        content: '⚠️ Invalid MAX value entered.',
+                        ephemeral: true,
+                    });
+                }
+
+                console.log('[editStatModal] Updating COUNT stat:', {
+                    characterId, fieldKey, parsedMax, parsedCurrent,
                 });
+
+                await updateStat(characterId, fieldKey, String(parsedCurrent), {
+                    max: parsedMax,
+                    current: parsedCurrent,
+                });
+            } else {
+                // Handle all other field types: number, short, paragraph
+                newValue = interaction.fields.getTextInputValue(fieldKey)?.trim();
+
+                if (typeof newValue !== 'string') {
+                    return await interaction.reply({
+                        content: '⚠️ Invalid stat update.',
+                        ephemeral: true,
+                    });
+                }
+
+                console.log('[editStatModal] Updating VALUE stat:', { characterId, fieldKey, newValue });
+                await updateStat(characterId, fieldKey, newValue);
             }
 
-            if (isNaN(statValue)) {
-                return interaction.reply({
-                    content: '⚠️ Invalid stat value. Must be a number.',
-                    ephemeral: true,
-                });
-            }
+            await interaction.deferUpdate();
 
-            await updateStat(characterId, statName, statValue);
+            const updated = await getCharacterWithStats(characterId);
+            const embed = buildCharacterEmbed(updated);
+            const row = buildCharacterActionRow(characterId, updated.visibility);
 
-            return interaction.reply({
-                content: `🎲 Updated **${statName.toUpperCase()}** to **${statValue}**.`,
-                ephemeral: true,
-            });
-        } catch (err) {
-            console.error('Error in editStatModal:', err);
-            return interaction.reply({
-                content: '❌ Failed to update stat.',
-                ephemeral: true,
+            return await interaction.editReply({
+                content: null,
+                embeds: [embed],
+                components: [row],
             });
         }
-    }
 
-    // === Edit Character Metadata ===
-    if (customId.startsWith('editCharacterModal:')) {
-        const [, characterId] = customId.split(':');
+        // === Edit CORE Field ===
+        if (customId.startsWith('setCharacterField:') || customId.startsWith('editCharacterField:')) {
+            const parts = customId.split(':');
+            const characterId = parts[1];
+            const fullKeyWithLabel = parts.slice(2).join(':');
+            const [fieldKey] = fullKeyWithLabel.split('|');
+            const [, coreField] = fieldKey.includes(':') ? fieldKey.split(':') : [null, fieldKey];
 
-        try {
+            const newValue =
+                interaction.fields.getTextInputValue(fieldKey)?.trim() ??
+                interaction.fields.getTextInputValue(coreField)?.trim();
+
+            if (!coreField || typeof newValue !== 'string') {
+                return await interaction.reply({
+                    content: '⚠️ Invalid core field update.',
+                    ephemeral: true,
+                });
+            }
+
+            console.log('[editCharacterField] Submitting field update:', {
+                characterId, coreField, newValue, fieldKey,
+            });
+
+            await updateCharacterMeta(characterId, { [coreField]: newValue });
+
+            await interaction.deferUpdate();
+
+            const updated = await getCharacterWithStats(characterId);
+            const embed = buildCharacterEmbed(updated);
+            const row = buildCharacterActionRow(characterId, updated.visibility);
+
+            return await interaction.editReply({
+                content: null,
+                embeds: [embed],
+                components: [row],
+            });
+        }
+
+        // === Edit Full Metadata ===
+        if (customId.startsWith('editCharacterModal:')) {
+            const [, characterId] = customId.split(':');
+
             const name = interaction.fields.getTextInputValue('name')?.trim();
             const className = interaction.fields.getTextInputValue('class')?.trim();
             const race = interaction.fields.getTextInputValue('race')?.trim();
@@ -58,11 +124,15 @@ async function handle(interaction) {
             const notes = interaction.fields.getTextInputValue('notes')?.trim();
 
             if (!name || !className || isNaN(level)) {
-                return interaction.reply({
+                return await interaction.reply({
                     content: '⚠️ Invalid input. Please provide valid name, class, and level.',
                     ephemeral: true,
                 });
             }
+
+            console.log('[editCharacterModal] Updating metadata:', {
+                name, className, race, level, notes,
+            });
 
             await updateCharacterMeta(characterId, {
                 name,
@@ -72,17 +142,77 @@ async function handle(interaction) {
                 notes,
             });
 
-            return interaction.reply({
+            return await interaction.reply({
                 content: `📝 Character **${name}** updated successfully.`,
                 ephemeral: true,
             });
-        } catch (err) {
-            console.error('Error in editCharacterModal:', err);
-            return interaction.reply({
-                content: '❌ Failed to update character info.',
+        }
+
+        // === Adjust STAT by delta (from Adjust Stats flow)
+        if (customId.startsWith('adjustStatModal:')) {
+            const [, characterId, statId] = customId.split(':');
+
+            const deltaRaw = interaction.fields.getTextInputValue('deltaValue')?.trim();
+            const delta = parseInt(deltaRaw, 10);
+
+            if (isNaN(delta)) {
+                return await interaction.reply({
+                    content: '⚠️ Invalid number entered.',
+                    ephemeral: true,
+                });
+            }
+
+            const character = await getCharacterWithStats(characterId);
+            const stat = character.stats.find(s => s.template_id === statId);
+            if (!stat) {
+                return await interaction.reply({
+                    content: `⚠️ Stat not found.`,
+                    ephemeral: true,
+                });
+            }
+
+            if (stat.field_type === 'count') {
+                const current = parseInt(stat.meta?.current ?? stat.meta?.max ?? 0);
+                const max = parseInt(stat.meta?.max ?? 9999);
+                const next = Math.max(0, Math.min(current + delta, max));
+
+                await updateStatMetaField(characterId, statId, 'current', next);
+            }
+            else if (stat.field_type === 'number') {
+                const val = parseInt(stat.value ?? 0);
+                const next = val + delta;
+
+                await updateStat(characterId, statId, String(next));
+            } else {
+                return await interaction.reply({
+                    content: `⚠️ Cannot adjust stat of type: ${stat.field_type}`,
+                    ephemeral: true,
+                });
+            }
+
+            const updated = await getCharacterWithStats(characterId);
+            const embed = buildCharacterEmbed(updated);
+            const row = buildCharacterActionRow(characterId, updated.visibility);
+
+            return await interaction.reply({
+                content: `✅ Updated **${stat.label}** by ${delta > 0 ? '+' : ''}${delta}.`,
+                embeds: [embed],
+                components: [row],
                 ephemeral: true,
             });
         }
+
+        console.warn('[character_edit_modals] No matching modal handler for customId:', customId);
+        return await interaction.reply({
+            content: '❓ Unrecognized modal submission.',
+            ephemeral: true,
+        });
+    } catch (err) {
+        console.error('[character_edit_modals] Uncaught exception in modal handler:', err);
+        return await interaction.reply({
+            content: '❌ An unexpected error occurred while processing your request.',
+            ephemeral: true,
+        });
     }
 }
 

@@ -1,5 +1,3 @@
-// features/rpg-tracker/utils/rebuild_create_character_response.js
-
 const {
     ActionRowBuilder,
     ButtonBuilder,
@@ -29,13 +27,9 @@ function buildCreateCharacterMessage(game, statTemplates = [], userFields = [], 
     }
 
     lines.push('');
-    lines.push(`**Included Fields:**`);
+    lines.push(`**CORE Fields:**`);
 
-    const coreFields = [
-        'core:name',
-        'core:avatar_url',
-        'core:bio',
-    ];
+    const coreFields = ['core:name', 'core:avatar_url', 'core:bio'];
 
     for (const key of coreFields) {
         const value = draftData[key];
@@ -50,15 +44,27 @@ function buildCreateCharacterMessage(game, statTemplates = [], userFields = [], 
     lines.push('');
 
     if (statTemplates.length) {
-        lines.push(`**Game Fields:**`);
+        lines.push(`**GAME Fields:**`);
         for (const t of statTemplates) {
-            const key = `game:${t.id}`;
-            const value = draftData[key];
-            if (value && value.toString().trim()) {
-                lines.push(`- [GAME] ${t.label} 🟢 ${summarize(value.toString())}`);
+            const fieldKey = `game:${t.id}`;
+            let filled = false;
+            let display = '';
+
+            if (t.field_type === 'count') {
+                const meta = draftData[`meta:${fieldKey}`];
+                if (meta?.max != null) {
+                    filled = true;
+                    display = `${meta.current ?? meta.max} / ${meta.max}`;
+                }
             } else {
-                lines.push(`- [GAME] ${t.label}`);
+                const value = draftData[fieldKey];
+                if (value && value.toString().trim()) {
+                    filled = true;
+                    display = summarize(value.toString());
+                }
             }
+
+            lines.push(`- [GAME] ${t.label}${filled ? ` 🟢 ${display}` : ''}`);
         }
     } else {
         lines.push(`🟨 _GM has not defined any game stat fields yet._`);
@@ -99,24 +105,69 @@ function rebuildCreateCharacterResponse(game, statTemplates, userFields, fieldOp
 
     const components = [];
 
+    // === Dropdown for fields NOT yet filled ===
     if (fieldOptions.length > 0) {
         const dropdown = new StringSelectMenuBuilder()
             .setCustomId('createCharacterDropdown')
             .setPlaceholder('Choose a character field to define')
             .addOptions(
-                fieldOptions.map(f => ({
-                    label: f.label,
-                    value: `${f.name}|${f.label}`,
-                }))
+                fieldOptions.map(f => {
+                    const template = statTemplates.find(t => `game:${t.id}` === f.name);
+                    const fieldType = template?.field_type;
+                    return {
+                        label: f.label,
+                        value: `${f.name}|${f.label}${fieldType ? `|${fieldType}` : ''}`,
+                    };
+                })
             );
         components.push(new ActionRowBuilder().addComponents(dropdown));
+    }
+
+    // === Dropdown for EDITING completed fields ===
+    const allFields = [
+        { name: 'core:name', label: '[CORE] Name' },
+        { name: 'core:avatar_url', label: '[CORE] Avatar URL' },
+        { name: 'core:bio', label: '[CORE] Bio' },
+        // intentionally omitting core:visibility
+        ...statTemplates.map(t => ({
+            name: `game:${t.id}`,
+            label: `[GAME] ${t.label}`,
+            field_type: t.field_type,
+        })),
+        ...userFields.map(f => ({
+            name: `user:${f.name}`,
+            label: `[USER] ${f.label || f.name}`,
+        })),
+    ];
+
+    const filledFields = allFields.filter(f => {
+        if (f.field_type === 'count') {
+            const meta = draftData[`meta:${f.name}`];
+            return meta?.max != null;
+        } else {
+            const val = draftData?.[f.name];
+            return val && val.trim?.();
+        }
+    });
+
+    if (filledFields.length > 0) {
+        const editDropdown = new StringSelectMenuBuilder()
+            .setCustomId('editCharacterFieldDropdown')
+            .setPlaceholder('📝 Edit a completed field')
+            .addOptions(
+                filledFields.map(f => ({
+                    label: f.label,
+                    value: `${f.name}|${f.label}${f.field_type ? `|${f.field_type}` : ''}`,
+                }))
+            );
+        components.push(new ActionRowBuilder().addComponents(editDropdown));
     }
 
     const submitButton = new ButtonBuilder()
         .setCustomId('submitNewCharacter')
         .setLabel('✅ Submit Character')
         .setStyle(ButtonStyle.Success)
-        .setDisabled(fieldOptions.length > 0); // 🔒 Disable unless all fields filled
+        .setDisabled(fieldOptions.length > 0);
 
     components.push(new ActionRowBuilder().addComponents(submitButton));
 

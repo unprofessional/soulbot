@@ -38,7 +38,7 @@ async function handle(interaction) {
         return await interaction.update({
             content: `✅ Visibility set to **${newVisibility.charAt(0).toUpperCase() + newVisibility.slice(1)}**.`,
             embeds: [buildCharacterEmbed(updated)],
-            components: [buildCharacterActionRow(characterId)],
+            components: [buildCharacterActionRow(characterId, updated.visibility)],
         });
     } catch (err) {
         console.error('Error toggling visibility:', err);

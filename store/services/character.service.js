@@ -80,12 +80,17 @@ async function getCharacterWithStats(characterId) {
 /**
  * Returns all characters belonging to a user for the current game in this guild.
  */
-async function getCharactersByUser(userId, guildId) {
+async function getCharactersByUser(userId, guildId) { // <-- GUILD ID, NOT GAME ID!!!
     const currentGameId = await getCurrentGame(userId, guildId);
+    console.log('>>> character.service > getCharactersByUser > currentGameId: ', currentGameId);
     if (!currentGameId) return [];
 
     const all = await characterDAO.findByUser(userId);
-    return all.filter(c => c.game_id === currentGameId);
+    console.log('>>> character.service > getCharactersByUser > all: ', all);
+
+    const results = all.filter(c => c.game_id === currentGameId);
+    console.log('>>> character.service > getCharactersByUser > results: ', results);
+    return results;
 }
 
 async function getCharactersByGame(gameId) {
@@ -123,7 +128,55 @@ async function deleteCharacter(characterId) {
 
 async function getUserDefinedFields(userId) {
     // Placeholder: future user template support
+    console.log('>>> getUserDefinedFields > userId: ', userId);
     return [];
+}
+
+/**
+ * For /switch-character
+ * @param {*} character 
+ * @returns 
+ */
+async function getCharacterSummary(character) {
+    const statFields = await statDAO.findByCharacter(character.id);
+    const templates = await getStatTemplates(character.game_id);
+
+    const templateMap = Object.fromEntries(templates.map(t => [t.id, t]));
+
+    const enriched = statFields
+        .map(field => {
+            const template = templateMap[field.template_id];
+            return {
+                label: template?.label || 'Unknown',
+                sort_order: template?.sort_order ?? 999,
+                value: field.value,
+            };
+        })
+        .sort((a, b) => {
+            if (a.sort_order !== b.sort_order) return a.sort_order - b.sort_order;
+            return a.label.localeCompare(b.label);
+        })
+        .slice(0, 2);
+
+    return enriched;
+}
+
+/**
+ * Updates a single key inside the stat's meta object.
+ */
+async function updateStatMetaField(characterId, templateId, metaKey, newValue) {
+    const existingStats = await statDAO.findByCharacter(characterId);
+    const target = existingStats.find(s => s.template_id === templateId);
+
+    if (!target) throw new Error(`Stat ${templateId} not found on character ${characterId}`);
+
+    const updatedMeta = {
+        ...(target.meta || {}),
+        [metaKey]: newValue,
+    };
+
+    // Preserve existing value field
+    return statDAO.create(characterId, templateId, target.value ?? '', updatedMeta);
 }
 
 module.exports = {
@@ -136,4 +189,6 @@ module.exports = {
     updateCharacterMeta,
     deleteCharacter,
     getUserDefinedFields,
+    getCharacterSummary,
+    updateStatMetaField,
 };

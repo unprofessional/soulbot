@@ -52,7 +52,7 @@ async function handle(interaction) {
             return await interaction.update({
                 content: `✅ Character **${character.name}** created successfully!`,
                 embeds: [buildCharacterEmbed(fullCharacter)],
-                components: [buildCharacterActionRow(character.id)],
+                components: [buildCharacterActionRow(character.id, character.visibility)],
             });
         } catch (err) {
             console.error('Error submitting character:', err);

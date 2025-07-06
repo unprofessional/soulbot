@@ -6,7 +6,74 @@ const {
     ButtonBuilder,
     ButtonStyle,
 } = require('discord.js');
+const { formatTimeAgo } = require('./utils/time_ago');
 
+/** ////////////////
+ * HELPER FUNCTIONS
+ */ ////////////////
+
+function parseCharacterStats(stats) {
+    const statMap = new Map();
+
+    for (const stat of stats) {
+        const { label, value, meta = {}, field_type, template_id } = stat;
+        const key = (label || template_id || '??').toUpperCase();
+        if (!key) continue;
+
+        const bucket = {
+            label: key,
+            value: null,
+            current: null,
+            max: null,
+            type: field_type,
+            sort_index: stat.sort_index ?? stat.template_sort_index ?? 999,
+        };
+
+        if (field_type === 'count') {
+            bucket.max = meta.max ?? null;
+            bucket.current = meta.current ?? meta.max ?? null;
+        } else {
+            bucket.value = value;
+        }
+
+        statMap.set(key, bucket);
+    }
+
+    const sorted = Array.from(statMap.values()).sort((a, b) => a.sort_index - b.sort_index);
+
+    const paragraphFields = [];
+    const gridFields = [];
+
+    for (const stat of sorted) {
+        if (stat.type === 'paragraph') {
+            if ((stat.value || '').trim()) {
+                paragraphFields.push({ label: stat.label, value: stat.value.trim() });
+            }
+        } else {
+            gridFields.push(stat);
+        }
+    }
+
+    return { paragraphFields, gridFields };
+}
+
+function formatStatDisplay(stat) {
+    if (stat.type === 'count' && stat.max !== null) {
+        return `**${stat.label}**: ${stat.current ?? stat.max} / ${stat.max}`;
+    } else if (stat.value !== undefined && stat.value !== null && stat.value !== '') {
+        return `**${stat.label}**: ${stat.value}`;
+    } else {
+        return `**${stat.label}**: _Not set_`;
+    }
+}
+
+/**
+ * Builds the embed for game views
+ * @param {*} game 
+ * @param {*} characters 
+ * @param {*} statTemplates 
+ * @returns 
+ */
 function buildGameEmbed(game, characters = [], statTemplates = []) {
     const coreFields = [
         { name: 'core:name', label: 'Name' },
@@ -49,88 +116,81 @@ function buildGameEmbed(game, characters = [], statTemplates = []) {
     return embed;
 }
 
+/**
+ * Builds the embed for character views
+ * @param {*} character 
+ * @returns 
+ */
 function buildCharacterEmbed(character) {
+    console.log('🧩 buildCharacterEmbed > character input:', character);
+
     const embed = new EmbedBuilder();
 
-    // === Avatar (Featured Image) ===
     if (character.avatar_url) {
-        embed.setImage(character.avatar_url); // 👈 use as large image instead of thumbnail
+        embed.setImage(character.avatar_url);
     }
 
-    // === Header ===
     const name = character.name || 'Unnamed Character';
-    const visibility = (character.visibility || 'private').toLowerCase();
-    const visibilityEmoji = visibility === 'public' ? '🔓' : '🔒';
-    const visibilityLabel = `${visibilityEmoji} ${visibility.charAt(0).toUpperCase() + visibility.slice(1)}`;
 
     embed.setTitle(name);
-    embed.addFields(
-        { name: 'Visibility', value: visibilityLabel, inline: true }
-    );
 
-    // === Extract GAME Stats (excluding core + HP/Max HP) ===
-    const allStats = character.stats || [];
-    const coreFields = ['name', 'avatar_url', 'bio', 'visibility'];
-    const excluded = ['hp', 'max_hp', ...coreFields];
-    const gameStats = allStats.filter(s => !excluded.includes((s.name || s.label || '').toLowerCase()));
+    const parsedStats = parseCharacterStats(character.stats || []);
 
-    // Sort by GM-defined order
-    const sorted = gameStats.sort((a, b) => {
-        const aIndex = a.sort_index ?? a.template_sort_index ?? 999;
-        const bIndex = b.sort_index ?? b.template_sort_index ?? 999;
-        return aIndex - bIndex;
-    });
+    // Add paragraph-style fields (1 per line, truncated)
+    for (const para of parsedStats.paragraphFields) {
+        embed.addFields({
+            name: `**${para.label}**`,
+            value: para.value.length > 100 ? para.value.slice(0, 97) + '…' : para.value,
+            inline: false,
+        });
+    }
 
-    // 2 columns, filling row-wise
-    const leftStats = [];
-    const rightStats = [];
+    // Add stat grid fields in chunks of 2 (to enforce 2-column layout)
+    const displayStrings = parsedStats.gridFields.map(formatStatDisplay);
+    for (let i = 0; i < displayStrings.length; i += 2) {
+        const left = displayStrings[i] ?? '\u200B';
+        const right = displayStrings[i + 1] ?? '\u200B';
 
-    sorted.forEach((s, i) => {
-        const str = `**${s.label}**: ${s.value}`;
-        if (i % 2 === 0) leftStats.push(str);
-        else rightStats.push(str);
-    });
-
-    const maxRows = Math.ceil(sorted.length / 2);
-    for (let i = 0; i < maxRows; i++) {
-        const left = leftStats[i] ?? '\u200B';
-        const right = rightStats[i] ?? '\u200B';
         embed.addFields(
             { name: '\u200B', value: left, inline: true },
-            { name: '\u200B', value: right, inline: true }
+            { name: '\u200B', value: right, inline: true },
+            { name: '\u200B', value: '\u200B', inline: true } // Filler column to enforce 2-col layout
         );
     }
 
-    // === Bio ===
     if (character.bio) {
         embed.setDescription(`_${character.bio}_`);
     }
 
-    // === Footer ===
+    const isPublic = (character.visibility || 'private').toLowerCase() === 'public';
+    const pubLabel = isPublic ? '🌐 Published' : '🔒 Not Published';
+
     embed.setFooter({
-        text: `Created on ${new Date(character.created_at).toLocaleDateString()}`,
+        text: `${pubLabel} • Created on ${new Date(character.created_at).toLocaleDateString()} (${formatTimeAgo(character.created_at)})`,
     });
 
     return embed;
 }
 
-function buildCharacterActionRow(characterId) {
+function buildCharacterActionRow(characterId, visibility = 'private') {
     return new ActionRowBuilder().addComponents(
         new ButtonBuilder()
             .setCustomId(`edit_stat:${characterId}`)
             .setLabel('🎲 Edit Stat')
             .setStyle(ButtonStyle.Primary),
+
         new ButtonBuilder()
-            .setCustomId(`edit_character:${characterId}`)
-            .setLabel('📝 Edit Info')
+            .setCustomId(`adjust_stats:${characterId}`)
+            .setLabel('➕/➖ Adjust Stats')
             .setStyle(ButtonStyle.Secondary),
-        new ButtonBuilder()
-            .setCustomId(`view_inventory:${characterId}`)
-            .setLabel('📦 Inventory')
-            .setStyle(ButtonStyle.Secondary),
+
         new ButtonBuilder()
             .setCustomId(`toggle_visibility:${characterId}`)
-            .setLabel('👁️ Toggle Visibility')
+            .setLabel(
+                visibility === 'public'
+                    ? '🔒 Unpublish Character'
+                    : '🌐 Publish Character'
+            )
             .setStyle(ButtonStyle.Secondary)
     );
 }

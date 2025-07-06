@@ -47,13 +47,14 @@ async function handle(interaction) {
     }
 
     // === /create-character dropdown ===
-    if (customId === 'createCharacterDropdown') {
+    if (['createCharacterDropdown', 'editCharacterFieldDropdown'].includes(customId)) {
         console.log('[CreateCharacterDropdown] raw selected value:', selected);
-        const [selectedField, rawLabel] = selected.split('|');
+        const [selectedField, rawLabel, fieldType] = selected.split('|');
         const label = rawLabel || selectedField;
 
         console.log('[CreateCharacterDropdown] parsed fieldKey:', selectedField);
         console.log('[CreateCharacterDropdown] parsed label:', label);
+        console.log('[CreateCharacterDropdown] fieldType:', fieldType);
 
         if (!selectedField.includes(':')) {
             console.warn('[CreateCharacterDropdown] Invalid fieldKey:', selectedField);
@@ -63,14 +64,33 @@ async function handle(interaction) {
             });
         }
 
-        const inputStyle = selectedField === 'core:bio'
-            ? TextInputStyle.Paragraph
-            : TextInputStyle.Short;
-
         const modal = new ModalBuilder()
-            .setCustomId(`setCharacterField:${selectedField}|${label}`)
-            .setTitle(truncate(`Enter value for ${label}`, 45))
-            .addComponents(
+            .setCustomId(`createDraftCharacterField:${selectedField}|${label}|${fieldType || ''}`)
+            .setTitle(truncate(`Enter value for ${label}`, 45));
+
+        if (fieldType === 'count') {
+            modal.addComponents(
+                new ActionRowBuilder().addComponents(
+                    new TextInputBuilder()
+                        .setCustomId(`${selectedField}:max`)
+                        .setLabel(truncate(`MAX value for ${label}`, 45))
+                        .setStyle(TextInputStyle.Short)
+                        .setRequired(true)
+                ),
+                new ActionRowBuilder().addComponents(
+                    new TextInputBuilder()
+                        .setCustomId(`${selectedField}:current`)
+                        .setLabel(truncate(`CURRENT (optional)`, 45))
+                        .setStyle(TextInputStyle.Short)
+                        .setRequired(false)
+                )
+            );
+        } else {
+            const inputStyle = selectedField === 'core:bio'
+                ? TextInputStyle.Paragraph
+                : TextInputStyle.Short;
+
+            modal.addComponents(
                 new ActionRowBuilder().addComponents(
                     new TextInputBuilder()
                         .setCustomId(selectedField)
@@ -79,6 +99,7 @@ async function handle(interaction) {
                         .setRequired(true)
                 )
             );
+        }
 
         return await interaction.showModal(modal);
     }
@@ -99,7 +120,7 @@ async function handle(interaction) {
             return await interaction.update({
                 content: `✅ Switched to **${character.name}**!`,
                 embeds: [buildCharacterEmbed(character)],
-                components: [buildCharacterActionRow(character.id)],
+                components: [buildCharacterActionRow(character.id, character.visibility)],
             });
         } catch (err) {
             console.error('Error switching character:', err);

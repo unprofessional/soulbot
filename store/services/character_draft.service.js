@@ -9,6 +9,8 @@ const statFieldDAO = new CharacterStatFieldDAO();
 
 // In-memory store for drafts (replace with Redis for production)
 const drafts = new Map();
+const STALE_TIMEOUT = 1000 * 60 * 30; // 30 minutes
+const MAX_DRAFTS = 1000;
 
 function getDraftKey(userId) {
     return `draft:${userId}`;
@@ -17,37 +19,52 @@ function getDraftKey(userId) {
 function initDraft(userId) {
     const key = getDraftKey(userId);
     if (!drafts.has(key)) {
-        drafts.set(key, {});
+        if (drafts.size >= MAX_DRAFTS) {
+            console.warn('⚠️ Draft limit reached — new draft not created.');
+            return null;
+        }
+        drafts.set(key, {
+            data: {},
+            updatedAt: Date.now(),
+        });
     }
-    return drafts.get(key);
+    return drafts.get(key).data;
 }
 
-/**
- * Temporarily stores a character field for the user.
- * Will also inject game_id if passed and not already set.
- * @param {string} userId
- * @param {string} fieldKey - e.g., "core:name", "game:<template_id>"
- * @param {string} value
- * @param {string|null} gameId - optional game_id to inject into draft
- */
-async function upsertTempCharacterField(userId, fieldKey, value, gameId = null) {
-    const draft = initDraft(userId);
-    draft[fieldKey] = value;
+async function upsertTempCharacterField(userId, fieldKey, value, gameId = null, meta = null) {
+    const key = getDraftKey(userId);
+    if (!drafts.has(key)) {
+        initDraft(userId);
+    }
 
-    if (gameId && !draft.game_id) {
-        draft.game_id = gameId;
+    const wrapper = drafts.get(key);
+    if (!wrapper) return;
+
+    // Store value
+    wrapper.data[fieldKey] = value;
+
+    // If meta provided, store it under meta:<fieldKey>
+    if (meta) {
+        wrapper.data[`meta:${fieldKey}`] = meta;
+    }
+
+    wrapper.updatedAt = Date.now();
+
+    if (gameId && !wrapper.data.game_id) {
+        wrapper.data.game_id = gameId;
         console.log(`📝 Injected game_id (${gameId}) into draft for user ${userId}`);
     }
 
     console.log(`📝 Upserted draft field [${fieldKey}]:`, value);
-    console.log('🗂️  Current draft:', JSON.stringify(draft, null, 2));
+    if (meta) {
+        console.log(`📦 Stored meta for [${fieldKey}]:`, meta);
+    }
+    console.log('🗂️  Current draft:', JSON.stringify(wrapper.data, null, 2));
 }
 
-/**
- * Returns the current in-memory character draft for the user.
- */
 async function getTempCharacterData(userId) {
-    const draft = drafts.get(getDraftKey(userId)) || null;
+    const wrapper = drafts.get(getDraftKey(userId)) || null;
+    const draft = wrapper ? wrapper.data : null;
     console.log(`📄 getTempCharacterData(${userId}):`, draft);
     return draft;
 }
@@ -87,10 +104,19 @@ async function getRemainingRequiredFields(userId) {
     // === Required game-defined stat templates ===
     const statTemplates = await getStatTemplates(draft.game_id);
     for (const template of statTemplates) {
-        if (template.is_required) {
-            const key = `game:${template.id}`;
-            if (!draft[key] || !draft[key].trim()) {
-                missing.push({ name: key, label: `[GAME] ${template.label}` });
+        if (!template.is_required) continue;
+
+        const baseKey = `game:${template.id}`;
+
+        if (template.field_type === 'count') {
+            const meta = draft[`meta:${baseKey}`];
+            if (!meta || !meta.max) {
+                missing.push({ name: baseKey, label: `[GAME] ${template.label}` });
+            }
+        } else {
+            const val = draft[baseKey];
+            if (!val || !val.trim()) {
+                missing.push({ name: baseKey, label: `[GAME] ${template.label}` });
             }
         }
     }
@@ -99,9 +125,6 @@ async function getRemainingRequiredFields(userId) {
     return missing;
 }
 
-/**
- * Returns true if the draft contains all required core and game-defined fields.
- */
 async function isDraftComplete(userId) {
     const remaining = await getRemainingRequiredFields(userId);
     const complete = remaining.length === 0;
@@ -109,16 +132,12 @@ async function isDraftComplete(userId) {
     return complete;
 }
 
-/**
- * Converts the draft into a finalized character and persists it.
- */
 async function finalizeCharacterCreation(userId, draft) {
     const { game_id } = draft;
 
     console.log(`🚀 Finalizing character for user ${userId} in game ${game_id}`);
     console.log('🧾 Draft data:', JSON.stringify(draft, null, 2));
 
-    // Pull required core fields
     const name = draft['core:name']?.trim();
     const avatar_url = draft['core:avatar_url']?.trim() || null;
     const bio = draft['core:bio']?.trim() || null;
@@ -133,25 +152,51 @@ async function finalizeCharacterCreation(userId, draft) {
         visibility,
     });
 
-    // Pull game-defined stat fields
     const statTemplates = await getStatTemplates(game_id);
     const statMap = {};
-
     for (const template of statTemplates) {
-        const key = `game:${template.id}`;
-        if (draft[key]) {
-            statMap[template.id] = draft[key];
+        const baseKey = `game:${template.id}`;
+        if (template.field_type === 'count') {
+            const meta = draft[`meta:${baseKey}`];
+            if (meta?.max != null) {
+                statMap[template.id] = {
+                    value: null,
+                    meta: {
+                        current: meta.current ?? meta.max,
+                        max: meta.max,
+                    },
+                };
+            }
+        } else if (draft[baseKey]) {
+            statMap[template.id] = {
+                value: draft[baseKey],
+                meta: null,
+            };
         }
     }
 
+    console.log('>>> character_draft.service.js > finalizeCharacterCreation > character.id: ', character.id);
+    console.log('>>> character_draft.service.js > finalizeCharacterCreation > statMap: ', statMap);
+
     await statFieldDAO.bulkUpsert(character.id, statMap);
 
-    // Clear the draft now that it's persisted
     drafts.delete(getDraftKey(userId));
     console.log(`🗑️ Cleared draft for user ${userId}`);
 
     return character;
 }
+
+function purgeStaleDrafts() {
+    const now = Date.now();
+    for (const [key, { updatedAt }] of drafts.entries()) {
+        if (now - updatedAt > STALE_TIMEOUT) {
+            drafts.delete(key);
+            console.log(`🧹 Purged stale draft: ${key}`);
+        }
+    }
+}
+
+setInterval(purgeStaleDrafts, 1000 * 60 * 5);
 
 module.exports = {
     initDraft,
@@ -160,4 +205,5 @@ module.exports = {
     getRemainingRequiredFields,
     isDraftComplete,
     finalizeCharacterCreation,
+    purgeStaleDrafts,
 };
