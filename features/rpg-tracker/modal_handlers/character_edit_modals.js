@@ -4,6 +4,7 @@ const {
     getCharacterWithStats,
     updateStat,
     updateCharacterMeta,
+    updateStatMetaField,
 } = require('../../../store/services/character.service');
 
 const {
@@ -175,11 +176,9 @@ async function handle(interaction) {
                 const max = parseInt(stat.meta?.max ?? 9999);
                 const next = Math.max(0, Math.min(current + delta, max));
 
-                await updateStat(characterId, statId, String(next), {
-                    ...stat.meta,
-                    current: next,
-                });
-            } else if (stat.field_type === 'number') {
+                await updateStatMetaField(characterId, statId, 'current', next);
+            }
+            else if (stat.field_type === 'number') {
                 const val = parseInt(stat.value ?? 0);
                 const next = val + delta;
 
