@@ -24,8 +24,6 @@ async function handle(interaction) {
         if (customId.startsWith('editStatModal:')) {
             const [, characterId, fieldType, fieldKey] = customId.split(':');
 
-            let newValue;
-
             if (fieldType === 'count') {
                 const maxValue = interaction.fields.getTextInputValue(`${fieldKey}:max`)?.trim();
                 const currentValue = interaction.fields.getTextInputValue(`${fieldKey}:current`)?.trim();
@@ -39,17 +37,14 @@ async function handle(interaction) {
                     });
                 }
 
-                console.log('[editStatModal] Updating COUNT stat:', {
+                console.log('[editStatModal] Updating COUNT stat via meta:', {
                     characterId, fieldKey, parsedMax, parsedCurrent,
                 });
 
-                await updateStat(characterId, fieldKey, String(parsedCurrent), {
-                    max: parsedMax,
-                    current: parsedCurrent,
-                });
+                await updateStatMetaField(characterId, fieldKey, 'max', parsedMax);
+                await updateStatMetaField(characterId, fieldKey, 'current', parsedCurrent);
             } else {
-                // Handle all other field types: number, short, paragraph
-                newValue = interaction.fields.getTextInputValue(fieldKey)?.trim();
+                const newValue = interaction.fields.getTextInputValue(fieldKey)?.trim();
 
                 if (typeof newValue !== 'string') {
                     return await interaction.reply({
@@ -177,8 +172,7 @@ async function handle(interaction) {
                 const next = Math.max(0, Math.min(current + delta, max));
 
                 await updateStatMetaField(characterId, statId, 'current', next);
-            }
-            else if (stat.field_type === 'number') {
+            } else if (stat.field_type === 'number') {
                 const val = parseInt(stat.value ?? 0);
                 const next = val + delta;
 
