@@ -3,7 +3,7 @@
 const { SlashCommandBuilder } = require('discord.js');
 const { getCharactersByGame } = require('../../../store/services/character.service');
 const { getCurrentGame } = require('../../../store/services/player.service');
-const { rebuildCreateCharacterResponse } = require('../../../features/rpg-tracker/utils/rebuild_create_character_response');
+const { rebuildListCharactersResponse } = require('../../../features/rpg-tracker/utils/rebuild_list_characters_response');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -43,7 +43,7 @@ module.exports = {
                 });
             }
 
-            const { content, components } = rebuildCreateCharacterResponse(publicCharacters, 0);
+            const { content, components } = rebuildListCharactersResponse(publicCharacters, 0);
 
             await interaction.reply({
                 content,
