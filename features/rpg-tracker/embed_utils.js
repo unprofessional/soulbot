@@ -176,12 +176,12 @@ function buildCharacterActionRow(characterId, visibility = 'private') {
     return new ActionRowBuilder().addComponents(
         new ButtonBuilder()
             .setCustomId(`edit_stat:${characterId}`)
-            .setLabel('🎲 Edit Stat')
+            .setLabel('✏️ Update Stats')
             .setStyle(ButtonStyle.Primary),
 
         new ButtonBuilder()
             .setCustomId(`adjust_stats:${characterId}`)
-            .setLabel('➕/➖ Adjust Stats')
+            .setLabel('🧮 Calc Stats')
             .setStyle(ButtonStyle.Secondary),
 
         new ButtonBuilder()
