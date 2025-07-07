@@ -9,6 +9,7 @@ const inventoryButtons = require('./inventory_buttons');
 const fallbackButtons = require('./fallback_buttons');
 const adjustCountButtons = require('./adjust_count_buttons');
 const characterViewButtons = require('./character_view_buttons');
+const publicCharacterPagination = require('./public_character_pagination');
 
 module.exports = {
     async handleButton(interaction) {
@@ -65,6 +66,10 @@ module.exports = {
 
         if (customId.startsWith('goBackToCharacter:')) {
             return characterViewButtons.handle(interaction);
+        }
+
+        if (customId.startsWith('charPage:')) {
+            return publicCharacterPagination(interaction);
         }
 
         return fallbackButtons.handle(interaction);

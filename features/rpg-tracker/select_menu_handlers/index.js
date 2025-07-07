@@ -6,6 +6,7 @@ const statDropdown = require('./stat_template_dropdown');
 const characterStatSelect = require('./character_stat_select_menu');
 const statTypeDropodown = require('./stat_type_select');
 const adjustNumericStatSelectHandler = require('./adjust_numeric_stat_select');
+const publicCharacterSelect = require('./public_character_select');
 
 module.exports = {
     async handleSelectMenu(interaction) {
@@ -46,6 +47,12 @@ module.exports = {
             customId.startsWith('adjustStatSelect:')
         ) {
             return adjustNumericStatSelectHandler.handle(interaction);
+        }
+
+        if (
+            customId.statTypeDropodown('selectPublicCharacter:')
+        ) {
+            return publicCharacterSelect.handle(interaction);
         }
 
         return interaction.reply({
