@@ -40,7 +40,7 @@ module.exports = {
             })));
 
             // Filter only public characters
-            const publicCharacters = allCharacters.filter(c => c.meta?.visibility === 'Public');
+            const publicCharacters = allCharacters.filter(c => c.visibility === 'public');
             console.log('🔓 [list-characters] Public characters:', publicCharacters.map(c => c.name));
 
             if (!publicCharacters.length) {
