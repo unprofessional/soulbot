@@ -1,7 +1,7 @@
 // features/rpg-tracker/utils/render_character_view.js
 
 const { buildCharacterEmbed, buildCharacterActionRow } = require('../embed_utils');
-const { isActiveCharacter } = require('../../../store/utils/is_active_character');
+const { isActiveCharacter } = require('./is_active_character');
 
 /**
  * Returns the full message payload to render a character sheet.
