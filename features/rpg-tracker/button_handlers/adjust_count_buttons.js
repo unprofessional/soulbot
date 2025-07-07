@@ -53,7 +53,7 @@ async function handle(interaction) {
 
         const dropdown = new StringSelectMenuBuilder()
             .setCustomId(`adjustStatSelect:${characterId}`)
-            .setPlaceholder('🧮 Perform quick math on numeric stats using +, -, ×, or ÷.')
+            .setPlaceholder('🧮 Do quick math on numeric stats (+, -, ×, ÷)')
             .addOptions(options);
 
         const dropdownRow = new ActionRowBuilder().addComponents(dropdown);
@@ -73,7 +73,6 @@ async function handle(interaction) {
             components: [...base.components, dropdownRow, cancelRow],
         });
     }
-
 }
 
 module.exports = { handle };
