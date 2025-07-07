@@ -1,9 +1,9 @@
 // commands/global/rpg-tracker/list-characters.js
 
 const { SlashCommandBuilder } = require('discord.js');
-const { getCharactersInGame } = require('../../../store/services/character.service');
+const { getCharactersByGame } = require('../../../store/services/character.service');
 const { getCurrentGame } = require('../../../store/services/player.service');
-const { rebuildListCharactersResponse } = require('../../../features/rpg-tracker/utils/rebuild_create_character_response');
+const { rebuildCreateCharacterResponse } = require('../../../features/rpg-tracker/utils/rebuild_create_character_response');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -31,7 +31,7 @@ module.exports = {
                 });
             }
 
-            const allCharacters = await getCharactersInGame(gameId);
+            const allCharacters = await getCharactersByGame(gameId);
 
             // Filter only public characters
             const publicCharacters = allCharacters.filter(c => c.meta?.visibility === 'Public');
@@ -43,7 +43,7 @@ module.exports = {
                 });
             }
 
-            const { content, components } = rebuildListCharactersResponse(publicCharacters, 0);
+            const { content, components } = rebuildCreateCharacterResponse(publicCharacters, 0);
 
             await interaction.reply({
                 content,
