@@ -94,7 +94,7 @@ module.exports = {
 
             return await interaction.update({
                 ...base,
-                content: '🛠️ Select the stat or field you want to edit:',
+                content: '🛠️ *Manually update a stat or core field by selecting it below.*',
                 components: [...base.components, dropdownRow, cancelRow],
             });
         }

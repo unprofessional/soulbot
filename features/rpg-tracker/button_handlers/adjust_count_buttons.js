@@ -69,7 +69,7 @@ async function handle(interaction) {
 
         return await interaction.update({
             ...base,
-            content: '🛠 Select a stat you want to adjust:',
+            content: '🧮 *Perform quick math on numeric stats using +, -, ×, or ÷.*',
             components: [...base.components, dropdownRow, cancelRow],
         });
     }
