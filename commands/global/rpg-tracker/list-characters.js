@@ -23,6 +23,7 @@ module.exports = {
 
         try {
             const gameId = await getCurrentGame(userId, guildId);
+            console.log('🧠 [list-characters] gameId:', gameId);
 
             if (!gameId) {
                 return await interaction.reply({
@@ -32,9 +33,15 @@ module.exports = {
             }
 
             const allCharacters = await getCharactersByGame(gameId);
+            console.log('📦 [list-characters] All characters in game:', allCharacters.map(c => ({
+                id: c.id,
+                name: c.name,
+                visibility: c.visibility,
+            })));
 
             // Filter only public characters
             const publicCharacters = allCharacters.filter(c => c.meta?.visibility === 'Public');
+            console.log('🔓 [list-characters] Public characters:', publicCharacters.map(c => c.name));
 
             if (!publicCharacters.length) {
                 return await interaction.reply({
