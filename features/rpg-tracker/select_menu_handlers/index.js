@@ -50,7 +50,7 @@ module.exports = {
         }
 
         if (
-            customId.statTypeDropdown('selectPublicCharacter:')
+            customId.startsWith('selectPublicCharacter:')
         ) {
             return publicCharacterSelect.handle(interaction);
         }
