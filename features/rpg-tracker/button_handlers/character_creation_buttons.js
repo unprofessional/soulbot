@@ -25,6 +25,7 @@ const {
 const {
     rebuildCreateCharacterResponse,
 } = require('../utils/rebuild_create_character_response');
+const { isActiveCharacter } = require('../utils/is_active_character');
 
 /**
  * Handles character creation final submission and field-level interactions.
@@ -49,10 +50,15 @@ async function handle(interaction) {
             const character = await finalizeCharacterCreation(userId, draft);
             const fullCharacter = await getCharacterWithStats(character.id);
 
+            const isSelf = await isActiveCharacter(interaction.user.id, interaction.guildId, character.id);
+
             return await interaction.update({
                 content: `✅ Character **${character.name}** created successfully!`,
                 embeds: [buildCharacterEmbed(fullCharacter)],
-                components: [buildCharacterActionRow(character.id, character.visibility)],
+                components: [buildCharacterActionRow(character.id, {
+                    isSelf,
+                    visibility: character.visibility,
+                })],
             });
         } catch (err) {
             console.error('Error submitting character:', err);

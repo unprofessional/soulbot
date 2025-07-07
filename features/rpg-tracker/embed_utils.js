@@ -172,7 +172,9 @@ function buildCharacterEmbed(character) {
     return embed;
 }
 
-function buildCharacterActionRow(characterId, visibility = 'private') {
+function buildCharacterActionRow(characterId, { isSelf = false, visibility = 'private' } = {}) {
+    if (!isSelf) return null;
+
     return new ActionRowBuilder().addComponents(
         new ButtonBuilder()
             .setCustomId(`edit_stat:${characterId}`)

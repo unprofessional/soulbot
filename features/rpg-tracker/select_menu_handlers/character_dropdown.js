@@ -19,6 +19,7 @@ const {
     buildCharacterEmbed,
     buildCharacterActionRow,
 } = require('../embed_utils');
+const { isActiveCharacter } = require('../utils/is_active_character');
 
 /**
  * Truncates a string to a maximum length, appending ellipsis if necessary.
@@ -117,10 +118,15 @@ async function handle(interaction) {
             await setCurrentCharacter(user.id, guildId, selected);
             const character = await getCharacterWithStats(selected);
 
+            const isSelf = await isActiveCharacter(interaction.user.id, interaction.guildId, character.id);
+
             return await interaction.update({
                 content: `✅ Switched to **${character.name}**!`,
                 embeds: [buildCharacterEmbed(character)],
-                components: [buildCharacterActionRow(character.id, character.visibility)],
+                components: [buildCharacterActionRow(character.id, {
+                    isSelf,
+                    visibility: character.visibility,
+                })],
             });
         } catch (err) {
             console.error('Error switching character:', err);

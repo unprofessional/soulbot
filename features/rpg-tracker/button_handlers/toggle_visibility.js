@@ -9,6 +9,7 @@ const {
     buildCharacterEmbed,
     buildCharacterActionRow,
 } = require('../embed_utils');
+const { isActiveCharacter } = require('../utils/is_active_character');
 
 /**
  * Toggles core:visibility between "private" and "public".
@@ -35,10 +36,15 @@ async function handle(interaction) {
 
         const updated = await getCharacterWithStats(characterId);
 
+        const isSelf = await isActiveCharacter(interaction.user.id, interaction.guildId, characterId);
+
         return await interaction.update({
             content: `✅ Visibility set to **${newVisibility.charAt(0).toUpperCase() + newVisibility.slice(1)}**.`,
             embeds: [buildCharacterEmbed(updated)],
-            components: [buildCharacterActionRow(characterId, updated.visibility)],
+            components: [buildCharacterActionRow(characterId, {
+                isSelf,
+                visibility: updated.visibility,
+            })],
         });
     } catch (err) {
         console.error('Error toggling visibility:', err);

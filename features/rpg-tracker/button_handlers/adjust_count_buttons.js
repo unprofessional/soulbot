@@ -65,15 +65,17 @@ async function handle(interaction) {
 
         const cancelRow = new ActionRowBuilder().addComponents(cancelButton);
 
-        const base = renderCharacterView(character);
+        const userId = interaction.user.id;
+        const guildId = interaction.guildId;
+
+        const base = await renderCharacterView(character, { userId, guildId });
 
         return await interaction.update({
-            // ...base,
-            ...base.embeds,
+            ...base,
             content: '🧮 *Perform quick math on numeric stats using +, -, ×, or ÷.*',
-            // components: [...base.components, dropdownRow, cancelRow],
             components: [dropdownRow, cancelRow],
         });
+
     }
 }
 

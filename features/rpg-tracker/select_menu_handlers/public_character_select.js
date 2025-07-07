@@ -8,6 +8,7 @@ const {
 const {
     getCharacterWithStats,
 } = require('../../../store/services/character.service');
+const { isActiveCharacter } = require('../utils/is_active_character');
 
 /**
  * Handles selection of a public character from the dropdown.
@@ -34,8 +35,14 @@ async function handle(interaction) {
             });
         }
 
+        const isSelf = await isActiveCharacter(interaction.user.id, interaction.guildId, character.id);
+
         const embed = buildCharacterEmbed(character, { mode: 'view' });
-        const actionRow = buildCharacterActionRow(character, { mode: 'view' });
+        const actionRow = buildCharacterActionRow(character.id, {
+            isSelf,
+            visibility: character.visibility,
+        });
+
 
         await interaction.reply({
             embeds: [embed],

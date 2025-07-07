@@ -10,6 +10,7 @@ const {
     buildCharacterEmbed,
     buildCharacterActionRow,
 } = require('../embed_utils');
+const { isActiveCharacter } = require('../utils/is_active_character');
 
 /**
  * Handles modal for adjusting stats (add/subtract/multiply/divide flow).
@@ -84,7 +85,13 @@ async function handle(interaction) {
 
     const updated = await getCharacterWithStats(characterId);
     const embed = buildCharacterEmbed(updated);
-    const row = buildCharacterActionRow(characterId, updated.visibility);
+
+    const isSelf = await isActiveCharacter(interaction.user.id, interaction.guildId, character.id);
+
+    const row = buildCharacterActionRow(characterId, {
+        isSelf,
+        visibility: updated.visibility,
+    });
 
     return await interaction.reply({
         content: `✅ Updated **${stat.label}**: ${current} ${operator} ${value} → ${next}`,

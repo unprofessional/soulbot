@@ -9,6 +9,7 @@ const {
     getCharactersByUser,
     getCharacterWithStats,
 } = require('../../../store/services/character.service');
+const { isActiveCharacter } = require('../utils/is_active_character');
 
 /**
  * Fallback for unknown buttons or default character view.
@@ -49,9 +50,14 @@ async function execute(interaction) {
 
         const full = await getCharacterWithStats(character.id);
 
+        const isSelf = await isActiveCharacter(interaction.user.id, interaction.guildId, character.id);
+
         return await interaction.reply({
             embeds: [buildCharacterEmbed(full)],
-            components: [buildCharacterActionRow(character.id, character.visibility)],
+            components: [buildCharacterActionRow(character.id, {
+                isSelf,
+                visibility: character.visibility,
+            })],
             ephemeral: true,
         });
     } catch (err) {

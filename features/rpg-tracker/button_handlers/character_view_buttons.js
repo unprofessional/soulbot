@@ -18,8 +18,13 @@ async function handle(interaction) {
             });
         }
 
-        return await interaction.update(renderCharacterView(character));
+        const userId = interaction.user.id;
+        const guildId = interaction.guildId;
+
+        const view = await renderCharacterView(character, { userId, guildId });
+        return await interaction.update(view);
     }
 }
+
 
 module.exports = { handle };

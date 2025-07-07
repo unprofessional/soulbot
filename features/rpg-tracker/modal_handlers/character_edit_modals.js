@@ -11,6 +11,7 @@ const {
     buildCharacterEmbed,
     buildCharacterActionRow,
 } = require('../embed_utils');
+const { isActiveCharacter } = require('../utils/is_active_character');
 
 /**
  * Handles modals related to character stat or metadata editing.
@@ -61,7 +62,11 @@ async function handle(interaction) {
 
             const updated = await getCharacterWithStats(characterId);
             const embed = buildCharacterEmbed(updated);
-            const row = buildCharacterActionRow(characterId, updated.visibility);
+            const isSelf = await isActiveCharacter(interaction.user.id, interaction.guildId, characterId);
+            const row = buildCharacterActionRow(characterId, {
+                isSelf,
+                visibility: updated.visibility,
+            });
 
             return await interaction.editReply({
                 content: null,
@@ -99,7 +104,11 @@ async function handle(interaction) {
 
             const updated = await getCharacterWithStats(characterId);
             const embed = buildCharacterEmbed(updated);
-            const row = buildCharacterActionRow(characterId, updated.visibility);
+            const isSelf = await isActiveCharacter(interaction.user.id, interaction.guildId, characterId);
+            const row = buildCharacterActionRow(characterId, {
+                isSelf,
+                visibility: updated.visibility,
+            });
 
             return await interaction.editReply({
                 content: null,

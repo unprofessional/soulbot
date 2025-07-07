@@ -48,13 +48,14 @@ module.exports = {
             const full = await getCharacterWithStats(character.id);
 
             const { warning } = await validateGameAccess({ gameId: full.game_id, userId });
-            const view = renderCharacterView(full);
+            const view = await renderCharacterView(full, { userId, guildId });
 
             await interaction.reply({
                 ...view,
                 content: warning || view.content,
                 ephemeral: true,
             });
+
         } catch (err) {
             console.error('[COMMAND ERROR] /view-character:', err);
             await interaction.reply({
