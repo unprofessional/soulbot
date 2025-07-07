@@ -78,7 +78,7 @@ module.exports = {
 
             const dropdown = new StringSelectMenuBuilder()
                 .setCustomId(`editCharacterStatDropdown:${characterId}`)
-                .setPlaceholder('Choose a stat or core field to edit')
+                .setPlaceholder('🛠️ Manually update a stat or core field by selecting it below.')
                 .addOptions(options);
 
             const dropdownRow = new ActionRowBuilder().addComponents(dropdown);

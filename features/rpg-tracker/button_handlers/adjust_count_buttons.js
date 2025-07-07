@@ -53,7 +53,7 @@ async function handle(interaction) {
 
         const dropdown = new StringSelectMenuBuilder()
             .setCustomId(`adjustStatSelect:${characterId}`)
-            .setPlaceholder('Select a stat to adjust')
+            .setPlaceholder('🧮 Perform quick math on numeric stats using +, -, ×, or ÷.')
             .addOptions(options);
 
         const dropdownRow = new ActionRowBuilder().addComponents(dropdown);
