@@ -93,9 +93,11 @@ module.exports = {
             const base = renderCharacterView(character);
 
             return await interaction.update({
-                ...base,
+                // ...base,
+                ...base.embeds,
                 content: '🛠️ *Manually update a stat or core field by selecting it below.*',
-                components: [...base.components, dropdownRow, cancelRow],
+                // components: [...base.components, dropdownRow, cancelRow],
+                components: [dropdownRow, cancelRow],
             });
         }
     }

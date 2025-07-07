@@ -68,9 +68,11 @@ async function handle(interaction) {
         const base = renderCharacterView(character);
 
         return await interaction.update({
-            ...base,
+            // ...base,
+            ...base.embeds,
             content: '🧮 *Perform quick math on numeric stats using +, -, ×, or ÷.*',
-            components: [...base.components, dropdownRow, cancelRow],
+            // components: [...base.components, dropdownRow, cancelRow],
+            components: [dropdownRow, cancelRow],
         });
     }
 }
