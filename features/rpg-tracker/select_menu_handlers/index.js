@@ -7,6 +7,7 @@ const characterStatSelect = require('./character_stat_select_menu');
 const statTypeDropodown = require('./stat_type_select');
 const adjustNumericStatSelectHandler = require('./adjust_numeric_stat_select');
 const publicCharacterSelect = require('./public_character_select');
+const { handle : handleSwitchCharacterSelector } = require('../components/switch_character_selector');
 
 module.exports = {
     async handleSelectMenu(interaction) {
@@ -14,12 +15,13 @@ module.exports = {
 
         if (
             customId === 'createCharacterDropdown' ||
-            customId === 'switchCharacterDropdown' ||
             customId === 'editCharacterFieldDropdown'
-
         ) {
             return characterDropdown.handle(interaction);
         }
+
+        // NEW
+        if (customId === 'switchCharacterDropdown') return handleSwitchCharacterSelector(interaction);
 
         if (
             customId === 'joinGameDropdown' ||

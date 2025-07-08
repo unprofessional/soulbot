@@ -7,20 +7,6 @@ const {
     ActionRowBuilder,
 } = require('discord.js');
 
-const {
-    setCurrentCharacter,
-} = require('../../../store/services/player.service');
-
-const {
-    getCharacterWithStats,
-} = require('../../../store/services/character.service');
-
-const {
-    buildCharacterEmbed,
-    buildCharacterActionRow,
-} = require('../embed_utils');
-const { isActiveCharacter } = require('../utils/is_active_character');
-
 /**
  * Truncates a string to a maximum length, appending ellipsis if necessary.
  * Used to comply with Discord limits (e.g. 45 for titles/labels).
@@ -37,7 +23,7 @@ function truncate(str, maxLength = 45) {
  * @param {import('discord.js').StringSelectMenuInteraction} interaction
  */
 async function handle(interaction) {
-    const { customId, user, values, guildId } = interaction;
+    const { customId, values } = interaction;
     const selected = values?.[0];
 
     if (!selected) {
@@ -105,37 +91,6 @@ async function handle(interaction) {
         return await interaction.showModal(modal);
     }
 
-    // === /switch-character dropdown ===
-    if (customId === 'switchCharacterDropdown') {
-        try {
-            if (!guildId) {
-                return await interaction.reply({
-                    content: '⚠️ This action must be used in a server.',
-                    ephemeral: true,
-                });
-            }
-
-            await setCurrentCharacter(user.id, guildId, selected);
-            const character = await getCharacterWithStats(selected);
-
-            const isSelf = await isActiveCharacter(interaction.user.id, interaction.guildId, character.id);
-
-            return await interaction.update({
-                content: `✅ Switched to **${character.name}**!`,
-                embeds: [buildCharacterEmbed(character)],
-                components: [buildCharacterActionRow(character.id, {
-                    isSelf,
-                    visibility: character.visibility,
-                })],
-            });
-        } catch (err) {
-            console.error('Error switching character:', err);
-            return await interaction.reply({
-                content: '❌ Failed to switch character.',
-                ephemeral: true,
-            });
-        }
-    }
 }
 
 module.exports = { handle };
