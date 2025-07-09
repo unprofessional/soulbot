@@ -8,6 +8,7 @@ const statTypeDropodown = require('./stat_type_select');
 const adjustNumericStatSelectHandler = require('./adjust_numeric_stat_select');
 const publicCharacterSelect = require('./public_character_select');
 const { handle : handleSwitchCharacterSelector } = require('../components/switch_character_selector');
+const { handle: handleSwitchGameSelector } = require('../components/switch_game_selector');
 
 module.exports = {
     async handleSelectMenu(interaction) {
@@ -20,15 +21,12 @@ module.exports = {
             return characterDropdown.handle(interaction);
         }
 
-        // NEW
         if (customId === 'switchCharacterDropdown') return handleSwitchCharacterSelector(interaction);
 
-        if (
-            customId === 'joinGameDropdown' ||
-            customId === 'switchGameDropdown'
-        ) {
-            return gameDropdown.handle(interaction);
-        }
+        if (customId === 'switchGameDropdown') return handleSwitchGameSelector(interaction);
+
+        // legacy support
+        if (customId === 'joinGameDropdown') return gameDropdown.handle(interaction);
 
         if (
             customId.startsWith('editStatSelect:') ||
