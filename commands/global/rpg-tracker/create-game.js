@@ -1,8 +1,10 @@
 // commands/global/rpg-tracker/create-game.js
 
-const { SlashCommandBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
+const { SlashCommandBuilder, ActionRowBuilder } = require('discord.js');
 const { createGame } = require('../../../store/services/game.service');
 const { getOrCreatePlayer, setCurrentGame } = require('../../../store/services/player.service');
+const { build: buildDefineStatsButton } = require('../../../features/rpg-tracker/components/define_stats_button');
+const { build: buildTogglePublishButton } = require('../../../features/rpg-tracker/components/toggle_publish_button');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -35,7 +37,6 @@ module.exports = {
         }
 
         try {
-            // Create game record
             const game = await createGame({
                 name,
                 description,
@@ -43,27 +44,13 @@ module.exports = {
                 guildId,
             });
 
-            // Ensure global player + per-server link (GM role)
             await getOrCreatePlayer(userId, guildId, 'gm');
-
-            // Set current game for this player in this guild
             await setCurrentGame(userId, guildId, game.id);
 
-            const defineStatsBtn = new ButtonBuilder()
-                .setCustomId(`defineStats:${game.id}`)
-                .setLabel('Define GAME Stats')
-                .setStyle(ButtonStyle.Primary);
+            const defineStatsBtn = buildDefineStatsButton(game.id);
+            const publishBtn = buildTogglePublishButton(game.id);
 
-            const publishBtn = new ButtonBuilder()
-                .setCustomId(`togglePublishGame:${game.id}`)
-                .setLabel('📣 Toggle Visibility')
-                .setStyle(ButtonStyle.Success)
-
-
-            const row = new ActionRowBuilder().addComponents(
-                defineStatsBtn,
-                publishBtn
-            );
+            const row = new ActionRowBuilder().addComponents(defineStatsBtn, publishBtn);
 
             await interaction.reply({
                 content: [
