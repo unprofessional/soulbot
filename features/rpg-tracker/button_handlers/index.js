@@ -10,26 +10,35 @@ const fallbackButtons = require('./fallback_buttons');
 const adjustCountButtons = require('./adjust_count_buttons');
 const characterViewButtons = require('./character_view_buttons');
 const publicCharacterPagination = require('./public_character_pagination');
+const { handle: handleDefineStats } = require('../components/define_stats_button');
+const { handle: handleEditStats } = require('../components/edit_stat_button');
+const { handle: handleDeleteStats } = require('../components/delete_stat_button');
+const { handle: handleFinishStatSetup } = require('../components/finish_stat_setup_button');
+const { handle: handleTogglePublishButton} = require('../components/toggle_publish_button');
 
 module.exports = {
     async handleButton(interaction) {
         const { customId } = interaction;
 
+        /**
+         * TODO: Replace all these strings with `id` references from each respective module
+         */
+        if (customId.startsWith('defineStats:')) return handleDefineStats(interaction);
+        if (customId.startsWith('editStats:')) return handleEditStats(interaction);
+        if (customId.startsWith('deleteStats:')) return handleDeleteStats(interaction);
+        if (customId.startsWith('finishStatSetup:')) return handleFinishStatSetup(interaction);
+        if (customId.startsWith('togglePublishGame:')) return handleTogglePublishButton(interaction);
+
         if (
             customId.startsWith('editGameModal:') ||
-            customId.startsWith('publishGame:') ||
-            customId.startsWith('togglePublishGame:')
+            customId.startsWith('publishGame:')
         ) {
             return gameButtons.handle(interaction);
         }
 
         if (
-            customId.startsWith('defineStats:') ||
-            customId.startsWith('editStats:') ||
-            customId.startsWith('deleteStats:') ||
             customId.startsWith('confirmDeleteStat:') ||
-            customId.startsWith('edit_stat_template:') ||
-            customId.startsWith('finishStatSetup:')
+            customId.startsWith('edit_stat_template:')
         ) {
             return statButtons.handle(interaction);
         }

@@ -13,6 +13,7 @@ module.exports = {
 
         // === Game-related ===
         if (customId.startsWith('editGameModal:')) return gameModals.handle(interaction);
+        
         if (
             customId.startsWith('createStatTemplate:') ||
             customId.startsWith('editStatTemplateModal:')
