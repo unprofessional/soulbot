@@ -15,7 +15,7 @@ function build(gameId) {
     return new ButtonBuilder()
         .setCustomId(`${id}:${gameId}`)
         .setLabel('➕ Add Another Stat')
-        .setStyle('PRIMARY');
+        .setStyle(ButtonStyle.Primary);
 }
 
 async function handle(interaction) {
