@@ -1,6 +1,5 @@
 // features/rpg-tracker/modal_handlers/index.js
 
-const gameModals = require('./game_modals');
 const statTemplateModals = require('./stat_template_modals');
 const characterCreationModals = require('./character_creation_modals');
 const characterEditModals = require('./character_edit_modals');
@@ -12,8 +11,6 @@ module.exports = {
         const { customId } = interaction;
 
         // === Game-related ===
-        if (customId.startsWith('editGameModal:')) return gameModals.handle(interaction);
-        
         if (
             customId.startsWith('createStatTemplate:') ||
             customId.startsWith('editStatTemplateModal:')
@@ -22,7 +19,6 @@ module.exports = {
         if (customId.startsWith('createStatModal:')) {
             return statTemplateModals.handle(interaction);
         }
-
 
         // ✅ DRAFT Character creation flow
         if (
