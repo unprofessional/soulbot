@@ -5,28 +5,24 @@ const characterCreationModals = require('./character_creation_modals');
 const characterEditModals = require('./character_edit_modals');
 const inventoryModals = require('./inventory_modals');
 const statCalculatorModal = require('././stat_calculator_modal');
+const { build } = require('../components/create_stat_modal');
 
 module.exports = {
     async handleModal(interaction) {
         const { customId } = interaction;
 
-        // === Game-related ===
-        if (
-            customId.startsWith('createStatTemplate:') ||
-            customId.startsWith('editStatTemplateModal:')
-        ) return statTemplateModals.handle(interaction);
+        if(customId.startsWith('createStatModal:')) return build(interaction);
 
-        if (customId.startsWith('createStatModal:')) {
-            return statTemplateModals.handle(interaction);
-        }
+        // GAME-related
+        if (customId.startsWith('editStatTemplateModal:')) return statTemplateModals.handle(interaction);
 
-        // ✅ DRAFT Character creation flow
+        // DRAFT Character creation flow
         if (
             customId.startsWith('createCharacterModal:') ||
             customId.startsWith('createDraftCharacterField:')
         ) return characterCreationModals.handle(interaction);
 
-        // ✅ EDIT Existing characters
+        // EDIT Existing characters
         if (
             customId.startsWith('editCharacterModal:') ||
             customId.startsWith('editStatModal:') ||

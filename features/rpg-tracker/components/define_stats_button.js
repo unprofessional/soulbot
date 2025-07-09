@@ -8,6 +8,7 @@ const {
 
 const { getGame } = require('../../../store/services/game.service');
 const { build: buildStatTypeDropdown } = require('./stat_type_selector');
+const { build: buildCancelButton } = require('./finish_stat_setup_button');
 
 const id = 'defineStats';
 
@@ -31,11 +32,7 @@ async function handle(interaction) {
 
     const dropdownRow = buildStatTypeDropdown(gameId);
 
-    const cancelBtn = new ButtonBuilder()
-        .setCustomId(`finishStatSetup:${gameId}`)
-        .setLabel('↩️ Cancel / Go Back')
-        .setStyle(ButtonStyle.Secondary);
-
+    const cancelBtn = new ButtonBuilder(buildCancelButton(gameId));
     const cancelRow = new ActionRowBuilder().addComponents(cancelBtn);
 
     return await interaction.update({

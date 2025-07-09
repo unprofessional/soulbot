@@ -2,12 +2,12 @@
 
 const {
     ActionRowBuilder,
-    StringSelectMenuBuilder,
     ButtonBuilder,
-    ButtonStyle,
 } = require('discord.js');
 
 const { getGame, getStatTemplates } = require('../../../store/services/game.service');
+const { build: buildCancelButton } = require('./finish_stat_setup_button');
+const { build: buildEditStatSelectorRow } = require('./edit_stat_selector');
 
 const id = 'editStats';
 
@@ -15,7 +15,7 @@ function build(gameId) {
     return new ButtonBuilder()
         .setCustomId(`${id}:${gameId}`)
         .setLabel('🎲 Edit Stat')
-        .setStyle(ButtonStyle.Secondary);
+        .setStyle('SECONDARY');
 }
 
 async function handle(interaction) {
@@ -37,26 +37,13 @@ async function handle(interaction) {
         });
     }
 
-    const options = statTemplates.map((f, i) => ({
-        label: `${i + 1}. ${f.label}`,
-        description: `Type: ${f.field_type} — Default: ${f.default_value || 'None'}`,
-        value: f.id,
-    }));
-
-    const selectMenu = new StringSelectMenuBuilder()
-        .setCustomId(`editStatSelect:${gameId}`)
-        .setPlaceholder('Select a stat field to edit')
-        .addOptions(options);
-
-    const cancelBtn = new ButtonBuilder()
-        .setCustomId(`finishStatSetup:${gameId}`)
-        .setLabel('↩️ Cancel / Go Back')
-        .setStyle(ButtonStyle.Secondary);
+    const selectRow = buildEditStatSelectorRow(gameId, statTemplates);
+    const cancelBtn = new ButtonBuilder(buildCancelButton(gameId));
 
     return await interaction.update({
         content: `🎲 Select a field to edit for **${game.name}**`,
         components: [
-            new ActionRowBuilder().addComponents(selectMenu),
+            selectRow,
             new ActionRowBuilder().addComponents(cancelBtn),
         ],
         embeds: [],
