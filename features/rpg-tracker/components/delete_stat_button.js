@@ -3,6 +3,7 @@
 const {
     ActionRowBuilder,
     ButtonBuilder,
+    ButtonStyle,
 } = require('discord.js');
 
 const { getGame, getStatTemplates } = require('../../../store/services/game.service');
@@ -15,7 +16,7 @@ function build(gameId) {
     return new ButtonBuilder()
         .setCustomId(`${id}:${gameId}`)
         .setLabel('🗑️ Delete Stat')
-        .setStyle('DANGER');
+        .setStyle(ButtonStyle.Danger);
 }
 
 async function handle(interaction) {

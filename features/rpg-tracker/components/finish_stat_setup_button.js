@@ -1,5 +1,6 @@
 // features/rpg-tracker/components/finish_stat_setup_button.js
 
+const { ButtonStyle } = require('discord.js');
 const { getGame, getStatTemplates } = require('../../../store/services/game.service');
 const { rebuildCreateGameResponse } = require('../utils/rebuild_create_game_response');
 
@@ -9,7 +10,7 @@ function build(gameId) {
     return {
         custom_id: `${id}:${gameId}`,
         label: '↩️ Cancel / Go Back',
-        style: 'SECONDARY',
+        style: ButtonStyle.Secondary,
     };
 }
 
