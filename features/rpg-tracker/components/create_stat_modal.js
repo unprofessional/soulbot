@@ -24,6 +24,9 @@ const id = 'createStatModal';
  * Called when user selects a stat type from dropdown.
  */
 function build(gameId, statType) {
+
+    console.log('[create_stat_modal.build] start', { gameId, statType, typeofStatType: typeof statType });
+
     if (!statType) {
         throw new Error('[create_stat_modal.build] Missing statType');
     }
