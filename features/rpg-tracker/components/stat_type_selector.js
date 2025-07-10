@@ -41,24 +41,33 @@ function build(gameId) {
 
 async function handle(interaction) {
     const [, gameId] = interaction.customId.split(':');
-    // const selectedType = interaction.values?.[0]; // old way
-    const selectedType = interaction.isStringSelectMenu() ? interaction.values?.[0] : null; // new check
+    const selectedType = interaction.isStringSelectMenu() ? interaction.values?.[0] : null;
 
-    console.log('[stat_type_selector] Received:', {
+    console.log('[stat_type_selector.handle] Interaction received:', {
         customId: interaction.customId,
+        gameId,
         selectedType,
-        values: interaction.values,
+        rawValues: interaction.values,
     });
 
     if (!selectedType || !gameId) {
+        console.warn('[stat_type_selector.handle] Missing gameId or selectedType:', {
+            gameId,
+            selectedType,
+        });
+
         return interaction.reply({
             content: '⚠️ Invalid stat type selection.',
             ephemeral: true,
         });
     }
 
+    console.log('[stat_type_selector.handle] Calling buildStatModal with:', {
+        gameId,
+        selectedType,
+    });
+
     const modal = buildStatModal(gameId, selectedType);
-    console.log('[stat_type_selector] Calling buildStatModal with:', { gameId, selectedType });
     await interaction.showModal(modal);
 }
 

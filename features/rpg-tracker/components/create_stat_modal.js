@@ -19,8 +19,15 @@ const {
 
 const id = 'createStatModal';
 
+/**
+ * Build a modal to define a new stat field.
+ * Called when user selects a stat type from dropdown.
+ */
 function build(gameId, statType) {
-    console.log('[create_stat_modal.build] Inputs:', { gameId, statType });
+    if (!statType) {
+        throw new Error('[create_stat_modal.build] Missing statType');
+    }
+
     const labelInput = new TextInputBuilder()
         .setCustomId('label')
         .setLabel("Field Label: What's it called?")
@@ -49,8 +56,11 @@ function build(gameId, statType) {
         );
 }
 
+/**
+ * Handle submission of the create stat modal.
+ */
 async function handle(interaction) {
-    console.log('[create_stat_modal] Received modal submission with customId:', interaction.customId);
+    console.log('[create_stat_modal.handle] Received modal submission:', interaction.customId);
 
     const [, gameId, statType] = interaction.customId.split(':');
 
