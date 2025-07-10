@@ -20,6 +20,7 @@ const {
 const id = 'createStatModal';
 
 function build(gameId, statType) {
+    console.log('[create_stat_modal.build] Inputs:', { gameId, statType });
     const labelInput = new TextInputBuilder()
         .setCustomId('label')
         .setLabel("Field Label: What's it called?")
@@ -49,6 +50,8 @@ function build(gameId, statType) {
 }
 
 async function handle(interaction) {
+    console.log('[create_stat_modal] Received modal submission with customId:', interaction.customId);
+
     const [, gameId, statType] = interaction.customId.split(':');
 
     const label = interaction.fields.getTextInputValue('label')?.trim().toUpperCase();
