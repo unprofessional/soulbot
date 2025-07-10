@@ -2,6 +2,7 @@
 
 const {
     ActionRowBuilder,
+    StringSelectMenuBuilder,
     ButtonBuilder,
     ButtonStyle,
 } = require('discord.js');
@@ -15,15 +16,16 @@ const { build: buildCancelButton } = require('./finish_stat_setup_button');
 const id = 'deleteStatSelect';
 
 function build(gameId, statTemplates) {
-    return {
-        custom_id: `${id}:${gameId}`,
-        placeholder: 'Select a stat field to delete',
-        options: statTemplates.map((f, i) => ({
+    const selectMenu = new StringSelectMenuBuilder()
+        .setCustomId(`${id}:${gameId}`)
+        .setPlaceholder('Select a stat field to delete')
+        .addOptions(statTemplates.map((f, i) => ({
             label: `${i + 1}. ${f.label}`,
             description: `Type: ${f.field_type}`,
             value: f.id,
-        })),
-    };
+        })));
+
+    return new ActionRowBuilder().addComponents(selectMenu);
 }
 
 async function handle(interaction) {
@@ -49,7 +51,7 @@ async function handle(interaction) {
 
         const confirmRow = new ActionRowBuilder().addComponents(
             new ButtonBuilder()
-                .setCustomId(`confirmDeleteStat:${selected}`) // <---- TODO NEXT TODO NEXT TODO NEXT TODO NEXT TODO NEXT TODO NEXT 
+                .setCustomId(`confirmDeleteStat:${selected}`)
                 .setLabel('✅ Confirm Delete')
                 .setStyle(ButtonStyle.Danger),
             new ButtonBuilder(buildCancelButton(gameId))
