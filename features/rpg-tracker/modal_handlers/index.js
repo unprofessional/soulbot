@@ -11,11 +11,9 @@ module.exports = {
     async handleModal(interaction) {
         const { customId } = interaction;
 
-        // ✅ FIXED: route to handle, not build
-        if (customId.startsWith('createStatModal:')) return handleCreateStatModal(interaction);
-
         // GAME-related
         if (customId.startsWith('editStatTemplateModal:')) return statTemplateModals.handle(interaction);
+        if (customId.startsWith('createStatModal:')) return handleCreateStatModal(interaction);
 
         // DRAFT Character creation flow
         if (

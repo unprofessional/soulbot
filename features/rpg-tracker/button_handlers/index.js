@@ -1,6 +1,5 @@
 // features/rpg-tracker/button_handlers/index.js
 
-const charCreateButtons = require('./character_creation_buttons');
 const charEditButtons = require('./character_edit_buttons');
 const toggleVisibilityButton = require('./toggle_visibility');
 const inventoryButtons = require('./inventory_buttons');
@@ -14,6 +13,7 @@ const { handle: handleDeleteStats } = require('../components/delete_stat_button'
 const { handle: handleFinishStatSetup } = require('../components/finish_stat_setup_button');
 const { handle: handleTogglePublishButton} = require('../components/toggle_publish_button');
 const { handle: handleConfirmDeleteStat } = require('../components/confirm_delete_stat_button');
+const { handle: handleSubmitCharacter } = require('../components/submit_character_button');
 
 module.exports = {
     async handleButton(interaction) {
@@ -28,10 +28,7 @@ module.exports = {
         if (customId.startsWith('finishStatSetup:')) return handleFinishStatSetup(interaction);
         if (customId.startsWith('togglePublishGame:')) return handleTogglePublishButton(interaction);
         if (customId.startsWith('confirmDeleteStat:')) return handleConfirmDeleteStat(interaction);
-
-        if (customId === 'submitNewCharacter') {
-            return charCreateButtons.handle(interaction);
-        }
+        if (customId === 'submitNewCharacter') return handleSubmitCharacter(interaction);
 
         if (customId.startsWith('edit_stat:')) {
             return charEditButtons.handle(interaction);
