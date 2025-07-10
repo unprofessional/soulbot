@@ -67,6 +67,9 @@ async function handle(interaction) {
         selectedType,
     });
 
+    // console.log('>>> features/rpg-tracker/components/stat_type_selector.js > gameId: ', gameId);
+    // console.log('>>> features/rpg-tracker/components/stat_type_selector.js > selectedType: ', selectedType);
+
     const modal = buildStatModal(gameId, selectedType);
     await interaction.showModal(modal);
 }

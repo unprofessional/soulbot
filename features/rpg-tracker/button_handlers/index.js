@@ -1,6 +1,5 @@
 // features/rpg-tracker/button_handlers/index.js
 
-const statButtons = require('./stat_template_buttons');
 const charCreateButtons = require('./character_creation_buttons');
 const charEditButtons = require('./character_edit_buttons');
 const toggleVisibilityButton = require('./toggle_visibility');
@@ -29,10 +28,6 @@ module.exports = {
         if (customId.startsWith('finishStatSetup:')) return handleFinishStatSetup(interaction);
         if (customId.startsWith('togglePublishGame:')) return handleTogglePublishButton(interaction);
         if (customId.startsWith('confirmDeleteStat:')) return handleConfirmDeleteStat(interaction);
-
-        if (customId.startsWith('edit_stat_template:')) {
-            return statButtons.handle(interaction);
-        }
 
         if (customId === 'submitNewCharacter') {
             return charCreateButtons.handle(interaction);
