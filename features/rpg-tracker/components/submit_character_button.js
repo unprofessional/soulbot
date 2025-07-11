@@ -17,6 +17,10 @@ const {
 } = require('../../../store/services/character.service');
 
 const {
+    setCurrentCharacter,
+} = require('../../../store/services/player.service');
+
+const {
     buildCharacterEmbed,
     buildCharacterActionRow,
 } = require('../embed_utils');
@@ -59,6 +63,10 @@ async function handle(interaction) {
 
         const character = await finalizeCharacterCreation(userId, draft);
         console.log(`[submit_character_button] Finalized character: ${character.name} (${character.id})`);
+
+        // 🔧 Set the newly created character as active
+        await setCurrentCharacter(userId, guildId, character.id);
+        console.log(`[submit_character_button] Set ${character.name} (${character.id}) as active character for ${userId} in ${guildId}`);
 
         const fullCharacter = await getCharacterWithStats(character.id);
 
