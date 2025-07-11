@@ -58,14 +58,23 @@ async function handle(interaction) {
 
         const isSelf = await isActiveCharacter(interaction.user.id, interaction.guildId, character.id);
 
-        return await interaction.update({
+        const response = {
             content: `✅ Character **${character.name}** created successfully!`,
             embeds: [buildCharacterEmbed(fullCharacter)],
-            components: [buildCharacterActionRow(character.id, {
+        };
+
+        const actionRow = isSelf
+            ? buildCharacterActionRow(character.id, {
                 isSelf,
                 visibility: character.visibility,
-            })],
-        });
+            })
+            : null;
+
+        if (actionRow) {
+            response.components = [actionRow];
+        }
+
+        return await interaction.update(response);
     } catch (err) {
         console.error('[submit_character_button] Failed to submit character:', err);
         return await interaction.reply({
