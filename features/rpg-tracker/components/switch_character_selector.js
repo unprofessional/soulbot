@@ -63,20 +63,18 @@ async function build(userId, guildId) {
                 }
             });
 
-        const baseLabel = `${fullCharacter.name} — ${formatTimeAgo(fullCharacter.created_at)}`;
+        const visibilityBadge = fullCharacter.visibility === 'public'
+            ? '✅ Public'
+            : '🔒 Private';
+
+        const baseLabel = `${fullCharacter.name} — ${formatTimeAgo(fullCharacter.created_at)} — ${visibilityBadge}`;
         const label = isActive
             ? `⭐ ${baseLabel} (ACTIVE)`
             : baseLabel;
 
-        const visibilityLabel = fullCharacter.visibility === 'public'
-            ? '✅ Visibility: Public'
-            : '🔒 Visibility: Private';
-
-        const description = (topStats.join(' • ') + ' • ' + visibilityLabel).slice(0, 100) || visibilityLabel;
-
         eligibleOptions.push({
             label: label.length > 100 ? label.slice(0, 97) + '…' : label,
-            description,
+            description: topStats.join(' • ').slice(0, 100) || 'No stats available',
             value: fullCharacter.id,
             isActive,
         });
