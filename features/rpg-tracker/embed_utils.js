@@ -122,7 +122,14 @@ function buildGameEmbed(game, characters = [], statTemplates = []) {
  * @returns 
  */
 function buildCharacterEmbed(character) {
-    console.log('🧩 buildCharacterEmbed > character input:', character);
+    console.log('🧩 buildCharacterEmbed > character input:', {
+        id: character.id,
+        name: character.name,
+        visibility: character.visibility,
+        created_at: character.created_at,
+        avatar_url: character.avatar_url,
+        statsCount: character.stats?.length || 0,
+    });
 
     const embed = new EmbedBuilder();
 
@@ -131,12 +138,12 @@ function buildCharacterEmbed(character) {
     }
 
     const name = character.name || 'Unnamed Character';
-
     embed.setTitle(name);
 
     const parsedStats = parseCharacterStats(character.stats || []);
+    console.log('📊 buildCharacterEmbed > paragraphFields:', parsedStats.paragraphFields);
+    console.log('📊 buildCharacterEmbed > gridFields:', parsedStats.gridFields);
 
-    // Add paragraph-style fields (1 per line, truncated)
     for (const para of parsedStats.paragraphFields) {
         embed.addFields({
             name: `**${para.label}**`,
@@ -145,7 +152,6 @@ function buildCharacterEmbed(character) {
         });
     }
 
-    // Add stat grid fields in chunks of 2 (to enforce 2-column layout)
     const displayStrings = parsedStats.gridFields.map(formatStatDisplay);
     for (let i = 0; i < displayStrings.length; i += 2) {
         const left = displayStrings[i] ?? '\u200B';
@@ -154,7 +160,7 @@ function buildCharacterEmbed(character) {
         embed.addFields(
             { name: '\u200B', value: left, inline: true },
             { name: '\u200B', value: right, inline: true },
-            { name: '\u200B', value: '\u200B', inline: true } // Filler column to enforce 2-col layout
+            { name: '\u200B', value: '\u200B', inline: true }
         );
     }
 
@@ -173,6 +179,7 @@ function buildCharacterEmbed(character) {
 }
 
 function buildCharacterActionRow(characterId, { isSelf = false, visibility = 'private' } = {}) {
+    console.log(`🎛️ buildCharacterActionRow > characterId=${characterId} | isSelf=${isSelf} | visibility=${visibility}`);
     if (!isSelf) return null;
 
     return new ActionRowBuilder().addComponents(

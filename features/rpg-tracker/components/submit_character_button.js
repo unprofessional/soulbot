@@ -40,11 +40,13 @@ function build(isDisabled = false) {
  * @param {import('discord.js').ButtonInteraction} interaction
  */
 async function handle(interaction) {
-    const { user } = interaction;
+    const { user, guildId } = interaction;
     const userId = user.id;
 
     try {
         const complete = await isDraftComplete(userId);
+        console.log(`[submit_character_button] Draft completeness for user ${userId}: ${complete}`);
+
         if (!complete) {
             return await interaction.reply({
                 content: '⚠️ Your character is missing required fields. Please finish filling them out.',
@@ -53,10 +55,15 @@ async function handle(interaction) {
         }
 
         const draft = await getTempCharacterData(userId);
+        console.log(`[submit_character_button] Draft data for user ${userId}:`, draft);
+
         const character = await finalizeCharacterCreation(userId, draft);
+        console.log(`[submit_character_button] Finalized character: ${character.name} (${character.id})`);
+
         const fullCharacter = await getCharacterWithStats(character.id);
 
-        const isSelf = await isActiveCharacter(interaction.user.id, interaction.guildId, character.id);
+        const isSelf = await isActiveCharacter(userId, guildId, character.id);
+        console.log(`[submit_character_button] isActiveCharacter(${userId}, ${guildId}, ${character.id}) → ${isSelf}`);
 
         const response = {
             content: `✅ Character **${character.name}** created successfully!`,

@@ -27,6 +27,17 @@ async function createCharacter({
     stats = {},
     customFields = {},
 }) {
+    console.log('🛠️ createCharacter called with:', {
+        userId,
+        guildId,
+        gameId,
+        name,
+        clazz,
+        race,
+        level,
+        notes,
+    });
+
     const character = await characterDAO.create({
         user_id: userId,
         game_id: gameId,
@@ -37,28 +48,42 @@ async function createCharacter({
         notes,
     });
 
+    console.log('✅ Character created:', character);
+
     if (stats && typeof stats === 'object') {
+        console.log('📥 Upserting stats:', stats);
         await statDAO.bulkUpsert(character.id, stats);
     }
 
     if (customFields && typeof customFields === 'object') {
+        console.log('📥 Upserting custom fields:', customFields);
         await customDAO.bulkUpsert(character.id, customFields);
     }
 
     // Patch: Now sets character by user and guild context
+    console.log('🔄 Setting as active character:', character.id);
     await playerDAO.setCurrentCharacter(userId, guildId, character.id);
 
     return character;
 }
 
 async function getCharacterWithStats(characterId) {
+    console.log('🔍 Fetching character with stats:', characterId);
+
     const character = await characterDAO.findById(characterId);
-    if (!character) return null;
+    if (!character) {
+        console.warn('⚠️ Character not found:', characterId);
+        return null;
+    }
 
     const stats = await statDAO.findByCharacter(characterId);
     const custom = await customDAO.findByCharacter(characterId);
-
     const templates = await getStatTemplates(character.game_id);
+
+    console.log('📦 Character base:', character);
+    console.log('📊 Stats count:', stats.length);
+    console.log('🧩 Templates count:', templates.length);
+
     const templateMap = Object.fromEntries(templates.map(t => [t.id, t]));
 
     const enrichedStats = stats.map(stat => {
@@ -70,6 +95,8 @@ async function getCharacterWithStats(characterId) {
         };
     });
 
+    console.log('🧠 Enriched stats:', enrichedStats);
+
     return {
         ...character,
         stats: enrichedStats,
@@ -80,34 +107,40 @@ async function getCharacterWithStats(characterId) {
 /**
  * Returns all characters belonging to a user for the current game in this guild.
  */
-async function getCharactersByUser(userId, guildId) { // <-- GUILD ID, NOT GAME ID!!!
+async function getCharactersByUser(userId, guildId) {
     const currentGameId = await getCurrentGame(userId, guildId);
-    console.log('>>> character.service > getCharactersByUser > currentGameId: ', currentGameId);
+    console.log('🎲 getCharactersByUser > currentGameId:', currentGameId);
     if (!currentGameId) return [];
 
     const all = await characterDAO.findByUser(userId);
-    console.log('>>> character.service > getCharactersByUser > all: ', all);
+    console.log(`📋 Found ${all.length} total character(s) for user ${userId}`);
 
     const results = all.filter(c => c.game_id === currentGameId);
-    console.log('>>> character.service > getCharactersByUser > results: ', results);
+    console.log(`✅ ${results.length} character(s) matched current game:`, results.map(c => c.name));
     return results;
 }
 
 async function getCharactersByGame(gameId) {
+    console.log('🧭 getCharactersByGame > gameId:', gameId);
     return characterDAO.findByGame(gameId);
 }
 
 async function updateStat(characterId, statName, newValue) {
+    console.log(`✏️ updateStat > ${statName} = ${newValue} on character ${characterId}`);
     return statDAO.create(characterId, statName, newValue);
 }
 
 async function updateStats(characterId, statMap) {
+    console.log('✏️ updateStats > characterId:', characterId, 'map:', statMap);
     return statDAO.bulkUpsert(characterId, statMap);
 }
 
 async function updateCharacterMeta(characterId, fields) {
     const existing = await characterDAO.findById(characterId);
     if (!existing) throw new Error('Character not found');
+
+    console.log('📝 updateCharacterMeta > existing:', existing);
+    console.log('🔁 Merging fields with:', fields);
 
     const merged = {
         name: existing.name,
@@ -121,25 +154,23 @@ async function updateCharacterMeta(characterId, fields) {
 }
 
 async function deleteCharacter(characterId) {
+    console.log('❌ Deleting character:', characterId);
     await statDAO.deleteByCharacter(characterId);
     await customDAO.deleteByCharacter(characterId);
     await characterDAO.delete(characterId);
 }
 
 async function getUserDefinedFields(userId) {
-    // Placeholder: future user template support
-    console.log('>>> getUserDefinedFields > userId: ', userId);
+    console.log('🔧 getUserDefinedFields > userId:', userId);
     return [];
 }
 
-/**
- * For /switch-character
- * @param {*} character 
- * @returns 
- */
 async function getCharacterSummary(character) {
     const statFields = await statDAO.findByCharacter(character.id);
     const templates = await getStatTemplates(character.game_id);
+
+    console.log('📊 getCharacterSummary > statFields:', statFields.length);
+    console.log('🧩 Templates:', templates.length);
 
     const templateMap = Object.fromEntries(templates.map(t => [t.id, t]));
 
@@ -158,13 +189,13 @@ async function getCharacterSummary(character) {
         })
         .slice(0, 2);
 
+    console.log('🧾 Summary stats:', enriched);
     return enriched;
 }
 
-/**
- * Updates a single key inside the stat's meta object.
- */
 async function updateStatMetaField(characterId, templateId, metaKey, newValue) {
+    console.log('⚙️ updateStatMetaField:', { characterId, templateId, metaKey, newValue });
+
     const existingStats = await statDAO.findByCharacter(characterId);
     const target = existingStats.find(s => s.template_id === templateId);
 
@@ -175,7 +206,6 @@ async function updateStatMetaField(characterId, templateId, metaKey, newValue) {
         [metaKey]: newValue,
     };
 
-    // Preserve existing value field
     return statDAO.create(characterId, templateId, target.value ?? '', updatedMeta);
 }
 
