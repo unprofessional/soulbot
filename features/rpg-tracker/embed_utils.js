@@ -205,7 +205,7 @@ function buildCharacterActionRow(characterId, { isSelf = false, visibility = 'pr
         new ButtonBuilder()
             .setCustomId(`delete_character:${characterId}`)
             .setLabel('🗑️ Delete Character')
-            .setStyle(ButtonStyle.Warning),
+            .setStyle(ButtonStyle.Danger),
     );
 }
 
