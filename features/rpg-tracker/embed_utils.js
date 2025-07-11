@@ -200,7 +200,12 @@ function buildCharacterActionRow(characterId, { isSelf = false, visibility = 'pr
                     ? '🔒 Unpublish Character'
                     : '🌐 Publish Character'
             )
-            .setStyle(ButtonStyle.Secondary)
+            .setStyle(ButtonStyle.Secondary),
+
+        new ButtonBuilder()
+            .setCustomId(`delete_character:${characterId}`)
+            .setLabel('🗑️ Delete Character')
+            .setStyle(ButtonStyle.Warning),
     );
 }
 
