@@ -68,9 +68,15 @@ async function build(userId, guildId) {
             ? `⭐ ${baseLabel} (ACTIVE)`
             : baseLabel;
 
+        const visibilityLabel = fullCharacter.visibility === 'public'
+            ? '✅ Visibility: Public'
+            : '🔒 Visibility: Private';
+
+        const description = (topStats.join(' • ') + ' • ' + visibilityLabel).slice(0, 100) || visibilityLabel;
+
         eligibleOptions.push({
             label: label.length > 100 ? label.slice(0, 97) + '…' : label,
-            description: topStats.join(' • ').slice(0, 100) || 'No stats available',
+            description,
             value: fullCharacter.id,
             isActive,
         });
