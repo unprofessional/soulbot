@@ -6,7 +6,7 @@ const {
 } = require('discord.js');
 
 const { getCharactersByGame, getCharacterWithStats } = require('../../../store/services/character.service');
-const { getCurrentGame, setCurrentCharacter } = require('../../../store/services/player.service');
+const { getCurrentGame, getCurrentCharacter, setCurrentCharacter } = require('../../../store/services/player.service');
 const { validateGameAccess } = require('../validate_game_access');
 const { formatTimeAgo } = require('../utils/time_ago');
 const { isActiveCharacter } = require('../utils/is_active_character');
@@ -29,6 +29,7 @@ async function build(userId, guildId) {
         };
     }
 
+    const currentCharacterId = await getCurrentCharacter(userId, guildId);
     const allCharacters = await getCharactersByGame(currentGameId);
     const eligibleOptions = [];
 
@@ -41,7 +42,7 @@ async function build(userId, guildId) {
         if (!valid) continue;
 
         const fullCharacter = await getCharacterWithStats(character.id);
-        const label = `${fullCharacter.name} — ${formatTimeAgo(fullCharacter.created_at)}`;
+        const isActive = fullCharacter.id === currentCharacterId;
 
         const topStats = (fullCharacter.stats || [])
             .slice()
@@ -62,12 +63,16 @@ async function build(userId, guildId) {
                 }
             });
 
-        const description = topStats.join(' • ') || 'No stats available';
+        const baseLabel = `${fullCharacter.name} — ${formatTimeAgo(fullCharacter.created_at)}`;
+        const label = isActive
+            ? `⭐ ${baseLabel} (ACTIVE)`
+            : baseLabel;
 
         eligibleOptions.push({
             label: label.length > 100 ? label.slice(0, 97) + '…' : label,
-            description: description.length > 100 ? description.slice(0, 97) + '…' : description,
+            description: topStats.join(' • ').slice(0, 100) || 'No stats available',
             value: fullCharacter.id,
+            isActive,
         });
     }
 
@@ -78,10 +83,14 @@ async function build(userId, guildId) {
         };
     }
 
+    // Sort so active character appears first
+    eligibleOptions.sort((a, b) => (b.isActive ? 1 : 0) - (a.isActive ? 1 : 0));
+
     const menu = new StringSelectMenuBuilder()
         .setCustomId(id)
         .setPlaceholder('Choose your character')
-        .addOptions(eligibleOptions);
+        // eslint-disable-next-line no-unused-vars
+        .addOptions(eligibleOptions.map(({ isActive, ...opt }) => opt)); // strip isActive
 
     const row = new ActionRowBuilder().addComponents(menu);
 
