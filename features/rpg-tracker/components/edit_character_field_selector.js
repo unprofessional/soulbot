@@ -32,7 +32,7 @@ function build(allFields = [], draftData = {}) {
 
     const dropdown = new StringSelectMenuBuilder()
         .setCustomId(id)
-        .setPlaceholder('📝 Edit a completed field')
+        .setPlaceholder('📝 EDIT a completed field')
         .addOptions(
             filledFields.map(f => ({
                 label: f.label,

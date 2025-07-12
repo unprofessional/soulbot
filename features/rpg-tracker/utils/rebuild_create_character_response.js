@@ -32,9 +32,15 @@ function buildCreateCharacterMessage(game, statTemplates = [], userFields = [], 
     }
 
     lines.push('');
-    lines.push(`**CORE Fields:**`);
-
     const coreFields = ['core:name', 'core:avatar_url', 'core:bio'];
+    const filledCoreCount = coreFields.filter(k => {
+        const val = draftData[k];
+        return val && val.toString().trim();
+    }).length;
+
+    const coreProgress = filledCoreCount === coreFields.length ? '✅' : `(${filledCoreCount}/${coreFields.length})`;
+    lines.push(`**CORE Fields:** ${coreProgress}`);
+
 
     for (const key of coreFields) {
         const value = draftData[key];
@@ -49,7 +55,23 @@ function buildCreateCharacterMessage(game, statTemplates = [], userFields = [], 
     lines.push('');
 
     if (statTemplates.length) {
-        lines.push(`**GAME Fields:**`);
+        
+        const filledGameCount = statTemplates.filter(t => {
+            const fieldKey = `game:${t.id}`;
+            if (t.field_type === 'count') {
+                const meta = draftData[`meta:${fieldKey}`];
+                return meta?.max != null;
+            } else {
+                const value = draftData[fieldKey];
+                return value && value.toString().trim();
+            }
+        }).length;
+
+        const gameProgress = filledGameCount === statTemplates.length
+            ? '✅'
+            : `(${filledGameCount}/${statTemplates.length})`;
+        lines.push(`**GAME Fields:** ${gameProgress}`);
+
         for (const t of statTemplates) {
             const fieldKey = `game:${t.id}`;
             let filled = false;
@@ -92,7 +114,7 @@ function buildCreateCharacterMessage(game, statTemplates = [], userFields = [], 
 
     lines.push('');
     if (fieldOptions.length > 0) {
-        lines.push(`ALL above fields MUST be filled out before you can submit your character!`);
+        lines.push(`⚠️ ALL above fields MUST be filled out before you can submit your character!`);
         lines.push('');
         lines.push(`Use the dropdown below to continue filling out the required fields.`);
         lines.push('');
