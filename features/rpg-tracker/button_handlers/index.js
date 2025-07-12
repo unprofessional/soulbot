@@ -14,6 +14,8 @@ const { handle: handleFinishStatSetup } = require('../components/finish_stat_set
 const { handle: handleTogglePublishButton} = require('../components/toggle_publish_button');
 const { handle: handleConfirmDeleteStat } = require('../components/confirm_delete_stat_button');
 const { handle: handleSubmitCharacter } = require('../components/submit_character_button');
+const { handle: handleDeleteCharacter } = require('../components/delete_character_button');
+const { handle: handleConfirmDeleteCharacter } = require('../components/confirm_delete_character_button');
 
 module.exports = {
     async handleButton(interaction) {
@@ -28,7 +30,9 @@ module.exports = {
         if (customId.startsWith('finishStatSetup:')) return handleFinishStatSetup(interaction);
         if (customId.startsWith('togglePublishGame:')) return handleTogglePublishButton(interaction);
         if (customId.startsWith('confirmDeleteStat:')) return handleConfirmDeleteStat(interaction);
-        if (customId === 'submitNewCharacter') return handleSubmitCharacter(interaction);
+        if (customId.startsWith('submitNewCharacter')) return handleSubmitCharacter(interaction);
+        if (customId.startsWith('deleteCharacter')) return handleDeleteCharacter(interaction);
+        if (customId.startsWith('confirmDeleteCharacter')) return handleConfirmDeleteCharacter(interaction);
 
         if (customId.startsWith('edit_stat:')) {
             return charEditButtons.handle(interaction);
