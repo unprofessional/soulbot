@@ -172,8 +172,14 @@ function buildCharacterEmbed(character) {
     const isPublic = (character.visibility || 'private').toLowerCase() === 'public';
     const pubLabel = isPublic ? '🌐 Published' : '🔒 Not Published';
 
+    embed.addFields({
+        name: 'Visibility',
+        value: `${pubLabel}\n_Publishing your character allows other players to see it and may unlock in-game features._`,
+        inline: false,
+    });
+
     embed.setFooter({
-        text: `${pubLabel} • Created on ${new Date(character.created_at).toLocaleDateString()} (${formatTimeAgo(character.created_at)})`,
+        text: `Created on ${new Date(character.created_at).toLocaleDateString()} (${formatTimeAgo(character.created_at)})`,
     });
 
     return embed;
