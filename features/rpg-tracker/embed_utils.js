@@ -161,7 +161,7 @@ function buildCharacterEmbed(character) {
         embed.addFields(
             { name: '\u200B', value: left, inline: true },
             { name: '\u200B', value: right, inline: true },
-            { name: '\u200B', value: '\u200B', inline: true }
+            // { name: '\u200B', value: '\u200B', inline: true }
         );
     }
 
