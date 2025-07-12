@@ -93,7 +93,7 @@ async function handle(interaction) {
         visibility: updated.visibility,
     });
 
-    return await interaction.reply({
+    return await interaction.update({
         content: `✅ Updated **${stat.label}**: ${current} ${operator} ${value} → ${next}`,
         embeds: [embed],
         components: [row],
