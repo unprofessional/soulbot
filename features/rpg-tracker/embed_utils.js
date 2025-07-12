@@ -148,7 +148,7 @@ function buildCharacterEmbed(character) {
     for (const para of parsedStats.paragraphFields) {
         embed.addFields({
             name: `**${para.label}**`,
-            value: para.value.length > 100 ? para.value.slice(0, 97) + '…' : para.value,
+            value: para.value.length > 200 ? para.value.slice(0, 197) + '…' : para.value,
             inline: false,
         });
     }
@@ -175,7 +175,7 @@ function buildCharacterEmbed(character) {
     embed.addFields({
         name: 'Visibility',
         value: `${pubLabel}\n_Publishing your character allows other players to see it and may unlock in-game features._`,
-        inline: false,
+        inline: true,
     });
 
     embed.setFooter({
