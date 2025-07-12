@@ -161,7 +161,7 @@ function buildCharacterEmbed(character) {
         embed.addFields(
             { name: '\u200B', value: left, inline: true },
             { name: '\u200B', value: right, inline: true },
-            // { name: '\u200B', value: '\u200B', inline: true }
+            { name: '\u200B', value: '\u200B', inline: true }
         );
     }
 
@@ -174,7 +174,9 @@ function buildCharacterEmbed(character) {
 
     embed.addFields({
         name: 'Visibility',
-        value: `${pubLabel}\n_Publishing your character allows other players to see it and may unlock in-game features._`,
+        value: isPublic
+            ? `${pubLabel}`
+            : `${pubLabel}\n_Publishing your character allows other players to see it and may unlock in-game features._`,
         inline: true,
     });
 
