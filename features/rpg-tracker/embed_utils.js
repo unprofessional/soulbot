@@ -7,7 +7,7 @@ const {
     ButtonStyle,
 } = require('discord.js');
 const { formatTimeAgo } = require('./utils/time_ago');
-const { build: buildDeleteCharacterButton } = require('./components/confirm_delete_character_button');
+const { build: buildDeleteCharacterButton } = require('./components/delete_character_button');
 
 /** ////////////////
  * HELPER FUNCTIONS
