@@ -7,6 +7,7 @@ const {
     ButtonStyle,
 } = require('discord.js');
 const { formatTimeAgo } = require('./utils/time_ago');
+const { build: buildDeleteCharacterButton } = require('./components/confirm_delete_character_button');
 
 /** ////////////////
  * HELPER FUNCTIONS
@@ -202,10 +203,8 @@ function buildCharacterActionRow(characterId, { isSelf = false, visibility = 'pr
             )
             .setStyle(ButtonStyle.Secondary),
 
-        new ButtonBuilder()
-            .setCustomId(`delete_character:${characterId}`)
-            .setLabel('🗑️ Delete Character')
-            .setStyle(ButtonStyle.Danger),
+        buildDeleteCharacterButton(characterId),
+
     );
 }
 
