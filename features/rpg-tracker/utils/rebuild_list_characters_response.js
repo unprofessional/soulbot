@@ -9,9 +9,18 @@ const {
 } = require('discord.js');
 
 const { getCharacterWithStats } = require('../../../store/services/character.service');
+const { getCurrentCharacter } = require('../../../store/services/player.service');
 const { formatTimeAgo } = require('./time_ago');
 
-async function rebuildListCharactersResponse(characters, page = 0) {
+/**
+ * Builds a paginated list of public characters, highlighting the user's active character if present.
+ * @param {Array} characters - List of character stubs (at minimum: id, name)
+ * @param {number} page
+ * @param {string} userId
+ * @param {string} guildId
+ * @returns {Promise<{ content: string, components: ActionRowBuilder[] }>}
+ */
+async function rebuildListCharactersResponse(characters, page = 0, userId, guildId) {
     const PAGE_SIZE = 25;
     const start = page * PAGE_SIZE;
     const end = start + PAGE_SIZE;
@@ -21,6 +30,7 @@ async function rebuildListCharactersResponse(characters, page = 0) {
     console.log(`📃 [rebuildListCharactersResponse] Page ${page + 1}/${totalPages}`);
     console.log(`📑 Characters on this page:`, slice.map(c => ({ id: c.id, name: c.name })));
 
+    const currentCharacterId = await getCurrentCharacter(userId, guildId);
     const hydratedOptions = [];
 
     for (const char of slice) {
@@ -32,7 +42,9 @@ async function rebuildListCharactersResponse(characters, page = 0) {
                 continue;
             }
 
-            const label = `${full.name} — ${formatTimeAgo(full.created_at)}`.slice(0, 100);
+            const isActive = full.id === currentCharacterId;
+            const baseLabel = `${full.name} — ${formatTimeAgo(full.created_at)}`;
+            const label = isActive ? `⭐ ${baseLabel} (ACTIVE)` : baseLabel;
 
             const topStats = (full.stats || [])
                 .slice()
@@ -58,7 +70,7 @@ async function rebuildListCharactersResponse(characters, page = 0) {
 
             hydratedOptions.push(
                 new StringSelectMenuOptionBuilder()
-                    .setLabel(label)
+                    .setLabel(label.slice(0, 100))
                     .setDescription(description.slice(0, 100))
                     .setValue(full.id)
             );

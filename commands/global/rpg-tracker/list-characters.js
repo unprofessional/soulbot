@@ -50,7 +50,7 @@ module.exports = {
                 });
             }
 
-            const { content, components } = await rebuildListCharactersResponse(publicCharacters, 0);
+            const { content, components } = await rebuildListCharactersResponse(publicCharacters, 0, userId, guildId);
 
             await interaction.reply({
                 content,

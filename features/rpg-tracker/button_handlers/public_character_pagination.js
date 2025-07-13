@@ -30,7 +30,7 @@ async function handle(interaction) {
         const currentPage = parseInt(rawPage, 10) || 0;
         const nextPage = direction === 'next' ? currentPage + 1 : Math.max(0, currentPage - 1);
 
-        const { content, components } = rebuildListCharactersResponse(publicChars, nextPage);
+        const { content, components } = rebuildListCharactersResponse(publicChars, nextPage, userId, guildId);
 
         await interaction.update({
             content,

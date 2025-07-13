@@ -2,16 +2,16 @@ const { createLogger, format, transports } = require('winston');
 const { addMessage } = require('../store/services/messages.service');
 
 // Message formatter for Discord messages
-const formatLog = (message) => {
-    return {
-        memberId: message.author.id,
-        guildId: message.guild?.id || 'DM', // Handle direct messages gracefully
-        channelId: message.channel?.id || 'DM',
-        content: message.content || '[Non-text message]',
-        attachments: message.attachments.map(att => att.url),
-        timestamp: new Date().toISOString(),
-    };
-};
+// const formatLog = (message) => {
+//     return {
+//         memberId: message.author.id,
+//         guildId: message.guild?.id || 'DM', // Handle direct messages gracefully
+//         channelId: message.channel?.id || 'DM',
+//         content: message.content || '[Non-text message]',
+//         attachments: message.attachments.map(att => att.url),
+//         timestamp: new Date().toISOString(),
+//     };
+// };
 
 // Configure Winston logger
 const logger = createLogger({
@@ -27,7 +27,10 @@ const logger = createLogger({
 });
 
 // Helper function for logging Discord messages
-const logMessage = async (message, level = 'verbose') => {
+const logMessage = async (
+    message,
+    // level = 'verbose',
+) => {
     // DEBUG: spammy if enabled
     // const formattedMessage = formatLog(message);
     // logger.log(level, JSON.stringify(formattedMessage));
