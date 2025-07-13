@@ -33,7 +33,7 @@ async function rebuildListCharactersResponse(characters, page = 0, userId, guild
             const isActive = full.id === currentCharacterId;
 
             const baseLabel = `${full.name} — ${formatTimeAgo(full.created_at)}`;
-            const label = isActive ? `⭐ ${baseLabel} (ACTIVE)` : baseLabel;
+            const label = isActive ? `⭐ ${baseLabel} (IT'S YOU!)` : baseLabel;
 
             const topStats = (full.stats || [])
                 .slice()
