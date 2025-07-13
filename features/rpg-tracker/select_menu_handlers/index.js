@@ -2,7 +2,6 @@
 
 const characterStatSelect = require('./character_stat_select_menu');
 const adjustNumericStatSelectHandler = require('./adjust_numeric_stat_select');
-const publicCharacterSelect = require('./public_character_select');
 const { handle: handleSwitchCharacterSelector } = require('../components/switch_character_selector');
 const { handle: handleSwitchGameSelector } = require('../components/switch_game_selector');
 const { handle: handleJoinGameSelector } = require('../components/join_game_selector');
@@ -11,6 +10,7 @@ const { handle: deleteStatSelectorHandler } = require('../components/delete_stat
 const { handle: statTypeSelectorHandler } = require('../components/stat_type_selector');
 const { handle: characterFieldSelectorHandler } = require('../components/character_field_selector');
 const { handle: characterEditFieldSelectorHandler } = require('../components/edit_character_field_selector');
+const { handle: handlePublicCharacterSelector } = require('../components/public_character_selector');
 
 module.exports = {
     async handleSelectMenu(interaction) {
@@ -22,8 +22,9 @@ module.exports = {
         if (customId.startsWith('editStatSelect:')) return editStatSelectorHandler(interaction);
         if (customId.startsWith('deleteStatSelect:')) return deleteStatSelectorHandler(interaction);
         if (customId.startsWith('selectStatType:')) return statTypeSelectorHandler(interaction);
-        if(customId.startsWith('createCharacterDropdown')) return characterFieldSelectorHandler(interaction);
-        if(customId.startsWith('editCharacterFieldDropdown')) return characterEditFieldSelectorHandler(interaction);
+        if (customId.startsWith('createCharacterDropdown')) return characterFieldSelectorHandler(interaction);
+        if (customId.startsWith('editCharacterFieldDropdown')) return characterEditFieldSelectorHandler(interaction);
+        if (customId.startsWith('selectPublicCharacter')) return handlePublicCharacterSelector(interaction);
 
         if (customId.startsWith('editCharacterStatDropdown:')) {
             return characterStatSelect.handle(interaction);
@@ -31,10 +32,6 @@ module.exports = {
 
         if (customId.startsWith('adjustStatSelect:')) {
             return adjustNumericStatSelectHandler.handle(interaction);
-        }
-
-        if (customId.startsWith('selectPublicCharacter:')) {
-            return publicCharacterSelect.handle(interaction);
         }
 
         return interaction.reply({

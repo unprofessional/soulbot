@@ -1,14 +1,39 @@
-// features/rpg-tracker/select_menu_handlers/public_character_select.js
+// features/rpg-tracker/components/public_character_selector.js
+
+const {
+    StringSelectMenuBuilder,
+    StringSelectMenuOptionBuilder,
+    ActionRowBuilder,
+} = require('discord.js');
 
 const {
     buildCharacterEmbed,
     buildCharacterActionRow,
 } = require('../embed_utils');
 
-const {
-    getCharacterWithStats,
-} = require('../../../store/services/character.service');
+const { getCharacterWithStats } = require('../../../store/services/character.service');
 const { isActiveCharacter } = require('../utils/is_active_character');
+
+const id = 'selectPublicCharacter';
+
+/**
+ * Builds the character select dropdown for public characters.
+ */
+function build(page, characters) {
+    const options = characters.map(char =>
+        new StringSelectMenuOptionBuilder()
+            .setLabel(char.label)
+            .setDescription(char.description)
+            .setValue(char.id)
+    );
+
+    const select = new StringSelectMenuBuilder()
+        .setCustomId(`${id}:${page}`)
+        .setPlaceholder('Select a character to view...')
+        .addOptions(options);
+
+    return new ActionRowBuilder().addComponents(select);
+}
 
 /**
  * Handles selection of a public character from the dropdown.
@@ -17,7 +42,7 @@ const { isActiveCharacter } = require('../utils/is_active_character');
 async function handle(interaction) {
     try {
         const [customId] = interaction.customId.split(':');
-        if (customId !== 'selectPublicCharacter') return;
+        if (customId !== id) return;
 
         const characterId = interaction.values?.[0];
         if (!characterId) {
@@ -43,7 +68,6 @@ async function handle(interaction) {
             visibility: character.visibility,
         });
 
-
         await interaction.reply({
             embeds: [embed],
             components: actionRow ? [actionRow] : [],
@@ -51,7 +75,7 @@ async function handle(interaction) {
         });
 
     } catch (err) {
-        console.error('[SELECT MENU ERROR] public_character_select:', err);
+        console.error('[SELECT MENU ERROR] public_character_selector:', err);
         await interaction.reply({
             content: '❌ Failed to display character details.',
             ephemeral: true,
@@ -59,4 +83,4 @@ async function handle(interaction) {
     }
 }
 
-module.exports = { handle };
+module.exports = { id, build, handle };

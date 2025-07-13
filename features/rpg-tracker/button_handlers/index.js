@@ -6,7 +6,6 @@ const inventoryButtons = require('./inventory_buttons');
 const fallbackButtons = require('./fallback_buttons');
 const adjustCountButtons = require('./adjust_count_buttons');
 const characterViewButtons = require('./character_view_buttons');
-const publicCharacterPagination = require('./public_character_pagination');
 const { handle: handleDefineStats } = require('../components/define_stats_button');
 const { handle: handleEditStats } = require('../components/edit_stat_button');
 const { handle: handleDeleteStats } = require('../components/delete_stat_button');
@@ -16,6 +15,7 @@ const { handle: handleConfirmDeleteStat } = require('../components/confirm_delet
 const { handle: handleSubmitCharacter } = require('../components/submit_character_button');
 const { handle: handleDeleteCharacter } = require('../components/delete_character_button');
 const { handle: handleConfirmDeleteCharacter } = require('../components/confirm_delete_character_button');
+const { handle: handleCharPage } = require('../components/character_page_buttons');
 
 module.exports = {
     async handleButton(interaction) {
@@ -33,6 +33,7 @@ module.exports = {
         if (customId.startsWith('submitNewCharacter')) return handleSubmitCharacter(interaction);
         if (customId.startsWith('deleteCharacter')) return handleDeleteCharacter(interaction);
         if (customId.startsWith('confirmDeleteCharacter')) return handleConfirmDeleteCharacter(interaction);
+        if (customId.startsWith('charPage:')) return handleCharPage(interaction);
 
         if (customId.startsWith('edit_stat:')) {
             return charEditButtons.handle(interaction);
@@ -62,10 +63,6 @@ module.exports = {
 
         if (customId.startsWith('goBackToCharacter:')) {
             return characterViewButtons.handle(interaction);
-        }
-
-        if (customId.startsWith('charPage:')) {
-            return publicCharacterPagination(interaction);
         }
 
         return fallbackButtons.handle(interaction);
