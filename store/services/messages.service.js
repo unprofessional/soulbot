@@ -44,7 +44,7 @@ const addMessage = async (message) => {
         const username = message.author.username;
         const content = structuredMessage.content;
 
-        const logLine = `${serverName} — ${channelName} — ${username} — ${timestamp} — ${content}`;
+        const logLine = `[${timestamp}] | ${serverName} / ${channelName} | ${username}: ${content}`;
 
         if (!success) {
             console.error('❌ Failed to add message to database');
