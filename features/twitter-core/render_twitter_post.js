@@ -314,6 +314,7 @@ const renderTwitterPost = async (metadataJson, message, originalLink) => {
     }
 
     console.log('>>> renderTwitterPost proxy msg sent!');
+    console.log();
 
 };
 
