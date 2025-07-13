@@ -13,7 +13,7 @@ const { getCurrentCharacter } = require('../../../store/services/player.service'
 const { formatTimeAgo } = require('./time_ago');
 
 /**
- * Builds a paginated list of public characters, highlighting the user's active character if present.
+ * Builds a paginated list of public characters, with active character highlighted and sorted first.
  * @param {Array} characters - List of character stubs (at minimum: id, name)
  * @param {number} page
  * @param {string} userId
@@ -22,27 +22,16 @@ const { formatTimeAgo } = require('./time_ago');
  */
 async function rebuildListCharactersResponse(characters, page = 0, userId, guildId) {
     const PAGE_SIZE = 25;
-    const start = page * PAGE_SIZE;
-    const end = start + PAGE_SIZE;
-    const totalPages = Math.ceil(characters.length / PAGE_SIZE);
-
-    const slice = characters.slice(start, end);
-    console.log(`📃 [rebuildListCharactersResponse] Page ${page + 1}/${totalPages}`);
-    console.log(`📑 Characters on this page:`, slice.map(c => ({ id: c.id, name: c.name })));
-
     const currentCharacterId = await getCurrentCharacter(userId, guildId);
-    const hydratedOptions = [];
+    const hydratedCharacters = [];
 
-    for (const char of slice) {
+    for (const char of characters) {
         try {
-            console.log(`🔍 Hydrating character: ${char.name} (${char.id})`);
             const full = await getCharacterWithStats(char.id);
-            if (!full) {
-                console.warn(`⚠️ getCharacterWithStats returned null for ${char.id}`);
-                continue;
-            }
+            if (!full) continue;
 
             const isActive = full.id === currentCharacterId;
+
             const baseLabel = `${full.name} — ${formatTimeAgo(full.created_at)}`;
             const label = isActive ? `⭐ ${baseLabel} (ACTIVE)` : baseLabel;
 
@@ -66,22 +55,36 @@ async function rebuildListCharactersResponse(characters, page = 0, userId, guild
                 });
 
             const description = topStats.join(' • ') || (full.bio || 'No stats available');
-            console.log(`✅ Option:`, { label, description });
 
-            hydratedOptions.push(
-                new StringSelectMenuOptionBuilder()
-                    .setLabel(label.slice(0, 100))
-                    .setDescription(description.slice(0, 100))
-                    .setValue(full.id)
-            );
+            hydratedCharacters.push({
+                id: full.id,
+                label: label.slice(0, 100),
+                description: description.slice(0, 100),
+                isActive,
+            });
         } catch (err) {
             console.error(`❌ Failed to hydrate or format character ${char.name} (${char.id}):`, err);
         }
     }
 
-    if (hydratedOptions.length === 0) {
-        console.warn(`⚠️ No options generated for this page. Will send empty select menu.`);
-    }
+    // Sort so active character is first
+    hydratedCharacters.sort((a, b) => {
+        if (a.isActive && !b.isActive) return -1;
+        if (!a.isActive && b.isActive) return 1;
+        return 0;
+    });
+
+    const totalPages = Math.ceil(hydratedCharacters.length / PAGE_SIZE);
+    const start = page * PAGE_SIZE;
+    const end = start + PAGE_SIZE;
+    const pageSlice = hydratedCharacters.slice(start, end);
+
+    const hydratedOptions = pageSlice.map(char =>
+        new StringSelectMenuOptionBuilder()
+            .setLabel(char.label)
+            .setDescription(char.description)
+            .setValue(char.id)
+    );
 
     const select = new StringSelectMenuBuilder()
         .setCustomId(`selectPublicCharacter:${page}`)
@@ -89,7 +92,6 @@ async function rebuildListCharactersResponse(characters, page = 0, userId, guild
         .addOptions(hydratedOptions);
 
     const row = new ActionRowBuilder().addComponents(select);
-
     const buttons = new ActionRowBuilder();
 
     if (page > 0) {
@@ -101,7 +103,7 @@ async function rebuildListCharactersResponse(characters, page = 0, userId, guild
         );
     }
 
-    if (end < characters.length) {
+    if (end < hydratedCharacters.length) {
         buttons.addComponents(
             new ButtonBuilder()
                 .setCustomId(`charPage:next:${page}`)
