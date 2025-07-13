@@ -159,8 +159,8 @@ function buildCharacterEmbed(character) {
         const right = displayStrings[i + 1] ?? '\u200B';
 
         embed.addFields(
-            { name: '\u200B', value: left, inline: true },
-            { name: '\u200B', value: right, inline: true },
+            { name: '\u200B', value: left, inline: false },
+            { name: '\u200B', value: right, inline: false },
             // { name: '\u200B', value: '\u200B', inline: true }
         );
     }
@@ -177,10 +177,10 @@ function buildCharacterEmbed(character) {
         value: isPublic
             ? `${pubLabel}`
             : `${pubLabel}\n_Publishing your character allows other players to see it and may unlock in-game features._`,
-        inline: true,
+        inline: false,
     });
 
-    const MAX_EMBED_WIDTH = 164;
+    const MAX_EMBED_WIDTH = 200;
     const rawFooterText = `Created on ${new Date(character.created_at).toLocaleDateString()} (${formatTimeAgo(character.created_at)})`;
     const paddedFooter = rawFooterText.padEnd(MAX_EMBED_WIDTH, ' ') + '\u200B';
 
