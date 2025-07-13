@@ -3,7 +3,7 @@
 const { EmbedBuilder, ActionRowBuilder } = require('discord.js');
 
 const { build: buildDefineStats } = require('./define_stats_button');
-const { build: buildEditStats } = require('./edit_stat_button');
+const { build: buildEditGameStats } = require('./edit_game_stat_button');
 const { build: buildDeleteStats } = require('./delete_stat_button');
 const { build: buildToggleVisibility } = require('./toggle_publish_button');
 
@@ -78,7 +78,7 @@ function buildButtons(gameId, statTemplates = []) {
 
     if (statTemplates.length > 0) {
         row.addComponents(
-            buildEditStats(gameId),
+            buildEditGameStats(gameId),
             buildDeleteStats(gameId)
         );
     }

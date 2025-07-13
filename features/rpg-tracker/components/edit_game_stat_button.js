@@ -10,7 +10,7 @@ const { getGame, getStatTemplates } = require('../../../store/services/game.serv
 const { build: buildCancelButton } = require('./finish_stat_setup_button');
 const { build: buildEditStatSelectorRow } = require('./edit_stat_selector');
 
-const id = 'editStats';
+const id = 'editGameStats';
 
 function build(gameId) {
     return new ButtonBuilder()

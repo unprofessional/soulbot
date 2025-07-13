@@ -8,6 +8,8 @@ const {
 } = require('discord.js');
 const { formatTimeAgo } = require('./utils/time_ago');
 const { build: buildDeleteCharacterButton } = require('./components/delete_character_button');
+const { build: buildEditCharacterStatsButton } = require('./components/edit_character_stats_button');
+const { build: buildToggleCharacterVisibilityButton } = require('./components/toggle_character_visibility_button');
 
 /** ////////////////
  * HELPER FUNCTIONS
@@ -66,55 +68,6 @@ function formatStatDisplay(stat) {
     } else {
         return `**${stat.label}**: _Not set_`;
     }
-}
-
-/**
- * Builds the embed for game views
- * @param {*} game 
- * @param {*} characters 
- * @param {*} statTemplates 
- * @returns 
- */
-function buildGameEmbed(game, characters = [], statTemplates = []) {
-    const coreFields = [
-        { name: 'core:name', label: 'Name' },
-        { name: 'core:avatar_url', label: 'Avatar URL' },
-        { name: 'core:bio', label: 'Bio' },
-        { name: 'core:visibility', label: 'Visibility' },
-    ];
-
-    const gameFieldLines = statTemplates.map(t => `• ${t.label || t.id}`);
-    const coreFieldLines = coreFields.map(f => `• ${f.label}`);
-
-    const embed = new EmbedBuilder()
-        .setTitle(`🎲 ${game.name}`)
-        .setDescription(game.description || '*No description provided.*')
-        .addFields(
-            {
-                name: 'Visibility',
-                value: game.is_public ? '🌐 Public' : '🔒 Private',
-                inline: true,
-            },
-            {
-                name: 'Character Count',
-                value: `${characters.length}`,
-                inline: true,
-            },
-            {
-                name: 'System Fields (Always Available)',
-                value: coreFieldLines.join('\n'),
-                inline: false,
-            },
-            {
-                name: 'Game Fields (Defined by GM)',
-                value: gameFieldLines.length > 0 ? gameFieldLines.join('\n') : '_None defined._',
-                inline: false,
-            }
-        )
-        .setFooter({ text: `Created by ${game.created_by}` })
-        .setTimestamp(new Date(game.created_at));
-
-    return embed;
 }
 
 /**
@@ -192,25 +145,14 @@ function buildCharacterActionRow(characterId, { isSelf = false, visibility = 'pr
     if (!isSelf) return null;
 
     return new ActionRowBuilder().addComponents(
-        new ButtonBuilder()
-            .setCustomId(`edit_stat:${characterId}`)
-            .setLabel('✏️ Update Stats')
-            .setStyle(ButtonStyle.Primary),
+        buildEditCharacterStatsButton(characterId),
 
         new ButtonBuilder()
             .setCustomId(`adjust_stats:${characterId}`)
             .setLabel('🧮 Calc Stats')
             .setStyle(ButtonStyle.Secondary),
 
-        new ButtonBuilder()
-            .setCustomId(`toggle_visibility:${characterId}`)
-            .setLabel(
-                visibility === 'public'
-                    ? '🔒 Unpublish Character'
-                    : '🌐 Publish Character'
-            )
-            .setStyle(ButtonStyle.Secondary),
-
+        buildToggleCharacterVisibilityButton(characterId),
         buildDeleteCharacterButton(characterId),
 
     );
@@ -244,7 +186,6 @@ function buildInventoryActionRow(characterId) {
 }
 
 module.exports = {
-    buildGameEmbed,
     buildCharacterEmbed,
     buildCharacterActionRow,
     buildInventoryEmbed,
