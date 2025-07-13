@@ -28,11 +28,20 @@ const addMessage = async (message) => {
 
         const success = await messageDAO.save(structuredMessage);
 
-        // Prepare clean log format
+        // Format timestamp in Eastern Time (EST/EDT), 12-hour, MMM/DD/YYYY
+        const timestamp = new Intl.DateTimeFormat('en-US', {
+            timeZone: 'America/New_York',
+            year: 'numeric',
+            month: 'short',
+            day: '2-digit',
+            hour: 'numeric',
+            minute: '2-digit',
+            hour12: true,
+        }).format(new Date(message.createdTimestamp));
+
         const serverName = message.guild?.name || 'DM';
         const channelName = message.channel?.name || (message.channel?.isDMBased?.() ? 'DM' : 'Unknown');
         const username = message.author.username;
-        const timestamp = new Date(message.createdTimestamp).toISOString();
         const content = structuredMessage.content;
 
         const logLine = `${serverName} — ${channelName} — ${username} — ${timestamp} — ${content}`;
