@@ -180,9 +180,11 @@ function buildCharacterEmbed(character) {
         inline: true,
     });
 
-    embed.setFooter({
-        text: `Created on ${new Date(character.created_at).toLocaleDateString()} (${formatTimeAgo(character.created_at)})`,
-    });
+    const MAX_EMBED_WIDTH = 164;
+    const rawFooterText = `Created on ${new Date(character.created_at).toLocaleDateString()} (${formatTimeAgo(character.created_at)})`;
+    const paddedFooter = rawFooterText.padEnd(MAX_EMBED_WIDTH, ' ') + '\u200B';
+
+    embed.setFooter({ text: paddedFooter });
 
     return embed;
 }
