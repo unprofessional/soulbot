@@ -153,14 +153,16 @@ function buildCharacterEmbed(character) {
         });
     }
 
-    // ⬇️ One stat per line (not grouped in pairs)
     const displayStrings = parsedStats.gridFields.map(formatStatDisplay);
-    for (const display of displayStrings) {
-        embed.addFields({
-            name: '\u200B',
-            value: display,
-            inline: false,
-        });
+    for (let i = 0; i < displayStrings.length; i += 2) {
+        const left = displayStrings[i] ?? '\u200B';
+        const right = displayStrings[i + 1] ?? '\u200B';
+
+        embed.addFields(
+            { name: '\u200B', value: left, inline: true },
+            { name: '\u200B', value: right, inline: true },
+            // { name: '\u200B', value: '\u200B', inline: true }
+        );
     }
 
     if (character.bio) {
@@ -169,14 +171,13 @@ function buildCharacterEmbed(character) {
 
     const isPublic = (character.visibility || 'private').toLowerCase() === 'public';
     const pubLabel = isPublic ? '🌐 Published' : '🔒 Not Published';
-    const visibilityNote = isPublic
-        ? `${pubLabel}`
-        : `${pubLabel}\n_Publishing your character allows other players to see it and may unlock in-game features._`;
 
     embed.addFields({
-        name: '\u200B',
-        value: `**Visibility**: ${visibilityNote}`,
-        inline: false,
+        name: 'Visibility',
+        value: isPublic
+            ? `${pubLabel}`
+            : `${pubLabel}\n_Publishing your character allows other players to see it and may unlock in-game features._`,
+        inline: true,
     });
 
     embed.setFooter({
