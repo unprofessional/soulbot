@@ -57,7 +57,7 @@ function buildGameStatActionRow(gameId, fields = []) {
     if (fields.length > 0) {
         row.addComponents(
             new ButtonBuilder()
-                .setCustomId(`editStats:${gameId}`)
+                .setCustomId(`editGameStats:${gameId}`)
                 .setLabel('🎲 Edit Stat')
                 .setStyle(ButtonStyle.Secondary),
             new ButtonBuilder()

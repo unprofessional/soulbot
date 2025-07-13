@@ -9,6 +9,7 @@ const {
 const { formatTimeAgo } = require('./utils/time_ago');
 const { build: buildDeleteCharacterButton } = require('./components/delete_character_button');
 const { build: buildEditCharacterStatsButton } = require('./components/edit_character_stats_button');
+const { build: buildCalculateStatsButton } = require('./components/calculate_character_stats_button');
 const { build: buildToggleCharacterVisibilityButton } = require('./components/toggle_character_visibility_button');
 
 /** ////////////////
@@ -146,15 +147,9 @@ function buildCharacterActionRow(characterId, { isSelf = false, visibility = 'pr
 
     return new ActionRowBuilder().addComponents(
         buildEditCharacterStatsButton(characterId),
-
-        new ButtonBuilder()
-            .setCustomId(`adjust_stats:${characterId}`)
-            .setLabel('🧮 Calc Stats')
-            .setStyle(ButtonStyle.Secondary),
-
+        buildCalculateStatsButton(characterId),
         buildToggleCharacterVisibilityButton(characterId),
         buildDeleteCharacterButton(characterId),
-
     );
 }
 

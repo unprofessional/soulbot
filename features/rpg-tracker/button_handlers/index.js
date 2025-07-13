@@ -15,6 +15,7 @@ const { handle: handleDeleteCharacter } = require('../components/delete_characte
 const { handle: handleConfirmDeleteCharacterButton } = require('../components/confirm_delete_character_button');
 const { handle: handleCharPageButton } = require('../components/character_page_buttons');
 const { handle: handleEditCharacterStatsButton } = require('../components/edit_character_stats_button');
+const { handle: handleCalculateStatsButton } = require('../components/calculate_character_stats_button');
 const { handle: handleToggleCharacterVisibilityButton } = require('../components/toggle_character_visibility_button');
 
 module.exports = {
@@ -35,6 +36,7 @@ module.exports = {
         if (customId.startsWith('confirmDeleteCharacter')) return handleConfirmDeleteCharacterButton(interaction);
         if (customId.startsWith('charPage:')) return handleCharPageButton(interaction);
         if (customId.startsWith('editCharacterStat')) return handleEditCharacterStatsButton(interaction);
+        if (customId.startsWith('calculateCharacterStats:')) return handleCalculateStatsButton.handle(interaction);
         if (customId.startsWith('handleToggleCharacterVisibilityButton:')) return handleToggleCharacterVisibilityButton.handle(interaction);
 
         if (
@@ -47,16 +49,8 @@ module.exports = {
             return inventoryButtons.handle(interaction);
         }
 
-        if (
-            customId.startsWith('adjust_stats:') ||
-            customId.startsWith('decrementCount:') ||
-            customId.startsWith('incrementCount:')
-        ) {
-            return adjustCountButtons.handle(interaction);
-        }
-
         if (customId.startsWith('goBackToCharacter:')) {
-            return characterViewButtons.handle(interaction);
+            return characterViewButtons.handle(interaction); // candidate for view_character_card
         }
 
         return fallbackButtons.handle(interaction);
