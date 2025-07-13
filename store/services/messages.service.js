@@ -33,16 +33,14 @@ const addMessage = async (message) => {
         const channelName = message.channel?.name || (message.channel?.isDMBased?.() ? 'DM' : 'Unknown');
         const username = message.author.username;
         const timestamp = new Date(message.createdTimestamp).toISOString();
-        const content = structuredMessage.content.length > 100
-            ? structuredMessage.content.slice(0, 97) + '…'
-            : structuredMessage.content;
+        const content = structuredMessage.content;
 
         const logLine = `${serverName} — ${channelName} — ${username} — ${timestamp} — ${content}`;
 
         if (!success) {
             console.error('❌ Failed to add message to database');
         } else {
-            console.log('💾 Saved:', logLine);
+            console.log('Saved: ', logLine);
         }
     } catch (err) {
         console.error('❗ Error in addMessage service:', err);

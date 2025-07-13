@@ -108,7 +108,7 @@ const initializeListeners = async (client) => {
         // Logger
         // THIS IS SPAMMY, ONLY USE FOR DEBUGGING!
         // console.log(`${message.guildId}: ${message.author.globalName}: ${message.content}`);
-        await logMessage(message);
+        // await logMessage(message);
 
         if(!isSelf(message) && !isABot(message)) { // not self or a bot, but can be anyone else
 
