@@ -1,8 +1,7 @@
 // features/rpg-tracker/components/view_character_card.js
 
-console.log('✅ Loading view_character_card.js...');
-
 const { EmbedBuilder, ActionRowBuilder } = require('discord.js');
+const { getCurrentCharacter } = require('../../../store/services/player.service');
 
 const { build: buildEditCharacterStatsButton } = require('./edit_character_stats_button');
 const { build: buildToggleCharacterVisibilityButton } = require('./toggle_character_visibility_button');
@@ -12,22 +11,29 @@ const { build: buildViewParagraphFieldsButton } = require('./view_paragraph_fiel
 
 const { formatTimeAgo } = require('../utils/time_ago');
 
-console.log('✅ Loaded view_character_card.js correctly');
-
 /**
  * Returns a fully structured character view card (embed + action row).
  */
-function build(character, { viewerUserId = null } = {}) {
-    const isSelf = character.created_by === viewerUserId;
+async function build(character, { viewerUserId = null, guildId = null } = {}) {
+    let isSelf = false;
+
+    if (viewerUserId && guildId) {
+        /**
+         * This is the gating mechanism for the action buttons
+         */
+        const activeCharacterId = await getCurrentCharacter(viewerUserId, guildId);
+        isSelf = activeCharacterId === character.id;
+    }
 
     console.log('🧪 viewerUserId:', viewerUserId);
-    console.log('🧪 character.created_by:', character.created_by);
+    console.log('🧪 activeCharacterId match:', isSelf);
 
     return {
         embeds: [buildEmbed(character)],
         components: isSelf ? [buildActionRow(character)] : [],
     };
 }
+
 
 /**
  * Creates a richly formatted embed for a character.
