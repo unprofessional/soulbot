@@ -16,6 +16,7 @@ const { handle: handleCharPageButton } = require('../components/character_page_b
 const { handle: handleEditCharacterStatsButton } = require('../components/edit_character_stats_button');
 const { handle: handleCalculateStatsButton } = require('../components/calculate_character_stats_button');
 const { handle: handleToggleCharacterVisibilityButton } = require('../components/toggle_character_visibility_button');
+const { handle: handleViewParagraphFieldsButton } = require('../components/view_paragraph_fields_button');
 
 module.exports = {
     async handleButton(interaction) {
@@ -37,6 +38,7 @@ module.exports = {
         if (customId.startsWith('editCharacterStat')) return handleEditCharacterStatsButton(interaction);
         if (customId.startsWith('calculateCharacterStats:')) return handleCalculateStatsButton.handle(interaction);
         if (customId.startsWith('handleToggleCharacterVisibilityButton:')) return handleToggleCharacterVisibilityButton.handle(interaction);
+        if (customId.startsWith('viewParagraphFields')) return handleViewParagraphFieldsButton(interaction);
 
         if (
             customId.startsWith('add_inventory_item:') ||

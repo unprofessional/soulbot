@@ -8,6 +8,7 @@ const { build: buildEditCharacterStatsButton } = require('./edit_character_stats
 const { build: buildToggleCharacterVisibilityButton } = require('./toggle_character_visibility_button');
 const { build: buildDeleteCharacterButton } = require('./delete_character_button');
 const { build: buildCalculateStatsButton } = require('./calculate_character_stats_button');
+const { build: buildViewParagraphFieldsButton } = require('./view_paragraph_fields_button');
 
 const { formatTimeAgo } = require('../utils/time_ago');
 
@@ -87,8 +88,9 @@ function buildActionRow(character) {
     return new ActionRowBuilder().addComponents(
         buildEditCharacterStatsButton(character.id),
         buildCalculateStatsButton(character.id),
+        buildViewParagraphFieldsButton(character.id),
         buildToggleCharacterVisibilityButton(character.id, character.visibility),
-        buildDeleteCharacterButton(character.id)
+        buildDeleteCharacterButton(character.id),
     );
 }
 
