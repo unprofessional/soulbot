@@ -1,7 +1,12 @@
 // features/rpg-tracker/utils/render_character_view.js
 
 const { isActiveCharacter } = require('./is_active_character');
-const { build: buildCharacterCard } = require('../components/view_character_card');
+const cardModule = require('../components/view_character_card');
+
+console.log('🧪 view_character_card module import:', cardModule);
+console.log('🧪 view_character_card.build type:', typeof cardModule.build);
+
+const buildCharacterCard = cardModule.build;
 
 /**
  * Returns the full message payload to render a character sheet.
@@ -13,6 +18,7 @@ const { build: buildCharacterCard } = require('../components/view_character_card
  */
 async function renderCharacterView(character, { userId, guildId }) {
     const isSelf = await isActiveCharacter(userId, guildId, character.id);
+    console.log('🧩 isActiveCharacter →', isSelf);
     return buildCharacterCard(character, { viewerUserId: isSelf ? userId : null });
 }
 
