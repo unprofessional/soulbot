@@ -1,7 +1,6 @@
 // features/rpg-tracker/components/view_character_card.js
 
 const { EmbedBuilder, ActionRowBuilder } = require('discord.js');
-const { getCurrentCharacter } = require('../../../store/services/player.service');
 
 const { build: buildEditCharacterStatsButton } = require('./edit_character_stats_button');
 const { build: buildToggleCharacterVisibilityButton } = require('./toggle_character_visibility_button');
@@ -14,20 +13,7 @@ const { formatTimeAgo } = require('../utils/time_ago');
 /**
  * Returns a fully structured character view card (embed + action row).
  */
-async function build(character, { viewerUserId = null, guildId = null } = {}) {
-    let isSelf = false;
-
-    console.log('🧪 view_character_card.build > viewerUserId:', viewerUserId);
-    console.log('🧪 view_character_card.build > guildId:', guildId);
-
-    if (viewerUserId && guildId) {
-        /**
-         * This is the gating mechanism for the action buttons
-         */
-        const activeCharacterId = await getCurrentCharacter(viewerUserId, guildId);
-        console.log('🧪 view_character_card.build > activeCharacterId:', activeCharacterId);
-        isSelf = activeCharacterId === character.id;
-    }
+function build(character, isSelf = false) {
 
     console.log('🧪 view_character_card.build > isSelf:', isSelf);
 

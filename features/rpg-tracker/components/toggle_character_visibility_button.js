@@ -1,15 +1,11 @@
 // features/rpg-tracker/components/toggle_character_visibility_button.js
 
-console.log('✅ Loading toggle_character_visibility_button.js...');
-
 const {
     ButtonBuilder,
     ButtonStyle,
 } = require('discord.js');
 
 const { getCharacterWithStats, updateCharacterMeta } = require('../../../store/services/character.service');
-
-console.log('✅ Loaded toggle_character_visibility_button.js correctly');
 
 const id = 'toggle_visibility';
 
@@ -54,9 +50,11 @@ async function handle(interaction) {
 
         const { build: buildCharacterCard } = require('./view_character_card');
 
-        const updatedCard = await buildCharacterCard(updated, {
-            viewerUserId: interaction.user.id,
-        });
+        const userId = interaction.user.id;
+        const guildId = interaction.guildId;
+        const isSelf = (await require('../../../store/services/player.service')
+            .getCurrentCharacter(userId, guildId)) === characterId;
+        const updatedCard = buildCharacterCard(updated, isSelf);
 
         return await interaction.update({
             ...updatedCard,

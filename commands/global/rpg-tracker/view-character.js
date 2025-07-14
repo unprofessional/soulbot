@@ -31,11 +31,8 @@ module.exports = {
             });
         }
 
-        console.log(`🟡 /view-character invoked by ${userId} in guild ${guildId}`);
-
         try {
             const currentGameId = await getCurrentGame(userId, guildId);
-            console.log('🎲 Current game ID for user:', currentGameId);
 
             if (!currentGameId) {
                 return await interaction.reply({
@@ -45,7 +42,6 @@ module.exports = {
             }
 
             const allCharacters = await getCharactersByUser(userId, guildId);
-            console.log(`📜 Found ${allCharacters.length} character(s) for user ${userId} in guild ${guildId}`);
 
             if (!allCharacters.length) {
                 return await interaction.reply({
@@ -55,7 +51,6 @@ module.exports = {
             }
 
             const activeCharacterId = await getCurrentCharacter(userId, guildId);
-            console.log('👤 Active character ID:', activeCharacterId);
 
             const full = await getCharacterWithStats(activeCharacterId);
             if (!full) {
@@ -65,21 +60,10 @@ module.exports = {
                 });
             }
 
-            console.log('🔍 Fetched character with stats:', full.id);
-
             const { warning } = await validateGameAccess({ gameId: full.game_id, userId });
 
-            const view = await buildCharacterCard(full, {
-                viewerUserId: userId,
-                guildId: guildId,
-            });
-
-
-            console.log('🧱 buildCharacterCard output:', {
-                hasEmbed: !!view.embeds?.length,
-                hasComponents: !!view.components?.length,
-                isEphemeral: view.ephemeral,
-            });
+            const isSelf = full.id === activeCharacterId;
+            const view = buildCharacterCard(full, isSelf);
 
             await interaction.reply({
                 ...view,

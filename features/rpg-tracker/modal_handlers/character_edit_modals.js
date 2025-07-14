@@ -59,9 +59,7 @@ async function handle(interaction) {
 
             const updated = await getCharacterWithStats(characterId);
             const isSelf = await isActiveCharacter(interaction.user.id, interaction.guildId, characterId);
-            const view = await buildCharacterCard(updated, {
-                viewerUserId: isSelf ? interaction.user.id : null,
-            });
+            const view = buildCharacterCard(updated, isSelf);
 
             return await interaction.editReply({
                 ...view,

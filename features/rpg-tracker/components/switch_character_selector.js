@@ -131,9 +131,7 @@ async function handle(interaction) {
         await setCurrentCharacter(user.id, guildId, selected);
         const character = await getCharacterWithStats(selected);
         const isSelf = await isActiveCharacter(user.id, guildId, character.id);
-        const view = await buildCharacterCard(character, {
-            viewerUserId: isSelf ? user.id : null,
-        });
+        const view = buildCharacterCard(character, isSelf);
 
         return interaction.update({
             content: `✅ Switched to **${character.name}**!`,

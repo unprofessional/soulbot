@@ -48,9 +48,7 @@ async function execute(interaction) {
         const full = await getCharacterWithStats(character.id);
 
         const isSelf = await isActiveCharacter(userId, guildId, character.id);
-        const view = await buildCharacterCard(full, {
-            viewerUserId: isSelf ? userId : null,
-        });
+        const view = buildCharacterCard(full, isSelf);
 
         return await interaction.reply({
             ...view,

@@ -68,10 +68,7 @@ async function handle(interaction) {
 
         const fullCharacter = await getCharacterWithStats(character.id);
         const isSelf = await isActiveCharacter(userId, guildId, character.id);
-
-        const view = await buildCharacterCard(fullCharacter, {
-            viewerUserId: isSelf ? userId : null,
-        });
+        const view = buildCharacterCard(fullCharacter, isSelf);
 
         return await interaction.update({
             content: `✅ Character **${character.name}** created successfully!`,

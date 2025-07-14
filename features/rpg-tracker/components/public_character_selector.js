@@ -57,10 +57,7 @@ async function handle(interaction) {
         }
 
         const isSelf = await isActiveCharacter(interaction.user.id, interaction.guildId, character.id);
-
-        const view = await buildCharacterCard(character, {
-            viewerUserId: isSelf ? interaction.user.id : null,
-        });
+        const view = buildCharacterCard(character, isSelf);
 
         await interaction.reply({
             ...view,
