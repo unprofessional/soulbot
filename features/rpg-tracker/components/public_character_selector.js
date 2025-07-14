@@ -93,11 +93,16 @@ async function handle(interaction) {
     }
     if (current) chunks.push(current);
 
-    await interaction.deferReply({ ephemeral: true });
+    // ✅ First response uses reply
+    await interaction.reply({
+        content: `**${label}**\n\n${chunks[0]}`,
+        ephemeral: true,
+    });
 
-    for (const chunk of chunks) {
+    // ✅ Remaining use followUp
+    for (let i = 1; i < chunks.length; i++) {
         await interaction.followUp({
-            content: `**${label}**\n\n${chunk}`,
+            content: chunks[i],
             ephemeral: true,
         });
     }
