@@ -11,6 +11,7 @@ const { handle: statTypeSelectorHandler } = require('../components/stat_type_sel
 const { handle: characterFieldSelectorHandler } = require('../components/character_field_selector');
 const { handle: characterEditFieldSelectorHandler } = require('../components/edit_character_field_selector');
 const { handle: handlePublicCharacterSelector } = require('../components/public_character_selector');
+const { handle: handleParagraphFieldSelector } = require('../components/paragraph_field_selector');
 
 module.exports = {
     async handleSelectMenu(interaction) {
@@ -25,6 +26,7 @@ module.exports = {
         if (customId.startsWith('createCharacterDropdown')) return characterFieldSelectorHandler(interaction);
         if (customId.startsWith('editCharacterFieldDropdown')) return characterEditFieldSelectorHandler(interaction);
         if (customId.startsWith('selectPublicCharacter')) return handlePublicCharacterSelector(interaction);
+        if (customId.startsWith('paragraphFieldSelect')) return handleParagraphFieldSelector(interaction);
 
         if (customId.startsWith('editCharacterStatDropdown:')) {
             return characterStatSelect.handle(interaction);
