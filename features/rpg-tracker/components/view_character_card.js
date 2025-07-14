@@ -14,15 +14,27 @@ const { formatTimeAgo } = require('../utils/time_ago');
  * Returns a fully structured character view card (embed + action row).
  */
 function build(character, isSelf = false) {
-
     console.log('🧪 view_character_card.build > isSelf:', isSelf);
+
+    const parsedStats = parseCharacterStats(character.stats || []);
+    const hasParagraphFields = parsedStats.paragraphFields.length > 0;
+
+    const actionRows = [];
+
+    if (isSelf) {
+        actionRows.push(buildActionRow(character));
+    } else if (hasParagraphFields) {
+        // Just include the 📜 View Paragraph Fields button
+        actionRows.push(
+            new ActionRowBuilder().addComponents(buildViewParagraphFieldsButton(character.id))
+        );
+    }
 
     return {
         embeds: [buildEmbed(character)],
-        components: isSelf ? [buildActionRow(character)] : [],
+        components: actionRows,
     };
 }
-
 
 /**
  * Creates a richly formatted embed for a character.
