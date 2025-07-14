@@ -8,8 +8,6 @@ const {
 } = require('discord.js');
 
 const { getCharacterWithStats, updateCharacterMeta } = require('../../../store/services/character.service');
-// const { isActiveCharacter } = require('../utils/is_active_character');
-const { build: buildCharacterCard } = require('./view_character_card');
 
 console.log('✅ Loaded toggle_character_visibility_button.js correctly');
 
@@ -53,7 +51,8 @@ async function handle(interaction) {
         await updateCharacterMeta(characterId, { visibility: newVisibility });
 
         const updated = await getCharacterWithStats(characterId);
-        // const isSelf = await isActiveCharacter(interaction.user.id, interaction.guildId, characterId);
+
+        const { build: buildCharacterCard } = require('./view_character_card');
 
         const updatedCard = await buildCharacterCard(updated, {
             viewerUserId: interaction.user.id,
