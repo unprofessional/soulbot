@@ -8,6 +8,12 @@ const { getCharacterWithStats } = require('../../../store/services/character.ser
 
 const id = 'paragraphFieldSelect';
 
+function truncate(str, max = 100) {
+    if (!str) return undefined;
+    const cleaned = str.trim().replace(/\s+/g, ' ');
+    return cleaned.length > max ? cleaned.slice(0, max - 1) + '…' : cleaned;
+}
+
 /**
  * Builds the paragraph field select menu.
  */
@@ -18,7 +24,7 @@ function build(character) {
         options.push({
             label: 'Bio',
             value: 'core:bio',
-            description: character.bio.trim().slice(0, 100) + '...',
+            description: truncate(character.bio),
         });
     }
 
@@ -27,7 +33,7 @@ function build(character) {
             options.push({
                 label: stat.label,
                 value: `game:${stat.template_id}`,
-                description: stat.value.trim().slice(0, 100) + '...',
+                description: truncate(stat.value),
             });
         }
     }
@@ -37,7 +43,7 @@ function build(character) {
     const dropdown = new StringSelectMenuBuilder()
         .setCustomId(`${id}:${character.id}`)
         .setPlaceholder('📜 Select a paragraph field to view')
-        .addOptions(options);
+        .addOptions(options.filter(Boolean)); // Ensure no malformed entries
 
     const row = new ActionRowBuilder().addComponents(dropdown);
     return row;
