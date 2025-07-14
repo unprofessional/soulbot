@@ -6,6 +6,9 @@ const { build: buildParagraphFieldDropdown } = require('./paragraph_field_select
 
 const id = 'viewParagraphFields';
 
+/**
+ * Builds the "📜 View Full Descriptions" button.
+ */
 function build(characterId) {
     return new ButtonBuilder()
         .setCustomId(`${id}:${characterId}`)
@@ -13,6 +16,9 @@ function build(characterId) {
         .setStyle(ButtonStyle.Secondary);
 }
 
+/**
+ * Handles the button interaction and presents a dropdown of long-form fields.
+ */
 async function handle(interaction) {
     const [, characterId] = interaction.customId.split(':');
 

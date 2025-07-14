@@ -48,28 +48,28 @@ async function handle(interaction) {
             });
         }
 
+        await interaction.deferReply({ ephemeral: true });
+
         const character = await getCharacterWithStats(characterId);
         if (!character) {
-            return await interaction.reply({
+            return await interaction.editReply({
                 content: '❌ That character no longer exists.',
-                ephemeral: true,
             });
         }
 
         const isSelf = await isActiveCharacter(interaction.user.id, interaction.guildId, character.id);
         const view = buildCharacterCard(character, isSelf);
 
-        await interaction.reply({
-            ...view,
-            ephemeral: true,
-        });
+        await interaction.editReply(view);
 
     } catch (err) {
         console.error('[SELECT MENU ERROR] public_character_selector:', err);
-        await interaction.reply({
-            content: '❌ Failed to display character details.',
-            ephemeral: true,
-        });
+        if (!interaction.replied) {
+            await interaction.reply({
+                content: '❌ Failed to display character details.',
+                ephemeral: true,
+            });
+        }
     }
 }
 
