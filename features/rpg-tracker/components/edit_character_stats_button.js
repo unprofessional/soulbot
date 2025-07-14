@@ -11,7 +11,6 @@ const {
 
 const { getCharacterWithStats } = require('../../../store/services/character.service');
 const { isActiveCharacter } = require('../utils/is_active_character');
-const { build: buildCharacterCard } = require('./view_character_card');
 
 console.log('✅ Loaded edit_character_stats_button.js correctly');
 
@@ -89,6 +88,8 @@ async function handle(interaction) {
     const userId = interaction.user.id;
     const guildId = interaction.guildId;
     const isSelf = await isActiveCharacter(userId, guildId, character.id);
+
+    const { build: buildCharacterCard } = require('./view_character_card');
     const base = await buildCharacterCard(character, { viewerUserId: isSelf ? userId : null });
 
     if (options.length === 0) {
