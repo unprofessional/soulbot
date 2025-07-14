@@ -131,7 +131,7 @@ async function handle(interaction) {
         await setCurrentCharacter(user.id, guildId, selected);
         const character = await getCharacterWithStats(selected);
         const isSelf = await isActiveCharacter(user.id, guildId, character.id);
-        const view = await (character, {
+        const view = await buildCharacterCard(character, {
             viewerUserId: isSelf ? user.id : null,
         });
 
