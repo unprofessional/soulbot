@@ -14,7 +14,6 @@ const {
 
 const { validateGameAccess } = require('../../../features/rpg-tracker/validate_game_access');
 const { build: buildCharacterCard } = require('../../../features/rpg-tracker/components/view_character_card');
-const { isActiveCharacter } = require('../../../features/rpg-tracker/utils/is_active_character');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -70,8 +69,7 @@ module.exports = {
 
             const { warning } = await validateGameAccess({ gameId: full.game_id, userId });
 
-            const isSelf = await isActiveCharacter(userId, guildId, full.id);
-            const view = buildCharacterCard(full, { viewerUserId: isSelf ? userId : null });
+            const view = buildCharacterCard(full, { viewerUserId: userId });
 
             console.log('🧱 buildCharacterCard output:', {
                 hasEmbed: !!view.embeds?.length,
