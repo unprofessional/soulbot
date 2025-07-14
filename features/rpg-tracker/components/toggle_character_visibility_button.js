@@ -7,7 +7,7 @@ const {
 
 const { getCharacterWithStats, updateCharacterMeta } = require('../../../store/services/character.service');
 
-const id = 'toggle_visibility';
+const id = 'handleToggleCharacterVisibilityButton';
 
 /**
  * Builds the publish/unpublish toggle button.
