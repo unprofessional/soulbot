@@ -89,7 +89,7 @@ async function handle(interaction) {
     const userId = interaction.user.id;
     const guildId = interaction.guildId;
     const isSelf = await isActiveCharacter(userId, guildId, character.id);
-    const base = buildCharacterCard(character, { viewerUserId: isSelf ? userId : null });
+    const base = await buildCharacterCard(character, { viewerUserId: isSelf ? userId : null });
 
     if (options.length === 0) {
         return await interaction.update({

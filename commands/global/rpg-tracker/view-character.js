@@ -69,7 +69,11 @@ module.exports = {
 
             const { warning } = await validateGameAccess({ gameId: full.game_id, userId });
 
-            const view = buildCharacterCard(full, { viewerUserId: userId });
+            const view = await buildCharacterCard(full, {
+                viewerUserId: userId,
+                guildId: guildId,
+            });
+
 
             console.log('🧱 buildCharacterCard output:', {
                 hasEmbed: !!view.embeds?.length,

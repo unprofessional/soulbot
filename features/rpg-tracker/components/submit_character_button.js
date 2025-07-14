@@ -69,7 +69,7 @@ async function handle(interaction) {
         const fullCharacter = await getCharacterWithStats(character.id);
         const isSelf = await isActiveCharacter(userId, guildId, character.id);
 
-        const view = buildCharacterCard(fullCharacter, {
+        const view = await buildCharacterCard(fullCharacter, {
             viewerUserId: isSelf ? userId : null,
         });
 

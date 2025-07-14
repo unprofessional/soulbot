@@ -23,7 +23,7 @@ async function handle(interaction) {
         const guildId = interaction.guildId;
         const isSelf = await isActiveCharacter(userId, guildId, character.id);
 
-        const view = buildCharacterCard(character, { viewerUserId: isSelf ? userId : null });
+        const view = await buildCharacterCard(character, { viewerUserId: isSelf ? userId : null });
         return await interaction.update(view);
     }
 }
