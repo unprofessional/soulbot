@@ -8,12 +8,6 @@ const { getCharacterWithStats } = require('../../../store/services/character.ser
 
 const id = 'paragraphFieldSelect';
 
-function truncate(str, max = 100) {
-    if (!str) return undefined;
-    const cleaned = str.trim().replace(/\s+/g, ' ');
-    return cleaned.length > max ? cleaned.slice(0, max - 1) + '…' : cleaned;
-}
-
 /**
  * Builds the paragraph field select menu.
  */
@@ -24,7 +18,7 @@ function build(character) {
         options.push({
             label: 'Bio',
             value: 'core:bio',
-            description: truncate(character.bio),
+            description: character.bio.trim().slice(0, 100) + '...',
         });
     }
 
@@ -33,7 +27,7 @@ function build(character) {
             options.push({
                 label: stat.label,
                 value: `game:${stat.template_id}`,
-                description: truncate(stat.value),
+                description: stat.value.trim().slice(0, 100) + '...',
             });
         }
     }
@@ -43,7 +37,7 @@ function build(character) {
     const dropdown = new StringSelectMenuBuilder()
         .setCustomId(`${id}:${character.id}`)
         .setPlaceholder('📜 Select a paragraph field to view')
-        .addOptions(options.filter(Boolean)); // Ensure no malformed entries
+        .addOptions(options);
 
     const row = new ActionRowBuilder().addComponents(dropdown);
     return row;
@@ -86,12 +80,14 @@ async function handle(interaction) {
         });
     }
 
-    // Chunk response for Discord
+    // ✅ Safely chunk the content
+    const paragraphs = fullText.split(/\n{2,}/).map(p => p.trim()).filter(Boolean);
     const chunks = [];
     let current = '';
-    for (const paragraph of fullText.split(/\n{2,}/)) {
+
+    for (const paragraph of paragraphs) {
         if ((current + '\n\n' + paragraph).length > 1900) {
-            chunks.push(current);
+            if (current) chunks.push(current);
             current = paragraph;
         } else {
             current += (current ? '\n\n' : '') + paragraph;
@@ -99,9 +95,22 @@ async function handle(interaction) {
     }
     if (current) chunks.push(current);
 
-    for (const chunk of chunks) {
+    // ✅ Always reply first — even if there's only one chunk
+    if (chunks.length === 0) {
+        return await interaction.reply({
+            content: `ℹ️ No usable content found for **${label}**.`,
+            ephemeral: true,
+        });
+    }
+
+    await interaction.reply({
+        content: `**${label}**\n\n${chunks[0]}`,
+        ephemeral: true,
+    });
+
+    for (let i = 1; i < chunks.length; i++) {
         await interaction.followUp({
-            content: `**${label}**\n\n${chunk}`,
+            content: chunks[i],
             ephemeral: true,
         });
     }
