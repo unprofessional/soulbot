@@ -36,8 +36,8 @@ module.exports = {
         if (customId.startsWith('confirmDeleteCharacter')) return handleConfirmDeleteCharacterButton(interaction);
         if (customId.startsWith('charPage:')) return handleCharPageButton(interaction);
         if (customId.startsWith('editCharacterStat')) return handleEditCharacterStatsButton(interaction);
-        if (customId.startsWith('calculateCharacterStats:')) return handleCalculateStatsButton.handle(interaction);
-        if (customId.startsWith('handleToggleCharacterVisibilityButton:')) return handleToggleCharacterVisibilityButton.handle(interaction);
+        if (customId.startsWith('calculateCharacterStats:')) return handleCalculateStatsButton(interaction);
+        if (customId.startsWith('handleToggleCharacterVisibilityButton:')) return handleToggleCharacterVisibilityButton(interaction);
         if (customId.startsWith('viewParagraphFields')) return handleViewParagraphFieldsButton(interaction);
 
         if (
