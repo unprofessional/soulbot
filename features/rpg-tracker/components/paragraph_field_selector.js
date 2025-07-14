@@ -3,10 +3,17 @@
 const {
     ActionRowBuilder,
     StringSelectMenuBuilder,
+    StringSelectMenuOptionBuilder,
 } = require('discord.js');
 const { getCharacterWithStats } = require('../../../store/services/character.service');
 
 const id = 'paragraphFieldSelect';
+
+function truncateForDescription(text) {
+    if (!text) return '';
+    const clean = text.trim();
+    return clean.length > 100 ? clean.slice(0, 97) + '...' : clean;
+}
 
 /**
  * Builds the paragraph field select menu.
@@ -15,20 +22,22 @@ function build(character) {
     const options = [];
 
     if (character.bio?.trim()) {
-        options.push({
-            label: 'Bio',
-            value: 'core:bio',
-            description: character.bio.trim().slice(0, 100) + '...',
-        });
+        options.push(
+            new StringSelectMenuOptionBuilder()
+                .setLabel('Bio')
+                .setValue('core:bio')
+                .setDescription(truncateForDescription(character.bio))
+        );
     }
 
     for (const stat of character.stats || []) {
         if (stat.field_type === 'paragraph' && stat.value?.trim()) {
-            options.push({
-                label: stat.label,
-                value: `game:${stat.template_id}`,
-                description: stat.value.trim().slice(0, 100) + '...',
-            });
+            options.push(
+                new StringSelectMenuOptionBuilder()
+                    .setLabel(stat.label)
+                    .setValue(`game:${stat.template_id}`)
+                    .setDescription(truncateForDescription(stat.value))
+            );
         }
     }
 
