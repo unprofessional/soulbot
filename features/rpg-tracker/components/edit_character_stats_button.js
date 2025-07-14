@@ -44,6 +44,8 @@ async function handle(interaction) {
         });
     }
 
+    const { build: buildCharacterCard } = require('./view_character_card');
+
     const truncate = (str, max = 100) =>
         str?.length > max ? str.slice(0, max - 1) + '…' : str;
 
@@ -88,8 +90,6 @@ async function handle(interaction) {
     const userId = interaction.user.id;
     const guildId = interaction.guildId;
     const isSelf = await isActiveCharacter(userId, guildId, character.id);
-
-    const { build: buildCharacterCard } = require('./view_character_card');
     const base = await buildCharacterCard(character, { viewerUserId: isSelf ? userId : null });
 
     if (options.length === 0) {
