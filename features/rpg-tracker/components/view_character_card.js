@@ -1,5 +1,7 @@
 // features/rpg-tracker/components/view_character_card.js
 
+console.log('✅ Loading view_character_card.js...');
+
 const { EmbedBuilder, ActionRowBuilder } = require('discord.js');
 
 const { build: buildEditCharacterStatsButton } = require('./edit_character_stats_button');
@@ -8,6 +10,8 @@ const { build: buildDeleteCharacterButton } = require('./delete_character_button
 const { build: buildCalculateStatsButton } = require('./calculate_character_stats_button');
 
 const { formatTimeAgo } = require('../utils/time_ago');
+
+console.log('✅ Loaded view_character_card.js correctly');
 
 /**
  * Returns a fully structured character view card (embed + action row).

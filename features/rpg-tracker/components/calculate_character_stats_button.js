@@ -1,5 +1,7 @@
 // features/rpg-tracker/components/calculate_character_stats_button.js
 
+console.log('✅ Loading calculate_character_stats_button.js...');
+
 const {
     ButtonBuilder,
     ButtonStyle,
@@ -9,6 +11,8 @@ const {
 
 const { getCharacterWithStats } = require('../../../store/services/character.service');
 const { renderCharacterView } = require('../utils/render_character_view');
+
+console.log('✅ Loaded calculate_character_stats_button.js correctly');
 
 const id = 'calculateCharacterStats';
 

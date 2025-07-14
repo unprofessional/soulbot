@@ -1,5 +1,7 @@
 // features/rpg-tracker/components/toggle_character_visibility_button.js
 
+console.log('✅ Loading toggle_character_visibility_button.js...');
+
 const {
     ButtonBuilder,
     ButtonStyle,
@@ -8,6 +10,8 @@ const {
 const { getCharacterWithStats, updateCharacterMeta } = require('../../../store/services/character.service');
 // const { isActiveCharacter } = require('../utils/is_active_character');
 const { build: buildCharacterCard } = require('./view_character_card');
+
+console.log('✅ Loaded toggle_character_visibility_button.js correctly');
 
 const id = 'toggle_visibility';
 

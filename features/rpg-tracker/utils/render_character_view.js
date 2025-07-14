@@ -1,10 +1,15 @@
 // features/rpg-tracker/utils/render_character_view.js
 
+console.log('✅ Loading render_character_view.js...');
+
 const { isActiveCharacter } = require('./is_active_character');
 const cardModule = require('../components/view_character_card');
 
+console.log('✅ Loaded render_character_view.js correctly');
+
 console.log('🧪 view_character_card module import:', cardModule);
 console.log('🧪 view_character_card.build type:', typeof cardModule.build);
+
 
 const buildCharacterCard = cardModule.build;
 

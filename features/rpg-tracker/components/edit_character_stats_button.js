@@ -1,5 +1,7 @@
 // features/rpg-tracker/components/edit_character_stats_button.js
 
+console.log('✅ Loading edit_character_stats_button.js...');
+
 const {
     ActionRowBuilder,
     ButtonBuilder,
@@ -9,6 +11,8 @@ const {
 
 const { getCharacterWithStats } = require('../../../store/services/character.service');
 const { renderCharacterView } = require('../utils/render_character_view');
+
+console.log('✅ Loaded edit_character_stats_button.js correctly');
 
 const id = 'editCharacterStat';
 
