@@ -1,6 +1,6 @@
 // features/rpg-tracker/utils/rebuild_create_game_response.js
 
-const { buildGameStatTemplateEmbed, buildGameStatActionRow } = require('../embeds/game_stat_embed');
+const { build: buildGameStatCard } = require('../components/view_game_stat_card');
 
 /**
  * Builds the top-level instructional message for the game setup screen.
@@ -61,18 +61,19 @@ function buildGameSetupMessage(game, context = 'create', statTemplates = []) {
  */
 function rebuildCreateGameResponse(game, statTemplates, highlightLabel = null, context = 'create', viewerUserId = null) {
     const content = buildGameSetupMessage(game, context, statTemplates);
-    const embed = buildGameStatTemplateEmbed(statTemplates, game, highlightLabel);
 
-    const components = [];
+    let embeds = [];
+    let components = [];
+
     if (!viewerUserId || game.created_by === viewerUserId) {
-        // Only include buttons if viewer is the GM
-        const buttons = buildGameStatActionRow(game.id, statTemplates);
-        components.push(buttons);
+        const card = buildGameStatCard(game, statTemplates, highlightLabel);
+        embeds = card.embeds;
+        components = card.components;
     }
 
     return {
         content,
-        embeds: [embed],
+        embeds,
         components,
     };
 }

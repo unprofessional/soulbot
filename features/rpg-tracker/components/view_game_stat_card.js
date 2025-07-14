@@ -1,4 +1,4 @@
-// features/rpg-tracker/embeds/game_stat_embed.js
+// features/rpg-tracker/components/view_game_stat_card.js
 
 const {
     EmbedBuilder,
@@ -7,25 +7,31 @@ const {
     ButtonStyle,
 } = require('discord.js');
 
+const { id: defineStatsId } = require('./define_stats_button');
+const { id: editStatsId } = require('./edit_stat_button');
+const { id: deleteStatsId } = require('./delete_stat_button');
+const { id: togglePublishId } = require('./toggle_publish_button');
+
 /**
- * Builds the updated embed showing the stat template and visibility.
- * Highlights the `highlightLabel` field if provided.
- * @param {Array<Object>} fields
- * @param {Object} game
- * @param {string} [highlightLabel]
- * @returns {EmbedBuilder}
+ * Build the stat template embed + button row for a game.
  */
-function buildGameStatTemplateEmbed(fields, game, highlightLabel = null) {
+function build(game, fields = [], highlightLabel = null) {
+    return {
+        embeds: [buildEmbed(fields, game, highlightLabel)],
+        components: [buildButtonRow(game.id, fields)],
+    };
+}
+
+function buildEmbed(fields, game, highlightLabel = null) {
     const fieldLines = fields.map(f => {
         const isNew = highlightLabel && f.label?.toLowerCase() === highlightLabel.toLowerCase();
         const icon = f.field_type === 'paragraph' ? '📝' : '🔹';
         const defaultStr = f.default_value ? ` _(default: ${f.default_value})_` : '';
         const labelWithType = `${f.label} \`${f.field_type}\``;
         return `${icon} ${isNew ? '**🆕 ' : '**'}${labelWithType}**${defaultStr}`;
-
     });
 
-    const embed = new EmbedBuilder()
+    return new EmbedBuilder()
         .setTitle('📋 GAME Character Stats')
         .setDescription([
             fieldLines.length ? fieldLines.join('\n') : '*No stats defined yet.*',
@@ -36,32 +42,24 @@ function buildGameStatTemplateEmbed(fields, game, highlightLabel = null) {
                 : '`Draft ❌` — Not yet visible to players',
         ].join('\n'))
         .setColor(game.is_public ? 0x00c851 : 0xffbb33);
-
-    return embed;
 }
 
-/**
- * Button row for use under the stat embed after `/create-game`
- * @param {string} gameId
- * @param {Array<Object>} fields
- * @returns {ActionRowBuilder}
- */
-function buildGameStatActionRow(gameId, fields = []) {
+function buildButtonRow(gameId, fields = []) {
     const row = new ActionRowBuilder().addComponents(
         new ButtonBuilder()
-            .setCustomId(`defineStats:${gameId}`)
-            .setLabel(fields.length < 0 ? 'Define Required Stats' : '➕ Add Another Stat')
+            .setCustomId(`${defineStatsId}:${gameId}`)
+            .setLabel(fields.length > 0 ? '➕ Add Another Stat' : 'Define Required Stats')
             .setStyle(ButtonStyle.Primary)
     );
 
     if (fields.length > 0) {
         row.addComponents(
             new ButtonBuilder()
-                .setCustomId(`editGameStats:${gameId}`)
+                .setCustomId(`${editStatsId}:${gameId}`)
                 .setLabel('🎲 Edit Stat')
                 .setStyle(ButtonStyle.Secondary),
             new ButtonBuilder()
-                .setCustomId(`deleteStats:${gameId}`)
+                .setCustomId(`${deleteStatsId}:${gameId}`)
                 .setLabel('🗑️ Delete Stat')
                 .setStyle(ButtonStyle.Danger)
         );
@@ -69,7 +67,7 @@ function buildGameStatActionRow(gameId, fields = []) {
 
     row.addComponents(
         new ButtonBuilder()
-            .setCustomId(`togglePublishGame:${gameId}`)
+            .setCustomId(`${togglePublishId}:${gameId}`)
             .setLabel('📣 Toggle Visibility')
             .setStyle(ButtonStyle.Success)
     );
@@ -77,7 +75,4 @@ function buildGameStatActionRow(gameId, fields = []) {
     return row;
 }
 
-module.exports = {
-    buildGameStatTemplateEmbed,
-    buildGameStatActionRow,
-};
+module.exports = { build };
