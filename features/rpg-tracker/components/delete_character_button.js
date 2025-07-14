@@ -1,7 +1,5 @@
 // features/rpg-tracker/components/delete_character_button.js
 
-console.log('✅ Loading delete_character_button.js...');
-
 const {
     ActionRowBuilder,
     ButtonBuilder,
@@ -10,8 +8,6 @@ const {
 
 const { getCharacterWithStats } = require('../../../store/services/character.service');
 const { build: buildConfirmDeleteButton } = require('./confirm_delete_character_button');
-
-console.log('✅ Loaded delete_character_button.js correctly');
 
 const id = 'deleteCharacter';
 

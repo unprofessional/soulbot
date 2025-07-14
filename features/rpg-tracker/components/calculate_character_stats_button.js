@@ -1,7 +1,5 @@
 // features/rpg-tracker/components/calculate_character_stats_button.js
 
-console.log('✅ Loading calculate_character_stats_button.js...');
-
 const {
     ButtonBuilder,
     ButtonStyle,
@@ -11,9 +9,6 @@ const {
 
 const { getCharacterWithStats } = require('../../../store/services/character.service');
 const { isActiveCharacter } = require('../utils/is_active_character');
-const { build: buildCharacterCard } = require('./view_character_card');
-
-console.log('✅ Loaded calculate_character_stats_button.js correctly');
 
 const id = 'calculateCharacterStats';
 
@@ -45,17 +40,20 @@ async function handle(interaction) {
         });
     }
 
+    const userId = interaction.user.id;
+    const guildId = interaction.guildId;
+    const isSelf = await isActiveCharacter(userId, guildId, character.id);
+
+    // ⬇️ Import after module load to avoid circular reference
+    const { build: buildCharacterCard } = require('./view_character_card');
+    const base = buildCharacterCard(character, isSelf);
+
     const adjustableStats = (character.stats || []).filter(
         s => s.field_type === 'count' || s.field_type === 'number'
     );
 
     if (!adjustableStats.length) {
-        const userId = interaction.user.id;
-        const guildId = interaction.guildId;
-        const isSelf = await isActiveCharacter(userId, guildId, character.id);
-        const view = buildCharacterCard(character, isSelf);
-
-        return await interaction.update(view);
+        return await interaction.update(base);
     }
 
     const options = adjustableStats.map(stat => {
@@ -86,11 +84,6 @@ async function handle(interaction) {
         .setStyle(ButtonStyle.Secondary);
 
     const cancelRow = new ActionRowBuilder().addComponents(cancelButton);
-
-    const userId = interaction.user.id;
-    const guildId = interaction.guildId;
-    const isSelf = await isActiveCharacter(userId, guildId, character.id);
-    const base = buildCharacterCard(character, isSelf);
 
     return await interaction.update({
         ...base,
