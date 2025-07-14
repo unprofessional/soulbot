@@ -98,8 +98,11 @@ async function handle(interaction) {
 
             const updated = await getCharacterWithStats(characterId);
             const isSelf = await isActiveCharacter(interaction.user.id, interaction.guildId, characterId);
+            console.log('[editCharacterField] isSelf: ', isSelf);
+            console.log('[editCharacterField] interaction.user.id: ', interaction.user.id);
             const view = await buildCharacterCard(updated, {
                 viewerUserId: isSelf ? interaction.user.id : null,
+                guildId: interaction.guildId,
             });
 
             return await interaction.editReply({

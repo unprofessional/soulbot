@@ -17,16 +17,19 @@ const { formatTimeAgo } = require('../utils/time_ago');
 async function build(character, { viewerUserId = null, guildId = null } = {}) {
     let isSelf = false;
 
+    console.log('🧪 view_character_card.build > viewerUserId:', viewerUserId);
+    console.log('🧪 view_character_card.build > guildId:', guildId);
+
     if (viewerUserId && guildId) {
         /**
          * This is the gating mechanism for the action buttons
          */
         const activeCharacterId = await getCurrentCharacter(viewerUserId, guildId);
+        console.log('🧪 view_character_card.build > activeCharacterId:', activeCharacterId);
         isSelf = activeCharacterId === character.id;
     }
 
-    console.log('🧪 viewerUserId:', viewerUserId);
-    console.log('🧪 activeCharacterId match:', isSelf);
+    console.log('🧪 view_character_card.build > isSelf:', isSelf);
 
     return {
         embeds: [buildEmbed(character)],
