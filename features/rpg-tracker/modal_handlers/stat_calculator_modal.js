@@ -6,11 +6,8 @@ const {
     updateStatMetaField,
 } = require('../../../store/services/character.service');
 
-const {
-    buildCharacterEmbed,
-    buildCharacterActionRow,
-} = require('../embed_utils');
 const { isActiveCharacter } = require('../utils/is_active_character');
+const { build: buildCharacterCard } = require('../components/view_character_card');
 
 /**
  * Handles modal for adjusting stats (add/subtract/multiply/divide flow).
@@ -63,18 +60,10 @@ async function handle(interaction) {
 
     let next;
     switch (operator) {
-    case '+':
-        next = current + value;
-        break;
-    case '-':
-        next = current - value;
-        break;
-    case '*':
-        next = current * value;
-        break;
-    case '/':
-        next = value === 0 ? current : Math.floor(current / value);
-        break;
+    case '+': next = current + value; break;
+    case '-': next = current - value; break;
+    case '*': next = current * value; break;
+    case '/': next = value === 0 ? current : Math.floor(current / value); break;
     }
 
     if (stat.field_type === 'count') {
@@ -84,19 +73,15 @@ async function handle(interaction) {
     }
 
     const updated = await getCharacterWithStats(characterId);
-    const embed = buildCharacterEmbed(updated);
+    const isSelf = await isActiveCharacter(interaction.user.id, interaction.guildId, characterId);
 
-    const isSelf = await isActiveCharacter(interaction.user.id, interaction.guildId, character.id);
-
-    const row = buildCharacterActionRow(characterId, {
-        isSelf,
-        visibility: updated.visibility,
+    const view = buildCharacterCard(updated, {
+        viewerUserId: isSelf ? interaction.user.id : null,
     });
 
     return await interaction.update({
+        ...view,
         content: `✅ Updated **${stat.label}**: ${current} ${operator} ${value} → ${next}`,
-        embeds: [embed],
-        components: [row],
         ephemeral: true,
     });
 }

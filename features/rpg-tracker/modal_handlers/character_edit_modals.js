@@ -7,11 +7,8 @@ const {
     updateStatMetaField,
 } = require('../../../store/services/character.service');
 
-const {
-    buildCharacterEmbed,
-    buildCharacterActionRow,
-} = require('../embed_utils');
 const { isActiveCharacter } = require('../utils/is_active_character');
+const { build: buildCharacterCard } = require('../components/view_character_card');
 
 /**
  * Handles modals related to character stat or metadata editing.
@@ -61,17 +58,14 @@ async function handle(interaction) {
             await interaction.deferUpdate();
 
             const updated = await getCharacterWithStats(characterId);
-            const embed = buildCharacterEmbed(updated);
             const isSelf = await isActiveCharacter(interaction.user.id, interaction.guildId, characterId);
-            const row = buildCharacterActionRow(characterId, {
-                isSelf,
-                visibility: updated.visibility,
+            const view = buildCharacterCard(updated, {
+                viewerUserId: isSelf ? interaction.user.id : null,
             });
 
             return await interaction.editReply({
+                ...view,
                 content: null,
-                embeds: [embed],
-                components: [row],
             });
         }
 
@@ -103,17 +97,14 @@ async function handle(interaction) {
             await interaction.deferUpdate();
 
             const updated = await getCharacterWithStats(characterId);
-            const embed = buildCharacterEmbed(updated);
             const isSelf = await isActiveCharacter(interaction.user.id, interaction.guildId, characterId);
-            const row = buildCharacterActionRow(characterId, {
-                isSelf,
-                visibility: updated.visibility,
+            const view = buildCharacterCard(updated, {
+                viewerUserId: isSelf ? interaction.user.id : null,
             });
 
             return await interaction.editReply({
+                ...view,
                 content: null,
-                embeds: [embed],
-                components: [row],
             });
         }
 

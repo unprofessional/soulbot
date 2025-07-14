@@ -6,13 +6,9 @@ const {
     ActionRowBuilder,
 } = require('discord.js');
 
-const {
-    buildCharacterEmbed,
-    buildCharacterActionRow,
-} = require('../embed_utils');
-
 const { getCharacterWithStats } = require('../../../store/services/character.service');
 const { isActiveCharacter } = require('../utils/is_active_character');
+const { build: buildCharacterCard } = require('./view_character_card');
 
 const id = 'selectPublicCharacter';
 
@@ -62,15 +58,12 @@ async function handle(interaction) {
 
         const isSelf = await isActiveCharacter(interaction.user.id, interaction.guildId, character.id);
 
-        const embed = buildCharacterEmbed(character, { mode: 'view' });
-        const actionRow = buildCharacterActionRow(character.id, {
-            isSelf,
-            visibility: character.visibility,
+        const view = buildCharacterCard(character, {
+            viewerUserId: isSelf ? interaction.user.id : null,
         });
 
         await interaction.reply({
-            embeds: [embed],
-            components: actionRow ? [actionRow] : [],
+            ...view,
             ephemeral: true,
         });
 

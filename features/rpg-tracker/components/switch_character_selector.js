@@ -10,7 +10,7 @@ const { getCurrentGame, getCurrentCharacter, setCurrentCharacter } = require('..
 const { validateGameAccess } = require('../validate_game_access');
 const { formatTimeAgo } = require('../utils/time_ago');
 const { isActiveCharacter } = require('../utils/is_active_character');
-const { buildCharacterEmbed, buildCharacterActionRow } = require('../embed_utils');
+const { build: buildCharacterCard } = require('./view_character_card');
 
 const id = 'switchCharacterDropdown';
 
@@ -130,16 +130,14 @@ async function handle(interaction) {
 
         await setCurrentCharacter(user.id, guildId, selected);
         const character = await getCharacterWithStats(selected);
-
         const isSelf = await isActiveCharacter(user.id, guildId, character.id);
+        const view = buildCharacterCard(character, {
+            viewerUserId: isSelf ? user.id : null,
+        });
 
         return interaction.update({
             content: `✅ Switched to **${character.name}**!`,
-            embeds: [buildCharacterEmbed(character)],
-            components: [buildCharacterActionRow(character.id, {
-                isSelf,
-                visibility: character.visibility,
-            })],
+            ...view,
         });
     } catch (err) {
         console.error('Error switching character:', err);

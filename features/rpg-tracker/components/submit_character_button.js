@@ -21,9 +21,8 @@ const {
 } = require('../../../store/services/player.service');
 
 const {
-    buildCharacterEmbed,
-    buildCharacterActionRow,
-} = require('../embed_utils');
+    build: buildCharacterCard,
+} = require('./view_character_card');
 
 const { isActiveCharacter } = require('../utils/is_active_character');
 
@@ -64,32 +63,20 @@ async function handle(interaction) {
         const character = await finalizeCharacterCreation(userId, draft);
         console.log(`[submit_character_button] Finalized character: ${character.name} (${character.id})`);
 
-        // 🔧 Set the newly created character as active
         await setCurrentCharacter(userId, guildId, character.id);
         console.log(`[submit_character_button] Set ${character.name} (${character.id}) as active character for ${userId} in ${guildId}`);
 
         const fullCharacter = await getCharacterWithStats(character.id);
-
         const isSelf = await isActiveCharacter(userId, guildId, character.id);
-        console.log(`[submit_character_button] isActiveCharacter(${userId}, ${guildId}, ${character.id}) → ${isSelf}`);
 
-        const response = {
+        const view = buildCharacterCard(fullCharacter, {
+            viewerUserId: isSelf ? userId : null,
+        });
+
+        return await interaction.update({
             content: `✅ Character **${character.name}** created successfully!`,
-            embeds: [buildCharacterEmbed(fullCharacter)],
-        };
-
-        const actionRow = isSelf
-            ? buildCharacterActionRow(character.id, {
-                isSelf,
-                visibility: character.visibility,
-            })
-            : null;
-
-        if (actionRow) {
-            response.components = [actionRow];
-        }
-
-        return await interaction.update(response);
+            ...view,
+        });
     } catch (err) {
         console.error('[submit_character_button] Failed to submit character:', err);
         return await interaction.reply({
