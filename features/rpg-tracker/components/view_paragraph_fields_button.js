@@ -30,10 +30,23 @@ async function handle(interaction) {
         });
     }
 
-    const paragraphStats = character.stats
-        ?.filter(stat => stat.field_type === 'paragraph' && stat.value?.trim())
-        .map(stat => `**${stat.label}**\n${stat.value.trim()}`)
-        ?? [];
+    // 🧠 Step 1: Include core paragraph fields (e.g., bio)
+    const coreParagraphFields = [
+        { label: 'Bio', value: character.bio },
+        // Add more core paragraph fields here if needed
+    ];
+
+    const coreFormatted = coreParagraphFields
+        .filter(f => f.value?.trim())
+        .map(f => `**${f.label}**\n${f.value.trim()}`);
+
+    // 🧠 Step 2: Include game-defined paragraph stats
+    const statFormatted = (character.stats || [])
+        .filter(stat => stat.field_type === 'paragraph' && stat.value?.trim())
+        .map(stat => `**${stat.label}**\n${stat.value.trim()}`);
+
+    // 🧠 Step 3: Combine them
+    const paragraphStats = [...coreFormatted, ...statFormatted];
 
     if (!paragraphStats.length) {
         return await interaction.reply({
@@ -42,7 +55,7 @@ async function handle(interaction) {
         });
     }
 
-    // Split into chunks if needed (Discord 2000 char limit per message)
+    // ✂️ Discord message limit: split into ~1900 character chunks
     const chunks = [];
     let current = '';
 
