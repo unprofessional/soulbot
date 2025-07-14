@@ -1,75 +1,105 @@
-// features/rpg-tracker/components/public_character_selector.js
+// features/rpg-tracker/components/paragraph_field_selector.js
 
 const {
-    StringSelectMenuBuilder,
-    StringSelectMenuOptionBuilder,
     ActionRowBuilder,
+    StringSelectMenuBuilder,
 } = require('discord.js');
-
 const { getCharacterWithStats } = require('../../../store/services/character.service');
-const { isActiveCharacter } = require('../utils/is_active_character');
-const { build: buildCharacterCard } = require('./view_character_card');
 
-const id = 'selectPublicCharacter';
+const id = 'paragraphFieldSelect';
 
 /**
- * Builds the character select dropdown for public characters.
+ * Builds the paragraph field select menu.
  */
-function build(page, characters) {
-    const options = characters.map(char =>
-        new StringSelectMenuOptionBuilder()
-            .setLabel(char.label)
-            .setDescription(char.description)
-            .setValue(char.id)
-    );
+function build(character) {
+    const options = [];
 
-    const select = new StringSelectMenuBuilder()
-        .setCustomId(`${id}:${page}`)
-        .setPlaceholder('Select a character to view...')
+    if (character.bio?.trim()) {
+        options.push({
+            label: 'Bio',
+            value: 'core:bio',
+            description: character.bio.trim().slice(0, 100) + '...',
+        });
+    }
+
+    for (const stat of character.stats || []) {
+        if (stat.field_type === 'paragraph' && stat.value?.trim()) {
+            options.push({
+                label: stat.label,
+                value: `game:${stat.template_id}`,
+                description: stat.value.trim().slice(0, 100) + '...',
+            });
+        }
+    }
+
+    if (!options.length) return null;
+
+    const dropdown = new StringSelectMenuBuilder()
+        .setCustomId(`${id}:${character.id}`)
+        .setPlaceholder('📜 Select a paragraph field to view')
         .addOptions(options);
 
-    return new ActionRowBuilder().addComponents(select);
+    const row = new ActionRowBuilder().addComponents(dropdown);
+    return row;
 }
 
 /**
- * Handles selection of a public character from the dropdown.
- * @param {import('discord.js').StringSelectMenuInteraction} interaction
+ * Handles dropdown selection of paragraph fields.
  */
 async function handle(interaction) {
-    try {
-        const [customId] = interaction.customId.split(':');
-        if (customId !== id) return;
+    const [, characterId] = interaction.customId.split(':');
+    const selected = interaction.values?.[0];
 
-        const characterId = interaction.values?.[0];
-        if (!characterId) {
-            return await interaction.reply({
-                content: '⚠️ No character selected.',
-                ephemeral: true,
-            });
+    const character = await getCharacterWithStats(characterId);
+    if (!character || !selected) {
+        return await interaction.reply({
+            content: '❌ Unable to load character or field.',
+            ephemeral: true,
+        });
+    }
+
+    let label = '(unknown)';
+    let fullText = '';
+
+    if (selected === 'core:bio') {
+        label = 'Bio';
+        fullText = character.bio || '';
+    } else if (selected.startsWith('game:')) {
+        const templateId = selected.split(':')[1];
+        const stat = character.stats?.find(s => s.template_id === templateId);
+        if (stat) {
+            label = stat.label || stat.template_id;
+            fullText = stat.value || '';
         }
+    }
 
-        await interaction.deferReply({ ephemeral: true });
+    if (!fullText.trim()) {
+        return await interaction.reply({
+            content: `ℹ️ No content available for **${label}**.`,
+            ephemeral: true,
+        });
+    }
 
-        const character = await getCharacterWithStats(characterId);
-        if (!character) {
-            return await interaction.editReply({
-                content: '❌ That character no longer exists.',
-            });
+    // Chunk response for Discord
+    const chunks = [];
+    let current = '';
+    for (const paragraph of fullText.split(/\n{2,}/)) {
+        if ((current + '\n\n' + paragraph).length > 1900) {
+            chunks.push(current);
+            current = paragraph;
+        } else {
+            current += (current ? '\n\n' : '') + paragraph;
         }
+    }
+    if (current) chunks.push(current);
 
-        const isSelf = await isActiveCharacter(interaction.user.id, interaction.guildId, character.id);
-        const view = buildCharacterCard(character, isSelf);
+    await interaction.deferReply({ ephemeral: true });
 
-        await interaction.editReply(view);
-
-    } catch (err) {
-        console.error('[SELECT MENU ERROR] public_character_selector:', err);
-        if (!interaction.replied) {
-            await interaction.reply({
-                content: '❌ Failed to display character details.',
-                ephemeral: true,
-            });
-        }
+    for (const chunk of chunks) {
+        await interaction.followUp({
+            content: `**${label}**\n\n${chunk}`,
+            ephemeral: true,
+        });
     }
 }
 
