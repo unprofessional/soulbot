@@ -20,6 +20,9 @@ console.log('✅ Loaded view_character_card.js correctly');
 function build(character, { viewerUserId = null } = {}) {
     const isSelf = character.created_by === viewerUserId;
 
+    console.log('🧪 viewerUserId:', viewerUserId);
+    console.log('🧪 character.created_by:', character.created_by);
+
     return {
         embeds: [buildEmbed(character)],
         components: isSelf ? [buildActionRow(character)] : [],
