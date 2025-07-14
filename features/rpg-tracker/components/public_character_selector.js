@@ -80,12 +80,14 @@ async function handle(interaction) {
         });
     }
 
-    // Chunk response for Discord
+    // ✅ Safely chunk the content
+    const paragraphs = fullText.split(/\n{2,}/).map(p => p.trim()).filter(Boolean);
     const chunks = [];
     let current = '';
-    for (const paragraph of fullText.split(/\n{2,}/)) {
+
+    for (const paragraph of paragraphs) {
         if ((current + '\n\n' + paragraph).length > 1900) {
-            chunks.push(current);
+            if (current) chunks.push(current);
             current = paragraph;
         } else {
             current += (current ? '\n\n' : '') + paragraph;
@@ -93,13 +95,19 @@ async function handle(interaction) {
     }
     if (current) chunks.push(current);
 
-    // ✅ First response uses reply
+    // ✅ Always reply first — even if there's only one chunk
+    if (chunks.length === 0) {
+        return await interaction.reply({
+            content: `ℹ️ No usable content found for **${label}**.`,
+            ephemeral: true,
+        });
+    }
+
     await interaction.reply({
         content: `**${label}**\n\n${chunks[0]}`,
         ephemeral: true,
     });
 
-    // ✅ Remaining use followUp
     for (let i = 1; i < chunks.length; i++) {
         await interaction.followUp({
             content: chunks[i],
