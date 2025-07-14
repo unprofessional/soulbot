@@ -10,7 +10,8 @@ const {
 } = require('discord.js');
 
 const { getCharacterWithStats } = require('../../../store/services/character.service');
-const { renderCharacterView } = require('../utils/render_character_view');
+const { isActiveCharacter } = require('../utils/is_active_character');
+const { build: buildCharacterCard } = require('./view_character_card');
 
 console.log('✅ Loaded calculate_character_stats_button.js correctly');
 
@@ -49,7 +50,12 @@ async function handle(interaction) {
     );
 
     if (!adjustableStats.length) {
-        return await interaction.update(await renderCharacterView(character));
+        const userId = interaction.user.id;
+        const guildId = interaction.guildId;
+        const isSelf = await isActiveCharacter(userId, guildId, character.id);
+        const view = buildCharacterCard(character, { viewerUserId: isSelf ? userId : null });
+
+        return await interaction.update(view);
     }
 
     const options = adjustableStats.map(stat => {
@@ -83,8 +89,8 @@ async function handle(interaction) {
 
     const userId = interaction.user.id;
     const guildId = interaction.guildId;
-
-    const base = await renderCharacterView(character, { userId, guildId });
+    const isSelf = await isActiveCharacter(userId, guildId, character.id);
+    const base = buildCharacterCard(character, { viewerUserId: isSelf ? userId : null });
 
     return await interaction.update({
         ...base,

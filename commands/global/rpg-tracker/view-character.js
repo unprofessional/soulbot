@@ -1,6 +1,7 @@
 // commands/global/rpg-tracker/view-character.js
 
 const { SlashCommandBuilder } = require('discord.js');
+
 const {
     getCharactersByUser,
     getCharacterWithStats,
@@ -12,7 +13,8 @@ const {
 } = require('../../../store/services/player.service');
 
 const { validateGameAccess } = require('../../../features/rpg-tracker/validate_game_access');
-const { renderCharacterView } = require('../../../features/rpg-tracker/utils/render_character_view');
+const { build: buildCharacterCard } = require('../../../features/rpg-tracker/components/view_character_card');
+const { isActiveCharacter } = require('../../../features/rpg-tracker/utils/is_active_character');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -67,9 +69,11 @@ module.exports = {
             console.log('🔍 Fetched character with stats:', full.id);
 
             const { warning } = await validateGameAccess({ gameId: full.game_id, userId });
-            const view = await renderCharacterView(full, { userId, guildId });
 
-            console.log('🧱 renderCharacterView output:', {
+            const isSelf = await isActiveCharacter(userId, guildId, full.id);
+            const view = buildCharacterCard(full, { viewerUserId: isSelf ? userId : null });
+
+            console.log('🧱 buildCharacterCard output:', {
                 hasEmbed: !!view.embeds?.length,
                 hasComponents: !!view.components?.length,
                 isEphemeral: view.ephemeral,

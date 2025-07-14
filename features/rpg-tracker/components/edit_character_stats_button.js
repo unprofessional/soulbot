@@ -10,7 +10,8 @@ const {
 } = require('discord.js');
 
 const { getCharacterWithStats } = require('../../../store/services/character.service');
-const { renderCharacterView } = require('../utils/render_character_view');
+const { isActiveCharacter } = require('../utils/is_active_character');
+const { build: buildCharacterCard } = require('./view_character_card');
 
 console.log('✅ Loaded edit_character_stats_button.js correctly');
 
@@ -85,10 +86,15 @@ async function handle(interaction) {
 
     const options = [...coreOptions, ...statOptions].slice(0, 25);
 
+    const userId = interaction.user.id;
+    const guildId = interaction.guildId;
+    const isSelf = await isActiveCharacter(userId, guildId, character.id);
+    const base = buildCharacterCard(character, { viewerUserId: isSelf ? userId : null });
+
     if (options.length === 0) {
         return await interaction.update({
             content: '⚠️ No editable fields found.',
-            ...renderCharacterView(character),
+            ...base,
         });
     }
 
@@ -104,10 +110,6 @@ async function handle(interaction) {
 
     const dropdownRow = new ActionRowBuilder().addComponents(dropdown);
     const cancelRow = new ActionRowBuilder().addComponents(cancelButton);
-
-    const userId = interaction.user.id;
-    const guildId = interaction.guildId;
-    const base = await renderCharacterView(character, { userId, guildId });
 
     return await interaction.update({
         ...base,
