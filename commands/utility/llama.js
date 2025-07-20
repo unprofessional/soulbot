@@ -81,9 +81,9 @@ module.exports = {
                 // const messageToShow = `**Request:**\n> ${userMessage}\n\n**Response:**\n${response}`;
 
                 const memberId = interaction.user.id;
-                const response = await queue.add(() => sendPromptToKokoro(userMessage, memberId));
+                const response = await queue.add(() => sendPromptToKokoro(`${userMessage} /no_think`, memberId));
                 console.log('Kokoro response:', response);
-                const messageToShow = `**Request:**\n> ${userMessage}\n\n**Response:**\n${response.response} /no_think`
+                const messageToShow = `**Request:**\n> ${userMessage}\n\n**Response:**\n${response.response}`
                     .replace(/<think>\s*<\/think>\s*/gi, '') // removes empty <think> tags and surrounding whitespace
                     .trim();
 
