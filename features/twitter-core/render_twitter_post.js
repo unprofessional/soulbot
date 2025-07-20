@@ -205,118 +205,114 @@ const sendVideoReply = async (message, successFilePath, localWorkingPath, origin
 
 const renderTwitterPost = async (metadataJson, message, originalLink) => {
     console.log('>>>>> renderTwitterPost > originalLink: ', originalLink);
-    const videoUrls = filterVideoUrls(metadataJson.mediaURLs);
-    const videoUrl = videoUrls[0];
-    const hasVids = videoUrls.length > 0;
-    const communityNoteText = metadataJson.communityNote;
+
+    const videoUrl = extractFirstVideoUrl(metadataJson);
+    const isVideo = isFirstMediaVideo(metadataJson);
 
     await createDirectoryIfNotExists(processingDir);
 
-    // is first item in list a video?
-    let firstMediaItem, firstMediaItemExt;
-    if(metadataJson.mediaURLs.length > 0) {
-        firstMediaItem = metadataJson?.media_extended[0];
-        firstMediaItemExt = getExtensionFromMediaUrl(firstMediaItem?.url);
-    }
-    console.log('>>>>> renderTwitterPost > firstMediaItem: ', firstMediaItem);
-    console.log('>>>>> renderTwitterPost > firstMediaItemExt: ', firstMediaItemExt);
-
-    // FIXME: redundant.... if firstMediaItemExt is indeed mp4 then of course it hasVids
-    if (hasVids && firstMediaItemExt === 'mp4') {
-        console.log('>>>>> renderTwitterPost > first item is VIDEO');
-        const currentDirCount = await countDirectoriesInDirectory(processingDir);
-        if (currentDirCount >= MAX_CONCURRENT_REQUESTS) {
-            return message.reply({
-                content: 'Video processing at capacity; try again later.',
-            });
-        }
-
-        // build path stuff
-        // const processingDir = '/tempdata';
-        const pathObj = buildPathsAndStuff(processingDir, videoUrl);
-        const filename = pathObj.filename;
-        const localWorkingPath = pathObj.localWorkingPath;
-
-        // paths we need to use
-        const videoInputPath = `${localWorkingPath}/${filename}.mp4`;
-        const canvasInputPath = `${localWorkingPath}//${filename}.png`;
-        const videoOutputPath = `${localWorkingPath}/${filename}-output.mp4`;
-        // console.log('>>> renderTwitterPost > videoInputPath: ', videoInputPath);
-        // console.log('>>> renderTwitterPost > canvasInputPath: ', canvasInputPath);
-        // console.log('>>> renderTwitterPost > videoOutputPath: ', videoOutputPath);
-
-        // video dimensions
-        const mediaObject = metadataJson.media_extended[0].size;
-        if (!mediaObject.height || !mediaObject.width) {
-            throw Error('Video has no dimensions in metadata! Cannot process...');
-            // TODO: we would have to then infer it from the video itself possibly using ffmpeg.ffprobe
-        }
-
-        try {
-            await downloadVideo(videoUrl, videoInputPath);
-
-
-            /**
-             * UNCOMMENT WHEN READY
-             */
-            const fileSize = await getVideoFileSize(videoInputPath);
-            console.log('>>> TODO: renderTwitterPost > fileSize: ', fileSize);
-            const guildId = message.guildId;
-            console.log('>>> TODO: renderTwitterPost > guildId: ', guildId);
-            const guild = message.client.guilds.cache.get(guildId);
-            const boostTier = guild.premiumTier;
-            console.log('>>> TODO: renderTwitterPost > boostTier: ', boostTier);
-            /**
-             * UNCOMMENT WHEN READY
-             */
-
-            const { canvasHeight, canvasWidth, heightShim } = await createTwitterVideoCanvas(metadataJson);
-            const successFilePath = await bakeImageAsFilterIntoVideo(
-                videoInputPath, canvasInputPath, videoOutputPath,
-                mediaObject.height, mediaObject.width,
-                canvasHeight, canvasWidth, heightShim,
-            );
-    
-            /**
-             * DO something with the video!!!!
-             */
-            // await replyMsg.delete(); // don't even need to do this anymore
-            await sendVideoReply(message, successFilePath, localWorkingPath, originalLink);
-        } catch (err) {
-            console.error('>>> ERROR: renderTwitterPost > err: ', err);
-            await cleanup([], [localWorkingPath]);
-        }
-
+    if (isVideo && videoUrl) {
+        await handleVideoPost(metadataJson, message, originalLink, videoUrl);
     } else {
-        // Handle non-video processing
-        console.log('>>>>> renderTwitterPost > first item is NOT VIDEO');
-        const buffer = await createTwitterCanvas(metadataJson);
-        await message.suppressEmbeds(true);
-
-        const randomName = randomNameGenerator();
-
-        /**
-         * Pull image and add it as a separate image/file
-         */
-        let files = [{
-            attachment: buffer,
-            name: `${randomName}.png`,
-        }];
-
-        // Use the webhook proxy to send the message with the file
-        try {
-            console.log('>>> renderTwitterPost > TRYING WEBHOOK...');
-            await sendWebhookProxyMsg(message, 'Here’s the Twitter canvas:', files, communityNoteText, originalLink);
-        } catch (err) {
-            console.log('>>> renderTwitterPost > WEBHOOK FAILED!!!');
-            await sendWebhookProxyMsg(message, `File(s) too large to attach! err: ${err}`, undefined, undefined, originalLink);
-        }
+        await handleImagePost(metadataJson, message, originalLink);
     }
 
     console.log('>>> renderTwitterPost proxy msg sent!');
-    console.log();
-
 };
+
+// ---------------------------
+// 🔹 Video Flow Helpers
+// ---------------------------
+
+function extractFirstVideoUrl(metadataJson) {
+    const videoUrls = filterVideoUrls(metadataJson.mediaURLs || []);
+    return videoUrls[0] || null;
+}
+
+function isFirstMediaVideo(metadataJson) {
+    const firstMedia = metadataJson?.media_extended?.[0];
+    const ext = getExtensionFromMediaUrl(firstMedia?.url);
+    return ext === 'mp4';
+}
+
+async function handleVideoPost(metadataJson, message, originalLink, videoUrl) {
+    console.log('>>>>> renderTwitterPost > first item is VIDEO');
+
+    const currentDirCount = await countDirectoriesInDirectory(processingDir);
+    if (currentDirCount >= MAX_CONCURRENT_REQUESTS) {
+        return message.reply({ content: 'Video processing at capacity; try again later.' });
+    }
+
+    const { filename, localWorkingPath } = buildPathsAndStuff(processingDir, videoUrl);
+    const videoInputPath = `${localWorkingPath}/${filename}.mp4`;
+    const canvasInputPath = `${localWorkingPath}/${filename}.png`;
+    const videoOutputPath = `${localWorkingPath}/${filename}-output.mp4`;
+
+    const mediaSize = metadataJson?.media_extended?.[0]?.size;
+    if (!mediaSize?.height || !mediaSize?.width) {
+        throw Error('Video has no dimensions in metadata! Cannot process...');
+    }
+
+    try {
+        await downloadVideo(videoUrl, videoInputPath);
+
+        // Optional debug info
+        await logDebugInfo(message, videoInputPath);
+
+        const { canvasHeight, canvasWidth, heightShim } = await createTwitterVideoCanvas(metadataJson);
+
+        const successFilePath = await bakeImageAsFilterIntoVideo(
+            videoInputPath,
+            canvasInputPath,
+            videoOutputPath,
+            mediaSize.height,
+            mediaSize.width,
+            canvasHeight,
+            canvasWidth,
+            heightShim
+        );
+
+        await sendVideoReply(message, successFilePath, localWorkingPath, originalLink);
+    } catch (err) {
+        console.error('>>> ERROR: renderTwitterPost > err: ', err);
+        await cleanup([], [localWorkingPath]);
+    }
+}
+
+async function logDebugInfo(message, videoInputPath) {
+    const fileSize = await getVideoFileSize(videoInputPath);
+    const guildId = message.guildId;
+    const guild = message.client.guilds.cache.get(guildId);
+    const boostTier = guild?.premiumTier;
+
+    console.log('>>> fileSize:', fileSize);
+    console.log('>>> guildId:', guildId);
+    console.log('>>> boostTier:', boostTier);
+}
+
+// ---------------------------
+// 🔹 Image Flow Helpers
+// ---------------------------
+
+async function handleImagePost(metadataJson, message, originalLink) {
+    console.log('>>>>> renderTwitterPost > first item is NOT VIDEO');
+
+    const buffer = await createTwitterCanvas(metadataJson);
+    await message.suppressEmbeds(true);
+
+    const files = [{
+        attachment: buffer,
+        name: `${randomNameGenerator()}.png`,
+    }];
+
+    try {
+        console.log('>>> renderTwitterPost > TRYING WEBHOOK...');
+        await sendWebhookProxyMsg(message, 'Here’s the Twitter canvas:', files, metadataJson.communityNote, originalLink);
+    } catch (err) {
+        console.log('>>> renderTwitterPost > WEBHOOK FAILED!!!');
+        await sendWebhookProxyMsg(message, `File(s) too large to attach! err: ${err}`, undefined, undefined, originalLink);
+    }
+}
 
 module.exports = {
     renderTwitterPost,
