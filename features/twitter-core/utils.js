@@ -69,11 +69,15 @@ const filterMediaUrls = (metadata, extensions) => {
     });
 };
 
-const getExtensionFromMediaUrl = (mediaUrl) => {
+function getExtensionFromMediaUrl(mediaUrl) {
+    if (typeof mediaUrl !== 'string') {
+        console.warn('getExtensionFromMediaUrl received non-string input:', mediaUrl);
+        return null;
+    }
     const mediaUrlParts = mediaUrl.split('.');
     const fileExtensionWithQueryParams = mediaUrlParts[mediaUrlParts.length - 1];
     return fileExtensionWithQueryParams.split('?')[0];
-};
+}
 
 const removeTCOLink = (text) => {
     if(!text) {

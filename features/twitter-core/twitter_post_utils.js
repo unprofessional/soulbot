@@ -21,7 +21,13 @@ function extractFirstVideoUrl(metadataJson) {
 
 function isFirstMediaVideo(metadataJson) {
     const firstMedia = metadataJson?.media_extended?.[0];
-    const ext = getExtensionFromMediaUrl(firstMedia?.url);
+
+    if (!firstMedia?.url) {
+        console.warn('🛑 isFirstMediaVideo: first media URL is missing or invalid:', firstMedia);
+    }
+
+    if (!firstMedia?.url || typeof firstMedia.url !== 'string') return false;
+    const ext = getExtensionFromMediaUrl(firstMedia.url);
     return ext === 'mp4';
 }
 
