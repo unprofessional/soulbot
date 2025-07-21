@@ -20,13 +20,18 @@ function extractFirstVideoUrl(metadataJson) {
 }
 
 function isFirstMediaVideo(metadataJson) {
+    // Just like the original file: don't even check the media type if no mediaURLs
+    if (!Array.isArray(metadataJson.mediaURLs) || metadataJson.mediaURLs.length === 0) {
+        return false;
+    }
+
     const firstMedia = metadataJson?.media_extended?.[0];
 
     if (!firstMedia?.url) {
         console.warn('🛑 isFirstMediaVideo: first media URL is missing or invalid:', firstMedia);
+        return false;
     }
 
-    if (!firstMedia?.url || typeof firstMedia.url !== 'string') return false;
     const ext = getExtensionFromMediaUrl(firstMedia.url);
     return ext === 'mp4';
 }
