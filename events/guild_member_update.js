@@ -1,8 +1,8 @@
 const { Events } = require('discord.js');
 const {
     members,
-    addMember,
-    getMembers,
+    // addMember,
+    // getMembers,
     // removeMember,
     memberIsControlled,
     nickNameIsAlreadySet,

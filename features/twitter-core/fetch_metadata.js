@@ -34,7 +34,7 @@ const fetchMetadata = async (url, message, isXDotCom) => {
     return resultJson;
 };
 
-const fetchQTMetadata = async (url, message) => {
+const fetchQTMetadata = async (url) => {
     const urlPattern = 'https://twitter.com/';
     const parts = url.split(urlPattern);
     // console.log('>>>>> fetchMetadata > parts: ', parts);

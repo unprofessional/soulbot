@@ -2,7 +2,7 @@ const { createTwitterVideoCanvas } = require('../features/twitter-video/twitter_
 const { buildPathsAndStuff } = require('../features/twitter-core/path_builder.js');
 
 const { downloadVideo, bakeImageAsFilterIntoVideo } = require('../features/twitter-video/index.js');
-const { renderTwitterPost } = require('../features/twitter-core/render_twitter_post.js');
+// const { renderTwitterPost } = require('../features/twitter-core/render_twitter_post.js');
 
 const metadata1 = {
     "allSameType": true,
@@ -44,45 +44,45 @@ const metadata1 = {
     "user_screen_name": "Breaking911"
 }
 
-const metadata2 = {
-    "allSameType": true,
-    "combinedMediaUrl": null,
-    "communityNote": null,
-    "conversationID": "1812605187850473873",
-    "date": "Sun Jul 14 21:48:48 +0000 2024",
-    "date_epoch": 1720993728,
-    "hasMedia": true,
-    "hashtags": [],
-    "likes": 200,
-    "mediaURLs": [
-        "https://video.twimg.com/amplify_video/1811507014272712704/vid/avc1/1080x1920/6JJPYb91DHm3uua_.mp4"
-    ],
-    "media_extended": [
-        {
-            "altText": null,
-            "duration_millis": 43733,
-            "size": {
-                "height": 1920,
-                "width": 1080
-            },
-            "thumbnail_url": "https://pbs.twimg.com/amplify_video_thumb/1811507014272712704/img/9ToBrjH9H7dXG7sR.jpg",
-            "type": "video",
-            "url": "https://video.twimg.com/amplify_video/1811507014272712704/vid/avc1/1080x1920/6JJPYb91DHm3uua_.mp4"
-        }
-    ],
-    "pollData": null,
-    "possibly_sensitive": false,
-    "qrt": null,
-    "qrtURL": null,
-    "replies": 14,
-    "retweets": 29,
-    "text": "WATCH: Good Samaritans stop carjacking attempt in Los Angeles; the suspect was later arrested \n\nhttps://t.co/2LzMZpPCWX",
-    "tweetID": "1812605187850473873",
-    "tweetURL": "https://twitter.com/Breaking911/status/1812605187850473873",
-    "user_name": "Breaking911",
-    "user_profile_image_url": "https://pbs.twimg.com/profile_images/619546088995979264/KuG27bBK_normal.jpg",
-    "user_screen_name": "Breaking911"
-}
+// const metadata2 = {
+//     "allSameType": true,
+//     "combinedMediaUrl": null,
+//     "communityNote": null,
+//     "conversationID": "1812605187850473873",
+//     "date": "Sun Jul 14 21:48:48 +0000 2024",
+//     "date_epoch": 1720993728,
+//     "hasMedia": true,
+//     "hashtags": [],
+//     "likes": 200,
+//     "mediaURLs": [
+//         "https://video.twimg.com/amplify_video/1811507014272712704/vid/avc1/1080x1920/6JJPYb91DHm3uua_.mp4"
+//     ],
+//     "media_extended": [
+//         {
+//             "altText": null,
+//             "duration_millis": 43733,
+//             "size": {
+//                 "height": 1920,
+//                 "width": 1080
+//             },
+//             "thumbnail_url": "https://pbs.twimg.com/amplify_video_thumb/1811507014272712704/img/9ToBrjH9H7dXG7sR.jpg",
+//             "type": "video",
+//             "url": "https://video.twimg.com/amplify_video/1811507014272712704/vid/avc1/1080x1920/6JJPYb91DHm3uua_.mp4"
+//         }
+//     ],
+//     "pollData": null,
+//     "possibly_sensitive": false,
+//     "qrt": null,
+//     "qrtURL": null,
+//     "replies": 14,
+//     "retweets": 29,
+//     "text": "WATCH: Good Samaritans stop carjacking attempt in Los Angeles; the suspect was later arrested \n\nhttps://t.co/2LzMZpPCWX",
+//     "tweetID": "1812605187850473873",
+//     "tweetURL": "https://twitter.com/Breaking911/status/1812605187850473873",
+//     "user_name": "Breaking911",
+//     "user_profile_image_url": "https://pbs.twimg.com/profile_images/619546088995979264/KuG27bBK_normal.jpg",
+//     "user_screen_name": "Breaking911"
+// }
 
 describe('twitter video canvas frame embedding and file output testing', () => {
 

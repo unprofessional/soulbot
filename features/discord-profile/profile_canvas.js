@@ -6,13 +6,6 @@ const {
 const TimeAgo = require('javascript-time-ago');
 const en = require('javascript-time-ago/locale/en');
 TimeAgo.addDefaultLocale(en);
-// const timeAgo = new TimeAgo('en-US');
-
-// const formatDiscordDate = (discordDate) => {
-//     // Parse the date string and create a Date object
-//     const date = new Date(discordDate);
-//     return timeAgo.format(date); 
-// };
 
 const createProfileCanvas = async (guildMember) => {
 
@@ -34,11 +27,8 @@ const createProfileCanvas = async (guildMember) => {
 
     const drawBasicElements = async (guildMember) => {
 
-        const { user, joinedTimestamp } = guildMember;
-        const { id, bot, username, globalName, avatar } = user;
-
-        const date = new Date(joinedTimestamp);
-        // const formattedTimeAgo = timeAgo.format(date); 
+        const { user } = guildMember;
+        const { id, username, globalName, avatar } = user;
 
         const avatarUrl = `https://cdn.discordapp.com/avatars/${id}/${avatar}.png`;
 
