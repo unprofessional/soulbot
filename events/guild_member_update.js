@@ -1,91 +1,73 @@
+// events/guild_member_update.js
+
 const { Events } = require('discord.js');
 const {
     members,
-    // addMember,
-    // getMembers,
-    // removeMember,
     memberIsControlled,
     nickNameIsAlreadySet,
-} = require("../store/members.js");
+} = require('../store/members.js');
 const { guildIsSupported } = require('../store/guilds.js');
 
 const initializeGuildMemberUpdate = (client) => {
-    /**
-   * Exclusive to ANY server member updates (i.e. nickname change, role change, etc)
-   * 
-   * For initial manual first adds, see `/message_listeners/core.js`
-   */
-    // "guildMemberUpdate"
     client.on(Events.GuildMemberUpdate, async (oldMember, newMember) => {
-    // TODO:
-    /**
-     * 1) [DONE] White List Servers/Guilds (by guildId?)
-     * 2) get desired channelId to notify of changes (OPTIONAL)
-     * 3) [DONE in core.js] abstract functionality to manually set "guild.member.nickname" suffix
-     */
+        const guildId = oldMember.guild.id;
 
-        console.log('>>>>> GuildMemberUpdate event fired!');
+        // Hard-coded channel for logging (dev server #general)
+        const channel = client.channels.cache.get('1170400835763707946');
 
-        // FIXME: Hard-coded for now... "personal dev server" #general
-        const channel = client.channels.cache.get("1170400835763707946");
-        // console.log('>>>>> channel: ', channel);
+        if (!guildIsSupported(guildId)) {
+            console.log('🚫 Unsupported guild. Ignoring GuildMemberUpdate event.');
+            channel?.send('Server is not in the supported list. Ignoring...');
+            return;
+        }
 
-        // Guild MUST be part of a white list
-        if(guildIsSupported(oldMember.guild.id)) {
-            console.log('>>>>> GUILD SUPPORTED: GuildMemberUpdate event fired!');
+        console.log('📣 GuildMemberUpdate event fired in supported guild.');
 
-            // Nickname changed
-            if(oldMember.nickname != newMember.nickname) {
-                console.log('>>>>> Nickname changed!!');
-                channel.send(`\`${oldMember.user.username}\` has changed their nickname from ${oldMember.nickname} to ${newMember.nickname}!`);
-                /**
-         * This will include some gating-logic since the bot's namechange will trigger this
-         * and if we don't capture the scenario, it can be an infinite loop....
-         */
-                // member must be on the controlledMember list
-                if(memberIsControlled(oldMember.id)) {
-                    const nicknamePrefix = members.find((_member) => oldMember.id === _member.memberId).prefix;
-                    // console.log('>>>>> nicknamePrefix: ', nicknamePrefix);
-                    if(!nickNameIsAlreadySet(newMember.nickname, nicknamePrefix)) {
-                        const guildId = oldMember.guild.id;
-                        const cachedGuild = client.guilds.cache.get(guildId);
-                        const cachedMember = cachedGuild.members.cache.get(oldMember.id);
-                        // Max-length for nicks is 32 chars
-                        const replacementNickname = `[${nicknamePrefix}] ${newMember.nickname || newMember.user.username}`.substring(0,31);
-                        try {
-                            await cachedMember.setNickname(replacementNickname);
-                        }
-                        catch (err) {
-                            channel.send('There was a problem trying to set the nickname for this user!');
-                        }
-                    }
-                    else {
-                        console.log('>>>>> Member nickname already set! Ignoring...');
-                        channel.send('Nick is already set! Ignoring...');
-                        return;
-                    }
-                }
-                else {
-                    console.log('>>>>> Member IS NOT in the controlled list! Ignoring...');
-                    channel.send('Member not in the controlled list! ignoring...');
-                }
-            } // else event wasn't a nickname change, do nothing
+        // Handle nickname changes
+        if (oldMember.nickname !== newMember.nickname) {
+            const oldNick = oldMember.nickname || oldMember.user.username;
+            const newNick = newMember.nickname || newMember.user.username;
 
-            // TODO: Member role updated?
-            /**
-       * Do a compare of oldMember vs newMemmber roles...
-       * ... maybe includes? some? every?
-       */
-            // if role added/removed
-            if(oldMember.roles.length !== newMember.roles.length) {
-                console.log('>>>>> member role added or removed!');
-                channel.send(`\`${newMember.user.username}\` has had a role added or removed!`);
+            console.log('📝 Nickname change detected.');
+            channel?.send(`\`${oldMember.user.username}\` changed nickname from **${oldNick}** to **${newNick}**.`);
+
+            if (!memberIsControlled(oldMember.id)) {
+                console.log('🛑 Member not controlled. Ignoring nickname enforcement.');
+                return;
             }
 
+            const record = members.find((m) => m.memberId === oldMember.id);
+            const nicknamePrefix = record?.prefix;
+
+            if (!nicknamePrefix) {
+                console.warn('⚠️ No prefix found for controlled member. Skipping nickname update.');
+                return;
+            }
+
+            if (nickNameIsAlreadySet(newNick, nicknamePrefix)) {
+                console.log('✅ Nickname already set with prefix. Skipping.');
+                return;
+            }
+
+            const replacement = `[${nicknamePrefix}] ${newNick}`.substring(0, 31);
+
+            try {
+                const member = client.guilds.cache.get(guildId)?.members.cache.get(oldMember.id);
+                await member?.setNickname(replacement);
+                console.log(`✏️ Updated nickname to: ${replacement}`);
+            } catch (err) {
+                console.error('❌ Failed to set nickname:', err);
+                channel?.send('There was a problem trying to set the nickname for this user.');
+            }
         }
-        else {
-            console.log('>>>>> Server IS NOT in the supported list! Ignoring...');
-            channel.send('Server IS NOT in the supported list! Ignoring...');
+
+        // Handle role changes (basic diffing by count)
+        const oldRoles = oldMember.roles.cache.size;
+        const newRoles = newMember.roles.cache.size;
+
+        if (oldRoles !== newRoles) {
+            console.log('🎭 Role count changed.');
+            channel?.send(`\`${newMember.user.username}\` has had a role added or removed.`);
         }
     });
 
