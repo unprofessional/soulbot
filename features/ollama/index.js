@@ -124,9 +124,9 @@ async function summarizeChat(messages, model = summaryModel) {
             // mirostat: 0,
             num_ctx: contextSize,
         },
-        prompt: 'Summarize the Discord chat logs. ' +
+        prompt: 'Summarize the Discord chat logs. Be condescending. ' +
                 // 'Be brief and simple. ' + 
-                'Summarize individual user points made and mention them directly via the Discord "<@userId>" syntax: ' +
+                'Summarize the entire log. If anything an individual says stands out, then menntion them directly via the Discord "<@userId>" syntax: ' +
                 'Do not invite any questions as this is a one-off request in a vacuum. ' +
                 `DiscordChatLog: ${finalUserPrompt} /no_think`,
         stream: false,
