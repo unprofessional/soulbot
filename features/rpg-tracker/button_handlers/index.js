@@ -1,49 +1,44 @@
 // features/rpg-tracker/button_handlers/index.js
 
-const gameButtons = require('./game_buttons');
-const statButtons = require('./stat_template_buttons');
-const charCreateButtons = require('./character_creation_buttons');
-const charEditButtons = require('./character_edit_buttons');
-const toggleVisibilityButton = require('./toggle_visibility');
 const inventoryButtons = require('./inventory_buttons');
 const fallbackButtons = require('./fallback_buttons');
-const adjustCountButtons = require('./adjust_count_buttons');
 const characterViewButtons = require('./character_view_buttons');
+const { handle: handleDefineStats } = require('../components/define_stats_button');
+const { handle: handleEditGameStats } = require('../components/edit_game_stat_button');
+const { handle: handleDeleteStats } = require('../components/delete_stat_button');
+const { handle: handleFinishStatSetup } = require('../components/finish_stat_setup_button');
+const { handle: handleTogglePublishButton} = require('../components/toggle_publish_button');
+const { handle: handleConfirmDeleteStat } = require('../components/confirm_delete_stat_button');
+const { handle: handleSubmitCharacter } = require('../components/submit_character_button');
+const { handle: handleDeleteCharacter } = require('../components/delete_character_button');
+const { handle: handleConfirmDeleteCharacterButton } = require('../components/confirm_delete_character_button');
+const { handle: handleCharPageButton } = require('../components/character_page_buttons');
+const { handle: handleEditCharacterStatsButton } = require('../components/edit_character_stats_button');
+const { handle: handleCalculateStatsButton } = require('../components/calculate_character_stats_button');
+const { handle: handleToggleCharacterVisibilityButton } = require('../components/toggle_character_visibility_button');
+const { handle: handleViewParagraphFieldsButton } = require('../components/view_paragraph_fields_button');
 
 module.exports = {
     async handleButton(interaction) {
         const { customId } = interaction;
 
-        if (
-            customId.startsWith('editGameModal:') ||
-            customId.startsWith('publishGame:') ||
-            customId.startsWith('togglePublishGame:')
-        ) {
-            return gameButtons.handle(interaction);
-        }
-
-        if (
-            customId.startsWith('defineStats:') ||
-            customId.startsWith('editStats:') ||
-            customId.startsWith('deleteStats:') ||
-            customId.startsWith('confirmDeleteStat:') ||
-            customId.startsWith('edit_stat_template:') ||
-            customId.startsWith('finishStatSetup:')
-        ) {
-            return statButtons.handle(interaction);
-        }
-
-        if (customId === 'submitNewCharacter') {
-            return charCreateButtons.handle(interaction);
-        }
-
-        if (customId.startsWith('edit_stat:')) {
-            return charEditButtons.handle(interaction);
-        }
-
-        if (customId.startsWith('toggle_visibility:')) {
-            return toggleVisibilityButton.handle(interaction);
-        }
+        /**
+         * TODO: Replace all these strings with `id` references from each respective module
+         */
+        if (customId.startsWith('defineStats:')) return handleDefineStats(interaction);
+        if (customId.startsWith('editGameStats:')) return handleEditGameStats(interaction);
+        if (customId.startsWith('deleteStats:')) return handleDeleteStats(interaction);
+        if (customId.startsWith('finishStatSetup:')) return handleFinishStatSetup(interaction);
+        if (customId.startsWith('togglePublishGame:')) return handleTogglePublishButton(interaction);
+        if (customId.startsWith('confirmDeleteStat:')) return handleConfirmDeleteStat(interaction);
+        if (customId.startsWith('submitNewCharacter')) return handleSubmitCharacter(interaction);
+        if (customId.startsWith('deleteCharacter')) return handleDeleteCharacter(interaction);
+        if (customId.startsWith('confirmDeleteCharacter')) return handleConfirmDeleteCharacterButton(interaction);
+        if (customId.startsWith('charPage:')) return handleCharPageButton(interaction);
+        if (customId.startsWith('editCharacterStat')) return handleEditCharacterStatsButton(interaction);
+        if (customId.startsWith('calculateCharacterStats:')) return handleCalculateStatsButton(interaction);
+        if (customId.startsWith('handleToggleCharacterVisibilityButton:')) return handleToggleCharacterVisibilityButton(interaction);
+        if (customId.startsWith('viewParagraphFields')) return handleViewParagraphFieldsButton(interaction);
 
         if (
             customId.startsWith('add_inventory_item:') ||
@@ -55,16 +50,8 @@ module.exports = {
             return inventoryButtons.handle(interaction);
         }
 
-        if (
-            customId.startsWith('adjust_stats:') ||
-            customId.startsWith('decrementCount:') ||
-            customId.startsWith('incrementCount:')
-        ) {
-            return adjustCountButtons.handle(interaction);
-        }
-
         if (customId.startsWith('goBackToCharacter:')) {
-            return characterViewButtons.handle(interaction);
+            return characterViewButtons.handle(interaction); // candidate for view_character_card
         }
 
         return fallbackButtons.handle(interaction);

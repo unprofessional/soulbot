@@ -13,27 +13,46 @@ const addMessage = async (message) => {
     try {
         const structuredMessage = {
             userId: message.author.id,
-            guildId: message.guild?.id || null, // null if DM
-            channelId: message.channel?.id || null, // null if DM
-            messageId: message.id,  // must exist
+            guildId: message.guild?.id || null,
+            channelId: message.channel?.id || null,
+            messageId: message.id,
             content: message.content || '[Non-text message]',
-            attachments: Array.from(message.attachments.values()).map((att) => att.url), // Extract URLs from attachments
+            attachments: Array.from(message.attachments.values()).map((att) => att.url),
             meta: {
                 ...(message.channel.isThread?.() && { threadId: message.channel.id }),
                 username: message.author.username,
                 channelName: message.channel?.name,
                 guildName: message.guild?.name,
-            },                    
+            },
         };
 
         const success = await messageDAO.save(structuredMessage);
+
+        // Format timestamp in Eastern Time (EST/EDT), 12-hour, MMM/DD/YYYY
+        const timestamp = new Intl.DateTimeFormat('en-US', {
+            timeZone: 'America/New_York',
+            year: 'numeric',
+            month: 'short',
+            day: '2-digit',
+            hour: 'numeric',
+            minute: '2-digit',
+            hour12: true,
+        }).format(new Date(message.createdTimestamp));
+
+        const serverName = message.guild?.name || 'DM';
+        const channelName = message.channel?.name || (message.channel?.isDMBased?.() ? 'DM' : 'Unknown');
+        const username = message.author.username;
+        const content = structuredMessage.content;
+
+        const logLine = `[${timestamp}] | ${serverName} / ${channelName} | ${username}: ${content}`;
+
         if (!success) {
-            console.error('Failed to add message to database');
+            console.error('❌ Failed to add message to database');
         } else {
-            console.log('Message added successfully:', structuredMessage);
+            console.log('Saved: ', logLine);
         }
     } catch (err) {
-        console.error('Error in addMessage service:', err);
+        console.error('❗ Error in addMessage service:', err);
     }
 };
 

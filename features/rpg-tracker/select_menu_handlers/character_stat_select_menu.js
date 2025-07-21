@@ -25,20 +25,7 @@ async function handle(interaction) {
     const [, characterId] = customId.split(':');
     const selectedKey = values?.[0];
 
-    console.log('[editStatSelect] Received interaction for characterId:', characterId);
-    console.log('[editStatSelect] Selected key:', selectedKey);
-
     const character = await getCharacterWithStats(characterId);
-    console.log('[editStatSelect] Hydrated character:', {
-        id: character.id,
-        name: character.name,
-        stats: character.stats?.map(s => ({
-            name: s.name,
-            template_id: s.template_id,
-            label: s.label,
-            value: s.value,
-        })),
-    });
 
     if (!selectedKey) {
         console.warn('[editStatSelect] No value received from select menu.');
@@ -52,7 +39,6 @@ async function handle(interaction) {
     if (selectedKey.startsWith('core:')) {
         const [, coreField] = selectedKey.split(':');
         const value = character[coreField] ?? '';
-        console.log(`[editStatSelect] Matched CORE field: ${coreField}, value:`, value);
 
         const label = coreField.charAt(0).toUpperCase() + coreField.slice(1);
         const inputStyle = coreField === 'bio' ? TextInputStyle.Paragraph : TextInputStyle.Short;
@@ -86,13 +72,6 @@ async function handle(interaction) {
             ephemeral: true,
         });
     }
-
-    console.log('[editStatSelect] Matched STAT field:', {
-        template_id: stat.template_id,
-        name: stat.name,
-        label: stat.label,
-        value: stat.value,
-    });
 
     const label = stat.label || selectedKey;
     const fieldKey = stat.template_id || stat.name;

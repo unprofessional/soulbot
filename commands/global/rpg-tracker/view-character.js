@@ -1,13 +1,19 @@
 // commands/global/rpg-tracker/view-character.js
 
 const { SlashCommandBuilder } = require('discord.js');
+
 const {
     getCharactersByUser,
     getCharacterWithStats,
 } = require('../../../store/services/character.service');
-const { getCurrentGame } = require('../../../store/services/player.service');
+
+const {
+    getCurrentGame,
+    getCurrentCharacter,
+} = require('../../../store/services/player.service');
+
 const { validateGameAccess } = require('../../../features/rpg-tracker/validate_game_access');
-const { renderCharacterView } = require('../../../features/rpg-tracker/utils/render_character_view');
+const { build: buildCharacterCard } = require('../../../features/rpg-tracker/components/view_character_card');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -44,17 +50,27 @@ module.exports = {
                 });
             }
 
-            const character = allCharacters[0];
-            const full = await getCharacterWithStats(character.id);
+            const activeCharacterId = await getCurrentCharacter(userId, guildId);
+
+            const full = await getCharacterWithStats(activeCharacterId);
+            if (!full) {
+                return await interaction.reply({
+                    content: '⚠️ Could not load your active character. Please try `/switch-character`.',
+                    ephemeral: true,
+                });
+            }
 
             const { warning } = await validateGameAccess({ gameId: full.game_id, userId });
-            const view = renderCharacterView(full);
+
+            const isSelf = full.id === activeCharacterId;
+            const view = buildCharacterCard(full, isSelf);
 
             await interaction.reply({
                 ...view,
                 content: warning || view.content,
                 ephemeral: true,
             });
+
         } catch (err) {
             console.error('[COMMAND ERROR] /view-character:', err);
             await interaction.reply({

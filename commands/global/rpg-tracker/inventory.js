@@ -3,11 +3,8 @@
 const { SlashCommandBuilder } = require('discord.js');
 const { getCurrentCharacter } = require('../../../store/services/player.service');
 const { getCharacterWithInventory } = require('../../../store/services/inventory.service');
-const {
-    buildInventoryEmbed,
-    buildInventoryActionRow,
-} = require('../../../features/rpg-tracker/embed_utils');
 const { validateGameAccess } = require('../../../features/rpg-tracker/validate_game_access');
+const { build: buildInventoryCard } = require('../../../features/rpg-tracker/components/view_inventory_card');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -48,13 +45,12 @@ module.exports = {
                 });
             }
 
-            const embed = buildInventoryEmbed(character);
-            const row = buildInventoryActionRow(character.id);
+            const { embeds, components } = buildInventoryCard(character);
 
             return await interaction.reply({
                 content: warning || undefined,
-                embeds: [embed],
-                components: [row],
+                embeds,
+                components,
                 ephemeral: true,
             });
         } catch (err) {

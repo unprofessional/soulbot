@@ -27,6 +27,7 @@ async function createCharacter({
     stats = {},
     customFields = {},
 }) {
+
     const character = await characterDAO.create({
         user_id: userId,
         game_id: gameId,
@@ -36,6 +37,7 @@ async function createCharacter({
         level,
         notes,
     });
+
 
     if (stats && typeof stats === 'object') {
         await statDAO.bulkUpsert(character.id, stats);
@@ -53,12 +55,15 @@ async function createCharacter({
 
 async function getCharacterWithStats(characterId) {
     const character = await characterDAO.findById(characterId);
-    if (!character) return null;
+    if (!character) {
+        console.warn('⚠️ Character not found:', characterId);
+        return null;
+    }
 
     const stats = await statDAO.findByCharacter(characterId);
     const custom = await customDAO.findByCharacter(characterId);
-
     const templates = await getStatTemplates(character.game_id);
+
     const templateMap = Object.fromEntries(templates.map(t => [t.id, t]));
 
     const enrichedStats = stats.map(stat => {
@@ -80,16 +85,13 @@ async function getCharacterWithStats(characterId) {
 /**
  * Returns all characters belonging to a user for the current game in this guild.
  */
-async function getCharactersByUser(userId, guildId) { // <-- GUILD ID, NOT GAME ID!!!
+async function getCharactersByUser(userId, guildId) {
     const currentGameId = await getCurrentGame(userId, guildId);
-    console.log('>>> character.service > getCharactersByUser > currentGameId: ', currentGameId);
     if (!currentGameId) return [];
 
     const all = await characterDAO.findByUser(userId);
-    console.log('>>> character.service > getCharactersByUser > all: ', all);
 
     const results = all.filter(c => c.game_id === currentGameId);
-    console.log('>>> character.service > getCharactersByUser > results: ', results);
     return results;
 }
 
@@ -127,16 +129,10 @@ async function deleteCharacter(characterId) {
 }
 
 async function getUserDefinedFields(userId) {
-    // Placeholder: future user template support
-    console.log('>>> getUserDefinedFields > userId: ', userId);
+    console.log('🔧 getUserDefinedFields > userId:', userId);
     return [];
 }
 
-/**
- * For /switch-character
- * @param {*} character 
- * @returns 
- */
 async function getCharacterSummary(character) {
     const statFields = await statDAO.findByCharacter(character.id);
     const templates = await getStatTemplates(character.game_id);
@@ -161,10 +157,8 @@ async function getCharacterSummary(character) {
     return enriched;
 }
 
-/**
- * Updates a single key inside the stat's meta object.
- */
 async function updateStatMetaField(characterId, templateId, metaKey, newValue) {
+
     const existingStats = await statDAO.findByCharacter(characterId);
     const target = existingStats.find(s => s.template_id === templateId);
 
@@ -175,7 +169,6 @@ async function updateStatMetaField(characterId, templateId, metaKey, newValue) {
         [metaKey]: newValue,
     };
 
-    // Preserve existing value field
     return statDAO.create(characterId, templateId, target.value ?? '', updatedMeta);
 }
 

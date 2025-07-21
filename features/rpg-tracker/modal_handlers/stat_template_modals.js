@@ -1,3 +1,5 @@
+// // features/rpg-tracker/modal_handlers/stat_template_modals.js
+
 const {
     ModalBuilder,
     TextInputBuilder,
@@ -6,7 +8,6 @@ const {
 } = require('discord.js');
 
 const {
-    addStatTemplates,
     getStatTemplates,
     updateStatTemplate,
     getGame,
@@ -23,39 +24,6 @@ const {
  */
 async function handle(interaction) {
     const { customId } = interaction;
-
-    // === GM Create Stat via DROPDOWN flow ===
-    if (customId.startsWith('createStatModal:')) {
-        const [, gameId, fieldType] = customId.split(':');
-
-        const label = interaction.fields.getTextInputValue('label')?.trim().toUpperCase();
-        const defaultValue = interaction.fields.getTextInputValue('default_value')?.trim() || null;
-        const sortIndexRaw = interaction.fields.getTextInputValue('sort_index')?.trim();
-        const sortIndex = sortIndexRaw ? parseInt(sortIndexRaw, 10) : null;
-
-        if (!label || !['number', 'count', 'short', 'paragraph'].includes(fieldType)) {
-            return await interaction.reply({
-                content: '⚠️ Invalid input or stat type.',
-                ephemeral: true,
-            });
-        }
-
-        await addStatTemplates(gameId, [{
-            label,
-            field_type: fieldType,
-            default_value: defaultValue,
-            sort_index: sortIndex,
-        }]);
-
-        const [game, statTemplates] = await Promise.all([
-            getGame({ id: gameId }),
-            getStatTemplates(gameId),
-        ]);
-
-        const response = rebuildCreateGameResponse(game, statTemplates, label);
-
-        return await interaction.update(response);
-    }
 
     // === GM Edit Existing Stat Field === (no longer allows editing type)
     if (customId.startsWith('editStatTemplateModal:')) {

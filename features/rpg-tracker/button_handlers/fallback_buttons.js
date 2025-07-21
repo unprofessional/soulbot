@@ -1,14 +1,12 @@
 // features/rpg-tracker/button_handlers/fallback_buttons.js
 
 const {
-    buildCharacterEmbed,
-    buildCharacterActionRow,
-} = require('../embed_utils');
-
-const {
     getCharactersByUser,
     getCharacterWithStats,
 } = require('../../../store/services/character.service');
+
+const { isActiveCharacter } = require('../utils/is_active_character');
+const { build: buildCharacterCard } = require('../components/view_character_card');
 
 /**
  * Fallback for unknown buttons or default character view.
@@ -49,9 +47,11 @@ async function execute(interaction) {
 
         const full = await getCharacterWithStats(character.id);
 
+        const isSelf = await isActiveCharacter(userId, guildId, character.id);
+        const view = buildCharacterCard(full, isSelf);
+
         return await interaction.reply({
-            embeds: [buildCharacterEmbed(full)],
-            components: [buildCharacterActionRow(character.id, character.visibility)],
+            ...view,
             ephemeral: true,
         });
     } catch (err) {

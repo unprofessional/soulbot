@@ -7,10 +7,8 @@ const {
     updateStatMetaField,
 } = require('../../../store/services/character.service');
 
-const {
-    buildCharacterEmbed,
-    buildCharacterActionRow,
-} = require('../embed_utils');
+const { isActiveCharacter } = require('../utils/is_active_character');
+const { build: buildCharacterCard } = require('../components/view_character_card');
 
 /**
  * Handles modals related to character stat or metadata editing.
@@ -23,8 +21,6 @@ async function handle(interaction) {
         // === Edit GAME Stat ===
         if (customId.startsWith('editStatModal:')) {
             const [, characterId, fieldType, fieldKey] = customId.split(':');
-
-            let newValue;
 
             if (fieldType === 'count') {
                 const maxValue = interaction.fields.getTextInputValue(`${fieldKey}:max`)?.trim();
@@ -39,17 +35,14 @@ async function handle(interaction) {
                     });
                 }
 
-                console.log('[editStatModal] Updating COUNT stat:', {
+                console.log('[editStatModal] Updating COUNT stat via meta:', {
                     characterId, fieldKey, parsedMax, parsedCurrent,
                 });
 
-                await updateStat(characterId, fieldKey, String(parsedCurrent), {
-                    max: parsedMax,
-                    current: parsedCurrent,
-                });
+                await updateStatMetaField(characterId, fieldKey, 'max', parsedMax);
+                await updateStatMetaField(characterId, fieldKey, 'current', parsedCurrent);
             } else {
-                // Handle all other field types: number, short, paragraph
-                newValue = interaction.fields.getTextInputValue(fieldKey)?.trim();
+                const newValue = interaction.fields.getTextInputValue(fieldKey)?.trim();
 
                 if (typeof newValue !== 'string') {
                     return await interaction.reply({
@@ -65,13 +58,12 @@ async function handle(interaction) {
             await interaction.deferUpdate();
 
             const updated = await getCharacterWithStats(characterId);
-            const embed = buildCharacterEmbed(updated);
-            const row = buildCharacterActionRow(characterId, updated.visibility);
+            const isSelf = await isActiveCharacter(interaction.user.id, interaction.guildId, characterId);
+            const view = buildCharacterCard(updated, isSelf);
 
             return await interaction.editReply({
+                ...view,
                 content: null,
-                embeds: [embed],
-                components: [row],
             });
         }
 
@@ -103,13 +95,17 @@ async function handle(interaction) {
             await interaction.deferUpdate();
 
             const updated = await getCharacterWithStats(characterId);
-            const embed = buildCharacterEmbed(updated);
-            const row = buildCharacterActionRow(characterId, updated.visibility);
+            const isSelf = await isActiveCharacter(interaction.user.id, interaction.guildId, characterId);
+            console.log('[editCharacterField] isSelf: ', isSelf);
+            console.log('[editCharacterField] interaction.user.id: ', interaction.user.id);
+            const view = await buildCharacterCard(updated, {
+                viewerUserId: isSelf ? interaction.user.id : null,
+                guildId: interaction.guildId,
+            });
 
             return await interaction.editReply({
+                ...view,
                 content: null,
-                embeds: [embed],
-                components: [row],
             });
         }
 
@@ -144,60 +140,6 @@ async function handle(interaction) {
 
             return await interaction.reply({
                 content: `📝 Character **${name}** updated successfully.`,
-                ephemeral: true,
-            });
-        }
-
-        // === Adjust STAT by delta (from Adjust Stats flow)
-        if (customId.startsWith('adjustStatModal:')) {
-            const [, characterId, statId] = customId.split(':');
-
-            const deltaRaw = interaction.fields.getTextInputValue('deltaValue')?.trim();
-            const delta = parseInt(deltaRaw, 10);
-
-            if (isNaN(delta)) {
-                return await interaction.reply({
-                    content: '⚠️ Invalid number entered.',
-                    ephemeral: true,
-                });
-            }
-
-            const character = await getCharacterWithStats(characterId);
-            const stat = character.stats.find(s => s.template_id === statId);
-            if (!stat) {
-                return await interaction.reply({
-                    content: `⚠️ Stat not found.`,
-                    ephemeral: true,
-                });
-            }
-
-            if (stat.field_type === 'count') {
-                const current = parseInt(stat.meta?.current ?? stat.meta?.max ?? 0);
-                const max = parseInt(stat.meta?.max ?? 9999);
-                const next = Math.max(0, Math.min(current + delta, max));
-
-                await updateStatMetaField(characterId, statId, 'current', next);
-            }
-            else if (stat.field_type === 'number') {
-                const val = parseInt(stat.value ?? 0);
-                const next = val + delta;
-
-                await updateStat(characterId, statId, String(next));
-            } else {
-                return await interaction.reply({
-                    content: `⚠️ Cannot adjust stat of type: ${stat.field_type}`,
-                    ephemeral: true,
-                });
-            }
-
-            const updated = await getCharacterWithStats(characterId);
-            const embed = buildCharacterEmbed(updated);
-            const row = buildCharacterActionRow(characterId, updated.visibility);
-
-            return await interaction.reply({
-                content: `✅ Updated **${stat.label}** by ${delta > 0 ? '+' : ''}${delta}.`,
-                embeds: [embed],
-                components: [row],
                 ephemeral: true,
             });
         }

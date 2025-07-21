@@ -1,7 +1,8 @@
 // features/rpg-tracker/button_handlers/character_view_buttons.js
 
 const { getCharacterWithStats } = require('../../../store/services/character.service');
-const { renderCharacterView } = require('../utils/render_character_view');
+const { isActiveCharacter } = require('../utils/is_active_character');
+const { build: buildCharacterCard } = require('../components/view_character_card');
 
 async function handle(interaction) {
     const { customId } = interaction;
@@ -18,7 +19,12 @@ async function handle(interaction) {
             });
         }
 
-        return await interaction.update(renderCharacterView(character));
+        const userId = interaction.user.id;
+        const guildId = interaction.guildId;
+        const isSelf = await isActiveCharacter(userId, guildId, character.id);
+        const view = buildCharacterCard(character, isSelf);
+        
+        return await interaction.update(view);
     }
 }
 

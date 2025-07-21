@@ -16,10 +16,7 @@ const {
     deleteInventoryByCharacter,
 } = require('../../../store/services/inventory.service');
 
-const {
-    buildInventoryEmbed,
-    buildInventoryActionRow,
-} = require('../embed_utils');
+const { build: buildInventoryCard } = require('../components/view_inventory_card');
 
 /**
  * Handles inventory-related button interactions.
@@ -67,10 +64,11 @@ async function handle(interaction) {
         const [, characterId] = customId.split(':');
         try {
             const character = await getCharacterWithStats(characterId);
+            const { embeds, components } = buildInventoryCard(character);
 
             return await interaction.reply({
-                embeds: [buildInventoryEmbed(character)],
-                components: [buildInventoryActionRow(character.id)],
+                embeds,
+                components,
                 ephemeral: true,
             });
         } catch (err) {

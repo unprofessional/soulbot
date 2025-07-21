@@ -147,6 +147,7 @@ const initializeListeners = async (client) => {
                         const isModernId = statusId.length >= 15;
                     
                         if (isKnownDomain && (isModernId || domain === 'twitter.com' || domain === 'x.com')) {
+                            console.log();
                             console.log('✅ Valid Twitter/X status detected:', match[0]);
                     
                             // You can normalize if needed

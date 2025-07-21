@@ -3,7 +3,7 @@
 const { SlashCommandBuilder } = require('discord.js');
 const { getCurrentGame } = require('../../../store/services/player.service');
 const { getGame, getStatTemplates } = require('../../../store/services/game.service');
-const { rebuildCreateGameResponse } = require('../../../features/rpg-tracker/utils/rebuild_create_game_response');
+const { build } = require('../../../features/rpg-tracker/components/view_game_card');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -32,7 +32,6 @@ module.exports = {
             }
 
             const game = await getGame({ id: currentGameId });
-
             if (!game) {
                 return await interaction.reply({
                     content: '⚠️ Your current game no longer exists.',
@@ -41,7 +40,7 @@ module.exports = {
             }
 
             const statTemplates = await getStatTemplates(currentGameId);
-            const response = rebuildCreateGameResponse(game, statTemplates, null, 'view', userId);
+            const response = build(game, statTemplates, userId);
 
             return await interaction.reply({
                 ...response,

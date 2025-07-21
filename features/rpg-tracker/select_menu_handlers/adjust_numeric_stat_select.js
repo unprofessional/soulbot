@@ -2,9 +2,6 @@
 
 const {
     ActionRowBuilder,
-    ButtonBuilder,
-    ButtonStyle,
-    EmbedBuilder,
     ModalBuilder,
     TextInputBuilder,
     TextInputStyle,
@@ -14,7 +11,6 @@ const { getCharacterWithStats } = require('../../../store/services/character.ser
 
 /**
  * Handles both:
- * - adjustCountSelect:<characterId> → legacy flow with increment/decrement buttons
  * - adjustStatSelect:<characterId> → new flow with delta input modal
  */
 async function handle(interaction) {
@@ -34,67 +30,32 @@ async function handle(interaction) {
         });
     }
 
-    // === NEW FLOW: show modal input for count/number fields
+    // === Show modal input for count/number fields
     if (customId.startsWith('adjustStatSelect:')) {
         const modal = new ModalBuilder()
             .setCustomId(`adjustStatModal:${characterId}:${statId}`)
             .setTitle(`Adjust Stat Value`);
 
-        const deltaInput = new TextInputBuilder()
+        const operatorInput = new TextInputBuilder()
+            .setCustomId('deltaOperator')
+            .setLabel('Math operator (+, -, *, /)')
+            .setStyle(TextInputStyle.Short)
+            .setRequired(true)
+            .setPlaceholder('+');
+
+        const valueInput = new TextInputBuilder()
             .setCustomId('deltaValue')
-            .setLabel('Amount to add or subtract (e.g. -2 or 5)')
+            .setLabel('Value to apply with operator')
             .setStyle(TextInputStyle.Short)
             .setRequired(true)
             .setPlaceholder('Enter a number');
 
-        modal.addComponents(new ActionRowBuilder().addComponents(deltaInput));
-        return await interaction.showModal(modal);
-    }
-
-    // === LEGACY FLOW: show increment/decrement buttons
-    if (customId.startsWith('adjustCountSelect:')) {
-        if (stat.field_type !== 'count') {
-            return await interaction.update({
-                content: '❌ That stat is no longer valid or not a count field.',
-                embeds: [],
-                components: [],
-            });
-        }
-
-        const current = stat.meta?.current ?? stat.meta?.max ?? 0;
-        const max = stat.meta?.max ?? '?';
-
-        const embed = new EmbedBuilder()
-            .setTitle(`Adjust **${stat.label}**`)
-            .setDescription(`Current Value: **${current} / ${max}**`)
-            .setColor(0x00b0f4);
-
-        const decrementBtn = new ButtonBuilder()
-            .setCustomId(`decrementCount:${characterId}:${statId}`)
-            .setLabel('➖')
-            .setStyle(ButtonStyle.Danger);
-
-        const incrementBtn = new ButtonBuilder()
-            .setCustomId(`incrementCount:${characterId}:${statId}`)
-            .setLabel('➕')
-            .setStyle(ButtonStyle.Success);
-
-        const goBackBtn = new ButtonBuilder()
-            .setCustomId(`adjust_stats:${characterId}`)
-            .setLabel('↩️ Back to Stat Select')
-            .setStyle(ButtonStyle.Secondary);
-
-        const row = new ActionRowBuilder().addComponents(
-            decrementBtn,
-            incrementBtn,
-            goBackBtn
+        modal.addComponents(
+            new ActionRowBuilder().addComponents(operatorInput),
+            new ActionRowBuilder().addComponents(valueInput)
         );
 
-        return await interaction.update({
-            content: `⚙️ Adjusting stat for **${character.name}**`,
-            embeds: [embed],
-            components: [row],
-        });
+        return await interaction.showModal(modal);
     }
 
     // fallback (shouldn't happen)
