@@ -3,15 +3,14 @@
 const ffmpeg = require('fluent-ffmpeg');
 
 /**
- * Empirical CRF-style estimator for H.264 output size.
- * Adjusts for resolution and duration using a MB/s rate based on real-world tests.
+ * Calibrated CRF-style estimator for H.264 output size.
+ * Based on empirical compression ratio from real-world FFmpeg runs.
  *
- * @param {string} filePath - Path to input video file.
- * @param {number} resolutionHeight - Output height (e.g. 312px).
- * @param {number} mbpsBaseline - Baseline MB/s at 360p (default: 0.3 MB/s).
- * @returns {Promise<number>} Estimated output file size in bytes.
+ * @param {string} filePath - Input video.
+ * @param {number} resolutionHeight - Output canvas video height.
+ * @returns {Promise<number>} Estimated file size in bytes.
  */
-async function estimateOutputSizeBytes(filePath, resolutionHeight = 312, mbpsBaseline = 0.3) {
+async function estimateOutputSizeBytes(filePath, resolutionHeight = 312) {
     return new Promise((resolve, reject) => {
         ffmpeg.ffprobe(filePath, (err, metadata) => {
             if (err) return reject(err);
@@ -19,9 +18,14 @@ async function estimateOutputSizeBytes(filePath, resolutionHeight = 312, mbpsBas
             const durationSec = metadata.format.duration;
             if (!durationSec) return reject(new Error('Missing duration'));
 
-            // Scale bitrate based on height relative to 360p
+            /**
+             * 👇 Based on actual outputs:
+             * - At CRF ~23, 312p video ends up ~0.06 MB/sec
+             * - Scale that by resolution height
+             */
+            const baselineMBPerSecAt360p = 0.06; // empirical average
             const resolutionScale = resolutionHeight / 360;
-            const estimatedMB = durationSec * mbpsBaseline * resolutionScale;
+            const estimatedMB = durationSec * baselineMBPerSecAt360p * resolutionScale;
 
             const estimatedBytes = estimatedMB * 1024 * 1024;
             resolve(Math.floor(estimatedBytes));
