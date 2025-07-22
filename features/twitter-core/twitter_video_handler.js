@@ -6,7 +6,8 @@ const { downloadVideo, getVideoFileSize, bakeImageAsFilterIntoVideo } = require(
 const { createTwitterVideoCanvas } = require('../twitter-video/twitter_video_canvas.js');
 const { sendVideoReply } = require('./webhook_utils.js');
 const { cleanup } = require('../twitter-video/cleanup.js');
-const { getRemoteFileSize } = require('./file_size_utils.js');
+// const { getRemoteFileSize } = require('./file_size_utils.js');
+const { estimateOutputSizeBytes } = require('./estimate_output_size');
 
 // Discord file upload limits (hardcoded as Discord doesn't expose this via API)
 const DISCORD_UPLOAD_LIMITS_MB = {
@@ -22,24 +23,6 @@ async function handleVideoPost({ metadataJson, message, originalLink, videoUrl, 
         return message.reply({ content: 'Video processing at capacity; try again later.' });
     }
 
-    // Preflight check: get remote file size
-    try {
-        const remoteFileSize = await getRemoteFileSize(videoUrl);
-        const guild = message.client.guilds.cache.get(message.guildId);
-        const boostTier = guild?.premiumTier ?? 0;
-        const maxBytes = DISCORD_UPLOAD_LIMITS_MB[boostTier] * 1024 * 1024;
-
-        console.log(`>>> Remote file size: ${remoteFileSize} bytes`);
-        console.log(`>>> Max allowed for tier ${boostTier}: ${maxBytes} bytes`);
-
-        if (remoteFileSize > maxBytes) {
-            const fixupLink = originalLink.replace('https://x.com', 'https://fixupx.com');
-            return message.reply(`❌ Video too large for this server tier (max ${DISCORD_UPLOAD_LIMITS_MB[boostTier]}MB). Defaulting to FIXUPX link: ${fixupLink}`);
-        }
-    } catch (err) {
-        console.warn('⚠️ Could not determine remote file size. Proceeding anyway...');
-    }
-
     const { filename, localWorkingPath } = buildPathsAndStuff(processingDir, videoUrl);
     const videoInputPath = `${localWorkingPath}/${filename}.mp4`;
     const canvasInputPath = `${localWorkingPath}/${filename}.png`;
@@ -52,6 +35,22 @@ async function handleVideoPost({ metadataJson, message, originalLink, videoUrl, 
 
     try {
         await downloadVideo(videoUrl, videoInputPath);
+
+        const guild = message.client.guilds.cache.get(message.guildId);
+        const boostTier = guild?.premiumTier ?? 0;
+        const maxBytes = DISCORD_UPLOAD_LIMITS_MB[boostTier] * 1024 * 1024;
+
+        const estimatedSize = await estimateOutputSizeBytes(videoInputPath, 800);
+        const estimatedMB = (estimatedSize / 1024 / 1024).toFixed(2);
+        const guildName = message.guild?.name || 'Unknown Guild';
+
+        console.log(`[${guildName}] Estimated: ${estimatedMB}MB / Limit: ${DISCORD_UPLOAD_LIMITS_MB[boostTier]}MB`);
+
+        if (estimatedSize > maxBytes) {
+            const fixupLink = originalLink.replace('https://x.com', 'https://fixupx.com');
+            return message.reply(`⚠️ Estimated output file too large for this server tier (max ${DISCORD_UPLOAD_LIMITS_MB[boostTier]}MB). Defaulting to FIXUPX link: ${fixupLink}`);
+        }
+
         await logDebugInfo(message, videoInputPath);
 
         const { canvasHeight, canvasWidth, heightShim } = await createTwitterVideoCanvas(metadataJson);
