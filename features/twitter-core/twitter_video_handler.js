@@ -2,11 +2,14 @@
 
 const { countDirectoriesInDirectory } = require('./twitter_post_utils.js');
 const { buildPathsAndStuff } = require('./path_builder.js');
-const { downloadVideo, getVideoFileSize, bakeImageAsFilterIntoVideo } = require('../twitter-video');
+const {
+    downloadVideo,
+    getVideoFileSize,
+    bakeImageAsFilterIntoVideo
+} = require('../twitter-video');
 const { createTwitterVideoCanvas } = require('../twitter-video/twitter_video_canvas.js');
 const { sendVideoReply } = require('./webhook_utils.js');
 const { cleanup } = require('../twitter-video/cleanup.js');
-// const { getRemoteFileSize } = require('./file_size_utils.js');
 const { estimateOutputSizeBytes } = require('./estimate_output_size');
 
 // Discord file upload limits (hardcoded as Discord doesn't expose this via API)
@@ -17,7 +20,14 @@ const DISCORD_UPLOAD_LIMITS_MB = {
     3: 100,
 };
 
-async function handleVideoPost({ metadataJson, message, originalLink, videoUrl, processingDir, MAX_CONCURRENT_REQUESTS }) {
+async function handleVideoPost({
+    metadataJson,
+    message,
+    originalLink,
+    videoUrl,
+    processingDir,
+    MAX_CONCURRENT_REQUESTS
+}) {
     const currentDirCount = await countDirectoriesInDirectory(processingDir);
     if (currentDirCount >= MAX_CONCURRENT_REQUESTS) {
         return message.reply({ content: 'Video processing at capacity; try again later.' });
@@ -39,10 +49,10 @@ async function handleVideoPost({ metadataJson, message, originalLink, videoUrl, 
         const guild = message.client.guilds.cache.get(message.guildId);
         const boostTier = guild?.premiumTier ?? 0;
         const maxBytes = DISCORD_UPLOAD_LIMITS_MB[boostTier] * 1024 * 1024;
+        const guildName = message.guild?.name || 'Unknown Guild';
 
         const estimatedSize = await estimateOutputSizeBytes(videoInputPath, 800);
         const estimatedMB = (estimatedSize / 1024 / 1024).toFixed(2);
-        const guildName = message.guild?.name || 'Unknown Guild';
 
         console.log(`[${guildName}] Estimated: ${estimatedMB}MB / Limit: ${DISCORD_UPLOAD_LIMITS_MB[boostTier]}MB`);
 
@@ -56,10 +66,20 @@ async function handleVideoPost({ metadataJson, message, originalLink, videoUrl, 
         const { canvasHeight, canvasWidth, heightShim } = await createTwitterVideoCanvas(metadataJson);
 
         const successFilePath = await bakeImageAsFilterIntoVideo(
-            videoInputPath, canvasInputPath, videoOutputPath,
-            mediaSize.height, mediaSize.width,
-            canvasHeight, canvasWidth, heightShim
+            videoInputPath,
+            canvasInputPath,
+            videoOutputPath,
+            mediaSize.height,
+            mediaSize.width,
+            canvasHeight,
+            canvasWidth,
+            heightShim
         );
+
+        const actualSize = await getVideoFileSize(successFilePath);
+        const actualMB = (actualSize / 1024 / 1024).toFixed(2);
+
+        console.log(`[${guildName}] ✅ Output file size: ${actualMB}MB vs estimated ${estimatedMB}MB`);
 
         await sendVideoReply(message, successFilePath, localWorkingPath, originalLink);
     } catch (err) {
@@ -73,7 +93,7 @@ async function logDebugInfo(message, videoInputPath) {
     const guild = message.client.guilds.cache.get(message.guildId);
     const boostTier = guild?.premiumTier ?? 0;
 
-    console.log('>>> fileSize:', fileSize);
+    console.log('>>> Input file size:', fileSize);
     console.log('>>> boostTier:', boostTier);
 }
 
