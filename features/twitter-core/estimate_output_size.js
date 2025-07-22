@@ -54,4 +54,37 @@ async function estimateOutputSizeBytes(filePath, resolutionHeight = 312) {
     });
 }
 
-module.exports = { estimateOutputSizeBytes };
+/**
+ * Utility to log ffprobe output metadata for a given video file.
+ * Used for output file diagnostics.
+ */
+function inspectVideoFileDetails(filePath, label = 'ffprobe') {
+    ffmpeg.ffprobe(filePath, (err, metadata) => {
+        if (err) return console.warn(`⚠️ ${label} ffprobe failed:`, err);
+
+        const { format, streams } = metadata;
+        const videoStream = streams.find((s) => s.codec_type === 'video');
+        const audioStream = streams.find((s) => s.codec_type === 'audio');
+
+        if (videoStream) {
+            console.log(`🎥 ${label} video:`, {
+                durationSec: parseFloat(format.duration).toFixed(2),
+                resolution: `${videoStream.width}x${videoStream.height}`,
+                videoCodec: videoStream.codec_name,
+                videoBitrateKbps: (videoStream.bit_rate / 1000).toFixed(1),
+            });
+        }
+
+        if (audioStream) {
+            console.log(`🔊 ${label} audio:`, {
+                hasAudio: true,
+                audioCodec: audioStream.codec_name,
+                audioBitrateKbps: (audioStream.bit_rate / 1000).toFixed(1),
+            });
+        } else {
+            console.log(`🔇 ${label} audio: none`);
+        }
+    });
+}
+
+module.exports = { estimateOutputSizeBytes, inspectVideoFileDetails };

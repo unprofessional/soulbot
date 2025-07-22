@@ -10,7 +10,7 @@ const {
 const { createTwitterVideoCanvas } = require('../twitter-video/twitter_video_canvas.js');
 const { sendVideoReply } = require('./webhook_utils.js');
 const { cleanup } = require('../twitter-video/cleanup.js');
-const { estimateOutputSizeBytes } = require('./estimate_output_size');
+const { estimateOutputSizeBytes, inspectVideoFileDetails } = require('./estimate_output_size');
 
 // Discord file upload limits (hardcoded as Discord doesn't expose this via API)
 const DISCORD_UPLOAD_LIMITS_MB = {
@@ -80,6 +80,8 @@ async function handleVideoPost({
         const actualMB = (actualSize / 1024 / 1024).toFixed(2);
 
         console.log(`[${guildName}] ✅ Output file size: ${actualMB}MB vs estimated ${estimatedMB}MB`);
+
+        inspectVideoFileDetails(successFilePath, 'output');
 
         await sendVideoReply(message, successFilePath, localWorkingPath, originalLink);
     } catch (err) {
