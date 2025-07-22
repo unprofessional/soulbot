@@ -3,12 +3,11 @@
 const ffmpeg = require('fluent-ffmpeg');
 
 /**
- * Calibrated CRF-style estimator for H.264 output size.
- * Based on empirical compression ratio from real-world FFmpeg runs.
+ * CRF-style empirical estimator with fudge factor for short clips.
  *
  * @param {string} filePath - Input video.
- * @param {number} resolutionHeight - Output canvas video height.
- * @returns {Promise<number>} Estimated file size in bytes.
+ * @param {number} resolutionHeight - Height of output canvas video.
+ * @returns {Promise<number>} Estimated output file size in bytes.
  */
 async function estimateOutputSizeBytes(filePath, resolutionHeight = 312) {
     return new Promise((resolve, reject) => {
@@ -18,16 +17,12 @@ async function estimateOutputSizeBytes(filePath, resolutionHeight = 312) {
             const durationSec = metadata.format.duration;
             if (!durationSec) return reject(new Error('Missing duration'));
 
-            /**
-             * 👇 Based on actual outputs:
-             * - At CRF ~23, 312p video ends up ~0.06 MB/sec
-             * - Scale that by resolution height
-             */
-            const baselineMBPerSecAt360p = 0.06; // empirical average
+            const baselineMBPerSecAt360p = 0.06;
             const resolutionScale = resolutionHeight / 360;
-            const estimatedMB = durationSec * baselineMBPerSecAt360p * resolutionScale;
 
+            const estimatedMB = (durationSec * baselineMBPerSecAt360p * resolutionScale) + 0.4;
             const estimatedBytes = estimatedMB * 1024 * 1024;
+
             resolve(Math.floor(estimatedBytes));
         });
     });
