@@ -2,18 +2,11 @@
 
 const ffmpeg = require('fluent-ffmpeg');
 
-// Target encoding rates based on observed ffmpeg output with libx264 at 560px width
-const TARGET_VIDEO_BITRATE_KBPS = 850;
-const TARGET_AUDIO_BITRATE_KBPS = 128;
-
 /**
- * Estimates output file size in bytes using target bitrate assumptions.
- * Adds debug logging for tuning and diagnostics.
- * 
- * @param {string} filePath - Path to input video file.
- * @returns {Promise<number>} Estimated size in bytes.
+ * Uses ffprobe to extract stream metadata and estimate output file size.
+ * Calibrated based on actual FFmpeg output for short/long and low/high-res videos.
  */
-async function estimateOutputSizeBytes(filePath) {
+async function estimateOutputSizeBytes(filePath, resolutionHeight = 312) {
     return new Promise((resolve, reject) => {
         ffmpeg.ffprobe(filePath, (err, metadata) => {
             if (err) return reject(err);
@@ -28,36 +21,41 @@ async function estimateOutputSizeBytes(filePath) {
             const width = videoStream?.width || 'unknown';
             const height = videoStream?.height || 'unknown';
 
-            const inputVideoBitrate = parseInt(videoStream?.bit_rate || '0', 10);
-            const inputAudioBitrate = parseInt(audioStream?.bit_rate || '0', 10);
-            const audioCodec = audioStream?.codec_name || 'none';
             const videoCodec = videoStream?.codec_name || 'unknown';
+            const audioCodec = audioStream?.codec_name || 'none';
             const hasAudio = !!audioStream;
 
+            // --- Tuned bitrate estimation logic ---
+            let videoBitrateKbps;
+            if (durationSec < 20) {
+                videoBitrateKbps = 300;
+            } else if (resolutionHeight <= 312) {
+                videoBitrateKbps = 600;
+            } else {
+                videoBitrateKbps = 900;
+            }
+
+            const audioBitrateKbps = hasAudio ? 128 : 0;
+            const totalBitrateKbps = videoBitrateKbps + audioBitrateKbps;
+
+            const estimatedBytes = ((totalBitrateKbps * 1000) / 8) * durationSec + (150 * 1024);
+            const estimatedMB = estimatedBytes / 1024 / 1024;
+
+            // --- Logging ---
             console.log('🎥 ffprobe video:', {
                 durationSec,
                 resolution: `${width}x${height}`,
                 videoCodec,
-                videoBitrateKbps: (inputVideoBitrate / 1000).toFixed(1),
+                videoBitrateKbps,
             });
             console.log('🔊 ffprobe audio:', {
                 hasAudio,
                 audioCodec,
-                audioBitrateKbps: (inputAudioBitrate / 1000).toFixed(1),
+                audioBitrateKbps,
             });
+            console.log(`📏 Estimated size: ${estimatedMB.toFixed(2)}MB`);
 
-            const totalKbps = TARGET_VIDEO_BITRATE_KBPS + (hasAudio ? TARGET_AUDIO_BITRATE_KBPS : 0);
-            const estimatedBytes = ((totalKbps * 1000) / 8) * durationSec;
-
-            // Light fudge factor for short videos (<20s)
-            const fudgeBytes = durationSec < 20 ? 200 * 1024 : 0;
-
-            const estimatedBytesWithFudge = Math.floor(estimatedBytes + fudgeBytes);
-            const estimatedMB = (estimatedBytesWithFudge / 1024 / 1024).toFixed(2);
-
-            console.log(`📏 Estimated size: ${estimatedMB}MB`);
-
-            resolve(estimatedBytesWithFudge);
+            resolve(Math.floor(estimatedBytes));
         });
     });
 }
@@ -95,4 +93,7 @@ function inspectVideoFileDetails(filePath, label = 'ffprobe') {
     });
 }
 
-module.exports = { estimateOutputSizeBytes, inspectVideoFileDetails };
+module.exports = {
+    estimateOutputSizeBytes,
+    inspectVideoFileDetails,
+};
