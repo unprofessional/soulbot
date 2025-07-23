@@ -58,8 +58,10 @@ async function handleVideoPost({
 
         if (estimatedSize > maxBytes) {
             const fixupLink = originalLink.replace('https://x.com', 'https://fixupx.com');
+            await cleanup([], [localWorkingPath]); // ✅ this line ensures temp folder is deleted
             return message.reply(`⚠️ Estimated output file too large for this server tier (max ${DISCORD_UPLOAD_LIMITS_MB[boostTier]}MB). Defaulting to FIXUPX link: ${fixupLink}`);
         }
+
 
         await logDebugInfo(message, videoInputPath);
 
