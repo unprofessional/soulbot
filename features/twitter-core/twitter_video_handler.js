@@ -44,6 +44,8 @@ async function handleVideoPost({
         throw new Error('Video has no dimensions in metadata!');
     }
 
+    const startTime = Date.now(); // ⏱️ Start timing
+
     try {
         await downloadVideo(videoUrl, videoInputPath);
 
@@ -52,11 +54,9 @@ async function handleVideoPost({
         const maxBytes = DISCORD_UPLOAD_LIMITS_MB[boostTier] * 1024 * 1024;
         const guildName = message.guild?.name || 'Unknown Guild';
 
-        // === Conditional Estimation Check ===
         if (USE_ESTIMATION) {
             const estimatedSize = await estimateOutputSizeBytes(videoInputPath, 800);
             const estimatedMB = (estimatedSize / 1024 / 1024).toFixed(2);
-
             console.log(`[${guildName}] Estimated: ${estimatedMB}MB / Limit: ${DISCORD_UPLOAD_LIMITS_MB[boostTier]}MB`);
 
             if (estimatedSize > maxBytes) {
@@ -96,7 +96,11 @@ async function handleVideoPost({
     } catch (err) {
         console.error('>>> ERROR: renderTwitterPost > err:', err);
         await cleanup([], [localWorkingPath]);
+    } finally {
+        const totalTime = (Date.now() - startTime) / 1000;
+        console.log(`⏱️ Video processing completed in ${totalTime.toFixed(2)}s`);
     }
+
 }
 
 async function logDebugInfo(message, videoInputPath) {
