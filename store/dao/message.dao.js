@@ -117,43 +117,38 @@ class MessageDAO {
     }
 
     /**
-     * Find existing messages that contain a specific Twitter/X link.
-     * @param {*} guildId 
-     * @param {*} messageId 
-     * @param {*} url 
-     * @returns 
+     * Find existing non-deleted messages that contain a specific Twitter/X link.
+     * @param {string} guildId 
+     * @param {string} messageId 
+     * @param {string} url 
+     * @returns {Promise<Array>}
      */
     async findMessagesByLink(guildId, messageId, url) {
-        // Normalize base for both X and Twitter
         const urlWithoutParams = url.split('?')[0];
 
-        // NOTE: For now, we should just search against `/status/8888888888888888888`
-        // See `message_listeners/core.js`
+        const twitterUrl = urlWithoutParams.replace(/^https?:\/\/x\.com/, 'https://twitter.com');
+        const xUrl = urlWithoutParams.replace(/^https?:\/\/twitter\.com/, 'https://x.com');
 
-        const twitterUrl = urlWithoutParams
-            .replace(/^https?:\/\/x\.com/, 'https://twitter.com');
-    
-        const xUrl = urlWithoutParams
-            .replace(/^https?:\/\/twitter\.com/, 'https://x.com');
-    
         const sql = `
-            SELECT * 
-            FROM message
-            WHERE guild_id = $1 AND (
-                content ILIKE $2 OR content ILIKE $3
-            )
-            AND message_id != $4
-            ORDER BY created_at ASC
-            LIMIT 1
-        `;
-    
+        SELECT * 
+        FROM message
+        WHERE guild_id = $1
+          AND deleted_at IS NULL
+          AND (
+              content ILIKE $2 OR content ILIKE $3
+          )
+          AND message_id != $4
+        ORDER BY created_at ASC
+        LIMIT 1
+    `;
+
         const params = [
             guildId,
             `%${twitterUrl}%`,
             `%${xUrl}%`,
             messageId,
         ];
-    
+
         try {
             console.log('>>>>> MessageDAO > findMessagesByLink > twitterUrl:', twitterUrl);
             console.log('>>>>> MessageDAO > findMessagesByLink > xUrl:', xUrl);
