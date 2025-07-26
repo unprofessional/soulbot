@@ -5,14 +5,15 @@ const { buildPathsAndStuff } = require('./path_builder.js');
 const {
     downloadVideo,
     getVideoFileSize,
-    bakeImageAsFilterIntoVideo
+    bakeImageAsFilterIntoVideo,
 } = require('../twitter-video');
 const { createTwitterVideoCanvas } = require('../twitter-video/twitter_video_canvas.js');
 const { sendVideoReply } = require('./webhook_utils.js');
 const { cleanup } = require('../twitter-video/cleanup.js');
 const { estimateOutputSizeBytes, inspectVideoFileDetails } = require('./estimate_output_size');
 
-// Discord file upload limits (hardcoded as Discord doesn't expose this via API)
+const USE_ESTIMATION = false; // 🔧 Toggle to `true` to re-enable output size estimation
+
 const DISCORD_UPLOAD_LIMITS_MB = {
     0: 8,
     1: 8,
@@ -26,7 +27,7 @@ async function handleVideoPost({
     originalLink,
     videoUrl,
     processingDir,
-    MAX_CONCURRENT_REQUESTS
+    MAX_CONCURRENT_REQUESTS,
 }) {
     const currentDirCount = await countDirectoriesInDirectory(processingDir);
     if (currentDirCount >= MAX_CONCURRENT_REQUESTS) {
@@ -51,17 +52,23 @@ async function handleVideoPost({
         const maxBytes = DISCORD_UPLOAD_LIMITS_MB[boostTier] * 1024 * 1024;
         const guildName = message.guild?.name || 'Unknown Guild';
 
-        const estimatedSize = await estimateOutputSizeBytes(videoInputPath, 800);
-        const estimatedMB = (estimatedSize / 1024 / 1024).toFixed(2);
+        // === Conditional Estimation Check ===
+        if (USE_ESTIMATION) {
+            const estimatedSize = await estimateOutputSizeBytes(videoInputPath, 800);
+            const estimatedMB = (estimatedSize / 1024 / 1024).toFixed(2);
 
-        console.log(`[${guildName}] Estimated: ${estimatedMB}MB / Limit: ${DISCORD_UPLOAD_LIMITS_MB[boostTier]}MB`);
+            console.log(`[${guildName}] Estimated: ${estimatedMB}MB / Limit: ${DISCORD_UPLOAD_LIMITS_MB[boostTier]}MB`);
 
-        if (estimatedSize > maxBytes) {
-            const fixupLink = originalLink.replace('https://x.com', 'https://fixupx.com');
-            await cleanup([], [localWorkingPath]); // ✅ this line ensures temp folder is deleted
-            return message.reply(`⚠️ Estimated output file too large for this server tier (max ${DISCORD_UPLOAD_LIMITS_MB[boostTier]}MB). Defaulting to FIXUPX link: ${fixupLink}`);
+            if (estimatedSize > maxBytes) {
+                const fixupLink = originalLink.replace('https://x.com', 'https://fixupx.com');
+                await cleanup([], [localWorkingPath]);
+                return message.reply(
+                    `⚠️ Estimated output file too large for this server tier (max ${DISCORD_UPLOAD_LIMITS_MB[boostTier]}MB). Defaulting to FIXUPX link: ${fixupLink}`,
+                );
+            }
+        } else {
+            console.log(`[${guildName}] Skipping size estimation; proceeding to full video processing.`);
         }
-
 
         await logDebugInfo(message, videoInputPath);
 
@@ -75,13 +82,13 @@ async function handleVideoPost({
             mediaSize.width,
             canvasHeight,
             canvasWidth,
-            heightShim
+            heightShim,
         );
 
         const actualSize = await getVideoFileSize(successFilePath);
         const actualMB = (actualSize / 1024 / 1024).toFixed(2);
 
-        console.log(`[${guildName}] ✅ Output file size: ${actualMB}MB vs estimated ${estimatedMB}MB`);
+        console.log(`[${guildName}] ✅ Output file size: ${actualMB}MB`);
 
         inspectVideoFileDetails(successFilePath, 'output');
 
