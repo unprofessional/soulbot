@@ -88,8 +88,41 @@ const findMessagesByLink = async (guildId, messageId, url) => {
     }
 }
 
-module.exports = { 
+const updateMessage = async (messageId, newContent) => {
+    try {
+        const success = await messageDAO.updateMessage(messageId, newContent);
+        if (!success) {
+            console.error(`❌ Failed to update message ${messageId}`);
+        } else {
+            console.log(`✏️ Message ${messageId} updated.`);
+        }
+        return success;
+    } catch (err) {
+        console.error('Error in updateMessage service:', err);
+        return false;
+    }
+};
+
+const deleteMessage = async (messageId) => {
+    try {
+        const success = await messageDAO.deleteMessage(messageId);
+        if (!success) {
+            console.error(`❌ Failed to delete message ${messageId}`);
+        } else {
+            console.log(`🗑️ Message ${messageId} marked as deleted.`);
+        }
+        return success;
+    } catch (err) {
+        console.error('Error in deleteMessage service:', err);
+        return false;
+    }
+};
+
+module.exports = {
     addMessage,
     getMessages,
     findMessagesByLink,
+    updateMessage,
+    deleteMessage,
 };
+

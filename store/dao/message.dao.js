@@ -164,6 +164,48 @@ class MessageDAO {
             throw err;
         }
     }
+
+    /**
+     * Update message content and set updated_at timestamp by message ID.
+     * @param {string} messageId - Discord message ID.
+     * @param {string} newContent - Updated message text.
+     * @returns {Promise<boolean>}
+     */
+    async updateMessage(messageId, newContent) {
+        const sql = `
+        UPDATE message
+        SET content = $1,
+            updated_at = NOW()
+        WHERE message_id = $2
+    `;
+
+        try {
+            await pool.query(sql, [newContent, messageId]);
+            return true;
+        } catch (err) {
+            console.error('Error updating message content:', err);
+            return false;
+        }
+    }
+
+    /**
+     * Soft-delete a message by setting deleted_at timestamp.
+     * Leaves content, attachments, and meta intact.
+     */
+    async deleteMessage(messageId) {
+        const sql = `
+            UPDATE message
+            SET deleted_at = NOW()
+            WHERE message_id = $1
+        `;
+        try {
+            await pool.query(sql, [messageId]);
+            return true;
+        } catch (err) {
+            console.error('Error marking message as deleted:', err);
+            return false;
+        }
+    }
     
 }
 

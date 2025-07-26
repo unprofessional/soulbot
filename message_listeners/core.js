@@ -9,6 +9,7 @@ const { sendPromptToOllama } = require('../features/ollama/index.js');
 const { logMessage } = require('../logger/logger.js');
 const { handleVisionCommand } = require('../features/ollama/vision_handler.js');
 const { handleTwitterUrl } = require('../features/twitter-core/twitter_handler.js');
+const { updateMessage, deleteMessage } = require('../store/services/messages.service.js');
 
 const twitterFeature = features.find(f => f.type === 'twitter');
 
@@ -111,6 +112,22 @@ async function initializeListeners(client) {
                     ? `Current controlled users: ${members}`
                     : 'List is empty for now...');
             }
+        }
+    });
+
+    // Message update listener
+    client.on(Events.MessageUpdate, async (oldMessage, newMessage) => {
+        if (!newMessage.partial && newMessage.content !== oldMessage.content) {
+            console.log(`✏️ Message edited: ${newMessage.id}`);
+            await updateMessage(newMessage.id, newMessage.content);
+        }
+    });
+
+    // Message delete listener
+    client.on(Events.MessageDelete, async (deletedMessage) => {
+        if (!deletedMessage.partial) {
+            console.log(`🗑️ Message deleted: ${deletedMessage.id}`);
+            await deleteMessage(deletedMessage.id);
         }
     });
 
