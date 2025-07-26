@@ -15,44 +15,45 @@ const pool = new Pool({
 
 class MessageDAO {
     /**
-     * Find all messages with optional filters.
+     * Find all non-deleted messages with optional filters.
      * @param {Object} options - Filters for the query.
      * @param {string} [options.userId] - Filter by user ID.
      * @param {string} [options.guildId] - Filter by guild ID.
      * @param {string} [options.channelId] - Filter by channel ID.
-     * @param {number} [options.limit] - Limit the number of results.
+     * @param {number} [options.limit=50] - Limit the number of results.
      * @returns {Promise<Array>} - List of messages.
      */
     async findAll(options = {}) {
         const { userId, guildId, channelId, limit = 50 } = options;
         const params = [];
-        let sql = `SELECT * FROM message`;
+        const conditions = ['deleted_at IS NULL']; // Always filter out soft-deleted messages
 
-        // Dynamically build WHERE clause
-        const conditions = [];
         if (userId) {
             conditions.push(`user_id = $${params.length + 1}`);
             params.push(userId);
         }
+
         if (guildId) {
             conditions.push(`guild_id = $${params.length + 1}`);
             params.push(guildId);
         }
+
         if (channelId) {
             conditions.push(`channel_id = $${params.length + 1}`);
             params.push(channelId);
         }
 
+        let sql = `SELECT * FROM message`;
+
         if (conditions.length > 0) {
-            sql += ` WHERE ` + conditions.join(' AND ');
+            sql += ` WHERE ${conditions.join(' AND ')}`;
         }
 
-        // Add ORDER BY and LIMIT (<--always enforce!)
         sql += ` ORDER BY created_at DESC LIMIT $${params.length + 1}`;
         params.push(limit);
 
         try {
-            console.log('>>>>> MessageDAO > findAll > sql: ', sql);
+            console.log('>>>>> MessageDAO > findAll > sql:', sql);
             const result = await pool.query(sql, params);
             return result.rows;
         } catch (err) {
