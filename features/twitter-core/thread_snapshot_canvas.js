@@ -1,6 +1,18 @@
 // features/twitter-core/thread_snapshot_canvas.js
 
-const { createCanvas, loadImage } = require('canvas');
+const { createCanvas, loadImage, registerFont } = require('canvas');
+
+const FONT_PATHS = [
+    ['/truetype/noto/NotoColorEmoji.ttf', 'Noto Color Emoji'],
+    ['/truetype/noto/NotoSansMath-Regular.ttf', 'Noto Sans Math'],
+    ['/opentype/noto/NotoSansCJK-VF.ttf.ttc', 'Noto Sans CJK']
+];
+
+function registerFonts(baseFontUrl = '/usr/share/fonts') {
+    FONT_PATHS.forEach(([path, family]) =>
+        registerFont(`${baseFontUrl}${path}`, { family })
+    );
+}
 
 const WIDTH = 1080;
 const HEIGHT = 1200;
@@ -11,6 +23,7 @@ const BUBBLE_WIDTH = 700;
 const AVATAR_SIZE = 48;
 const LINE_HEIGHT = 22;
 const FONT_SIZE = 14;
+const FONT_FAMILY = '"Noto Color Emoji", "Noto Sans CJK", "Noto Sans Math"';
 
 /**
  * Render a canvas from thread post data.
@@ -21,23 +34,25 @@ const FONT_SIZE = 14;
  * @returns {Promise<Buffer>}
  */
 async function renderThreadSnapshotCanvas({ posts, centerIndex, isTruncated }) {
+    registerFonts(); // ✅ register fonts before canvas
+
     const canvas = createCanvas(WIDTH, HEIGHT);
     const ctx = canvas.getContext('2d');
 
     // Black background
     ctx.fillStyle = '#000000';
     ctx.fillRect(0, 0, WIDTH, HEIGHT);
-
-    ctx.font = `${FONT_SIZE}px sans-serif`;
+    ctx.textDrawingMode = 'glyph';
+    ctx.font = `${FONT_SIZE}px ${FONT_FAMILY}`;
     ctx.fillStyle = '#ffffff';
 
     let y = PADDING_Y;
 
     // Optional header for truncation
     if (isTruncated) {
-        const repliesHidden = centerIndex; // how many posts were above the current node
+        const repliesHidden = centerIndex;
         ctx.fillStyle = '#888';
-        ctx.font = '14px sans-serif';
+        ctx.font = `14px ${FONT_FAMILY}`;
         ctx.fillText(`${repliesHidden} earlier ${repliesHidden === 1 ? 'reply' : 'replies'} not shown`, PADDING_X, y);
         y += LINE_HEIGHT * 2;
     }
@@ -55,19 +70,19 @@ async function renderThreadSnapshotCanvas({ posts, centerIndex, isTruncated }) {
             ctx.drawImage(avatarImg, PADDING_X, y, AVATAR_SIZE, AVATAR_SIZE);
             ctx.restore();
         } catch {
-            // fallback avatar
             ctx.fillStyle = '#444';
             ctx.beginPath();
             ctx.arc(PADDING_X + AVATAR_SIZE / 2, y + AVATAR_SIZE / 2, AVATAR_SIZE / 2, 0, Math.PI * 2);
             ctx.fill();
         }
 
-        // Username and timestamp
+        // Username
         ctx.fillStyle = '#ffffff';
-        ctx.font = 'bold 14px sans-serif';
+        ctx.font = `bold 14px ${FONT_FAMILY}`;
         ctx.fillText(`@${user_screen_name}`, PADDING_X + AVATAR_SIZE + 10, y + 16);
 
-        ctx.font = '12px sans-serif';
+        // Timestamp
+        ctx.font = `12px ${FONT_FAMILY}`;
         ctx.fillStyle = '#aaaaaa';
         ctx.fillText(`${formatAbsoluteTimestamp(date_epoch * 1000)}`, PADDING_X + AVATAR_SIZE + 10, y + 34);
 
@@ -78,10 +93,10 @@ async function renderThreadSnapshotCanvas({ posts, centerIndex, isTruncated }) {
         const bubbleY = y;
         const bubbleHeight = LINE_HEIGHT * 4;
 
-        ctx.fillStyle = '#f2f3f5';
+        ctx.fillStyle = '#e6e6e6'; // ✅ Light gray bubble
         ctx.fillRect(bubbleX, bubbleY, BUBBLE_WIDTH, bubbleHeight);
 
-        ctx.font = '14px sans-serif';
+        ctx.font = `14px ${FONT_FAMILY}`;
         ctx.fillStyle = '#000000';
         ctx.fillText(text.slice(0, 160), bubbleX + 12, bubbleY + 22);
 
