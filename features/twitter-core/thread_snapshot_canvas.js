@@ -92,7 +92,7 @@ async function renderThreadSnapshotCanvas({ posts, centerIndex, isTruncated }) {
         // Bubble
         const bubbleX = PADDING_X + AVATAR_SIZE + 10;
         const bubbleY = y;
-        const bubbleHeight = LINE_HEIGHT * 4 + 12;
+        const bubbleHeight = LINE_HEIGHT * 4;
 
         ctx.fillStyle = '#e6e6e6'; // ✅ Light gray bubble
         ctx.fillRect(bubbleX, bubbleY, BUBBLE_WIDTH, bubbleHeight);
