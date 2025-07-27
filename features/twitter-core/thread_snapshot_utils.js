@@ -1,28 +1,30 @@
+const fetch = require('node-fetch');
+
 /**
- * Fetch a tweet’s metadata via Twitter's public embed endpoint.
+ * Fetch tweet data using VXTwitter API.
  * @param {string} tweetID
  * @returns {Promise<Object|null>}
  */
 async function fetchTweetById(tweetID) {
     try {
-        const res = await fetch(`https://cdn.syndication.twimg.com/tweet-result?id=${tweetID}`);
+        const res = await fetch(`https://api.vxtwitter.com/Twitter/status/${tweetID}`);
         if (!res.ok) {
-            console.warn(`⚠️ fetch failed for ${tweetID} - status ${res.status}`);
+            console.warn(`⚠️ VXTwitter fetch failed: ${res.status}`);
             return null;
         }
 
-        const raw = await res.json();
+        const data = await res.json();
 
         return {
-            tweetID,
-            replyingToID: raw?.in_reply_to_status_id_str ?? null,
-            text: raw?.text ?? '',
-            user_screen_name: raw?.user?.screen_name ?? 'unknown',
-            user_profile_image_url: raw?.user?.profile_image_url_https ?? '',
-            date_epoch: raw?.created_at ? new Date(raw.created_at).getTime() / 1000 : Date.now() / 1000,
+            tweetID: data.tweetID,
+            replyingToID: data.replyingToID ?? null,
+            text: data.text ?? '',
+            user_screen_name: data.user_screen_name ?? 'unknown',
+            user_profile_image_url: data.user_profile_image_url ?? '',
+            date_epoch: data.date_epoch ?? Date.now() / 1000,
         };
     } catch (err) {
-        console.error(`❌ fetchTweetById error for ${tweetID}:`, err);
+        console.error(`❌ VXTwitter fetchTweetById error:`, err);
         return null;
     }
 }
