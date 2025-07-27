@@ -66,12 +66,12 @@ async function handleTwitterUrl(message, { twitterFeature, guildId }) {
         if (isMidThread) {
             console.log('🧵 Thread Snapshot triggered from mid-thread tweet');
             try {
-                // const buffer = await handleThreadSnapshot(firstUrl);
-                // return await message.reply({
-                //     files: [{ attachment: buffer, name: 'thread.png' }],
-                // });
-                const content = await handleThreadSnapshot(firstUrl);
-                return message.reply({ content });
+                const buffer = await handleThreadSnapshot(firstUrl);
+                return await message.reply({
+                    files: [{ attachment: buffer, name: 'thread.png' }],
+                });
+                // const content = await handleThreadSnapshot(firstUrl);
+                // return message.reply({ content });
 
             } catch (err) {
                 console.error('❌ Failed to render thread snapshot:', err);
