@@ -109,3 +109,7 @@ function formatAbsoluteTimestamp(ms) {
     });
     return `${timeStr} · ${dateStr}`;
 }
+
+module.exports = {
+    renderThreadSnapshotCanvas,
+};
