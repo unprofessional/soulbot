@@ -1,5 +1,7 @@
+// features/twitter-core/thread_snapshot_handler.js
+
 const { fetchTweetById } = require('./thread_snapshot_utils');
-// const { renderThreadSnapshotCanvas } = require('./thread_snapshot_canvas');
+const { renderThreadSnapshotCanvas } = require('./thread_snapshot_canvas');
 const { extractTweetIdFromUrl } = require('./twitter_post_utils');
 
 const MAX_THREAD_LENGTH = 6;
@@ -7,7 +9,7 @@ const MAX_THREAD_LENGTH = 6;
 /**
  * Handles a Thread Snapshot request.
  * @param {string} tweetUrl - A valid Twitter or X status URL
- * @returns {Promise<string>} - Formatted plain text content for proof of concept
+ * @returns {Promise<Buffer|string>} - PNG buffer of rendered thread snapshot, or plain text fallback
  */
 async function handleThreadSnapshot(tweetUrl) {
     const tweetID = extractTweetIdFromUrl(tweetUrl);
@@ -35,25 +37,29 @@ async function handleThreadSnapshot(tweetUrl) {
 
     const isTruncated = !!current.replyingToID;
 
-    // === Plain Text Version ===
-    let out = isTruncated
+    // === Build plain text fallback ===
+    let fallbackText = isTruncated
         ? `🧵 (${thread.length} posts) — *Earlier posts not shown*\n\n`
         : `🧵 (${thread.length} posts)\n\n`;
 
-    out += thread.map(post => {
+    fallbackText += thread.map(post => {
         const user = `@${post.user_screen_name}`;
-        const text = post.text?.trim().replace(/\s+/g, ' ');
+        const text = post.text?.trim().replace(/\s+/g, ' ') || '[no content]';
         return `**${user}**: ${text}`;
     }).join('\n\n');
 
-    return out;
-
-    // === Canvas Rendering (Disabled) ===
-    // return await renderThreadSnapshotCanvas({
-    //   posts: thread,
-    //   centerIndex: thread.length - 1,
-    //   isTruncated,
-    // });
+    // === Try rendering canvas ===
+    try {
+        const buffer = await renderThreadSnapshotCanvas({
+            posts: thread,
+            centerIndex: thread.length - 1,
+            isTruncated,
+        });
+        return buffer; // PNG Buffer
+    } catch (err) {
+        console.warn('⚠️ Canvas render failed, falling back to text:', err);
+        return fallbackText;
+    }
 }
 
 module.exports = { handleThreadSnapshot };

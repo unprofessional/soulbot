@@ -1,4 +1,4 @@
-const fetch = require('node-fetch');
+// features/twitter-core/thread_snapshot_utils.js
 
 /**
  * Fetch tweet data using VXTwitter API.
