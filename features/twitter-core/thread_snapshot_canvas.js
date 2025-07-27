@@ -20,7 +20,7 @@ const HEIGHT = 1200;
 
 const PADDING_X = 40;
 const PADDING_Y = 60;
-const BUBBLE_WIDTH = 700;
+const BUBBLE_WIDTH = WIDTH - (PADDING_X + AVATAR_SIZE + 10 + 40);
 const AVATAR_SIZE = 48;
 const LINE_HEIGHT = 22;
 const FONT_SIZE = 14;
@@ -92,7 +92,7 @@ async function renderThreadSnapshotCanvas({ posts, centerIndex, isTruncated }) {
         // Bubble
         const bubbleX = PADDING_X + AVATAR_SIZE + 10;
         const bubbleY = y;
-        const bubbleHeight = LINE_HEIGHT * 4;
+        const bubbleHeight = LINE_HEIGHT * 4 + 12;
 
         ctx.fillStyle = '#e6e6e6'; // ✅ Light gray bubble
         ctx.fillRect(bubbleX, bubbleY, BUBBLE_WIDTH, bubbleHeight);
