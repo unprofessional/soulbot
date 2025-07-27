@@ -2,6 +2,7 @@
 
 const { fetchMetadata, fetchQTMetadata } = require('./fetch_metadata.js');
 const { renderTwitterPost } = require('./render_twitter_post.js');
+const { handleThreadSnapshot } = require('./thread_snapshot_handler.js');
 const { stripQueryParams } = require('./utils.js');
 const { findMessagesByLink } = require('../../store/services/messages.service.js');
 
@@ -60,6 +61,24 @@ async function handleTwitterUrl(message, { twitterFeature, guildId }) {
         metadata = await fetchMetadata(firstUrl, message, containsX);
         if (metadata?.error) return message.reply('Post unavailable! Deleted or protected mode?');
 
+        // 🧵 New: Thread snapshot if this is a reply
+        const isMidThread = metadata.replyingToID !== null;
+        if (isMidThread) {
+            console.log('🧵 Thread Snapshot triggered from mid-thread tweet');
+            try {
+                // const buffer = await handleThreadSnapshot(firstUrl);
+                // return await message.reply({
+                //     files: [{ attachment: buffer, name: 'thread.png' }],
+                // });
+                const content = await handleThreadSnapshot(firstUrl);
+                return message.reply({ content });
+
+            } catch (err) {
+                console.error('❌ Failed to render thread snapshot:', err);
+                return await message.reply('Failed to render thread snapshot.');
+            }
+        }
+
         if (metadata.qrtURL) {
             const qtMeta = await fetchQTMetadata(metadata.qrtURL, message, containsX);
             metadata.qtMetadata = qtMeta;
@@ -71,7 +90,6 @@ async function handleTwitterUrl(message, { twitterFeature, guildId }) {
 
         console.log('>>>>> core detect > firstUrl:', firstUrl);
         await renderTwitterPost(metadata, message, firstUrl);
-
     } catch (err) {
         console.error('[TwitterHandler] metadata fetch failed:', err);
     }
