@@ -1,22 +1,28 @@
-// features/twitter-core/thread_snapshot_utils.js
-
-const { readFile } = require('fs').promises;
-const path = require('path');
-
 /**
- * Fetch a tweet by ID.
- * In prod: replace with API or scraping logic.
- * In dev: reads local fixture from `data/tweets/{id}.json`
+ * Fetch a tweet’s metadata via Twitter's public embed endpoint.
  * @param {string} tweetID
  * @returns {Promise<Object|null>}
  */
 async function fetchTweetById(tweetID) {
     try {
-        const filePath = path.join(__dirname, '../../data/tweets', `${tweetID}.json`);
-        const raw = await readFile(filePath, 'utf8');
-        return JSON.parse(raw);
+        const res = await fetch(`https://cdn.syndication.twimg.com/tweet-result?id=${tweetID}`);
+        if (!res.ok) {
+            console.warn(`⚠️ fetch failed for ${tweetID} - status ${res.status}`);
+            return null;
+        }
+
+        const raw = await res.json();
+
+        return {
+            tweetID,
+            replyingToID: raw?.in_reply_to_status_id_str ?? null,
+            text: raw?.text ?? '',
+            user_screen_name: raw?.user?.screen_name ?? 'unknown',
+            user_profile_image_url: raw?.user?.profile_image_url_https ?? '',
+            date_epoch: raw?.created_at ? new Date(raw.created_at).getTime() / 1000 : Date.now() / 1000,
+        };
     } catch (err) {
-        console.warn(`⚠️ fetchTweetById failed for ${tweetID}:`, err.message);
+        console.error(`❌ fetchTweetById error for ${tweetID}:`, err);
         return null;
     }
 }
