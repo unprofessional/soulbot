@@ -1,6 +1,7 @@
 // features/twitter-core/thread_snapshot_canvas.js
 
 const { createCanvas, loadImage, registerFont } = require('canvas');
+const { threadBubbleWrapText } = require('./canvas_utils');
 
 const FONT_PATHS = [
     ['/truetype/noto/NotoColorEmoji.ttf', 'Noto Color Emoji'],
@@ -98,7 +99,11 @@ async function renderThreadSnapshotCanvas({ posts, centerIndex, isTruncated }) {
 
         ctx.font = `14px ${FONT_FAMILY}`;
         ctx.fillStyle = '#000000';
-        ctx.fillText(text.slice(0, 160), bubbleX + 12, bubbleY + 22);
+
+        const wrappedLines = threadBubbleWrapText(ctx, text, BUBBLE_WIDTH - 24, 4);
+        wrappedLines.forEach((line, i) => {
+            ctx.fillText(line, bubbleX + 12, bubbleY + 22 + i * LINE_HEIGHT);
+        });
 
         y += bubbleHeight + 30;
     }

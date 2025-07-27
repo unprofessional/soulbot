@@ -309,6 +309,42 @@ function drawQtDesktopLayout(ctx, font, metadata, pfp, mediaObj, options) {
     }
 }
 
+function threadBubbleWrapText(ctx, text, maxWidth, maxLines = 4) {
+    const words = text.split(/\s+/);
+    const lines = [];
+    let currentLine = '';
+
+    for (let word of words) {
+        const testLine = currentLine ? `${currentLine} ${word}` : word;
+        const { width } = ctx.measureText(testLine);
+
+        if (width < maxWidth) {
+            currentLine = testLine;
+        } else {
+            lines.push(currentLine);
+            currentLine = word;
+            if (lines.length >= maxLines - 1) break;
+        }
+    }
+
+    if (currentLine) lines.push(currentLine);
+
+    if (lines.length > maxLines) {
+        lines.length = maxLines;
+    }
+
+    if (lines.length === maxLines && words.join(' ').length > lines.join(' ').length) {
+        // Trim last line to make room for ellipsis
+        while (ctx.measureText(lines[maxLines - 1] + '…').width > maxWidth) {
+            lines[maxLines - 1] = lines[maxLines - 1].slice(0, -1);
+        }
+        lines[maxLines - 1] += '…';
+    }
+
+    return lines;
+}
+
+
 module.exports = {
     getWrappedText,
     getYPosFromLineHeight,
@@ -321,4 +357,5 @@ module.exports = {
     getAdjustedAspectRatios,
     drawDesktopLayout,
     drawQtDesktopLayout,
+    threadBubbleWrapText,
 };
