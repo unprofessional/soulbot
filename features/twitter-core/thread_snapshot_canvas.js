@@ -24,19 +24,21 @@ async function renderThreadSnapshotCanvas({ posts, centerIndex, isTruncated }) {
     const canvas = createCanvas(WIDTH, HEIGHT);
     const ctx = canvas.getContext('2d');
 
-    // Background
-    ctx.fillStyle = '#ffffff';
+    // Black background
+    ctx.fillStyle = '#000000';
     ctx.fillRect(0, 0, WIDTH, HEIGHT);
 
     ctx.font = `${FONT_SIZE}px sans-serif`;
-    ctx.fillStyle = '#000000';
+    ctx.fillStyle = '#ffffff';
 
     let y = PADDING_Y;
 
-    // Optional "Earlier posts" header
+    // Optional header for truncation
     if (isTruncated) {
+        const repliesHidden = centerIndex; // how many posts were above the current node
         ctx.fillStyle = '#888';
-        ctx.fillText(`${centerIndex} earlier posts not shown`, PADDING_X, y);
+        ctx.font = '14px sans-serif';
+        ctx.fillText(`${repliesHidden} earlier ${repliesHidden === 1 ? 'reply' : 'replies'} not shown`, PADDING_X, y);
         y += LINE_HEIGHT * 2;
     }
 
@@ -53,25 +55,25 @@ async function renderThreadSnapshotCanvas({ posts, centerIndex, isTruncated }) {
             ctx.drawImage(avatarImg, PADDING_X, y, AVATAR_SIZE, AVATAR_SIZE);
             ctx.restore();
         } catch {
-            // fallback avatar render
-            ctx.fillStyle = '#ccc';
+            // fallback avatar
+            ctx.fillStyle = '#444';
             ctx.beginPath();
             ctx.arc(PADDING_X + AVATAR_SIZE / 2, y + AVATAR_SIZE / 2, AVATAR_SIZE / 2, 0, Math.PI * 2);
             ctx.fill();
         }
 
-        // Username + timeAgo
-        ctx.fillStyle = '#000';
+        // Username and timestamp
+        ctx.fillStyle = '#ffffff';
         ctx.font = 'bold 14px sans-serif';
         ctx.fillText(`@${user_screen_name}`, PADDING_X + AVATAR_SIZE + 10, y + 16);
 
         ctx.font = '12px sans-serif';
-        ctx.fillStyle = '#666';
-        ctx.fillText(`· ${formatTimeAgo(date_epoch * 1000)}`, PADDING_X + AVATAR_SIZE + 10 + 120, y + 16);
+        ctx.fillStyle = '#aaaaaa';
+        ctx.fillText(`${formatAbsoluteTimestamp(date_epoch * 1000)}`, PADDING_X + AVATAR_SIZE + 10, y + 34);
 
         y += AVATAR_SIZE + 10;
 
-        // Message bubble
+        // Bubble
         const bubbleX = PADDING_X + AVATAR_SIZE + 10;
         const bubbleY = y;
         const bubbleHeight = LINE_HEIGHT * 4;
@@ -80,8 +82,8 @@ async function renderThreadSnapshotCanvas({ posts, centerIndex, isTruncated }) {
         ctx.fillRect(bubbleX, bubbleY, BUBBLE_WIDTH, bubbleHeight);
 
         ctx.font = '14px sans-serif';
-        ctx.fillStyle = '#000';
-        ctx.fillText(text.slice(0, 160), bubbleX + 12, bubbleY + 22); // naive line wrap for now
+        ctx.fillStyle = '#000000';
+        ctx.fillText(text.slice(0, 160), bubbleX + 12, bubbleY + 22);
 
         y += bubbleHeight + 30;
     }
@@ -89,14 +91,21 @@ async function renderThreadSnapshotCanvas({ posts, centerIndex, isTruncated }) {
     return canvas.toBuffer('image/png');
 }
 
-function formatTimeAgo(ms) {
-    const deltaSec = Math.floor((Date.now() - ms) / 1000);
-    if (deltaSec < 60) return `${deltaSec}s ago`;
-    if (deltaSec < 3600) return `${Math.floor(deltaSec / 60)}m ago`;
-    if (deltaSec < 86400) return `${Math.floor(deltaSec / 3600)}h ago`;
-    return `${Math.floor(deltaSec / 86400)}d ago`;
+/**
+ * Format absolute tweet timestamp.
+ * E.g. "10:15 AM · Jul 27, 2025"
+ */
+function formatAbsoluteTimestamp(ms) {
+    const date = new Date(ms);
+    const timeStr = date.toLocaleTimeString('en-US', {
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true,
+    });
+    const dateStr = date.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+    });
+    return `${timeStr} · ${dateStr}`;
 }
-
-module.exports = {
-    renderThreadSnapshotCanvas,
-};
