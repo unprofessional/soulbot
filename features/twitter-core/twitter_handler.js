@@ -60,18 +60,22 @@ async function handleTwitterUrl(message, { twitterFeature, guildId }) {
     try {
         metadata = await fetchMetadata(firstUrl, message, containsX);
         if (metadata?.error) return message.reply('Post unavailable! Deleted or protected mode?');
-
         // 🧵 New: Thread snapshot if this is a reply
         const isMidThread = metadata.replyingToID !== null;
         if (isMidThread) {
             console.log('🧵 Thread Snapshot triggered from mid-thread tweet');
             try {
-                const buffer = await handleThreadSnapshot(firstUrl);
-                return await message.reply({
-                    files: [{ attachment: buffer, name: 'thread.png' }],
-                });
-                // const content = await handleThreadSnapshot(firstUrl);
-                // return message.reply({ content });
+                const result = await handleThreadSnapshot(firstUrl);
+
+                if (Buffer.isBuffer(result)) {
+                    return await message.reply({
+                        files: [{ attachment: result, name: 'thread.png' }],
+                    });
+                } else if (typeof result === 'string') {
+                    return await message.reply({ content: result });
+                } else {
+                    throw new Error('Unknown thread snapshot return type');
+                }
 
             } catch (err) {
                 console.error('❌ Failed to render thread snapshot:', err);
