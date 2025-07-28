@@ -15,7 +15,7 @@ function registerFonts(baseFontUrl = '/usr/share/fonts') {
     );
 }
 
-const WIDTH = 1080;
+const MAX_WIDTH = 1080;
 const PADDING_X = 40;
 const PADDING_Y = 60;
 const AVATAR_SIZE = 48;
@@ -43,22 +43,33 @@ async function renderThreadSnapshotCanvas({ posts, centerIndex, isTruncated }) {
     let totalHeight = PADDING_Y;
     if (isTruncated) totalHeight += LINE_HEIGHT * 2;
 
+    let maxBubbleRightEdge = 0;
+
     for (const post of posts) {
-        const wrapped = threadBubbleWrapText(tmpCtx, post.text, WIDTH - PADDING_X - AVATAR_SIZE - 10 - PADDING_X - INNER_BUBBLE_PADDING, 4);
+        const wrapMaxWidth = MAX_WIDTH - PADDING_X - AVATAR_SIZE - 10 - PADDING_X - INNER_BUBBLE_PADDING;
+        const wrapped = threadBubbleWrapText(tmpCtx, post.text, wrapMaxWidth, 4);
         const maxLineWidth = Math.max(...wrapped.map(l => tmpCtx.measureText(l).width));
+        const bubbleWidth = Math.max(maxLineWidth + INNER_BUBBLE_PADDING, MIN_BUBBLE_WIDTH);
+
         post._wrappedLines = wrapped;
-        post._bubbleWidth = Math.max(maxLineWidth + INNER_BUBBLE_PADDING, MIN_BUBBLE_WIDTH);
+        post._bubbleWidth = bubbleWidth;
         post._bubbleHeight = wrapped.length * LINE_HEIGHT + 24;
+
+        const rightEdge = PADDING_X + AVATAR_SIZE + 10 + bubbleWidth + PADDING_X;
+        if (rightEdge > maxBubbleRightEdge) {
+            maxBubbleRightEdge = rightEdge;
+        }
 
         totalHeight += AVATAR_SIZE + 10 + post._bubbleHeight + 30;
     }
 
     totalHeight += PADDING_Y;
 
-    const canvas = createCanvas(WIDTH, totalHeight);
+    const canvasWidth = Math.min(MAX_WIDTH, maxBubbleRightEdge);
+    const canvas = createCanvas(canvasWidth, totalHeight);
     const ctx = canvas.getContext('2d');
     ctx.fillStyle = '#000000';
-    ctx.fillRect(0, 0, WIDTH, totalHeight);
+    ctx.fillRect(0, 0, canvasWidth, totalHeight);
     ctx.textDrawingMode = 'glyph';
     ctx.font = `${FONT_SIZE}px ${FONT_FAMILY}`;
     ctx.fillStyle = '#ffffff';
