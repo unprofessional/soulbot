@@ -36,19 +36,41 @@ const FONT_FAMILY = '"Noto Color Emoji", "Noto Sans CJK", "Noto Sans Math"';
  */
 async function renderThreadSnapshotCanvas({ posts, centerIndex, isTruncated }) {
     registerFonts();
-    const canvas = createCanvas(WIDTH, HEIGHT);
+
+    // === Stage 1: Measure height ===
+    const tmpCanvas = createCanvas(1, 1);
+    const tmpCtx = tmpCanvas.getContext('2d');
+    tmpCtx.font = `${FONT_SIZE}px ${FONT_FAMILY}`;
+
+    let totalHeight = PADDING_Y;
+
+    if (isTruncated) {
+        totalHeight += LINE_HEIGHT * 2;
+    }
+
+    for (const post of posts) {
+        const wrappedLines = threadBubbleWrapText(tmpCtx, post.text, BUBBLE_WIDTH - 24, 4);
+        const bubbleHeight = wrappedLines.length * LINE_HEIGHT + 24;
+
+        totalHeight += AVATAR_SIZE + 10; // Avatar row
+        totalHeight += bubbleHeight + 30; // Bubble + gap
+    }
+
+    // Add bottom padding
+    totalHeight += PADDING_Y;
+
+    // === Stage 2: Render with correct height ===
+    const canvas = createCanvas(WIDTH, totalHeight);
     const ctx = canvas.getContext('2d');
 
-    // Black background
     ctx.fillStyle = '#000000';
-    ctx.fillRect(0, 0, WIDTH, HEIGHT);
+    ctx.fillRect(0, 0, WIDTH, totalHeight);
     ctx.textDrawingMode = 'glyph';
     ctx.font = `${FONT_SIZE}px ${FONT_FAMILY}`;
     ctx.fillStyle = '#ffffff';
 
     let y = PADDING_Y;
 
-    // Optional header for truncation
     if (isTruncated) {
         const repliesHidden = centerIndex;
         ctx.fillStyle = '#888';
@@ -57,12 +79,10 @@ async function renderThreadSnapshotCanvas({ posts, centerIndex, isTruncated }) {
         y += LINE_HEIGHT * 2;
     }
 
-    console.log('🧪 posts[0]:', posts[0]);
-
     for (const post of posts) {
         const { user_name, user_screen_name, user_profile_image_url, text, date_epoch } = post;
 
-        // Avatar
+        // === Avatar
         try {
             const avatarImg = await loadImage(user_profile_image_url);
             ctx.save();
@@ -78,7 +98,7 @@ async function renderThreadSnapshotCanvas({ posts, centerIndex, isTruncated }) {
             ctx.fill();
         }
 
-        // Display Name + @username
+        // === Name + @handle
         const nameX = PADDING_X + AVATAR_SIZE + 10;
         const nameY = y + 16;
 
@@ -92,27 +112,25 @@ async function renderThreadSnapshotCanvas({ posts, centerIndex, isTruncated }) {
         ctx.fillStyle = '#bbbbbb';
         ctx.fillText(` @${user_screen_name}`, nameX + nameWidth, nameY);
 
-        // Timestamp
+        // === Timestamp
         ctx.font = `12px ${FONT_FAMILY}`;
         ctx.fillStyle = '#aaaaaa';
-        ctx.fillText(`${formatAbsoluteTimestamp(date_epoch * 1000)}`, PADDING_X + AVATAR_SIZE + 10, y + 34);
+        ctx.fillText(formatAbsoluteTimestamp(date_epoch * 1000), nameX, y + 34);
 
         y += AVATAR_SIZE + 10;
 
-        // Bubble
-        const bubbleX = PADDING_X + AVATAR_SIZE + 10;
-        const bubbleY = y;
-        const bubbleHeight = LINE_HEIGHT * 4;
+        // === Bubble
+        const bubbleX = nameX;
+        const wrappedLines = threadBubbleWrapText(ctx, text, BUBBLE_WIDTH - 24, 4);
+        const bubbleHeight = wrappedLines.length * LINE_HEIGHT + 24;
 
         ctx.fillStyle = '#e6e6e6';
-        drawRoundedRect(ctx, bubbleX, bubbleY, BUBBLE_WIDTH, bubbleHeight, 12);
+        drawRoundedRect(ctx, bubbleX, y, BUBBLE_WIDTH, bubbleHeight, 12);
 
         ctx.font = `14px ${FONT_FAMILY}`;
         ctx.fillStyle = '#000000';
-
-        const wrappedLines = threadBubbleWrapText(ctx, text, BUBBLE_WIDTH - 24, 4);
         wrappedLines.forEach((line, i) => {
-            ctx.fillText(line, bubbleX + 12, bubbleY + 22 + i * LINE_HEIGHT);
+            ctx.fillText(line, bubbleX + 12, y + 22 + i * LINE_HEIGHT);
         });
 
         y += bubbleHeight + 30;
