@@ -85,6 +85,7 @@ async function renderThreadSnapshotCanvas({ posts, centerIndex, isTruncated }) {
     ctx.fillStyle = '#ffffff';
 
     let y = PADDING_Y;
+    const postAnchors = [];
 
     if (isTruncated) {
         const text = 'Earlier replies not shown';
@@ -155,22 +156,27 @@ async function renderThreadSnapshotCanvas({ posts, centerIndex, isTruncated }) {
         ctx.fillStyle = '#000000';
         lines.forEach((line, i) => ctx.fillText(line, bubbleX + 12, y + 22 + i * LINE_HEIGHT));
 
-        // Draw curvy reply line to previous message (if not first post)
-        if (i > 0) {
-            const fromX = avatarX + AVATAR_SIZE - 2;
-            const fromY = avatarY + AVATAR_SIZE / 2;
-            const toX = bubbleX + 8;
-            const toY = y + 8;
-
-            ctx.strokeStyle = '#777';
-            ctx.lineWidth = 1.5;
-            ctx.beginPath();
-            ctx.moveTo(fromX, fromY);
-            ctx.bezierCurveTo(fromX + 20, fromY, toX - 20, toY, toX, toY);
-            ctx.stroke();
-        }
+        postAnchors.push({ avatarX, avatarY, bubbleX, bubbleY: y });
 
         y += bh + 30;
+    }
+
+    // Draw reply arcs last so they overlay cleanly
+    ctx.strokeStyle = '#666';
+    ctx.lineWidth = 2;
+    for (let i = 1; i < postAnchors.length; i++) {
+        const from = postAnchors[i];
+        const to = postAnchors[i - 1];
+
+        const fromX = from.avatarX + AVATAR_SIZE / 2 + 3;
+        const fromY = from.avatarY + AVATAR_SIZE / 2;
+        const toX = to.bubbleX + 8;
+        const toY = to.bubbleY + 8;
+
+        ctx.beginPath();
+        ctx.moveTo(fromX, fromY);
+        ctx.bezierCurveTo(fromX + 30, fromY - 10, toX - 30, toY + 10, toX, toY);
+        ctx.stroke();
     }
 
     return canvas.toBuffer('image/png');
