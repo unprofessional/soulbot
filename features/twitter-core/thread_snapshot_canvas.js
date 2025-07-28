@@ -33,7 +33,7 @@ const INNER_BUBBLE_PADDING = 24; // 12px left + 12px right
  * @param {boolean} options.isTruncated
  * @returns {Promise<Buffer>}
  */
-async function renderThreadSnapshotCanvas({ posts, isTruncated }) {
+async function renderThreadSnapshotCanvas({ posts, centerIndex, isTruncated }) {
     registerFonts();
 
     const tmpCanvas = createCanvas(1, 1);
@@ -41,9 +41,17 @@ async function renderThreadSnapshotCanvas({ posts, isTruncated }) {
     tmpCtx.font = `${FONT_SIZE}px ${FONT_FAMILY}`;
 
     let totalHeight = PADDING_Y;
-    if (isTruncated) totalHeight += LINE_HEIGHT * 2;
-
     let maxContentWidth = 0;
+
+    if (isTruncated) {
+        tmpCtx.font = `16px ${FONT_FAMILY}`;
+        const text = 'Earlier replies not shown';
+        const textWidth = tmpCtx.measureText(text).width;
+        const padding = 24;
+        const bubbleWidth = textWidth + padding;
+        maxContentWidth = Math.max(maxContentWidth, bubbleWidth);
+        totalHeight += 60; // Bubble + spacing
+    }
 
     for (const post of posts) {
         const wrapped = threadBubbleWrapText(
@@ -79,12 +87,22 @@ async function renderThreadSnapshotCanvas({ posts, isTruncated }) {
     let y = PADDING_Y;
 
     if (isTruncated) {
-        ctx.fillStyle = '#888';
-        ctx.font = `14px ${FONT_FAMILY}`;
         const text = 'Earlier replies not shown';
+        ctx.font = `16px ${FONT_FAMILY}`;
         const textWidth = ctx.measureText(text).width;
-        ctx.fillText(text, (effectiveWidth - textWidth) / 2, y);
-        y += LINE_HEIGHT * 2;
+        const padding = 24;
+        const bw = textWidth + padding;
+        const bh = 38;
+        const bx = (effectiveWidth - bw) / 2;
+        ctx.fillStyle = '#000';
+        ctx.strokeStyle = '#444';
+        ctx.lineWidth = 1.5;
+        drawRoundedRect(ctx, bx, y, bw, bh, 12, false);
+        ctx.stroke();
+
+        ctx.fillStyle = '#888';
+        ctx.fillText(text, bx + padding / 2, y + 25);
+        y += bh + 22;
     }
 
     for (const post of posts) {
@@ -106,20 +124,20 @@ async function renderThreadSnapshotCanvas({ posts, isTruncated }) {
         }
 
         const nameX = PADDING_X + AVATAR_SIZE + 10;
-        const nameY = y + 16;
+        const nameY = y + 18;
 
-        ctx.font = `bold 14px ${FONT_FAMILY}`;
+        ctx.font = `bold 16px ${FONT_FAMILY}`;
         ctx.fillStyle = '#ffffff';
         ctx.fillText(user_name, nameX, nameY);
 
         const nameWidth = ctx.measureText(user_name).width;
-        ctx.font = `14px ${FONT_FAMILY}`;
+        ctx.font = `16px ${FONT_FAMILY}`;
         ctx.fillStyle = '#bbbbbb';
         ctx.fillText(` @${user_screen_name}`, nameX + nameWidth, nameY);
 
         ctx.font = `12px ${FONT_FAMILY}`;
         ctx.fillStyle = '#aaaaaa';
-        ctx.fillText(formatAbsoluteTimestamp(date_epoch * 1000), nameX, y + 34);
+        ctx.fillText(formatAbsoluteTimestamp(date_epoch * 1000), nameX, y + 36);
 
         y += AVATAR_SIZE + 10;
 
@@ -146,7 +164,7 @@ function formatAbsoluteTimestamp(ms) {
     return `${timeStr} · ${dateStr}`;
 }
 
-function drawRoundedRect(ctx, x, y, width, height, radius = 10) {
+function drawRoundedRect(ctx, x, y, width, height, radius = 10, fill = true) {
     ctx.beginPath();
     ctx.moveTo(x + radius, y);
     ctx.lineTo(x + width - radius, y);
@@ -158,7 +176,7 @@ function drawRoundedRect(ctx, x, y, width, height, radius = 10) {
     ctx.lineTo(x, y + radius);
     ctx.quadraticCurveTo(x, y, x + radius, y);
     ctx.closePath();
-    ctx.fill();
+    if (fill) ctx.fill();
 }
 
 module.exports = {
