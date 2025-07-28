@@ -314,36 +314,45 @@ function threadBubbleWrapText(ctx, text, maxWidth, maxLines = 4) {
     const lines = [];
     let currentLine = '';
 
-    for (let word of words) {
+    for (const word of words) {
         const testLine = currentLine ? `${currentLine} ${word}` : word;
-        const { width } = ctx.measureText(testLine);
+        const testWidth = ctx.measureText(testLine).width;
 
-        if (width < maxWidth) {
+        if (testWidth <= maxWidth) {
             currentLine = testLine;
         } else {
-            lines.push(currentLine);
-            currentLine = word;
-            if (lines.length >= maxLines - 1) break;
+            // If even a single word is too wide, force it into the line to avoid infinite loop
+            if (!currentLine) {
+                lines.push(word);
+            } else {
+                lines.push(currentLine);
+                currentLine = word;
+            }
+
+            if (lines.length >= maxLines - 1) {
+                break;
+            }
         }
     }
 
-    if (currentLine) lines.push(currentLine);
-
-    if (lines.length > maxLines) {
-        lines.length = maxLines;
+    if (currentLine && lines.length < maxLines) {
+        lines.push(currentLine);
     }
 
-    if (lines.length === maxLines && words.join(' ').length > lines.join(' ').length) {
-        // Trim last line to make room for ellipsis
-        while (ctx.measureText(lines[maxLines - 1] + '…').width > maxWidth) {
-            lines[maxLines - 1] = lines[maxLines - 1].slice(0, -1);
+    // Handle ellipsis if text was truncated
+    const totalWordsLength = words.join(' ').length;
+    const linesJoinedLength = lines.join(' ').length;
+
+    if (lines.length === maxLines && totalWordsLength > linesJoinedLength) {
+        let line = lines[maxLines - 1];
+        while (ctx.measureText(line + '…').width > maxWidth && line.length > 0) {
+            line = line.slice(0, -1);
         }
-        lines[maxLines - 1] += '…';
+        lines[maxLines - 1] = line + '…';
     }
 
     return lines;
 }
-
 
 module.exports = {
     getWrappedText,
