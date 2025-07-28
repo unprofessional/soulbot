@@ -16,12 +16,12 @@ function registerFonts(baseFontUrl = '/usr/share/fonts') {
 }
 
 const WIDTH = 1080;
-const HEIGHT = 1200;
 
 const PADDING_X = 40;
 const PADDING_Y = 60;
 const AVATAR_SIZE = 48;
 const BUBBLE_WIDTH = WIDTH - (PADDING_X + AVATAR_SIZE + 10 + 40);
+const TEXT_WRAP_WIDTH = BUBBLE_WIDTH - 48;
 const LINE_HEIGHT = 22;
 const FONT_SIZE = 14;
 const FONT_FAMILY = '"Noto Color Emoji", "Noto Sans CJK", "Noto Sans Math"';
@@ -49,7 +49,7 @@ async function renderThreadSnapshotCanvas({ posts, centerIndex, isTruncated }) {
     }
 
     for (const post of posts) {
-        const wrappedLines = threadBubbleWrapText(tmpCtx, post.text, BUBBLE_WIDTH - 24, 4);
+        const wrappedLines = threadBubbleWrapText(tmpCtx, post.text, TEXT_WRAP_WIDTH, 4);
         const bubbleHeight = wrappedLines.length * LINE_HEIGHT + 24;
 
         totalHeight += AVATAR_SIZE + 10; // Avatar row
