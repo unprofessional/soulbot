@@ -35,8 +35,7 @@ const FONT_FAMILY = '"Noto Color Emoji", "Noto Sans CJK", "Noto Sans Math"';
  * @returns {Promise<Buffer>}
  */
 async function renderThreadSnapshotCanvas({ posts, centerIndex, isTruncated }) {
-    registerFonts(); // ✅ register fonts before canvas
-
+    registerFonts();
     const canvas = createCanvas(WIDTH, HEIGHT);
     const ctx = canvas.getContext('2d');
 
@@ -94,8 +93,8 @@ async function renderThreadSnapshotCanvas({ posts, centerIndex, isTruncated }) {
         const bubbleY = y;
         const bubbleHeight = LINE_HEIGHT * 4;
 
-        ctx.fillStyle = '#e6e6e6'; // ✅ Light gray bubble
-        ctx.fillRect(bubbleX, bubbleY, BUBBLE_WIDTH, bubbleHeight);
+        ctx.fillStyle = '#e6e6e6';
+        drawRoundedRect(ctx, bubbleX, bubbleY, BUBBLE_WIDTH, bubbleHeight, 12);
 
         ctx.font = `14px ${FONT_FAMILY}`;
         ctx.fillStyle = '#000000';
@@ -128,6 +127,21 @@ function formatAbsoluteTimestamp(ms) {
         year: 'numeric',
     });
     return `${timeStr} · ${dateStr}`;
+}
+
+function drawRoundedRect(ctx, x, y, width, height, radius = 10) {
+    ctx.beginPath();
+    ctx.moveTo(x + radius, y);
+    ctx.lineTo(x + width - radius, y);
+    ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+    ctx.lineTo(x + width, y + height - radius);
+    ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+    ctx.lineTo(x + radius, y + height);
+    ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+    ctx.lineTo(x, y + radius);
+    ctx.quadraticCurveTo(x, y, x + radius, y);
+    ctx.closePath();
+    ctx.fill();
 }
 
 module.exports = {
