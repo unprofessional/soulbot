@@ -23,7 +23,7 @@ const MIN_BUBBLE_WIDTH = 300;
 const LINE_HEIGHT = 22;
 const FONT_SIZE = 14;
 const FONT_FAMILY = '"Noto Color Emoji", "Noto Sans CJK", "Noto Sans Math"';
-const INNER_BUBBLE_PADDING = 24; // 12px left + 12px right
+const INNER_BUBBLE_PADDING = 24;
 
 /**
  * Render a canvas from thread post data.
@@ -50,7 +50,7 @@ async function renderThreadSnapshotCanvas({ posts, centerIndex, isTruncated }) {
         const padding = 24;
         const bubbleWidth = textWidth + padding;
         maxContentWidth = Math.max(maxContentWidth, bubbleWidth);
-        totalHeight += 60; // Bubble + spacing
+        totalHeight += 60;
     }
 
     for (const post of posts) {
@@ -161,25 +161,24 @@ async function renderThreadSnapshotCanvas({ posts, centerIndex, isTruncated }) {
         y += bh + 30;
     }
 
+    // Reply lines
     ctx.strokeStyle = '#666';
     ctx.lineWidth = 2;
     for (let i = 1; i < postAnchors.length; i++) {
         const from = postAnchors[i];
         const to = postAnchors[i - 1];
 
-        const startX = from.avatarX + AVATAR_SIZE + 4;
-        const startY = from.avatarY + AVATAR_SIZE / 2;
-        const midX = startX + 16;
-        const midY = to.bubbleY + 8;
-        const endX = to.bubbleX + 8;
+        const x1 = from.avatarX + AVATAR_SIZE / 2;
+        const y1 = from.avatarY + AVATAR_SIZE / 2;
+        const x2 = x1;
+        const y2 = to.bubbleY + 8;
+        const x3 = to.bubbleX + 8;
 
         ctx.beginPath();
-        ctx.moveTo(startX, startY);
-        ctx.lineTo(midX, startY);
-        ctx.arcTo(midX + 1, startY, midX + 1, midY, 6);
-        ctx.lineTo(midX + 1, midY);
-        ctx.arcTo(midX + 1, midY, endX, midY, 6);
-        ctx.lineTo(endX, midY);
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2 - 8);
+        ctx.arcTo(x2, y2, x2 + 8, y2, 8);
+        ctx.lineTo(x3, y2);
         ctx.stroke();
     }
 
