@@ -57,6 +57,8 @@ async function renderThreadSnapshotCanvas({ posts, centerIndex, isTruncated }) {
         y += LINE_HEIGHT * 2;
     }
 
+    console.log('🧪 posts[0]:', posts[0]);
+
     for (const post of posts) {
         const { user_name, user_screen_name, user_profile_image_url, text, date_epoch } = post;
 
