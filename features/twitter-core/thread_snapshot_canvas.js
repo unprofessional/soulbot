@@ -16,7 +16,6 @@ function registerFonts(baseFontUrl = '/usr/share/fonts') {
 }
 
 const WIDTH = 1080;
-
 const PADDING_X = 40;
 const PADDING_Y = 60;
 const AVATAR_SIZE = 48;
@@ -24,6 +23,7 @@ const MIN_BUBBLE_WIDTH = 300;
 const LINE_HEIGHT = 22;
 const FONT_SIZE = 14;
 const FONT_FAMILY = '"Noto Color Emoji", "Noto Sans CJK", "Noto Sans Math"';
+const INNER_BUBBLE_PADDING = 24; // 12px left + 12px right
 
 /**
  * Render a canvas from thread post data.
@@ -44,10 +44,10 @@ async function renderThreadSnapshotCanvas({ posts, centerIndex, isTruncated }) {
     if (isTruncated) totalHeight += LINE_HEIGHT * 2;
 
     for (const post of posts) {
-        const wrapped = threadBubbleWrapText(tmpCtx, post.text, WIDTH, 4);
+        const wrapped = threadBubbleWrapText(tmpCtx, post.text, WIDTH - PADDING_X - AVATAR_SIZE - 10 - PADDING_X - INNER_BUBBLE_PADDING, 4);
         const maxLineWidth = Math.max(...wrapped.map(l => tmpCtx.measureText(l).width));
         post._wrappedLines = wrapped;
-        post._bubbleWidth = Math.max(maxLineWidth + 24, MIN_BUBBLE_WIDTH);
+        post._bubbleWidth = Math.max(maxLineWidth + INNER_BUBBLE_PADDING, MIN_BUBBLE_WIDTH);
         post._bubbleHeight = wrapped.length * LINE_HEIGHT + 24;
 
         totalHeight += AVATAR_SIZE + 10 + post._bubbleHeight + 30;
