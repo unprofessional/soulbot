@@ -20,8 +20,7 @@ const WIDTH = 1080;
 const PADDING_X = 40;
 const PADDING_Y = 60;
 const AVATAR_SIZE = 48;
-const BUBBLE_WIDTH = WIDTH - (PADDING_X + AVATAR_SIZE + 10 + 40);
-const TEXT_WRAP_WIDTH = BUBBLE_WIDTH - 48;
+const MIN_BUBBLE_WIDTH = 300;
 const LINE_HEIGHT = 22;
 const FONT_SIZE = 14;
 const FONT_FAMILY = '"Noto Color Emoji", "Noto Sans CJK", "Noto Sans Math"';
@@ -37,32 +36,27 @@ const FONT_FAMILY = '"Noto Color Emoji", "Noto Sans CJK", "Noto Sans Math"';
 async function renderThreadSnapshotCanvas({ posts, centerIndex, isTruncated }) {
     registerFonts();
 
-    // === Stage 1: Measure height ===
     const tmpCanvas = createCanvas(1, 1);
     const tmpCtx = tmpCanvas.getContext('2d');
     tmpCtx.font = `${FONT_SIZE}px ${FONT_FAMILY}`;
 
     let totalHeight = PADDING_Y;
-
-    if (isTruncated) {
-        totalHeight += LINE_HEIGHT * 2;
-    }
+    if (isTruncated) totalHeight += LINE_HEIGHT * 2;
 
     for (const post of posts) {
-        const wrappedLines = threadBubbleWrapText(tmpCtx, post.text, TEXT_WRAP_WIDTH, 4);
-        const bubbleHeight = wrappedLines.length * LINE_HEIGHT + 24;
+        const wrapped = threadBubbleWrapText(tmpCtx, post.text, WIDTH, 4);
+        const maxLineWidth = Math.max(...wrapped.map(l => tmpCtx.measureText(l).width));
+        post._wrappedLines = wrapped;
+        post._bubbleWidth = Math.max(maxLineWidth + 24, MIN_BUBBLE_WIDTH);
+        post._bubbleHeight = wrapped.length * LINE_HEIGHT + 24;
 
-        totalHeight += AVATAR_SIZE + 10; // Avatar row
-        totalHeight += bubbleHeight + 30; // Bubble + gap
+        totalHeight += AVATAR_SIZE + 10 + post._bubbleHeight + 30;
     }
 
-    // Add bottom padding
     totalHeight += PADDING_Y;
 
-    // === Stage 2: Render with correct height ===
     const canvas = createCanvas(WIDTH, totalHeight);
     const ctx = canvas.getContext('2d');
-
     ctx.fillStyle = '#000000';
     ctx.fillRect(0, 0, WIDTH, totalHeight);
     ctx.textDrawingMode = 'glyph';
@@ -72,17 +66,15 @@ async function renderThreadSnapshotCanvas({ posts, centerIndex, isTruncated }) {
     let y = PADDING_Y;
 
     if (isTruncated) {
-        const repliesHidden = centerIndex;
         ctx.fillStyle = '#888';
         ctx.font = `14px ${FONT_FAMILY}`;
-        ctx.fillText(`${repliesHidden} earlier ${repliesHidden === 1 ? 'reply' : 'replies'} not shown`, PADDING_X, y);
+        ctx.fillText(`${centerIndex} earlier ${centerIndex === 1 ? 'reply' : 'replies'} not shown`, PADDING_X, y);
         y += LINE_HEIGHT * 2;
     }
 
     for (const post of posts) {
-        const { user_name, user_screen_name, user_profile_image_url, text, date_epoch } = post;
+        const { user_name, user_screen_name, user_profile_image_url, date_epoch } = post;
 
-        // === Avatar
         try {
             const avatarImg = await loadImage(user_profile_image_url);
             ctx.save();
@@ -98,7 +90,6 @@ async function renderThreadSnapshotCanvas({ posts, centerIndex, isTruncated }) {
             ctx.fill();
         }
 
-        // === Name + @handle
         const nameX = PADDING_X + AVATAR_SIZE + 10;
         const nameY = y + 16;
 
@@ -107,54 +98,36 @@ async function renderThreadSnapshotCanvas({ posts, centerIndex, isTruncated }) {
         ctx.fillText(user_name, nameX, nameY);
 
         const nameWidth = ctx.measureText(user_name).width;
-
         ctx.font = `14px ${FONT_FAMILY}`;
         ctx.fillStyle = '#bbbbbb';
         ctx.fillText(` @${user_screen_name}`, nameX + nameWidth, nameY);
 
-        // === Timestamp
         ctx.font = `12px ${FONT_FAMILY}`;
         ctx.fillStyle = '#aaaaaa';
         ctx.fillText(formatAbsoluteTimestamp(date_epoch * 1000), nameX, y + 34);
 
         y += AVATAR_SIZE + 10;
 
-        // === Bubble
         const bubbleX = nameX;
-        const wrappedLines = threadBubbleWrapText(tmpCtx, post.text, TEXT_WRAP_WIDTH, 4);
-        const bubbleHeight = wrappedLines.length * LINE_HEIGHT + 24;
+        const { _wrappedLines: lines, _bubbleWidth: bw, _bubbleHeight: bh } = post;
 
         ctx.fillStyle = '#e6e6e6';
-        drawRoundedRect(ctx, bubbleX, y, BUBBLE_WIDTH, bubbleHeight, 12);
+        drawRoundedRect(ctx, bubbleX, y, bw, bh, 12);
 
         ctx.font = `14px ${FONT_FAMILY}`;
         ctx.fillStyle = '#000000';
-        wrappedLines.forEach((line, i) => {
-            ctx.fillText(line, bubbleX + 12, y + 22 + i * LINE_HEIGHT);
-        });
+        lines.forEach((line, i) => ctx.fillText(line, bubbleX + 12, y + 22 + i * LINE_HEIGHT));
 
-        y += bubbleHeight + 30;
+        y += bh + 30;
     }
 
     return canvas.toBuffer('image/png');
 }
 
-/**
- * Format absolute tweet timestamp.
- * E.g. "10:15 AM · Jul 27, 2025"
- */
 function formatAbsoluteTimestamp(ms) {
     const date = new Date(ms);
-    const timeStr = date.toLocaleTimeString('en-US', {
-        hour: 'numeric',
-        minute: '2-digit',
-        hour12: true,
-    });
-    const dateStr = date.toLocaleDateString('en-US', {
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric',
-    });
+    const timeStr = date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+    const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
     return `${timeStr} · ${dateStr}`;
 }
 
