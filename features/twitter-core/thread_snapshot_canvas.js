@@ -58,7 +58,7 @@ async function renderThreadSnapshotCanvas({ posts, centerIndex, isTruncated }) {
     }
 
     for (const post of posts) {
-        const { user_screen_name, user_profile_image_url, text, date_epoch } = post;
+        const { user_name, user_screen_name, user_profile_image_url, text, date_epoch } = post;
 
         // Avatar
         try {
@@ -76,10 +76,19 @@ async function renderThreadSnapshotCanvas({ posts, centerIndex, isTruncated }) {
             ctx.fill();
         }
 
-        // Username
-        ctx.fillStyle = '#ffffff';
+        // Display Name + @username
+        const nameX = PADDING_X + AVATAR_SIZE + 10;
+        const nameY = y + 16;
+
         ctx.font = `bold 14px ${FONT_FAMILY}`;
-        ctx.fillText(`@${user_screen_name}`, PADDING_X + AVATAR_SIZE + 10, y + 16);
+        ctx.fillStyle = '#ffffff';
+        ctx.fillText(user_name, nameX, nameY);
+
+        const nameWidth = ctx.measureText(user_name).width;
+
+        ctx.font = `14px ${FONT_FAMILY}`;
+        ctx.fillStyle = '#bbbbbb';
+        ctx.fillText(` @${user_screen_name}`, nameX + nameWidth, nameY);
 
         // Timestamp
         ctx.font = `12px ${FONT_FAMILY}`;
