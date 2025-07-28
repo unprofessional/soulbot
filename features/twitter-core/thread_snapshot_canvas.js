@@ -121,7 +121,7 @@ async function renderThreadSnapshotCanvas({ posts, centerIndex, isTruncated }) {
 
         // === Bubble
         const bubbleX = nameX;
-        const wrappedLines = threadBubbleWrapText(ctx, text, BUBBLE_WIDTH - 24, 4);
+        const wrappedLines = threadBubbleWrapText(tmpCtx, post.text, TEXT_WRAP_WIDTH, 4);
         const bubbleHeight = wrappedLines.length * LINE_HEIGHT + 24;
 
         ctx.fillStyle = '#e6e6e6';

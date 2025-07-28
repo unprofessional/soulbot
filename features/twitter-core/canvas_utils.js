@@ -311,46 +311,44 @@ function drawQtDesktopLayout(ctx, font, metadata, pfp, mediaObj, options) {
 
 function threadBubbleWrapText(ctx, text, maxWidth, maxLines = 4) {
     console.log('🧪 threadBubbleWrapText');
-    console.log('Raw text:', text);
+    console.log('Raw text:', JSON.stringify(text));
     console.log('maxWidth:', maxWidth, 'maxLines:', maxLines);
 
-    const words = text.split(/\s+/);
     const lines = [];
-    let currentLine = '';
+    const rawLines = text.split('\n'); // preserve newlines manually
 
-    for (const word of words) {
-        const testLine = currentLine ? `${currentLine} ${word}` : word;
-        const testWidth = ctx.measureText(testLine).width;
+    for (const rawLine of rawLines) {
+        const words = rawLine.split(/\s+/);
+        let currentLine = '';
 
-        console.log(`🧱 Testing line: "${testLine}" (${testWidth}px)`);
+        for (const word of words) {
+            const testLine = currentLine ? `${currentLine} ${word}` : word;
+            const testWidth = ctx.measureText(testLine).width;
 
-        if (testWidth <= maxWidth) {
-            currentLine = testLine;
-        } else {
-            // If even a single word is too wide, force it into the line to avoid infinite loop
-            if (!currentLine) {
-                console.log(`⚠️ Word "${word}" alone exceeds maxWidth (${testWidth}px)`);
-                lines.push(word);
+            console.log(`🧱 Testing line: "${testLine}" (${testWidth}px)`);
+
+            if (testWidth <= maxWidth) {
+                currentLine = testLine;
             } else {
-                console.log(`✅ Pushed line: "${currentLine}"`);
-                lines.push(currentLine);
-                currentLine = word;
-            }
+                if (!currentLine) {
+                    lines.push(word);
+                } else {
+                    lines.push(currentLine);
+                    currentLine = word;
+                }
 
-            if (lines.length >= maxLines - 1) {
-                console.log('🚫 Reached maxLines - 1, stopping loop.');
-                break;
+                if (lines.length >= maxLines - 1) break;
             }
         }
+
+        if (currentLine && lines.length < maxLines) {
+            lines.push(currentLine);
+        }
+
+        if (lines.length >= maxLines) break;
     }
 
-    if (currentLine && lines.length < maxLines) {
-        console.log(`✅ Final line: "${currentLine}"`);
-        lines.push(currentLine);
-    }
-
-    // Handle ellipsis if text was truncated
-    const totalWordsLength = words.join(' ').length;
+    const totalWordsLength = text.replace(/\s+/g, ' ').trim().length;
     const linesJoinedLength = lines.join(' ').length;
 
     if (lines.length === maxLines && totalWordsLength > linesJoinedLength) {
