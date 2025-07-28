@@ -22,7 +22,7 @@ const xDotComPattern = /https?:\/\/x\.com\/[a-zA-Z0-9_]+\/status\/\d+/g;
  * @param {Object} message - Discord message object
  * @param {Object} options - Additional metadata like feature flag state
  */
-async function handleTwitterUrl(message, { twitterFeature, guildId }) {
+async function handleTwitterUrl(message, { guildId }) {
     const content = message.content;
 
     const matches = [...content.matchAll(twitterUrlRegex)];

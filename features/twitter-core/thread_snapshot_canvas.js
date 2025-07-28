@@ -33,7 +33,7 @@ const INNER_BUBBLE_PADDING = 24; // 12px left + 12px right
  * @param {boolean} options.isTruncated
  * @returns {Promise<Buffer>}
  */
-async function renderThreadSnapshotCanvas({ posts, centerIndex, isTruncated }) {
+async function renderThreadSnapshotCanvas({ posts, isTruncated }) {
     registerFonts();
 
     const tmpCanvas = createCanvas(1, 1);
@@ -43,33 +43,35 @@ async function renderThreadSnapshotCanvas({ posts, centerIndex, isTruncated }) {
     let totalHeight = PADDING_Y;
     if (isTruncated) totalHeight += LINE_HEIGHT * 2;
 
-    let maxBubbleRightEdge = 0;
+    let maxContentWidth = 0;
 
     for (const post of posts) {
-        const wrapMaxWidth = MAX_WIDTH - PADDING_X - AVATAR_SIZE - 10 - PADDING_X - INNER_BUBBLE_PADDING;
-        const wrapped = threadBubbleWrapText(tmpCtx, post.text, wrapMaxWidth, 4);
+        const wrapped = threadBubbleWrapText(
+            tmpCtx,
+            post.text,
+            MAX_WIDTH - PADDING_X - AVATAR_SIZE - 10 - PADDING_X - INNER_BUBBLE_PADDING,
+            4
+        );
         const maxLineWidth = Math.max(...wrapped.map(l => tmpCtx.measureText(l).width));
-        const bubbleWidth = Math.max(maxLineWidth + INNER_BUBBLE_PADDING, MIN_BUBBLE_WIDTH);
-
         post._wrappedLines = wrapped;
-        post._bubbleWidth = bubbleWidth;
+        post._bubbleWidth = Math.max(maxLineWidth + INNER_BUBBLE_PADDING, MIN_BUBBLE_WIDTH);
         post._bubbleHeight = wrapped.length * LINE_HEIGHT + 24;
 
-        const rightEdge = PADDING_X + AVATAR_SIZE + 10 + bubbleWidth + PADDING_X;
-        if (rightEdge > maxBubbleRightEdge) {
-            maxBubbleRightEdge = rightEdge;
-        }
-
+        maxContentWidth = Math.max(maxContentWidth, post._bubbleWidth);
         totalHeight += AVATAR_SIZE + 10 + post._bubbleHeight + 30;
     }
 
     totalHeight += PADDING_Y;
 
-    const canvasWidth = Math.min(MAX_WIDTH, maxBubbleRightEdge);
-    const canvas = createCanvas(canvasWidth, totalHeight);
+    const effectiveWidth = Math.min(
+        MAX_WIDTH,
+        PADDING_X + AVATAR_SIZE + 10 + maxContentWidth + PADDING_X
+    );
+
+    const canvas = createCanvas(effectiveWidth, totalHeight);
     const ctx = canvas.getContext('2d');
     ctx.fillStyle = '#000000';
-    ctx.fillRect(0, 0, canvasWidth, totalHeight);
+    ctx.fillRect(0, 0, effectiveWidth, totalHeight);
     ctx.textDrawingMode = 'glyph';
     ctx.font = `${FONT_SIZE}px ${FONT_FAMILY}`;
     ctx.fillStyle = '#ffffff';
@@ -79,7 +81,9 @@ async function renderThreadSnapshotCanvas({ posts, centerIndex, isTruncated }) {
     if (isTruncated) {
         ctx.fillStyle = '#888';
         ctx.font = `14px ${FONT_FAMILY}`;
-        ctx.fillText(`${centerIndex} earlier ${centerIndex === 1 ? 'reply' : 'replies'} not shown`, PADDING_X, y);
+        const text = 'Earlier replies not shown';
+        const textWidth = ctx.measureText(text).width;
+        ctx.fillText(text, (effectiveWidth - textWidth) / 2, y);
         y += LINE_HEIGHT * 2;
     }
 
