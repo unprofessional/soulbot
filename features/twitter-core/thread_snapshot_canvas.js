@@ -167,19 +167,19 @@ async function renderThreadSnapshotCanvas({ posts, centerIndex, isTruncated }) {
         const from = postAnchors[i];
         const to = postAnchors[i - 1];
 
-        const x1 = from.avatarX + AVATAR_SIZE + 4;
-        const y1 = from.avatarY + AVATAR_SIZE / 2;
-        const x2 = x1 + 12;
-        const y2 = to.bubbleY + 8;
-        const x3 = to.bubbleX + 8;
+        const startX = from.avatarX + AVATAR_SIZE + 4;
+        const startY = from.avatarY + AVATAR_SIZE / 2;
+        const midX = startX + 16;
+        const midY = to.bubbleY + 8;
+        const endX = to.bubbleX + 8;
 
         ctx.beginPath();
-        ctx.moveTo(x1, y1);
-        ctx.lineTo(x2, y1);
-        ctx.arcTo(x2 + 8, y1, x2 + 8, y1 + 8, 8);
-        ctx.lineTo(x2 + 8, y2);
-        ctx.arcTo(x2 + 8, y2, x3, y2, 8);
-        ctx.lineTo(x3, y2);
+        ctx.moveTo(startX, startY);
+        ctx.lineTo(midX, startY);
+        ctx.arcTo(midX + 1, startY, midX + 1, midY, 6);
+        ctx.lineTo(midX + 1, midY);
+        ctx.arcTo(midX + 1, midY, endX, midY, 6);
+        ctx.lineTo(endX, midY);
         ctx.stroke();
     }
 
