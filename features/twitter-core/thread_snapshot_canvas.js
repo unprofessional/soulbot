@@ -161,21 +161,25 @@ async function renderThreadSnapshotCanvas({ posts, centerIndex, isTruncated }) {
         y += bh + 30;
     }
 
-    // Draw reply arcs last so they overlay cleanly
     ctx.strokeStyle = '#666';
     ctx.lineWidth = 2;
     for (let i = 1; i < postAnchors.length; i++) {
         const from = postAnchors[i];
         const to = postAnchors[i - 1];
 
-        const fromX = from.avatarX + AVATAR_SIZE / 2 + 3;
-        const fromY = from.avatarY + AVATAR_SIZE / 2;
-        const toX = to.bubbleX + 8;
-        const toY = to.bubbleY + 8;
+        const x1 = from.avatarX + AVATAR_SIZE + 4;
+        const y1 = from.avatarY + AVATAR_SIZE / 2;
+        const x2 = x1 + 12;
+        const y2 = to.bubbleY + 8;
+        const x3 = to.bubbleX + 8;
 
         ctx.beginPath();
-        ctx.moveTo(fromX, fromY);
-        ctx.bezierCurveTo(fromX + 30, fromY - 10, toX - 30, toY + 10, toX, toY);
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y1);
+        ctx.arcTo(x2 + 8, y1, x2 + 8, y1 + 8, 8);
+        ctx.lineTo(x2 + 8, y2);
+        ctx.arcTo(x2 + 8, y2, x3, y2, 8);
+        ctx.lineTo(x3, y2);
         ctx.stroke();
     }
 
