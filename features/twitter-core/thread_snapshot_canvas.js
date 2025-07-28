@@ -105,26 +105,30 @@ async function renderThreadSnapshotCanvas({ posts, centerIndex, isTruncated }) {
         y += bh + 22;
     }
 
-    for (const post of posts) {
+    for (let i = 0; i < posts.length; i++) {
+        const post = posts[i];
         const { user_name, user_screen_name, user_profile_image_url, date_epoch } = post;
+
+        const avatarX = PADDING_X;
+        const avatarY = y;
 
         try {
             const avatarImg = await loadImage(user_profile_image_url);
             ctx.save();
             ctx.beginPath();
-            ctx.arc(PADDING_X + AVATAR_SIZE / 2, y + AVATAR_SIZE / 2, AVATAR_SIZE / 2, 0, Math.PI * 2);
+            ctx.arc(avatarX + AVATAR_SIZE / 2, avatarY + AVATAR_SIZE / 2, AVATAR_SIZE / 2, 0, Math.PI * 2);
             ctx.clip();
-            ctx.drawImage(avatarImg, PADDING_X, y, AVATAR_SIZE, AVATAR_SIZE);
+            ctx.drawImage(avatarImg, avatarX, avatarY, AVATAR_SIZE, AVATAR_SIZE);
             ctx.restore();
         } catch {
             ctx.fillStyle = '#444';
             ctx.beginPath();
-            ctx.arc(PADDING_X + AVATAR_SIZE / 2, y + AVATAR_SIZE / 2, AVATAR_SIZE / 2, 0, Math.PI * 2);
+            ctx.arc(avatarX + AVATAR_SIZE / 2, avatarY + AVATAR_SIZE / 2, AVATAR_SIZE / 2, 0, Math.PI * 2);
             ctx.fill();
         }
 
-        const nameX = PADDING_X + AVATAR_SIZE + 10;
-        const nameY = y + 18;
+        const nameX = avatarX + AVATAR_SIZE + 10;
+        const nameY = avatarY + 18;
 
         ctx.font = `bold 16px ${FONT_FAMILY}`;
         ctx.fillStyle = '#ffffff';
@@ -137,7 +141,7 @@ async function renderThreadSnapshotCanvas({ posts, centerIndex, isTruncated }) {
 
         ctx.font = `12px ${FONT_FAMILY}`;
         ctx.fillStyle = '#aaaaaa';
-        ctx.fillText(formatAbsoluteTimestamp(date_epoch * 1000), nameX, y + 36);
+        ctx.fillText(formatAbsoluteTimestamp(date_epoch * 1000), nameX, avatarY + 36);
 
         y += AVATAR_SIZE + 10;
 
@@ -150,6 +154,21 @@ async function renderThreadSnapshotCanvas({ posts, centerIndex, isTruncated }) {
         ctx.font = `14px ${FONT_FAMILY}`;
         ctx.fillStyle = '#000000';
         lines.forEach((line, i) => ctx.fillText(line, bubbleX + 12, y + 22 + i * LINE_HEIGHT));
+
+        // Draw curvy reply line to previous message (if not first post)
+        if (i > 0) {
+            const fromX = avatarX + AVATAR_SIZE - 2;
+            const fromY = avatarY + AVATAR_SIZE / 2;
+            const toX = bubbleX + 8;
+            const toY = y + 8;
+
+            ctx.strokeStyle = '#777';
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.moveTo(fromX, fromY);
+            ctx.bezierCurveTo(fromX + 20, fromY, toX - 20, toY, toX, toY);
+            ctx.stroke();
+        }
 
         y += bh + 30;
     }
