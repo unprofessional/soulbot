@@ -123,7 +123,7 @@ async function renderPost(ctx, post, y) {
     drawRoundedRect(ctx, bubbleX, y, bw, bh, 12);
 
     // Draw each line of post text inside bubble
-    ctx.font = `14px ${FONT_FAMILY}`;
+    ctx.font = `16px ${FONT_FAMILY}`;
     ctx.fillStyle = '#e4e4e4ff';
     lines.forEach((line, i) => {
         ctx.fillText(line, bubbleX + 12, y + 22 + i * LINE_HEIGHT);
