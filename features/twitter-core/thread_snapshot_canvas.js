@@ -113,7 +113,7 @@ async function renderPost(ctx, post, y) {
     ctx.fillStyle = '#bbbbbb';
     ctx.fillText(` @${user_screen_name}`, nameX + nameWidth, nameY);
 
-    y += AVATAR_SIZE + 10; // Advance below avatar
+    y += AVATAR_SIZE - 20; // Advance below avatar
 
     const bubbleX = nameX;
     const { _wrappedLines: lines, _bubbleWidth: bw, _bubbleHeight: bh } = post;
