@@ -225,7 +225,7 @@ async function renderThreadSnapshotCanvas({ posts, isTruncated }) {
         );
         const maxLineWidth = Math.max(...wrapped.map(l => tmpCtx.measureText(l).width));
         post._wrappedLines = wrapped;
-        post._bubbleWidth = Math.max(maxLineWidth + INNER_BUBBLE_PADDING, MIN_BUBBLE_WIDTH - THUMBNAIL_MARGIN); // THUMBNAIL_MARGIN = future thumbnail width
+        post._bubbleWidth = Math.max(maxLineWidth + INNER_BUBBLE_PADDING, MIN_BUBBLE_WIDTH); // THUMBNAIL_MARGIN = future thumbnail width
         post._bubbleHeight = wrapped.length * LINE_HEIGHT + 24;
 
         maxContentWidth = Math.max(maxContentWidth, post._bubbleWidth);
