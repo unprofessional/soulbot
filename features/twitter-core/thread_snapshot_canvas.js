@@ -266,6 +266,24 @@ async function renderThreadSnapshotCanvas({ posts, isTruncated }) {
         postAnchors.push(result.anchor); // Save anchor info for reply lines, etc
     }
 
+    // Draw reply lines (avatar-to-avatar, straight vertical)
+    ctx.strokeStyle = '#666';
+    ctx.lineWidth = 2;
+
+    for (let i = 1; i < postAnchors.length; i++) {
+        const from = postAnchors[i];
+        const to = postAnchors[i - 1];
+
+        const x = from.avatarX + AVATAR_SIZE / 2;
+        const y1 = from.avatarY + AVATAR_SIZE / 2;
+        const y2 = to.avatarY + AVATAR_SIZE / 2;
+
+        ctx.beginPath();
+        ctx.moveTo(x, y1);
+        ctx.lineTo(x, y2);
+        ctx.stroke();
+    }
+
     return canvas.toBuffer('image/png');
 }
 
