@@ -69,9 +69,8 @@ async function renderThreadSnapshotCanvas({ posts, centerIndex, isTruncated }) {
 
         const postBlockHeight = Math.max(AVATAR_SIZE, post._bubbleHeight);
         const spacingBelowBubble = 8;
-        const timestampHeight = 16;
         const spacingAfterPost = 30;
-        totalHeight += postBlockHeight + spacingBelowBubble + timestampHeight + spacingAfterPost;
+        totalHeight += postBlockHeight + spacingBelowBubble + spacingAfterPost;
     }
 
     totalHeight += PADDING_Y;
