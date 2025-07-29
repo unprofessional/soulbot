@@ -99,7 +99,7 @@ async function renderPost(ctx, post, y, effectiveWidth, tmpCtx) {
     ctx.fillStyle = '#bbbbbb';
     ctx.fillText(` @${user_screen_name}`, nameX + nameWidth, nameY);
 
-    y += AVATAR_SIZE;
+    y += AVATAR_SIZE + 10;
 
     const bubbleX = nameX;
     const { _wrappedLines: lines, _bubbleWidth: bw, _bubbleHeight: bh } = post;
@@ -111,13 +111,12 @@ async function renderPost(ctx, post, y, effectiveWidth, tmpCtx) {
     ctx.fillStyle = '#e4e4e4ff';
     lines.forEach((line, i) => ctx.fillText(line, bubbleX + 12, y + 22 + i * LINE_HEIGHT));
 
-    // Draw timestamp directly below the bubble
-    const timestampY = y + bh + 20;
+    // Draw timestamp below the bubble
     ctx.font = `12px ${FONT_FAMILY}`;
     ctx.fillStyle = '#aaaaaa';
-    ctx.fillText(formatAbsoluteTimestamp(date_epoch * 1000), bubbleX, timestampY);
+    ctx.fillText(formatAbsoluteTimestamp(date_epoch * 1000), bubbleX, y + bh + 20);
 
-    return { y: timestampY + 10, anchor: { avatarX, avatarY, bubbleX, bubbleY: y } };
+    return { y: y + bh + 30 + 20, anchor: { avatarX, avatarY, bubbleX, bubbleY: y } };
 }
 
 async function renderThreadSnapshotCanvas({ posts, centerIndex, isTruncated }) {
@@ -150,8 +149,7 @@ async function renderThreadSnapshotCanvas({ posts, centerIndex, isTruncated }) {
         post._bubbleHeight = wrapped.length * LINE_HEIGHT + 24;
 
         maxContentWidth = Math.max(maxContentWidth, post._bubbleWidth);
-        totalHeight += AVATAR_SIZE + 10 + post._bubbleHeight + 30;
-        totalHeight += 30; // additional padding for timestamp
+        totalHeight += AVATAR_SIZE + 10 + post._bubbleHeight + 30 + 20;
     }
 
     totalHeight += PADDING_Y;
