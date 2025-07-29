@@ -162,24 +162,24 @@ async function renderThreadSnapshotCanvas({ posts, centerIndex, isTruncated }) {
     }
 
     // Reply lines
-    ctx.strokeStyle = '#666';
-    ctx.lineWidth = 2;
-    for (let i = 1; i < postAnchors.length; i++) {
-        const from = postAnchors[i];
-        const to = postAnchors[i - 1];
+    // ctx.strokeStyle = '#666';
+    // ctx.lineWidth = 2;
+    // for (let i = 1; i < postAnchors.length; i++) {
+    //     const from = postAnchors[i];
+    //     const to = postAnchors[i - 1];
 
-        const x1 = from.avatarX + AVATAR_SIZE / 2;
-        const y1 = from.avatarY + (AVATAR_SIZE / 2) - 28;
-        const y2 = to.bubbleY + 8;
-        const x3 = to.bubbleX - 4;
+    //     const x1 = from.avatarX + AVATAR_SIZE / 2;
+    //     const y1 = from.avatarY + (AVATAR_SIZE / 2) - 28;
+    //     const y2 = to.bubbleY + 8;
+    //     const x3 = to.bubbleX - 4;
 
-        ctx.beginPath();
-        ctx.moveTo(x1, y1);
-        ctx.lineTo(x1, y2);
-        ctx.arcTo(x1, y2, x1 + 8, y2, 8);
-        ctx.lineTo(x3, y2);
-        ctx.stroke();
-    }
+    //     ctx.beginPath();
+    //     ctx.moveTo(x1, y1);
+    //     ctx.lineTo(x1, y2);
+    //     ctx.arcTo(x1, y2, x1 + 8, y2, 8);
+    //     ctx.lineTo(x3, y2);
+    //     ctx.stroke();
+    // }
 
     return canvas.toBuffer('image/png');
 }
@@ -204,6 +204,7 @@ function drawRoundedRect(ctx, x, y, width, height, radius = 10, fill = true) {
     ctx.quadraticCurveTo(x, y, x + radius, y);
     ctx.closePath();
     if (fill) ctx.fill();
+    else ctx.stroke();
 }
 
 module.exports = {
