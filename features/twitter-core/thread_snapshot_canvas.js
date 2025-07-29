@@ -78,7 +78,7 @@ async function renderThreadSnapshotCanvas({ posts, centerIndex, isTruncated }) {
 
     const canvas = createCanvas(effectiveWidth, totalHeight);
     const ctx = canvas.getContext('2d');
-    ctx.fillStyle = '#112042';
+    ctx.fillStyle = '#0C162E';
     ctx.fillRect(0, 0, effectiveWidth, totalHeight);
     ctx.textDrawingMode = 'glyph';
     ctx.font = `${FONT_SIZE}px ${FONT_FAMILY}`;
