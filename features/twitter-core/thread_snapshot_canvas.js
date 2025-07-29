@@ -28,12 +28,28 @@ function registerFonts(baseFontUrl = '/usr/share/fonts') {
     );
 }
 
-// Format timestamp as "4:33 PM · Jan 23, 2025"
-function formatAbsoluteTimestamp(ms) {
+function formatTimePassed(msDelta) {
+    const seconds = Math.floor(msDelta / 1000);
+    if (seconds < 60) return `${seconds} seconds later`;
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) return `${minutes} minute${minutes > 1 ? 's' : ''} later`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours} hour${hours > 1 ? 's' : ''} later`;
+    const days = Math.floor(hours / 24);
+    return `${days} day${days > 1 ? 's' : ''} later`;
+}
+
+// Format timestamp as "4:33 PM · Jan 23, 2025 · 5 minutes later"
+function formatAbsoluteTimestamp(ms, replyToMs = null) {
     const date = new Date(ms);
     const timeStr = date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
     const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-    return `${timeStr} · ${dateStr}`;
+    let result = `${timeStr} · ${dateStr}`;
+    if (replyToMs && replyToMs < ms) {
+        const deltaMs = ms - replyToMs;
+        result += ` · ${formatTimePassed(deltaMs)}`;
+    }
+    return result;
 }
 
 // Helper to draw a filled or stroked rounded rectangle
@@ -132,7 +148,11 @@ async function renderPost(ctx, post, y) {
     // Draw timestamp below bubble
     ctx.font = `12px ${FONT_FAMILY}`;
     ctx.fillStyle = '#aaaaaa';
-    ctx.fillText(formatAbsoluteTimestamp(date_epoch * 1000), bubbleX, y + bh + 20);
+    ctx.fillText(
+        formatAbsoluteTimestamp(date_epoch * 1000, post.reply_to_epoch ? post.reply_to_epoch * 1000 : null),
+        bubbleX,
+        y + bh + 20
+    );
 
     return {
         y: y + bh + 30 + 20, // Advance Y past bubble + timestamp
@@ -204,6 +224,11 @@ async function renderThreadSnapshotCanvas({ posts, isTruncated }) {
     if (isTruncated) {
         y = renderTruncationNotice(ctx, y, effectiveWidth);
     }
+
+    // Annotate each post with `reply_to_epoch` (assume replying to prior post)
+    posts.forEach((post, i) => {
+        post.reply_to_epoch = i > 0 ? posts[i - 1].date_epoch : null;
+    });
 
     // Render each post
     for (const post of posts) {
