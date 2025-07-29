@@ -66,7 +66,7 @@ function renderTruncationNotice(ctx, y, width) {
     return y + bh + 22;
 }
 
-async function renderPost(ctx, post, y) {
+async function renderPost(ctx, post, y, effectiveWidth, tmpCtx) {
     const { user_name, user_screen_name, user_profile_image_url, date_epoch } = post;
 
     const avatarX = PADDING_X;
@@ -99,10 +99,6 @@ async function renderPost(ctx, post, y) {
     ctx.fillStyle = '#bbbbbb';
     ctx.fillText(` @${user_screen_name}`, nameX + nameWidth, nameY);
 
-    ctx.font = `12px ${FONT_FAMILY}`;
-    ctx.fillStyle = '#aaaaaa';
-    ctx.fillText(formatAbsoluteTimestamp(date_epoch * 1000), nameX, avatarY + 36);
-
     y += AVATAR_SIZE + 10;
 
     const bubbleX = nameX;
@@ -115,10 +111,15 @@ async function renderPost(ctx, post, y) {
     ctx.fillStyle = '#e4e4e4ff';
     lines.forEach((line, i) => ctx.fillText(line, bubbleX + 12, y + 22 + i * LINE_HEIGHT));
 
-    return { y: y + bh + 30, anchor: { avatarX, avatarY, bubbleX, bubbleY: y } };
+    // Draw timestamp below the bubble
+    ctx.font = `12px ${FONT_FAMILY}`;
+    ctx.fillStyle = '#aaaaaa';
+    ctx.fillText(formatAbsoluteTimestamp(date_epoch * 1000), bubbleX, y + bh + 20);
+
+    return { y: y + bh + 30 + 20, anchor: { avatarX, avatarY, bubbleX, bubbleY: y } };
 }
 
-async function renderThreadSnapshotCanvas({ posts, isTruncated }) {
+async function renderThreadSnapshotCanvas({ posts, centerIndex, isTruncated }) {
     registerFonts();
 
     const tmpCanvas = createCanvas(1, 1);
@@ -148,7 +149,7 @@ async function renderThreadSnapshotCanvas({ posts, isTruncated }) {
         post._bubbleHeight = wrapped.length * LINE_HEIGHT + 24;
 
         maxContentWidth = Math.max(maxContentWidth, post._bubbleWidth);
-        totalHeight += AVATAR_SIZE + 10 + post._bubbleHeight + 30;
+        totalHeight += AVATAR_SIZE + 10 + post._bubbleHeight + 30 + 20;
     }
 
     totalHeight += PADDING_Y;
