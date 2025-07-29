@@ -66,7 +66,7 @@ async function renderThreadSnapshotCanvas({ posts, centerIndex, isTruncated }) {
         post._bubbleHeight = wrapped.length * LINE_HEIGHT + 24;
 
         maxContentWidth = Math.max(maxContentWidth, post._bubbleWidth);
-        totalHeight += AVATAR_SIZE + 10 + post._bubbleHeight + 30;
+        totalHeight += Math.max(AVATAR_SIZE, post._bubbleHeight + 8 + 16) + 30;
     }
 
     totalHeight += PADDING_Y;
@@ -140,46 +140,45 @@ async function renderThreadSnapshotCanvas({ posts, centerIndex, isTruncated }) {
         ctx.fillStyle = '#bbbbbb';
         ctx.fillText(` @${user_screen_name}`, nameX + nameWidth, nameY);
 
-        ctx.font = `12px ${FONT_FAMILY}`;
-        ctx.fillStyle = '#aaaaaa';
-        ctx.fillText(formatAbsoluteTimestamp(date_epoch * 1000), nameX, avatarY + 36);
-
-        y += AVATAR_SIZE + 10;
-
         const bubbleX = nameX;
         const { _wrappedLines: lines, _bubbleWidth: bw, _bubbleHeight: bh } = post;
 
+        const contentY = Math.max(avatarY + AVATAR_SIZE + 10, nameY + 10);
+
         ctx.fillStyle = '#383838';
-        drawRoundedRect(ctx, bubbleX, y, bw, bh, 12);
+        drawRoundedRect(ctx, bubbleX, contentY, bw, bh, 12);
 
         ctx.font = `14px ${FONT_FAMILY}`;
         ctx.fillStyle = '#e4e4e4ff';
-        lines.forEach((line, i) => ctx.fillText(line, bubbleX + 12, y + 22 + i * LINE_HEIGHT));
+        lines.forEach((line, i) => ctx.fillText(line, bubbleX + 12, contentY + 22 + i * LINE_HEIGHT));
 
-        postAnchors.push({ avatarX, avatarY, bubbleX, bubbleY: y });
+        ctx.font = `12px ${FONT_FAMILY}`;
+        ctx.fillStyle = '#aaaaaa';
+        ctx.fillText(formatAbsoluteTimestamp(date_epoch * 1000), bubbleX + 10, contentY + bh + 16);
 
-        y += bh + 30;
+        postAnchors.push({ avatarX, avatarY, bubbleX, bubbleY: contentY });
+
+        y = contentY + bh + 30;
     }
 
-    // Reply lines
-    // ctx.strokeStyle = '#666';
-    // ctx.lineWidth = 2;
-    // for (let i = 1; i < postAnchors.length; i++) {
-    //     const from = postAnchors[i];
-    //     const to = postAnchors[i - 1];
+    ctx.strokeStyle = '#666';
+    ctx.lineWidth = 2;
+    for (let i = 1; i < postAnchors.length; i++) {
+        const from = postAnchors[i];
+        const to = postAnchors[i - 1];
 
-    //     const x1 = from.avatarX + AVATAR_SIZE / 2;
-    //     const y1 = from.avatarY + (AVATAR_SIZE / 2) - 28;
-    //     const y2 = to.bubbleY + 8;
-    //     const x3 = to.bubbleX - 4;
+        const x1 = from.avatarX + AVATAR_SIZE / 2;
+        const y1 = from.avatarY + (AVATAR_SIZE / 2) - 28;
+        const y2 = to.bubbleY + 8;
+        const x3 = to.bubbleX - 4;
 
-    //     ctx.beginPath();
-    //     ctx.moveTo(x1, y1);
-    //     ctx.lineTo(x1, y2);
-    //     ctx.arcTo(x1, y2, x1 + 8, y2, 8);
-    //     ctx.lineTo(x3, y2);
-    //     ctx.stroke();
-    // }
+        ctx.beginPath();
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x1, y2);
+        ctx.arcTo(x1, y2, x1 + 8, y2, 8);
+        ctx.lineTo(x3, y2);
+        ctx.stroke();
+    }
 
     return canvas.toBuffer('image/png');
 }
