@@ -48,6 +48,16 @@ async function handleThreadSnapshot(tweetUrl) {
         return `**${user}**: ${text}`;
     }).join('\n\n');
 
+    // Add media properties
+    for (const post of thread) {
+        if (post.media_extended?.length > 0) {
+            const media = post.media_extended[0];
+            post._mediaThumbnailUrl = media.thumbnail_url;
+            post._mediaType = media.type;
+            post._mediaSize = media.size;
+        }
+    }
+
     // === Try rendering canvas ===
     try {
         const buffer = await renderThreadSnapshotCanvas({

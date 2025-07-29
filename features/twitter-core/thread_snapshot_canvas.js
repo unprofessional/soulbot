@@ -138,6 +138,36 @@ async function renderPost(ctx, post, y) {
     ctx.fillStyle = '#383838';
     drawRoundedRect(ctx, bubbleX, y, bw, bh, 12);
 
+    let mediaHeight = 0;
+
+    if (post._mediaThumbnailUrl) {
+        try {
+            const img = await loadImage(post._mediaThumbnailUrl);
+            const maxThumbWidth = bw; // match bubble width
+            const maxThumbHeight = 300;
+
+            // Maintain aspect ratio
+            let { width, height } = post._mediaSize || { width: img.width, height: img.height };
+            const aspectRatio = width / height;
+
+            let drawWidth = maxThumbWidth;
+            let drawHeight = drawWidth / aspectRatio;
+
+            if (drawHeight > maxThumbHeight) {
+                drawHeight = maxThumbHeight;
+                drawWidth = drawHeight * aspectRatio;
+            }
+
+            const mediaX = bubbleX;
+            const mediaY = y + bh + 10;
+
+            ctx.drawImage(img, mediaX, mediaY, drawWidth, drawHeight);
+            mediaHeight = drawHeight + 10; // for spacing below
+        } catch (err) {
+            console.warn(`Failed to load media thumbnail for ${post.user_screen_name}: ${err}`);
+        }
+    }
+
     // Draw each line of post text inside bubble
     ctx.font = `14px ${FONT_FAMILY}`;
     ctx.fillStyle = '#e4e4e4ff';
@@ -151,13 +181,14 @@ async function renderPost(ctx, post, y) {
     ctx.fillText(
         formatAbsoluteTimestamp(date_epoch * 1000, post.reply_to_epoch ? post.reply_to_epoch * 1000 : null),
         bubbleX,
-        y + bh + 20
+        y + bh + mediaHeight + 20
     );
 
     return {
-        y: y + bh + 30 + 20, // Advance Y past bubble + timestamp
+        y: y + bh + mediaHeight + 30 + 20,
         anchor: { avatarX, avatarY, bubbleX, bubbleY: y }
     };
+
 }
 
 // Main thread snapshot renderer

@@ -23,6 +23,8 @@ async function fetchTweetById(tweetID) {
             user_screen_name: data.user_screen_name ?? 'unknown',
             user_profile_image_url: data.user_profile_image_url ?? '',
             date_epoch: data.date_epoch ?? Date.now() / 1000,
+            hasMedia: data.hasMedia ?? false,
+            media_extended: data.media_extended ?? [],
         };
 
     } catch (err) {
