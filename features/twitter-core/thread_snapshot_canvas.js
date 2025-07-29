@@ -113,7 +113,7 @@ async function renderPost(ctx, post, y) {
     ctx.fillStyle = '#bbbbbb';
     ctx.fillText(` @${user_screen_name}`, nameX + nameWidth, nameY);
 
-    y += AVATAR_SIZE - 20; // Advance below avatar
+    y += AVATAR_SIZE - 20;
 
     const bubbleX = nameX;
     const { _wrappedLines: lines, _bubbleWidth: bw, _bubbleHeight: bh } = post;
@@ -174,7 +174,7 @@ async function renderThreadSnapshotCanvas({ posts, isTruncated }) {
         post._bubbleHeight = wrapped.length * LINE_HEIGHT + 24;
 
         maxContentWidth = Math.max(maxContentWidth, post._bubbleWidth);
-        totalHeight += AVATAR_SIZE + 10 + post._bubbleHeight + 30 + 20; // account for avatar, bubble, and spacing
+        totalHeight += AVATAR_SIZE - 20 + post._bubbleHeight + 30 + 20; // account for avatar, bubble, and spacing
     }
 
     totalHeight += PADDING_Y;
