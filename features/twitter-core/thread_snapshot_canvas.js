@@ -140,6 +140,8 @@ async function renderPost(ctx, post, y) {
 
     let mediaHeight = 0;
 
+    // Media thumbnail
+    post._mediaThumbnailUrl = false; // DEBUG: gate this off for now
     if (post._mediaThumbnailUrl) {
         try {
             const img = await loadImage(post._mediaThumbnailUrl);
