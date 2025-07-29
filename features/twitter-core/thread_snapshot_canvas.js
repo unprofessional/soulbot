@@ -66,7 +66,12 @@ async function renderThreadSnapshotCanvas({ posts, centerIndex, isTruncated }) {
         post._bubbleHeight = wrapped.length * LINE_HEIGHT + 24;
 
         maxContentWidth = Math.max(maxContentWidth, post._bubbleWidth);
-        totalHeight += Math.max(AVATAR_SIZE, post._bubbleHeight + 8 + 16) + 30;
+
+        const postBlockHeight = Math.max(AVATAR_SIZE, post._bubbleHeight);
+        const spacingBelowBubble = 8;
+        const timestampHeight = 16;
+        const spacingAfterPost = 30;
+        totalHeight += postBlockHeight + spacingBelowBubble + timestampHeight + spacingAfterPost;
     }
 
     totalHeight += PADDING_Y;
@@ -158,7 +163,7 @@ async function renderThreadSnapshotCanvas({ posts, centerIndex, isTruncated }) {
 
         postAnchors.push({ avatarX, avatarY, bubbleX, bubbleY: contentY });
 
-        y = contentY + bh + 30;
+        y = contentY + bh + 30 + 16 + 8; // bubble + timestamp + spacing
     }
 
     ctx.strokeStyle = '#666';
