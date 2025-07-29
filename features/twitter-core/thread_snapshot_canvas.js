@@ -78,7 +78,7 @@ async function renderThreadSnapshotCanvas({ posts, centerIndex, isTruncated }) {
 
     const canvas = createCanvas(effectiveWidth, totalHeight);
     const ctx = canvas.getContext('2d');
-    ctx.fillStyle = '#000000';
+    ctx.fillStyle = '#112042';
     ctx.fillRect(0, 0, effectiveWidth, totalHeight);
     ctx.textDrawingMode = 'glyph';
     ctx.font = `${FONT_SIZE}px ${FONT_FAMILY}`;
@@ -149,11 +149,11 @@ async function renderThreadSnapshotCanvas({ posts, centerIndex, isTruncated }) {
         const bubbleX = nameX;
         const { _wrappedLines: lines, _bubbleWidth: bw, _bubbleHeight: bh } = post;
 
-        ctx.fillStyle = '#e6e6e6';
+        ctx.fillStyle = '#383838';
         drawRoundedRect(ctx, bubbleX, y, bw, bh, 12);
 
         ctx.font = `14px ${FONT_FAMILY}`;
-        ctx.fillStyle = '#000000';
+        ctx.fillStyle = '#e4e4e4ff';
         lines.forEach((line, i) => ctx.fillText(line, bubbleX + 12, y + 22 + i * LINE_HEIGHT));
 
         postAnchors.push({ avatarX, avatarY, bubbleX, bubbleY: y });
