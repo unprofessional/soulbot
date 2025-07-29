@@ -20,6 +20,10 @@ const LINE_HEIGHT = 22;
 const FONT_SIZE = 14;
 const FONT_FAMILY = '"Noto Color Emoji", "Noto Sans CJK", "Noto Sans Math"';
 const INNER_BUBBLE_PADDING = 24;
+const THUMB_WIDTH = 96;
+const THUMB_HEIGHT = 96;
+const THUMB_MARGIN_LEFT = 12;
+
 
 // Load fonts into canvas context
 function registerFonts(baseFontUrl = '/usr/share/fonts') {
@@ -138,35 +142,19 @@ async function renderPost(ctx, post, y) {
     ctx.fillStyle = '#383838';
     drawRoundedRect(ctx, bubbleX, y, bw, bh, 12);
 
-    let mediaHeight = 0;
-
     // Media thumbnail
-    post._mediaThumbnailUrl = false; // DEBUG: gate this off for now
+    let thumbnailDrawn = false;
+
     if (post._mediaThumbnailUrl) {
         try {
             const img = await loadImage(post._mediaThumbnailUrl);
-            const maxThumbWidth = bw; // match bubble width
-            const maxThumbHeight = 300;
+            const thumbX = bubbleX + bw + THUMB_MARGIN_LEFT;
+            const thumbY = y;
 
-            // Maintain aspect ratio
-            let { width, height } = post._mediaSize || { width: img.width, height: img.height };
-            const aspectRatio = width / height;
-
-            let drawWidth = maxThumbWidth;
-            let drawHeight = drawWidth / aspectRatio;
-
-            if (drawHeight > maxThumbHeight) {
-                drawHeight = maxThumbHeight;
-                drawWidth = drawHeight * aspectRatio;
-            }
-
-            const mediaX = bubbleX;
-            const mediaY = y + bh + 10;
-
-            ctx.drawImage(img, mediaX, mediaY, drawWidth, drawHeight);
-            mediaHeight = drawHeight + 10; // for spacing below
+            ctx.drawImage(img, thumbX, thumbY, THUMB_WIDTH, THUMB_HEIGHT);
+            thumbnailDrawn = true;
         } catch (err) {
-            console.warn(`Failed to load media thumbnail for ${post.user_screen_name}: ${err}`);
+            console.warn(`Failed to load media thumbnail for ${post.user_screen_name}:`, err);
         }
     }
 
@@ -178,16 +166,18 @@ async function renderPost(ctx, post, y) {
     });
 
     // Draw timestamp below bubble
+    const finalHeight = Math.max(bh, thumbnailDrawn ? THUMB_HEIGHT : 0);
+
     ctx.font = `12px ${FONT_FAMILY}`;
     ctx.fillStyle = '#aaaaaa';
     ctx.fillText(
         formatAbsoluteTimestamp(date_epoch * 1000, post.reply_to_epoch ? post.reply_to_epoch * 1000 : null),
         bubbleX,
-        y + bh + mediaHeight + 20
+        y + finalHeight + 20
     );
 
     return {
-        y: y + bh + mediaHeight + 30 + 20,
+        y: y + finalHeight + 30 + 20,
         anchor: { avatarX, avatarY, bubbleX, bubbleY: y }
     };
 
@@ -213,23 +203,27 @@ async function renderThreadSnapshotCanvas({ posts, isTruncated }) {
         totalHeight += 60; // Add vertical space for truncation box
     }
 
-    const THUMBNAIL_MARGIN = 200;
-
     // Precompute layout dimensions per post
     for (const post of posts) {
         const wrapped = threadBubbleWrapText(
             tmpCtx,
             post.text,
-            MAX_WIDTH - PADDING_X - AVATAR_SIZE - 10 - PADDING_X - INNER_BUBBLE_PADDING - THUMBNAIL_MARGIN,
+            MAX_WIDTH - PADDING_X - AVATAR_SIZE - 10 - PADDING_X - INNER_BUBBLE_PADDING - (post._mediaThumbnailUrl ? (THUMB_WIDTH + THUMB_MARGIN_LEFT) : 0),
             4
         );
         const maxLineWidth = Math.max(...wrapped.map(l => tmpCtx.measureText(l).width));
-        post._wrappedLines = wrapped;
-        post._bubbleWidth = Math.max(maxLineWidth + INNER_BUBBLE_PADDING, MIN_BUBBLE_WIDTH); // THUMBNAIL_MARGIN = future thumbnail width
-        post._bubbleHeight = wrapped.length * LINE_HEIGHT + 24;
+        const baseHeight = wrapped.length * LINE_HEIGHT + 24;
 
-        maxContentWidth = Math.max(maxContentWidth, post._bubbleWidth);
-        totalHeight += AVATAR_SIZE - 20 + post._bubbleHeight + 30 + 20; // account for avatar, bubble, and spacing
+        post._wrappedLines = wrapped;
+        post._bubbleWidth = Math.max(maxLineWidth + INNER_BUBBLE_PADDING, MIN_BUBBLE_WIDTH);
+        post._bubbleHeight = Math.max(baseHeight, post._mediaThumbnailUrl ? THUMB_HEIGHT : 0);
+
+        maxContentWidth = Math.max(
+            maxContentWidth,
+            post._bubbleWidth + (post._mediaThumbnailUrl ? (THUMB_WIDTH + THUMB_MARGIN_LEFT) : 0)
+        );
+
+        totalHeight += AVATAR_SIZE - 20 + post._bubbleHeight + 30 + 20;
     }
 
     totalHeight += PADDING_Y;
