@@ -267,7 +267,7 @@ async function renderThreadSnapshotCanvas({ posts, isTruncated }) {
     }
 
     // Draw reply lines (avatar-to-avatar, straight vertical)
-    ctx.strokeStyle = '#666';
+    ctx.strokeStyle = '#2C3045';
     ctx.lineWidth = 2;
 
     for (let i = 1; i < postAnchors.length; i++) {
@@ -275,8 +275,8 @@ async function renderThreadSnapshotCanvas({ posts, isTruncated }) {
         const to = postAnchors[i - 1];
 
         const x = from.avatarX + AVATAR_SIZE / 2;
-        const y1 = from.avatarY + AVATAR_SIZE / 2;
-        const y2 = to.avatarY + AVATAR_SIZE / 2;
+        const y1 = from.avatarY + AVATAR_SIZE - 52;
+        const y2 = to.avatarY + AVATAR_SIZE + 4;
 
         ctx.beginPath();
         ctx.moveTo(x, y1);
