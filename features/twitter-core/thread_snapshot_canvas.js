@@ -99,7 +99,7 @@ async function renderPost(ctx, post, y, effectiveWidth, tmpCtx) {
     ctx.fillStyle = '#bbbbbb';
     ctx.fillText(` @${user_screen_name}`, nameX + nameWidth, nameY);
 
-    y += AVATAR_SIZE + 10;
+    y += AVATAR_SIZE;
 
     const bubbleX = nameX;
     const { _wrappedLines: lines, _bubbleWidth: bw, _bubbleHeight: bh } = post;
