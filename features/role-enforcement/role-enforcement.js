@@ -1,3 +1,8 @@
+// features/role-enforcement/role-enforcement.js
+
+const { sendWebhookProxyMsg } = require('../twitter-core/webhook_utils');
+
+// Goldy prefix & suffix phrases
 const prefixes = [
     'wants you to know',
     'is still here',
@@ -14,50 +19,33 @@ const catchPhrases = [
     'but shrug',
     'but seethe away',
     'but thats so cute',
-    'but thats boring'
+    'but thats boring',
 ];
 
-const getRandomPrefixes = () => {
-    const randomIndex = Math.floor(Math.random() * prefixes.length);
-    return prefixes[randomIndex];
-};
+const getRandomPrefixes = () => prefixes[Math.floor(Math.random() * prefixes.length)];
+const getRandomCatchPhrase = () => catchPhrases[Math.floor(Math.random() * catchPhrases.length)];
 
-const getRandomCatchPhrase = () => {
-    const randomIndex = Math.floor(Math.random() * catchPhrases.length);
-    return catchPhrases[randomIndex];
-};
-
-const getTemplateResult = (userId, randomPrefix, originalMsg, randomCatchphrase) => `<@${userId}> ${randomPrefix}: ${originalMsg} ${randomCatchphrase}`;
-
+/**
+ * Enforces the "Goldy" role transformation by deleting and re-sending the message
+ * via webhook impersonation with a custom phrase wrap.
+ */
 const enforceGoldyRole = async (message) => {
-
-    if (!message.guild) return;
+    if (!message.guild || message.author.bot) return;
 
     try {
-        const memberId = message.author.id;
-        const targetUser = await message.guild.members.fetch(memberId);
-        const roleNames =  targetUser.roles.cache.map(role => role.name.toLowerCase());
-        // console.log('>>> enforceGoldyRole > roleNames: ', roleNames);
-        const rolesContainGoldyRole = roleNames.includes('goldy');
-        // console.log('>>> enforceGoldyRole > rolesContainGoldyRole: ', rolesContainGoldyRole);
-  
-        if(rolesContainGoldyRole) {
-            const originalMsg = message.content;
-            const randomPrefix = getRandomPrefixes();
-            const randomCatchphrase = getRandomCatchPhrase();
-            const templateResult = getTemplateResult(memberId, randomPrefix, originalMsg, randomCatchphrase);
-            // console.log('>>> enforceGoldyRole > randomCatchphrase: ', randomCatchphrase);
-            try {
-                await message.delete();
-                await message.channel.send(templateResult);
-            } catch (deleteError) {
-                console.error('Failed to delete or send message:', deleteError);
-                // Optionally send an error message to the channel
-                // await message.channel.send("Oops! Something went wrong.");
-            }
-        }
+        const member = await message.guild.members.fetch(message.author.id);
+        const roleNames = member.roles.cache.map(role => role.name.toLowerCase());
+        const hasGoldyRole = roleNames.includes('goldy');
+
+        if (!hasGoldyRole) return;
+
+        const randomPrefix = getRandomPrefixes();
+        const randomCatchPhrase = getRandomCatchPhrase();
+        const newContent = `<@${member.id}> ${randomPrefix}: ${message.content} ${randomCatchPhrase}`;
+
+        await sendWebhookProxyMsg(message, newContent);
     } catch (err) {
-        console.error('>>> enforceGoldyRole > err: ', err);
+        console.error('>>> enforceGoldyRole error:', err);
     }
 };
 

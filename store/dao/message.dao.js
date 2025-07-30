@@ -15,44 +15,45 @@ const pool = new Pool({
 
 class MessageDAO {
     /**
-     * Find all messages with optional filters.
+     * Find all non-deleted messages with optional filters.
      * @param {Object} options - Filters for the query.
      * @param {string} [options.userId] - Filter by user ID.
      * @param {string} [options.guildId] - Filter by guild ID.
      * @param {string} [options.channelId] - Filter by channel ID.
-     * @param {number} [options.limit] - Limit the number of results.
+     * @param {number} [options.limit=50] - Limit the number of results.
      * @returns {Promise<Array>} - List of messages.
      */
     async findAll(options = {}) {
         const { userId, guildId, channelId, limit = 50 } = options;
         const params = [];
-        let sql = `SELECT * FROM message`;
+        const conditions = ['deleted_at IS NULL']; // Always filter out soft-deleted messages
 
-        // Dynamically build WHERE clause
-        const conditions = [];
         if (userId) {
             conditions.push(`user_id = $${params.length + 1}`);
             params.push(userId);
         }
+
         if (guildId) {
             conditions.push(`guild_id = $${params.length + 1}`);
             params.push(guildId);
         }
+
         if (channelId) {
             conditions.push(`channel_id = $${params.length + 1}`);
             params.push(channelId);
         }
 
+        let sql = `SELECT * FROM message`;
+
         if (conditions.length > 0) {
-            sql += ` WHERE ` + conditions.join(' AND ');
+            sql += ` WHERE ${conditions.join(' AND ')}`;
         }
 
-        // Add ORDER BY and LIMIT (<--always enforce!)
         sql += ` ORDER BY created_at DESC LIMIT $${params.length + 1}`;
         params.push(limit);
 
         try {
-            console.log('>>>>> MessageDAO > findAll > sql: ', sql);
+            console.log('>>>>> MessageDAO > findAll > sql:', sql);
             const result = await pool.query(sql, params);
             return result.rows;
         } catch (err) {
@@ -117,43 +118,38 @@ class MessageDAO {
     }
 
     /**
-     * Find existing messages that contain a specific Twitter/X link.
-     * @param {*} guildId 
-     * @param {*} messageId 
-     * @param {*} url 
-     * @returns 
+     * Find existing non-deleted messages that contain a specific Twitter/X link.
+     * @param {string} guildId 
+     * @param {string} messageId 
+     * @param {string} url 
+     * @returns {Promise<Array>}
      */
     async findMessagesByLink(guildId, messageId, url) {
-        // Normalize base for both X and Twitter
         const urlWithoutParams = url.split('?')[0];
 
-        // NOTE: For now, we should just search against `/status/8888888888888888888`
-        // See `message_listeners/core.js`
+        const twitterUrl = urlWithoutParams.replace(/^https?:\/\/x\.com/, 'https://twitter.com');
+        const xUrl = urlWithoutParams.replace(/^https?:\/\/twitter\.com/, 'https://x.com');
 
-        const twitterUrl = urlWithoutParams
-            .replace(/^https?:\/\/x\.com/, 'https://twitter.com');
-    
-        const xUrl = urlWithoutParams
-            .replace(/^https?:\/\/twitter\.com/, 'https://x.com');
-    
         const sql = `
-            SELECT * 
-            FROM message
-            WHERE guild_id = $1 AND (
-                content ILIKE $2 OR content ILIKE $3
-            )
-            AND message_id != $4
-            ORDER BY created_at ASC
-            LIMIT 1
-        `;
-    
+        SELECT * 
+        FROM message
+        WHERE guild_id = $1
+          AND deleted_at IS NULL
+          AND (
+              content ILIKE $2 OR content ILIKE $3
+          )
+          AND message_id != $4
+        ORDER BY created_at ASC
+        LIMIT 1
+    `;
+
         const params = [
             guildId,
             `%${twitterUrl}%`,
             `%${xUrl}%`,
             messageId,
         ];
-    
+
         try {
             console.log('>>>>> MessageDAO > findMessagesByLink > twitterUrl:', twitterUrl);
             console.log('>>>>> MessageDAO > findMessagesByLink > xUrl:', xUrl);
@@ -162,6 +158,48 @@ class MessageDAO {
         } catch (err) {
             console.error('Error finding messages by link:', err);
             throw err;
+        }
+    }
+
+    /**
+     * Update message content and set updated_at timestamp by message ID.
+     * @param {string} messageId - Discord message ID.
+     * @param {string} newContent - Updated message text.
+     * @returns {Promise<boolean>}
+     */
+    async updateMessage(messageId, newContent) {
+        const sql = `
+        UPDATE message
+        SET content = $1,
+            updated_at = NOW()
+        WHERE message_id = $2
+    `;
+
+        try {
+            await pool.query(sql, [newContent, messageId]);
+            return true;
+        } catch (err) {
+            console.error('Error updating message content:', err);
+            return false;
+        }
+    }
+
+    /**
+     * Soft-delete a message by setting deleted_at timestamp.
+     * Leaves content, attachments, and meta intact.
+     */
+    async deleteMessage(messageId) {
+        const sql = `
+            UPDATE message
+            SET deleted_at = NOW()
+            WHERE message_id = $1
+        `;
+        try {
+            await pool.query(sql, [messageId]);
+            return true;
+        } catch (err) {
+            console.error('Error marking message as deleted:', err);
+            return false;
         }
     }
     

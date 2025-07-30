@@ -1,4 +1,4 @@
-// Refactored: features/twitter-post/twitter_canvas.js
+// features/twitter-post/twitter_canvas.js
 
 const { registerFont, createCanvas, loadImage } = require('canvas');
 const { renderImageGallery } = require('./image_gallery_rendering.js');
@@ -44,6 +44,15 @@ function calculateQuoteHeight(ctx, qtMetadata) {
     const descHeight = qtDescLines.length * lineHeight;
 
     return hasMedia ? Math.max(descHeight, 175 + bottomPadding) : descHeight + bottomPadding;
+}
+
+async function safeLoadImage(url) {
+    if (!url || typeof url !== 'string' || !url.startsWith('http')) return undefined;
+    try {
+        return await loadImage(url);
+    } catch {
+        return undefined;
+    }
 }
 
 async function createTwitterCanvas(metadataJson, isImage) {
@@ -102,33 +111,33 @@ async function createTwitterCanvas(metadataJson, isImage) {
     const MAX_DESC_CHARS = 1000;
     const MAX_QT_DESC_CHARS = 500;
 
-    // Trim overly long root tweets
     if (metadata.description.length > MAX_DESC_CHARS + 50) {
         metadata.description = metadata.description.slice(0, MAX_DESC_CHARS) + '…';
     }
 
-    // Generate wrapped lines for root
     const maxCharLength = onlyVids ? 120 : 240;
     const descLines = getWrappedText(ctx, metadata.description, maxCharLength);
     const baseY = 110;
     const descHeight = (descLines.length * 30) + baseY + 40 + heightShim;
 
-    // Quote height pre-pass
-    if (qtMetadata && qtMetadata.description.length > MAX_QT_DESC_CHARS + 50) {
-        qtMetadata.description = qtMetadata.description.slice(0, MAX_QT_DESC_CHARS) + '…';
+    let qtHeight = 0;
+    if (qtMetadata) {
+        if (qtMetadata.description.length > MAX_QT_DESC_CHARS + 50) {
+            qtMetadata.description = qtMetadata.description.slice(0, MAX_QT_DESC_CHARS) + '…';
+        }
+        qtHeight = calculateQuoteHeight(ctx, qtMetadata) + 100 - (qtMetadata.error ? 40 : 0);
     }
-    const qtHeight = qtMetadata ? calculateQuoteHeight(ctx, qtMetadata) + 100 - (qtMetadata.error ? 40 : 0) : 0;
 
     const totalHeight = descHeight + qtHeight;
     canvas.height = totalHeight;
     ctx.fillRect(0, 0, maxWidth, totalHeight);
 
     const [favicon, pfp] = await Promise.all([
-        loadImage('https://abs.twimg.com/favicons/twitter.3.ico'),
-        loadImage(metadata.pfpUrl)
+        safeLoadImage('https://abs.twimg.com/favicons/twitter.3.ico'),
+        safeLoadImage(metadata.pfpUrl)
     ]);
 
-    const useDesktopLayout = false; //metadata.description.length > MAX_DESC_CHARS;
+    const useDesktopLayout = false;
 
     if (useDesktopLayout) {
         drawDesktopLayout(ctx, font, metadata, favicon, pfp, descLines, {
@@ -147,18 +156,18 @@ async function createTwitterCanvas(metadataJson, isImage) {
     }
 
     if (qtMetadata) {
-        const qtPfp = await loadImage(qtMetadata.pfpUrl);
+        const qtPfp = await safeLoadImage(qtMetadata.pfpUrl);
         const numQtImgs = filterMediaUrls(qtMetadata, ['jpg', 'jpeg', 'png']).length;
         const numQtVids = filterMediaUrls(qtMetadata, ['mp4']).length;
 
         if (!qtMetadata.error) {
             const hasQtMedia = numQtImgs > 0 || numQtVids > 0;
             const qtMediaUrl = hasQtMedia
-                ? qtMetadata.mediaExtended?.[0]?.thumbnail_url || qtMetadata.mediaUrls[0]
+                ? qtMetadata.mediaExtended?.[0]?.thumbnail_url || qtMetadata.mediaUrls?.[0] || null
                 : null;
-            const qtMediaImg = qtMediaUrl ? await loadImage(qtMediaUrl) : undefined;
+            const qtMediaImg = qtMediaUrl ? await safeLoadImage(qtMediaUrl) : undefined;
 
-            const qtUseDesktopLayout = false; //qtMetadata.description.length > MAX_QT_DESC_CHARS;
+            const qtUseDesktopLayout = false;
 
             if (qtUseDesktopLayout) {
                 drawQtDesktopLayout(ctx, font, qtMetadata, qtPfp, qtMediaImg, {

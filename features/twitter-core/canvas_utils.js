@@ -309,6 +309,61 @@ function drawQtDesktopLayout(ctx, font, metadata, pfp, mediaObj, options) {
     }
 }
 
+function threadBubbleWrapText(ctx, text, maxWidth, maxLines = 4) {
+    // console.log('🧪 threadBubbleWrapText');
+    // console.log('Raw text:', JSON.stringify(text));
+    // console.log('maxWidth:', maxWidth, 'maxLines:', maxLines);
+
+    const lines = [];
+    const rawLines = text.split('\n'); // preserve newlines manually
+
+    for (const rawLine of rawLines) {
+        const words = rawLine.split(/\s+/);
+        let currentLine = '';
+
+        for (const word of words) {
+            const testLine = currentLine ? `${currentLine} ${word}` : word;
+            const testWidth = ctx.measureText(testLine).width;
+
+            // console.log(`🧱 Testing line: "${testLine}" (${testWidth}px)`);
+
+            if (testWidth <= maxWidth) {
+                currentLine = testLine;
+            } else {
+                if (!currentLine) {
+                    lines.push(word);
+                } else {
+                    lines.push(currentLine);
+                    currentLine = word;
+                }
+
+                if (lines.length >= maxLines - 1) break;
+            }
+        }
+
+        if (currentLine && lines.length < maxLines) {
+            lines.push(currentLine);
+        }
+
+        if (lines.length >= maxLines) break;
+    }
+
+    const totalWordsLength = text.replace(/\s+/g, ' ').trim().length;
+    const linesJoinedLength = lines.join(' ').length;
+
+    if (lines.length === maxLines && totalWordsLength > linesJoinedLength) {
+        // console.log('✂️ Text was truncated. Adding ellipsis to last line.');
+        let line = lines[maxLines - 1];
+        while (ctx.measureText(line + '…').width > maxWidth && line.length > 0) {
+            line = line.slice(0, -1);
+        }
+        lines[maxLines - 1] = line + '…';
+    }
+
+    console.log('📦 Final wrapped lines:', lines);
+    return lines;
+}
+
 module.exports = {
     getWrappedText,
     getYPosFromLineHeight,
@@ -321,4 +376,5 @@ module.exports = {
     getAdjustedAspectRatios,
     drawDesktopLayout,
     drawQtDesktopLayout,
+    threadBubbleWrapText,
 };

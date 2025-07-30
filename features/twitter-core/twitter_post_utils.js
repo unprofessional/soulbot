@@ -38,9 +38,21 @@ function isFirstMediaVideo(metadataJson) {
     return ext === 'mp4';
 }
 
+/**
+ * Extracts the tweet ID from a Twitter or X URL.
+ * Supports x.com or twitter.com domains.
+ * @param {string} url
+ * @returns {string|null}
+ */
+function extractTweetIdFromUrl(url) {
+    const match = url.match(/(?:twitter\.com|x\.com)\/[^/]+\/status\/(\d+)/);
+    return match ? match[1] : null;
+}
+
 module.exports = {
     createDirectoryIfNotExists,
     countDirectoriesInDirectory,
     extractFirstVideoUrl,
     isFirstMediaVideo,
+    extractTweetIdFromUrl,
 };
