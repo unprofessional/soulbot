@@ -269,9 +269,33 @@ async function renderThreadSnapshotCanvas({ posts, isTruncated }) {
     // Render each post
     for (const post of posts) {
         const isOriginating = post.conversationID != null || post.replyingToID == null;
-        const result = await renderPost(ctx, post, y, isOriginating);
-        y = result.y;
-        postAnchors.push(result.anchor);
+
+        // Set temp font to match the actual render font
+        tmpCtx.font = isOriginating
+            ? `bold 16px ${FONT_FAMILY}`
+            : `${FONT_SIZE}px ${FONT_FAMILY}`;
+
+        const maxTextWidth = MAX_WIDTH
+        - PADDING_X - AVATAR_SIZE - 10 - PADDING_X
+        - INNER_BUBBLE_PADDING
+        - (post._mediaThumbnailUrl ? (THUMB_WIDTH + THUMB_MARGIN_LEFT) : 0);
+
+        const wrapped = threadBubbleWrapText(tmpCtx, post.text, maxTextWidth, 4);
+        const maxLineWidth = Math.max(...wrapped.map(l => tmpCtx.measureText(l).width));
+
+        const lineHeight = isOriginating ? 24 : LINE_HEIGHT; // slightly taller for 16px
+        const baseHeight = wrapped.length * lineHeight + 24;
+
+        post._wrappedLines = wrapped;
+        post._bubbleWidth = Math.max(maxLineWidth + INNER_BUBBLE_PADDING, MIN_BUBBLE_WIDTH);
+        post._bubbleHeight = Math.max(baseHeight, post._mediaThumbnailUrl ? THUMB_HEIGHT : 0);
+
+        maxContentWidth = Math.max(
+            maxContentWidth,
+            post._bubbleWidth + (post._mediaThumbnailUrl ? (THUMB_WIDTH + THUMB_MARGIN_LEFT) : 0)
+        );
+
+        totalHeight += AVATAR_SIZE - 20 + post._bubbleHeight + 30 + 20;
     }
 
     // Draw reply lines (avatar-to-avatar, straight vertical)
