@@ -97,7 +97,7 @@ function renderTruncationNotice(ctx, y, width) {
 }
 
 // Draw one individual post
-async function renderPost(ctx, post, y) {
+async function renderPost(ctx, post, y, isOriginating = false) {
     const { user_name, user_screen_name, user_profile_image_url, date_epoch } = post;
 
     const avatarX = PADDING_X;
@@ -139,7 +139,12 @@ async function renderPost(ctx, post, y) {
     const { _wrappedLines: lines, _bubbleWidth: bw, _bubbleHeight: bh } = post;
 
     // Draw chat bubble background
-    ctx.fillStyle = '#383838';
+    ctx.fillStyle = isOriginating ? '#495b8a' : '#383838';
+    if (isOriginating) {
+        ctx.shadowBlur = 0;
+        ctx.shadowColor = 'transparent';
+    }
+
     drawRoundedRect(ctx, bubbleX, y, bw, bh, 12);
 
     // Media thumbnail
@@ -159,7 +164,9 @@ async function renderPost(ctx, post, y) {
     }
 
     // Draw each line of post text inside bubble
-    ctx.font = `14px ${FONT_FAMILY}`;
+    ctx.font = isOriginating
+        ? `bold 16px ${FONT_FAMILY}`
+        : `14px ${FONT_FAMILY}`;
     ctx.fillStyle = '#e4e4e4ff';
     lines.forEach((line, i) => {
         ctx.fillText(line, bubbleX + 12, y + 22 + i * LINE_HEIGHT);
@@ -261,9 +268,10 @@ async function renderThreadSnapshotCanvas({ posts, isTruncated }) {
 
     // Render each post
     for (const post of posts) {
-        const result = await renderPost(ctx, post, y, effectiveWidth, tmpCtx);
+        const isOriginating = post.conversationID != null || post.replyingToID == null;
+        const result = await renderPost(ctx, post, y, isOriginating);
         y = result.y;
-        postAnchors.push(result.anchor); // Save anchor info for reply lines, etc
+        postAnchors.push(result.anchor);
     }
 
     // Draw reply lines (avatar-to-avatar, straight vertical)

@@ -5,7 +5,6 @@ const { addGuild, getGuilds, removeGuild, guilds } = require('../store/guilds.js
 const { addMember, getMembers, nickNameIsAlreadySet } = require('../store/members.js');
 const { features, toggleTwitter } = require('../store/features.js');
 const { enforceGoldyRole } = require('../features/role-enforcement/role-enforcement.js');
-const { sendPromptToOllama } = require('../features/ollama/index.js');
 const { logMessage } = require('../logger/logger.js');
 const { handleVisionCommand } = require('../features/ollama/vision_handler.js');
 const { handleTwitterUrl } = require('../features/twitter-core/twitter_handler.js');
@@ -62,14 +61,7 @@ async function initializeListeners(client) {
             const content = message.content;
 
             if (content === '!!! serverinit') return addGuild(message.guildId, message);
-            if (content === '!ping') return message.reply('Pong!!!');
             if (content === '!!! toggleTwitter') return toggleTwitter(message);
-
-            if (content.includes('!!! llm') && validationChecksHook(message)) {
-                const prompt = content.split('!!! llm')[1];
-                const response = await sendPromptToOllama(prompt);
-                return message.reply(response);
-            }
 
             if (content === '!!! serverdel' && validationChecksHook(message)) {
                 message.channel.send('Removing server from supported list...');
