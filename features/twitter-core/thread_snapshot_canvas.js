@@ -201,7 +201,7 @@ async function renderThreadSnapshotCanvas({ posts, isTruncated }) {
     let maxContentWidth = 0;
 
     if (isTruncated) {
-        tmpCtx.font = `16px ${FONT_FAMILY}`;
+        tmpCtx.font = `20px ${FONT_FAMILY}`;
         const textWidth = tmpCtx.measureText('Earlier replies not shown').width;
         maxContentWidth = Math.max(maxContentWidth, textWidth + 24);
         totalHeight += 60;
