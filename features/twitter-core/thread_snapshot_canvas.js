@@ -209,16 +209,16 @@ async function renderThreadSnapshotCanvas({ posts, isTruncated }) {
 
     for (const post of posts) {
         const isOriginating = post.conversationID != null || post.replyingToID == null;
-        tmpCtx.font = isOriginating ? `bold 16px ${FONT_FAMILY}` : `${FONT_SIZE}px ${FONT_FAMILY}`;
+        tmpCtx.font = isOriginating ? `bold 20px ${FONT_FAMILY}` : `${FONT_SIZE}px ${FONT_FAMILY}`;
 
         const maxTextWidth = MAX_WIDTH
             - PADDING_X - AVATAR_SIZE - 10 - PADDING_X
             - INNER_BUBBLE_PADDING
             - (post._mediaThumbnailUrl ? (THUMB_WIDTH + THUMB_MARGIN_RIGHT) : 0);
 
-        const wrapped = threadBubbleWrapText(tmpCtx, post.text, maxTextWidth, 4);
+        const wrapped = threadBubbleWrapText(tmpCtx, post.text, maxTextWidth, 8);
         const maxLineWidth = Math.max(...wrapped.map(l => tmpCtx.measureText(l).width));
-        const lineHeight = isOriginating ? 24 : LINE_HEIGHT;
+        const lineHeight = isOriginating ? 28 : LINE_HEIGHT;
         const baseHeight = wrapped.length * lineHeight + 24;
 
         post._wrappedLines = wrapped;
