@@ -17,7 +17,7 @@ const PADDING_Y = 60;
 const AVATAR_SIZE = 48;
 const MIN_BUBBLE_WIDTH = 300;
 const LINE_HEIGHT = 22;
-const FONT_SIZE = 14;
+const FONT_SIZE = 20;
 const FONT_FAMILY = '"Noto Color Emoji", "Noto Sans CJK", "Noto Sans Math"';
 const INNER_BUBBLE_PADDING = 24;
 const THUMB_WIDTH = 96;
@@ -71,7 +71,7 @@ function drawRoundedRect(ctx, x, y, width, height, radius = 10, fill = true) {
 
 function renderTruncationNotice(ctx, y, width) {
     const text = 'Earlier replies not shown';
-    ctx.font = `16px ${FONT_FAMILY}`;
+    ctx.font = `20px ${FONT_FAMILY}`;
     const textWidth = ctx.measureText(text).width;
     const padding = 24;
     const bw = textWidth + padding;
@@ -152,7 +152,7 @@ async function renderPost(ctx, post, y, isOriginating = false) {
         ctx.fillStyle = isOriginating ? '#495b8a' : '#383838';
         drawRoundedRect(ctx, bubbleX, y, bw, bh, 12);
 
-        ctx.font = isOriginating ? `bold 16px ${FONT_FAMILY}` : `14px ${FONT_FAMILY}`;
+        ctx.font = isOriginating ? `bold 20px ${FONT_FAMILY}` : `14px ${FONT_FAMILY}`;
         ctx.fillStyle = '#e4e4e4ff';
         lines.forEach((line, i) => {
             ctx.fillText(line, bubbleX + 12, y + 22 + i * (isOriginating ? 24 : LINE_HEIGHT));
