@@ -152,7 +152,7 @@ async function renderPost(ctx, post, y, isOriginating = false) {
         ctx.fillStyle = isOriginating ? '#495b8a' : '#383838';
         drawRoundedRect(ctx, bubbleX, y, bw, bh, 12);
 
-        ctx.font = isOriginating ? `bold 20px ${FONT_FAMILY}` : `20px ${FONT_FAMILY}`;
+        ctx.font = isOriginating ? `20px ${FONT_FAMILY}` : `20px ${FONT_FAMILY}`;
         ctx.fillStyle = '#e4e4e4ff';
         lines.forEach((line, i) => {
             ctx.fillText(line, bubbleX + 12, y + 32 + i * (isOriginating ? 32 : LINE_HEIGHT));
@@ -209,7 +209,7 @@ async function renderThreadSnapshotCanvas({ posts, isTruncated }) {
 
     for (const post of posts) {
         const isOriginating = post.conversationID != null || post.replyingToID == null;
-        tmpCtx.font = isOriginating ? `bold 20px ${FONT_FAMILY}` : `${FONT_SIZE}px ${FONT_FAMILY}`;
+        tmpCtx.font = isOriginating ? `20px ${FONT_FAMILY}` : `${FONT_SIZE}px ${FONT_FAMILY}`;
 
         const maxTextWidth = MAX_WIDTH
             - PADDING_X - AVATAR_SIZE - 10 - PADDING_X
@@ -218,7 +218,7 @@ async function renderThreadSnapshotCanvas({ posts, isTruncated }) {
 
         const wrapped = threadBubbleWrapText(tmpCtx, post.text, maxTextWidth, 8);
         const maxLineWidth = Math.max(...wrapped.map(l => tmpCtx.measureText(l).width));
-        const lineHeight = isOriginating ? 28 : LINE_HEIGHT;
+        const lineHeight = isOriginating ? 32 : LINE_HEIGHT;
         const baseHeight = wrapped.length * lineHeight + 24;
 
         post._wrappedLines = wrapped;
