@@ -155,7 +155,7 @@ async function renderPost(ctx, post, y, isOriginating = false) {
         ctx.font = isOriginating ? `bold 20px ${FONT_FAMILY}` : `20px ${FONT_FAMILY}`;
         ctx.fillStyle = '#e4e4e4ff';
         lines.forEach((line, i) => {
-            ctx.fillText(line, bubbleX + 12, y + 22 + i * (isOriginating ? 24 : LINE_HEIGHT));
+            ctx.fillText(line, bubbleX + 12, y + 32 + i * (isOriginating ? 32 : LINE_HEIGHT));
         });
 
         ctx.font = `12px ${FONT_FAMILY}`;
