@@ -22,7 +22,7 @@ const FONT_FAMILY = '"Noto Color Emoji", "Noto Sans CJK", "Noto Sans Math"';
 const INNER_BUBBLE_PADDING = 24;
 const THUMB_WIDTH = 96;
 const THUMB_HEIGHT = 96;
-const THUMB_MARGIN_LEFT = 12;
+const THUMB_MARGIN_RIGHT = 12;
 
 function registerFonts(baseFontUrl = '/usr/share/fonts') {
     FONT_PATHS.forEach(([path, family]) =>
@@ -123,45 +123,72 @@ async function renderPost(ctx, post, y, isOriginating = false) {
 
     y += AVATAR_SIZE - 20;
 
-    const bubbleX = nameX;
-    const { _wrappedLines: lines, _bubbleWidth: bw, _bubbleHeight: bh } = post;
-
-    ctx.fillStyle = isOriginating ? '#495b8a' : '#383838';
-    drawRoundedRect(ctx, bubbleX, y, bw, bh, 12);
-
+    const hasText = post._wrappedLines && post._wrappedLines.some(line => line.trim() !== '');
     let thumbnailDrawn = false;
+    let bubbleX = nameX;
+
+    // Media thumbnail first, to the left of the bubble
     if (post._mediaThumbnailUrl) {
         try {
             const img = await loadImage(post._mediaThumbnailUrl);
-            const thumbX = bubbleX + bw + THUMB_MARGIN_LEFT;
+            const thumbX = nameX;
             const thumbY = y;
             ctx.drawImage(img, thumbX, thumbY, THUMB_WIDTH, THUMB_HEIGHT);
             thumbnailDrawn = true;
+
+            if (hasText) {
+                bubbleX = thumbX + THUMB_WIDTH + THUMB_MARGIN_RIGHT;
+            }
         } catch (err) {
             console.warn(`Failed to load media thumbnail for ${post.user_screen_name}:`, err);
         }
     }
 
-    ctx.font = isOriginating ? `bold 16px ${FONT_FAMILY}` : `14px ${FONT_FAMILY}`;
-    ctx.fillStyle = '#e4e4e4ff';
-    lines.forEach((line, i) => {
-        ctx.fillText(line, bubbleX + 12, y + 22 + i * (isOriginating ? 24 : LINE_HEIGHT));
-    });
+    const timestampY = y + (hasText ? Math.max(post._bubbleHeight, THUMB_HEIGHT) : THUMB_HEIGHT) + 20;
 
-    const finalHeight = Math.max(bh, thumbnailDrawn ? THUMB_HEIGHT : 0);
+    if (hasText) {
+        const { _wrappedLines: lines, _bubbleWidth: bw, _bubbleHeight: bh } = post;
 
-    ctx.font = `12px ${FONT_FAMILY}`;
-    ctx.fillStyle = '#aaaaaa';
-    ctx.fillText(
-        formatAbsoluteTimestamp(date_epoch * 1000, post.reply_to_epoch ? post.reply_to_epoch * 1000 : null),
-        bubbleX,
-        y + finalHeight + 20
-    );
+        ctx.fillStyle = isOriginating ? '#495b8a' : '#383838';
+        drawRoundedRect(ctx, bubbleX, y, bw, bh, 12);
 
-    return {
-        y: y + finalHeight + 30 + 20,
-        anchor: { avatarX, avatarY, bubbleX, bubbleY: y }
-    };
+        ctx.font = isOriginating ? `bold 16px ${FONT_FAMILY}` : `14px ${FONT_FAMILY}`;
+        ctx.fillStyle = '#e4e4e4ff';
+        lines.forEach((line, i) => {
+            ctx.fillText(line, bubbleX + 12, y + 22 + i * (isOriginating ? 24 : LINE_HEIGHT));
+        });
+
+        ctx.font = `12px ${FONT_FAMILY}`;
+        ctx.fillStyle = '#aaaaaa';
+        ctx.fillText(
+            formatAbsoluteTimestamp(date_epoch * 1000, post.reply_to_epoch ? post.reply_to_epoch * 1000 : null),
+            bubbleX,
+            timestampY
+        );
+
+        return {
+            y: timestampY + 30,
+            anchor: { avatarX, avatarY, bubbleX, bubbleY: y }
+        };
+    } else if (thumbnailDrawn) {
+        ctx.font = `12px ${FONT_FAMILY}`;
+        ctx.fillStyle = '#aaaaaa';
+        ctx.fillText(
+            formatAbsoluteTimestamp(date_epoch * 1000, post.reply_to_epoch ? post.reply_to_epoch * 1000 : null),
+            nameX,
+            timestampY
+        );
+
+        return {
+            y: timestampY + 30,
+            anchor: { avatarX, avatarY, bubbleX: nameX, bubbleY: y }
+        };
+    } else {
+        return {
+            y: y + 30,
+            anchor: { avatarX, avatarY, bubbleX: nameX, bubbleY: y }
+        };
+    }
 }
 
 async function renderThreadSnapshotCanvas({ posts, isTruncated }) {
@@ -187,7 +214,7 @@ async function renderThreadSnapshotCanvas({ posts, isTruncated }) {
         const maxTextWidth = MAX_WIDTH
             - PADDING_X - AVATAR_SIZE - 10 - PADDING_X
             - INNER_BUBBLE_PADDING
-            - (post._mediaThumbnailUrl ? (THUMB_WIDTH + THUMB_MARGIN_LEFT) : 0);
+            - (post._mediaThumbnailUrl ? (THUMB_WIDTH + THUMB_MARGIN_RIGHT) : 0);
 
         const wrapped = threadBubbleWrapText(tmpCtx, post.text, maxTextWidth, 4);
         const maxLineWidth = Math.max(...wrapped.map(l => tmpCtx.measureText(l).width));
@@ -200,7 +227,7 @@ async function renderThreadSnapshotCanvas({ posts, isTruncated }) {
 
         maxContentWidth = Math.max(
             maxContentWidth,
-            post._bubbleWidth + (post._mediaThumbnailUrl ? (THUMB_WIDTH + THUMB_MARGIN_LEFT) : 0)
+            post._bubbleWidth + (post._mediaThumbnailUrl ? (THUMB_WIDTH + THUMB_MARGIN_RIGHT) : 0)
         );
 
         totalHeight += AVATAR_SIZE - 20 + post._bubbleHeight + 30 + 20;
