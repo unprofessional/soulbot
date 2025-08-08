@@ -147,16 +147,21 @@ async function renderPost(ctx, post, y, isOriginating = false) {
     const timestampY = y + (hasText ? Math.max(post._bubbleHeight, THUMB_HEIGHT) : THUMB_HEIGHT) + 20;
 
     if (hasText) {
-        const { _wrappedLines: lines, _bubbleWidth: bw, _bubbleHeight: bh } = post;
+        const { _wrappedLines: lines, _bubbleWidth: bw } = post;
 
         ctx.fillStyle = isOriginating ? '#495b8a' : '#383838';
-        drawRoundedRect(ctx, bubbleX, y, bw, bh, 12);
+        drawRoundedRect(ctx, bubbleX, y, bw, post._bubbleHeight, 12);
 
-        ctx.font = isOriginating ? `20px ${FONT_FAMILY}` : `20px ${FONT_FAMILY}`;
+        ctx.font = `20px ${FONT_FAMILY}`;
         ctx.fillStyle = '#e4e4e4ff';
         lines.forEach((line, i) => {
-            ctx.fillText(line, bubbleX + 12, y + 32 + i * (isOriginating ? 32 : LINE_HEIGHT));
+            ctx.fillText(line, bubbleX + 12, y + 32 + i * LINE_HEIGHT);
         });
+
+        const lineHeight = LINE_HEIGHT;
+        const textHeight = lines.length * lineHeight + 24;
+        const contentHeight = Math.max(textHeight, thumbnailDrawn ? THUMB_HEIGHT : 0);
+        const timestampY = y + contentHeight + 20;
 
         ctx.font = `12px ${FONT_FAMILY}`;
         ctx.fillStyle = '#aaaaaa';
@@ -170,7 +175,8 @@ async function renderPost(ctx, post, y, isOriginating = false) {
             y: timestampY + 30,
             anchor: { avatarX, avatarY, bubbleX, bubbleY: y }
         };
-    } else if (thumbnailDrawn) {
+    }
+    else if (thumbnailDrawn) {
         ctx.font = `12px ${FONT_FAMILY}`;
         ctx.fillStyle = '#aaaaaa';
         ctx.fillText(
