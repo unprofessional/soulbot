@@ -61,14 +61,28 @@ const initializeGuildMemberUpdate = (client) => {
             }
         }
 
-        // Handle role changes (basic diffing by count)
-        const oldRoles = oldMember.roles.cache.size;
-        const newRoles = newMember.roles.cache.size;
+        // Handle role changes with side-by-side old → new output
+        const oldRoleNames = oldMember.roles.cache
+            .filter(r => r.id !== oldMember.guild.id) // exclude @everyone
+            .map(r => r.name)
+            .sort();
 
-        if (oldRoles !== newRoles) {
-            console.log('🎭 Role count changed.');
-            channel?.send(`\`${newMember.user.username}\` has had a role added or removed.`);
+        const newRoleNames = newMember.roles.cache
+            .filter(r => r.id !== newMember.guild.id) // exclude @everyone
+            .map(r => r.name)
+            .sort();
+
+        // Only send if the roles actually changed
+        if (oldRoleNames.join(',') !== newRoleNames.join(',')) {
+            console.log(`🎭 Roles changed for ${newMember.user.username}`);
+            console.log(`   Old: ${oldRoleNames.join(', ') || '(none)'}`);
+            console.log(`   New: ${newRoleNames.join(', ') || '(none)'}`);
+
+            channel?.send(
+                `\`${newMember.user.username}\` changed roles from **${oldRoleNames.join(', ') || '(none)'}** to **${newRoleNames.join(', ') || '(none)'}**.`
+            );
         }
+        
     });
 
     return client;
