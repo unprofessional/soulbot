@@ -115,7 +115,7 @@ const initializeCommands = async (client) => {
     client.once(Events.ClientReady, c => {
         console.log(`🤖 Bot ready: Logged in as ${c.user.tag}`);
         c.user.setPresence({
-            activities: [{ name: 'Tracking inventories and stats', type: 0 }],
+            activities: [{ name: 'with human emotions', type: 0 }],
             status: 'online',
         });
     });
