@@ -5,12 +5,35 @@ const { stripQueryParams } = require('./utils.js');
 const { cleanup } = require('../twitter-video/cleanup.js');
 const { embedCommunityNote } = require('./canvas_utils.js');
 
+/** Resolve impersonation identity: server nickname + server avatar if set, else global. */
+const resolveImpersonationIdentity = (message) => {
+    // Prefer server nickname; fall back to global display name or username
+    const displayName =
+        message.member?.nickname ||
+        message.author.globalName ||
+        message.author.username;
+
+    // Prefer server/guild avatar (Server Profile). If the member has a guild-specific
+    // avatar set, GuildMember#displayAvatarURL() will return it; otherwise it falls back
+    // to the user's universal avatar.
+    const guildScopedAvatarURL = message.member?.displayAvatarURL
+        ? message.member.displayAvatarURL({ dynamic: true })
+        : null;
+
+    const userAvatarURL = message.author.displayAvatarURL({ dynamic: true });
+
+    const avatarURL = guildScopedAvatarURL || userAvatarURL;
+
+    return { displayName, avatarURL };
+};
+
 /**
  * Builds a webhook for impersonating a user, optionally scoped to a thread.
  */
 const webhookBuilder = async (parentChannel, message, displayName, avatarURL) => {
     const webhook = await parentChannel.createWebhook({
         name: displayName,
+        // Using the resolved avatar (guild-scoped if present)
         avatar: avatarURL,
     });
 
@@ -49,14 +72,15 @@ const sendWebhookProxyMsg = async (message, content, files = [], communityNoteTe
         const webhooks = await parentChannel.fetchWebhooks();
 
         // Clean up bot webhooks first
-        const botWebhooks = webhooks.filter(wh => wh.owner.id === message.client.user.id);
+        const botWebhooks = webhooks.filter(wh => wh.owner?.id === message.client.user.id);
         for (const webhook of botWebhooks.values()) {
             await webhook.delete().catch(err => console.warn(`Failed to delete webhook: ${err}`));
         }
 
         const embed = embedCommunityNote(message, communityNoteText);
-        const displayName = message.member?.nickname || message.author.globalName || message.author.username;
-        const avatarURL = message.author.avatarURL({ dynamic: true }) || message.author.displayAvatarURL();
+
+        // 🔽 New: unified resolver that prefers guild nickname + guild avatar
+        const { displayName, avatarURL } = resolveImpersonationIdentity(message);
 
         const { webhook, threadId } = await webhookBuilder(parentChannel, message, displayName, avatarURL);
         const modifiedContent = trimQueryParamsFromTwitXUrl(message.content);
@@ -66,7 +90,7 @@ const sendWebhookProxyMsg = async (message, content, files = [], communityNoteTe
             ...(embed && { embeds: [embed] }),
             ...(threadId && { threadId }),
             username: displayName,
-            avatarURL,
+            avatarURL, // also set per-message to ensure correct avatar on send
             files,
         });
 
