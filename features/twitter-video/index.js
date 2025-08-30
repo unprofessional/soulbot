@@ -144,44 +144,68 @@ function bakeImageAsFilterIntoVideo(
         ffmpeg.ffprobe(videoInputPath, (err, metadata) => {
             if (err) return reject(new Error(`Failed to probe video: ${err.message}`));
 
-            // inside bakeImageAsFilterIntoVideo after ffprobe(...)
             const hasAudio = metadata.streams.some(s => s.codec_type === 'audio');
+            // Prefer stream duration; fall back to container duration.
+            const fmtDur = Number(metadata.format?.duration) || 0;
+            const vStream = metadata.streams.find(s => s.codec_type === 'video');
+            const vDur = Number(vStream?.duration) || 0;
+            const outSeconds = vDur || fmtDur || 0;
 
-            const vfCanvas = `[0:v]scale=${adjustedCanvasWidth + widthPadding}:${adjustedCanvasHeight},format=rgba,setpts=PTS-STARTPTS[bg]`;
-            const vfVideo  = `[1:v]scale=${scaledDownObjectWidth}:${scaledDownObjectHeight},format=yuv420p,setpts=PTS-STARTPTS[vid]`;
-            // shortest=1 makes overlay stop when the video ends; bg is looped so it never ends
-            const vfOverlay = `[bg][vid]overlay=${overlayX + widthPadding / 2}:${overlayY}:shortest=1[outv]`;
+            // ---- Filter graph ----
+            const vfCanvas =
+        `[0:v]scale=${adjustedCanvasWidth + widthPadding}:${adjustedCanvasHeight},` +
+        `format=rgba,setpts=PTS-STARTPTS[bg]`;
+
+            const vfVideo =
+        `[1:v]scale=${scaledDownObjectWidth}:${scaledDownObjectHeight},` +
+        `format=yuv420p,setpts=PTS-STARTPTS[vid]`;
+
+            // Drive output by the overlaid video; canvas loops forever, overlay stops at video end
+            const vfOverlay =
+        `[bg][vid]overlay=${overlayX + widthPadding / 2}:${overlayY}:shortest=1[outv]`;
 
             const filters = [vfCanvas, vfVideo, vfOverlay];
-            if (hasAudio) filters.push(`[1:a]aresample=async=1000:first_pts=0[aout]`);
+
+            // Audio: reset PTS, resample to a fixed rate (no async stretching)
+            if (hasAudio) {
+                filters.push(`[1:a]asetpts=PTS-STARTPTS,aresample=48000[aout]`);
+            }
 
             const command = ffmpeg()
-            // IMPORTANT: loop the still PNG so it yields frames for the whole duration
+            // 0: canvas (loop to generate frames for entire duration)
                 .input(canvasInputPath).inputOptions(['-loop 1'])
-            // Generate PTS for the *video* input (applies to next input)
-                .input(videoInputPath).inputOptions(['-fflags', '+genpts'])
+            // 1: source video (no genpts; let original timing stand)
+                .input(videoInputPath)
                 .complexFilter(filters)
                 .outputOptions([
                     '-map [outv]',
                     ...(hasAudio ? ['-map [aout]'] : []),
-                    // video
-                    '-c:v libx264', '-preset veryfast', '-crf 22',
-                    '-r 30', '-vsync cfr', '-pix_fmt yuv420p',
-                    // audio
-                    ...(hasAudio ? ['-c:a aac', '-b:a 128k'] : []),
-                    // containers
-                    '-shortest', '-movflags +faststart'
+
+                    // Video: no forced CFR; keep timestamps natural
+                    '-c:v libx264',
+                    '-preset veryfast',
+                    '-crf 22',
+                    '-pix_fmt yuv420p',
+
+                    // Audio: re-encode but do NOT async-stretch
+                    ...(hasAudio ? ['-c:a aac', '-b:a 128k', '-ar 48000'] : []),
+
+                    // Container & truncation guards
+                    '-shortest',
+                    '-movflags +faststart'
                 ])
+            // Hard cap to the measured video duration to prevent tail duplication
+            // (fluent-ffmpeg alias for "-t <seconds>")
+                .duration(outSeconds || 0)
                 .output(videoOutputPath)
                 .on('start', cmd => console.log('FFmpeg command:', cmd))
                 .on('end', () => resolve(videoOutputPath))
-                .on('error', err => reject(err));
+                .on('error', reject);
 
             command.run();
         });
     });
 }
-
 
 module.exports = {
     downloadVideo,
