@@ -144,49 +144,38 @@ function bakeImageAsFilterIntoVideo(
         ffmpeg.ffprobe(videoInputPath, (err, metadata) => {
             if (err) return reject(new Error(`Failed to probe video: ${err.message}`));
 
+            // inside bakeImageAsFilterIntoVideo after ffprobe(...)
             const hasAudio = metadata.streams.some(s => s.codec_type === 'audio');
 
-            // Build the filter graph
-            const vfCanvas = `[0:v]scale=${adjustedCanvasWidth + widthPadding}:${adjustedCanvasHeight},format=rgba,setpts=PTS-STARTPTS[frame]`;
+            const vfCanvas = `[0:v]scale=${adjustedCanvasWidth + widthPadding}:${adjustedCanvasHeight},format=rgba,setpts=PTS-STARTPTS[bg]`;
             const vfVideo  = `[1:v]scale=${scaledDownObjectWidth}:${scaledDownObjectHeight},format=yuv420p,setpts=PTS-STARTPTS[vid]`;
-            const vfOverlay = `[frame][vid]overlay=${overlayX + widthPadding / 2}:${overlayY}:eof_action=pass[outv]`;
+            // shortest=1 makes overlay stop when the video ends; bg is looped so it never ends
+            const vfOverlay = `[bg][vid]overlay=${overlayX + widthPadding / 2}:${overlayY}:shortest=1[outv]`;
 
-            const complexFilters = [vfCanvas, vfVideo, vfOverlay];
-
-            // If audio exists, normalize its timestamps & allow minor drift correction
-            if (hasAudio) {
-                // aresample=async smooths minor timestamp gaps; first_pts=0 aligns start
-                complexFilters.push(`[1:a]aresample=async=1000:first_pts=0[aout]`);
-            }
+            const filters = [vfCanvas, vfVideo, vfOverlay];
+            if (hasAudio) filters.push(`[1:a]aresample=async=1000:first_pts=0[aout]`);
 
             const command = ffmpeg()
-                .input(canvasInputPath)
-                .input(videoInputPath)
-            // Generate PTS for safety when inputs are HLS/VFR
-                .inputOptions(['-fflags +genpts'])
-                .complexFilter(complexFilters)
+            // IMPORTANT: loop the still PNG so it yields frames for the whole duration
+                .input(canvasInputPath).inputOptions(['-loop 1'])
+            // Generate PTS for the *video* input (applies to next input)
+                .input(videoInputPath).inputOptions(['-fflags', '+genpts'])
+                .complexFilter(filters)
                 .outputOptions([
                     '-map [outv]',
                     ...(hasAudio ? ['-map [aout]'] : []),
-
-                    // Video: constant frame rate, reasonable quality/speed
-                    '-c:v libx264',
-                    '-preset veryfast',
-                    '-crf 22',
-                    '-r 30',           // CFR output
-                    '-vsync cfr',
-
-                    // Audio: re-encode to avoid carrying input edit lists/delays
+                    // video
+                    '-c:v libx264', '-preset veryfast', '-crf 22',
+                    '-r 30', '-vsync cfr', '-pix_fmt yuv420p',
+                    // audio
                     ...(hasAudio ? ['-c:a aac', '-b:a 128k'] : []),
-
-                    // Keep streams aligned & make upload-friendly MP4
-                    '-shortest',
-                    '-movflags +faststart'
+                    // containers
+                    '-shortest', '-movflags +faststart'
                 ])
                 .output(videoOutputPath)
                 .on('start', cmd => console.log('FFmpeg command:', cmd))
                 .on('end', () => resolve(videoOutputPath))
-                .on('error', reject);
+                .on('error', err => reject(err));
 
             command.run();
         });
