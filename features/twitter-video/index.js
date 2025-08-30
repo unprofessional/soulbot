@@ -143,30 +143,56 @@ function bakeImageAsFilterIntoVideo(
 
         ffmpeg.ffprobe(videoInputPath, (err, metadata) => {
             if (err) return reject(new Error(`Failed to probe video: ${err.message}`));
+
             const hasAudio = metadata.streams.some(s => s.codec_type === 'audio');
+
+            // Build the filter graph
+            const vfCanvas = `[0:v]scale=${adjustedCanvasWidth + widthPadding}:${adjustedCanvasHeight},format=rgba,setpts=PTS-STARTPTS[frame]`;
+            const vfVideo  = `[1:v]scale=${scaledDownObjectWidth}:${scaledDownObjectHeight},format=yuv420p,setpts=PTS-STARTPTS[vid]`;
+            const vfOverlay = `[frame][vid]overlay=${overlayX + widthPadding / 2}:${overlayY}:eof_action=pass[outv]`;
+
+            const complexFilters = [vfCanvas, vfVideo, vfOverlay];
+
+            // If audio exists, normalize its timestamps & allow minor drift correction
+            if (hasAudio) {
+                // aresample=async smooths minor timestamp gaps; first_pts=0 aligns start
+                complexFilters.push(`[1:a]aresample=async=1000:first_pts=0[aout]`);
+            }
 
             const command = ffmpeg()
                 .input(canvasInputPath)
                 .input(videoInputPath)
-                .complexFilter([
-                    `[0:v]scale=${adjustedCanvasWidth + widthPadding}:${adjustedCanvasHeight}[frame]`,
-                    `[1:v]scale=${scaledDownObjectWidth}:${scaledDownObjectHeight}[video]`,
-                    `[frame][video]overlay=${overlayX + widthPadding / 2}:${overlayY}[out]`
+            // Generate PTS for safety when inputs are HLS/VFR
+                .inputOptions(['-fflags +genpts'])
+                .complexFilter(complexFilters)
+                .outputOptions([
+                    '-map [outv]',
+                    ...(hasAudio ? ['-map [aout]'] : []),
+
+                    // Video: constant frame rate, reasonable quality/speed
+                    '-c:v libx264',
+                    '-preset veryfast',
+                    '-crf 22',
+                    '-r 30',           // CFR output
+                    '-vsync cfr',
+
+                    // Audio: re-encode to avoid carrying input edit lists/delays
+                    ...(hasAudio ? ['-c:a aac', '-b:a 128k'] : []),
+
+                    // Keep streams aligned & make upload-friendly MP4
+                    '-shortest',
+                    '-movflags +faststart'
                 ])
-                .outputOptions(['-c:v libx264', '-map [out]']);
-
-            if (hasAudio) {
-                command.outputOptions(['-map 1:a', '-c:a copy']);
-            }
-
-            command.output(videoOutputPath)
+                .output(videoOutputPath)
                 .on('start', cmd => console.log('FFmpeg command:', cmd))
                 .on('end', () => resolve(videoOutputPath))
-                .on('error', err => reject(err))
-                .run();
+                .on('error', reject);
+
+            command.run();
         });
     });
 }
+
 
 module.exports = {
     downloadVideo,
