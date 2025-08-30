@@ -141,61 +141,88 @@ function bakeImageAsFilterIntoVideo(
 
         const widthPadding = 40;
 
-        ffmpeg.ffprobe(videoInputPath, (err, metadata) => {
+        ffmpeg.ffprobe(videoInputPath, (err, meta) => {
             if (err) return reject(new Error(`Failed to probe video: ${err.message}`));
 
-            const hasAudio = metadata.streams.some(s => s.codec_type === 'audio');
-            // Prefer stream duration; fall back to container duration.
-            const fmtDur = Number(metadata.format?.duration) || 0;
-            const vStream = metadata.streams.find(s => s.codec_type === 'video');
-            const vDur = Number(vStream?.duration) || 0;
-            const outSeconds = vDur || fmtDur || 0;
+            const v = meta.streams.find(s => s.codec_type === 'video');
+            const a = meta.streams.find(s => s.codec_type === 'audio');
+            const hasAudio = Boolean(a);
 
-            // ---- Filter graph ----
+            // Start times (seconds). If missing, treat as 0.
+            const videoStart = Number(v?.start_time) || 0;
+            const audioStart = Number(a?.start_time) || 0;
+            const delta = videoStart - audioStart; // >0 => video starts later; <0 => audio starts later
+
+            // Durations (seconds) for tail-trim cap
+            const fmtDur = Number(meta.format?.duration) || 0;
+            const vDur = Number(v?.duration) || 0;
+            const aDur = Number(a?.duration) || 0;
+            const outSeconds = Math.max(0, Math.min(vDur || fmtDur, aDur || fmtDur));
+
+            // ---------- Build filter graph ----------
+            // 0:v = PNG canvas (looped), 1:v/a = source video/audio
             const vfCanvas =
         `[0:v]scale=${adjustedCanvasWidth + widthPadding}:${adjustedCanvasHeight},` +
         `format=rgba,setpts=PTS-STARTPTS[bg]`;
 
-            const vfVideo =
+            // Video chain: scale → (optional delay via tpad if audio starts later) → tag
+            let vfVideo =
         `[1:v]scale=${scaledDownObjectWidth}:${scaledDownObjectHeight},` +
-        `format=yuv420p,setpts=PTS-STARTPTS[vid]`;
+        `format=yuv420p,setpts=PTS-STARTPTS`;
 
-            // Drive output by the overlaid video; canvas loops forever, overlay stops at video end
+            if (delta < 0) {
+                // audio starts later; delay VIDEO by |delta| seconds (clone first frame)
+                const padSec = Math.max(0, -delta);
+                vfVideo += `,tpad=start_duration=${padSec}:start_mode=clone`;
+            }
+            vfVideo += `[vid]`;
+
+            // Overlay canvas over video; overlay stops when video ends
             const vfOverlay =
         `[bg][vid]overlay=${overlayX + widthPadding / 2}:${overlayY}:shortest=1[outv]`;
 
             const filters = [vfCanvas, vfVideo, vfOverlay];
 
-            // Audio: reset PTS, resample to a fixed rate (no async stretching)
+            // Audio chain: reset PTS, resample to fixed rate (no async stretch)
             if (hasAudio) {
-                filters.push(`[1:a]asetpts=PTS-STARTPTS,aresample=48000[aout]`);
+                let af = `[1:a]asetpts=PTS-STARTPTS,aresample=48000`;
+                if (delta > 0) {
+                    // video starts later; delay AUDIO to match by delta ms
+                    const delayMs = Math.max(0, Math.round(delta * 1000));
+                    const ch = (a?.channels && Number.isFinite(a.channels)) ? a.channels : 2;
+                    const perChan = Array(ch).fill(delayMs).join('|');
+                    af += `,adelay=${perChan}`;
+                }
+                af += `[aout]`;
+                filters.push(af);
             }
 
+            // ---------- Build command ----------
             const command = ffmpeg()
-            // 0: canvas (loop to generate frames for entire duration)
+            // Loop canvas so it yields frames for whole duration
                 .input(canvasInputPath).inputOptions(['-loop 1'])
-            // 1: source video (no genpts; let original timing stand)
+            // Source video as-is (we align in the filtergraph)
                 .input(videoInputPath)
                 .complexFilter(filters)
                 .outputOptions([
+                    // Explicit maps
                     '-map [outv]',
                     ...(hasAudio ? ['-map [aout]'] : []),
 
-                    // Video: no forced CFR; keep timestamps natural
+                    // Video encode (keep native timing; no forced CFR)
                     '-c:v libx264',
                     '-preset veryfast',
                     '-crf 22',
                     '-pix_fmt yuv420p',
 
-                    // Audio: re-encode but do NOT async-stretch
+                    // Audio encode (no async stretching)
                     ...(hasAudio ? ['-c:a aac', '-b:a 128k', '-ar 48000'] : []),
 
-                    // Container & truncation guards
+                    // Container niceties + end on shorter stream
                     '-shortest',
-                    '-movflags +faststart'
+                    '-movflags +faststart',
                 ])
-            // Hard cap to the measured video duration to prevent tail duplication
-            // (fluent-ffmpeg alias for "-t <seconds>")
+            // Hard-cap to the shorter probed duration to avoid tail frame repeats
                 .duration(outSeconds || 0)
                 .output(videoOutputPath)
                 .on('start', cmd => console.log('FFmpeg command:', cmd))
