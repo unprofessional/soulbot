@@ -163,11 +163,11 @@ function bakeImageAsFilterIntoVideo(
             const fmtDur = Number(meta.format?.duration) || 0;
             const vDur   = Number(v?.duration) || 0;
             const aDur   = Number(a?.duration) || 0;
-            const outSeconds = Math.max(0, Math.min(vDur || fmtDur, aDur || fmtDur));
 
+            // Use the native FPS from r_frame_rate; fallback to avg or 30000/1001
             const vRFrame   = v?.r_frame_rate ?? null;
             const vAvgFrame = v?.avg_frame_rate ?? null;
-            const fpsStr = vRFrame && parseRate(vRFrame) ? vRFrame : (vAvgFrame || '30000/1001'); // default to ~29.97
+            const fpsStr = vRFrame && parseRate(vRFrame) ? vRFrame : (vAvgFrame || '30000/1001');
             const fpsVal = parseRate(fpsStr) || 29.97;
 
             const vTimeBase = v?.time_base ?? null;
@@ -187,78 +187,68 @@ function bakeImageAsFilterIntoVideo(
             }
             console.log('[sync] delta = video_start - audio_start =', delta.toFixed(6), 'seconds');
             console.log('[canvas] dims:', { adjustedCanvasWidth, adjustedCanvasHeight, scaledDownObjectWidth, scaledDownObjectHeight, overlayX, overlayY, widthPadding });
-            console.log('[clock] using canvas FPS =', fpsStr, `≈${fpsVal}`);
-            console.log('[output-cap] outSeconds (min(video,audio,format)) =', outSeconds);
+            console.log('[clock] canvas FPS =', fpsStr, `≈${fpsVal}`);
 
-            // ---------- Filter graph (canvas as base, at video FPS) ----------
-            // 0:v = PNG (looped), 1:v/a = source video/audio
+            // ---------- Filter graph (NO setpts on video/audio) ----------
+            // 0:v = PNG canvas (looped), 1:v/a = source video/audio
 
-            // Canvas: scale to full output, force FPS to match the video, reset PTS
+            // Canvas: scale to full output, force FPS to match the video (so it doesn't impose 25fps)
             const vfCanvas =
         `[0:v]scale=${adjustedCanvasWidth + widthPadding}:${adjustedCanvasHeight},` +
-        `fps=${fpsStr},format=rgba,setpts=PTS-STARTPTS[bg]`;
+        `fps=${fpsStr},format=rgba[bg]`;
 
-            // Video: scale down to its slot, reset PTS
+            // Video: scale down to its slot; DO NOT touch PTS here
             const vfVideo =
         `[1:v]scale=${scaledDownObjectWidth}:${scaledDownObjectHeight},` +
-        `format=yuv420p,setpts=PTS-STARTPTS[vid]`;
+        `format=yuv420p[vid]`;
 
-            // Composite: base = canvas (600x826 even dims), stop when video ends
+            // Composite: base = canvas, stop when video ends
             const vfOverlay =
         `[bg][vid]overlay=${overlayX + widthPadding / 2}:${overlayY}:shortest=1[outv]`;
 
             const filterParts = [vfCanvas, vfVideo, vfOverlay];
 
-            // Audio: from input 1 (the video), reset PTS, resample fixed rate
-            let audioDelayMs = 0;
+            // Audio: from input 1 (the video), keep PTS; just resample to a sane rate
             if (hasAudio) {
-                let af = `[1:a]asetpts=PTS-STARTPTS,aresample=48000`;
-                if (delta > 0) {
-                    audioDelayMs = Math.max(0, Math.round(delta * 1000));
-                    const ch = (aCh && Number.isFinite(aCh)) ? aCh : 2;
-                    af += `,adelay=${Array(ch).fill(audioDelayMs).join('|')}`;
-                }
-                af += `[aout]`;
+                const af = `[1:a]aresample=48000[aout]`;
                 filterParts.push(af);
             }
 
             const filterComplex = filterParts.join(';');
             console.log('[filters] filter_complex =', filterComplex);
-            console.log('[decision] apply:', {
-                baseIsCanvas: true,
-                delayAudioMs: audioDelayMs,
-                fpsStr,
-                hasAudio,
-            });
 
             const command = ffmpeg()
             // PNG FIRST as base; loop it and set input framerate to match video
                 .input(canvasInputPath)
                 .inputOptions(['-loop', '1', '-framerate', fpsStr])
-            // Video second
+            // Video second (native timestamps preserved)
                 .input(videoInputPath)
                 .complexFilter(filterComplex)
                 .outputOptions([
                     '-loglevel', 'verbose',
 
+                    // Preserve input timestamps, but make the output start at zero
+                    '-copyts', '-start_at_zero',
+                    // Avoid muxer buffering delays:
+                    '-muxpreload', '0', '-muxdelay', '0',
+
                     // Explicit maps
                     '-map', '[outv]',
                     ...(hasAudio ? ['-map', '[aout]'] : []),
 
-                    // Encode video (keep native timing; no forced CFR)
+                    // Video encode (do not force CFR)
                     '-c:v', 'libx264',
                     '-preset', 'veryfast',
                     '-crf', '22',
                     '-pix_fmt', 'yuv420p',
 
-                    // Encode audio (no async stretching)
+                    // Audio encode (no async stretch)
                     ...(hasAudio ? ['-c:a', 'aac', '-b:a', '128k', '-ar', '48000'] : []),
 
                     '-shortest',
                     '-movflags', '+faststart',
                 ])
-            // Cap to shorter duration (safety against tail repeats)
-                .duration(outSeconds || 0)
+            // IMPORTANT: don't force a -t cap here; let native PTS decide
                 .output(videoOutputPath)
                 .on('start', cmd => console.log('[ffmpeg] start:', cmd))
                 .on('codecData', data => console.log('[ffmpeg] codecData:', data))
