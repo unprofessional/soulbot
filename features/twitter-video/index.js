@@ -148,26 +148,59 @@ function bakeImageAsFilterIntoVideo(
             return num / den;
         };
 
-        ffmpeg.ffprobe(videoInputPath, (err, meta) => {
-            if (err) return reject(new Error(`Failed to probe video: ${err.message}`));
+        // --- 1) Pre-normalize the Twitter MP4 to get monotonic PTS/DTS ---
+        const normPath = videoInputPath.replace(/\.mp4$/i, '-norm.mp4');
 
+        const doNormalize = () =>
+            new Promise((res, rej) => {
+                console.log('[normalize] remux →', normPath);
+                ffmpeg(videoInputPath)
+                    .outputOptions([
+                        // regenerate presentation timestamps
+                        '-fflags', '+genpts',
+                        // make negative timestamps zero
+                        '-avoid_negative_ts', 'make_zero',
+                        // tame huge track timescale (Twitter often uses 300000000)
+                        '-video_track_timescale', '90000',
+                        // mp4 friendliness
+                        '-movflags', '+faststart',
+                        // avoid muxer buffering for tiny files
+                        '-muxpreload', '0', '-muxdelay', '0'
+                    ])
+                    .videoCodec('copy')
+                    .audioCodec('copy')
+                    .on('start', cmd => console.log('[normalize] ffmpeg start:', cmd))
+                    .on('stderr', line => console.log('[normalize][stderr]', line))
+                    .on('end', () => { console.log('[normalize] done'); res(); })
+                    .on('error', e => { console.error('[normalize] error:', e?.message || e); rej(e); })
+                    .save(normPath);
+            });
+
+        const probe = (p) =>
+            new Promise((res, rej) => {
+                ffmpeg.ffprobe(p, (err, meta) => err ? rej(err) : res(meta));
+            });
+
+        (async () => {
+            // Always normalize (fast stream-copy) to remove CTTS/edit-list nasties
+            await doNormalize();
+
+            const meta = await probe(normPath);
             const v = meta.streams.find(s => s.codec_type === 'video');
             const a = meta.streams.find(s => s.codec_type === 'audio');
             const hasAudio = Boolean(a);
-
-            // --- Probe facts ---
-            const videoStart = Number(v?.start_time) || 0;
-            const audioStart = Number(a?.start_time) || 0;
-            const delta = videoStart - audioStart;
 
             const fmtDur = Number(meta.format?.duration) || 0;
             const vDur   = Number(v?.duration) || 0;
             const aDur   = Number(a?.duration) || 0;
 
-            // Use the native FPS from r_frame_rate; fallback to avg or 30000/1001
-            const vRFrame   = v?.r_frame_rate ?? null;
-            const vAvgFrame = v?.avg_frame_rate ?? null;
-            const fpsStr = vRFrame && parseRate(vRFrame) ? vRFrame : (vAvgFrame || '30000/1001');
+            const vStart = Number(v?.start_time) || 0;
+            const aStart = Number(a?.start_time) || 0;
+            const delta  = vStart - aStart;
+
+            const vR     = v?.r_frame_rate ?? null;
+            const vAvgR  = v?.avg_frame_rate ?? null;
+            const fpsStr = vR && parseRate(vR) ? vR : (vAvgR || '30000/1001');
             const fpsVal = parseRate(fpsStr) || 29.97;
 
             const vTimeBase = v?.time_base ?? null;
@@ -176,95 +209,76 @@ function bakeImageAsFilterIntoVideo(
             const aRate     = a?.sample_rate ?? null;
             const aCh       = (a && 'channels' in a) ? Number(a.channels) : null;
 
-            console.log('[ffprobe] format.duration (s):', fmtDur);
-            console.log('[ffprobe] video: { start_time:', videoStart, ', duration:', vDur, ', time_base:', vTimeBase,
-                ', r_frame_rate:', vRFrame, `≈${parseRate(vRFrame) || 'n/a'}`, ', avg_frame_rate:', vAvgFrame, `≈${parseRate(vAvgFrame) || 'n/a'}`, ', nb_frames:', vNbFrames, '}');
+            console.log('[ffprobe:NORM] format.duration (s):', fmtDur);
+            console.log('[ffprobe:NORM] video: { start_time:', vStart, ', duration:', vDur, ', time_base:', vTimeBase,
+                ', r_frame_rate:', vR, `≈${parseRate(vR) || 'n/a'}`, ', avg_frame_rate:', vAvgR, `≈${parseRate(vAvgR) || 'n/a'}`, ', nb_frames:', vNbFrames, '}');
             if (hasAudio) {
-                console.log('[ffprobe] audio: { start_time:', audioStart, ', duration:', aDur, ', time_base:', aTimeBase,
+                console.log('[ffprobe:NORM] audio: { start_time:', aStart, ', duration:', aDur, ', time_base:', aTimeBase,
                     ', sample_rate:', aRate, ', channels:', aCh, '}');
             } else {
-                console.log('[ffprobe] audio: <none>');
+                console.log('[ffprobe:NORM] audio: <none>');
             }
-            console.log('[sync] delta = video_start - audio_start =', delta.toFixed(6), 'seconds');
-            console.log('[canvas] dims:', { adjustedCanvasWidth, adjustedCanvasHeight, scaledDownObjectWidth, scaledDownObjectHeight, overlayX, overlayY, widthPadding });
+            console.log('[sync:NORM] delta = video_start - audio_start =', delta.toFixed(6), 'seconds');
             console.log('[clock] canvas FPS =', fpsStr, `≈${fpsVal}`);
+            console.log('[canvas] dims:', { adjustedCanvasWidth, adjustedCanvasHeight, scaledDownObjectWidth, scaledDownObjectHeight, overlayX, overlayY, widthPadding });
 
-            // ---------- Filter graph (NO setpts on video/audio) ----------
-            // 0:v = PNG canvas (looped), 1:v/a = source video/audio
-
-            // Canvas: scale to full output, force FPS to match the video (so it doesn't impose 25fps)
+            // ---------- 2) Overlay graph (leave PTS as-is; we normalized already) ----------
             const vfCanvas =
         `[0:v]scale=${adjustedCanvasWidth + widthPadding}:${adjustedCanvasHeight},` +
         `fps=${fpsStr},format=rgba[bg]`;
 
-            // Video: scale down to its slot; DO NOT touch PTS here
             const vfVideo =
         `[1:v]scale=${scaledDownObjectWidth}:${scaledDownObjectHeight},` +
         `format=yuv420p[vid]`;
 
-            // Composite: base = canvas, stop when video ends
             const vfOverlay =
         `[bg][vid]overlay=${overlayX + widthPadding / 2}:${overlayY}:shortest=1[outv]`;
 
-            const filterParts = [vfCanvas, vfVideo, vfOverlay];
+            const filterComplex = hasAudio
+                ? `${vfCanvas};${vfVideo};${vfOverlay};[1:a]aresample=48000[aout]`
+                : `${vfCanvas};${vfVideo};${vfOverlay}`;
 
-            // Audio: from input 1 (the video), keep PTS; just resample to a sane rate
-            if (hasAudio) {
-                const af = `[1:a]aresample=48000[aout]`;
-                filterParts.push(af);
-            }
-
-            const filterComplex = filterParts.join(';');
             console.log('[filters] filter_complex =', filterComplex);
 
             const command = ffmpeg()
-            // PNG FIRST as base; loop it and set input framerate to match video
+            // PNG base (loop at video FPS)
                 .input(canvasInputPath)
                 .inputOptions(['-loop', '1', '-framerate', fpsStr])
-            // Video second (native timestamps preserved)
-                .input(videoInputPath)
+            // NORMALIZED video second
+                .input(normPath)
                 .complexFilter(filterComplex)
                 .outputOptions([
                     '-loglevel', 'verbose',
 
-                    // Preserve input timestamps, but make the output start at zero
+                    // Keep the normalized timestamps starting at zero cleanly in container
                     '-copyts', '-start_at_zero',
-                    // Avoid muxer buffering delays:
                     '-muxpreload', '0', '-muxdelay', '0',
 
-                    // Explicit maps
+                    // Mapping
                     '-map', '[outv]',
                     ...(hasAudio ? ['-map', '[aout]'] : []),
 
-                    // Video encode (do not force CFR)
+                    // Encode
                     '-c:v', 'libx264',
                     '-preset', 'veryfast',
                     '-crf', '22',
                     '-pix_fmt', 'yuv420p',
-
-                    // Audio encode (no async stretch)
                     ...(hasAudio ? ['-c:a', 'aac', '-b:a', '128k', '-ar', '48000'] : []),
 
+                    // End when shortest stream ends (video)
                     '-shortest',
                     '-movflags', '+faststart',
                 ])
-            // IMPORTANT: don't force a -t cap here; let native PTS decide
                 .output(videoOutputPath)
                 .on('start', cmd => console.log('[ffmpeg] start:', cmd))
                 .on('codecData', data => console.log('[ffmpeg] codecData:', data))
                 .on('progress', p => console.log('[ffmpeg] progress:', p))
                 .on('stderr', line => console.log('[ffmpeg][stderr]', line))
-                .on('end', () => {
-                    console.log('[ffmpeg] end OK');
-                    resolve(videoOutputPath);
-                })
-                .on('error', e => {
-                    console.error('[ffmpeg] error:', e?.message || e);
-                    reject(e);
-                });
+                .on('end', () => { console.log('[ffmpeg] end OK'); resolve(videoOutputPath); })
+                .on('error', e => { console.error('[ffmpeg] error:', e?.message || e); reject(e); });
 
             command.run();
-        });
+        })().catch(reject);
     });
 }
 
