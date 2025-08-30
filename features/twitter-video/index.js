@@ -146,7 +146,6 @@ function bakeImageAsFilterIntoVideo(
         const probe = (p) => new Promise((res, rej) => ffmpeg.ffprobe(p, (e, m) => e ? rej(e) : res(m)));
 
         const normalize = () => new Promise((res, rej) => {
-            // console.log('[normalize] remux →', normPath);
             ffmpeg(videoInputPath)
                 .outputOptions([
                     '-fflags', '+genpts',
@@ -157,9 +156,8 @@ function bakeImageAsFilterIntoVideo(
                 ])
                 .videoCodec('copy')
                 .audioCodec('copy')
-                // .on('start', cmd => console.log('[normalize] ffmpeg start:', cmd))
-                // .on('stderr', l => console.log('[normalize][stderr]', l))
-                // .on('end', () => { console.log('[normalize] done'); res(); })
+                .on('start', cmd => console.log('[normalize] ffmpeg:', cmd))
+                .on('end', () => { console.log('[normalize] done'); res(); })
                 .on('error', e => { console.error('[normalize] error:', e?.message || e); rej(e); })
                 .save(normPath);
         });
@@ -186,25 +184,10 @@ function bakeImageAsFilterIntoVideo(
             const vNbFrames = (v && 'nb_frames' in v) ? Number(v.nb_frames) : NaN;
             const trueVDur = isFinite(vNbFrames) && vNbFrames > 0 ? (vNbFrames / fpsVal) : (vDur || fmtDur);
 
-            // console.log('[ffprobe:NORM] format.duration (s):', fmtDur);
-            // console.log('[ffprobe:NORM] video: { start_time:', vStart, ', duration:', vDur, ', nb_frames:', vNbFrames, ', r_frame_rate:', vR, ', avg_frame_rate:', vAvgR, ' }');
-            // if (hasAudio) console.log('[ffprobe:NORM] audio: { start_time:', aStart, ', duration:', aDur, ' }');
-            // console.log('[sync:NORM] delta = video_start - audio_start =', delta.toFixed(6), 'seconds');
-            // console.log('[clock] using FPS =', fpsStr, `≈${fpsVal}`);
-            // console.log('[dur] trueVDur from nb_frames/fps =', trueVDur);
-            // console.log('[canvas] dims:', { adjustedCanvasWidth, adjustedCanvasHeight, scaledDownObjectWidth, scaledDownObjectHeight, overlayX, overlayY, widthPadding });
-
-            // --- Build the filter graph ---
-            // Base/background: loop PNG at video FPS, scale to canvas
+            // --- Build the filter graph (minimal logs) ---
             const vfCanvas = `[0:v]scale=${adjustedCanvasWidth + widthPadding}:${adjustedCanvasHeight},fps=${fpsStr},format=rgba[bg]`;
-
-            // Foreground: normalized video scaled to target box
             const vfVideo  = `[1:v]scale=${scaledDownObjectWidth}:${scaledDownObjectHeight},format=yuv420p[vid]`;
 
-            // Audio alignment strategy:
-            //  - If delta < -0.02s, audio starts LATE → drop the gap by resetting audio PTS to 0.
-            //  - If delta > +0.02s, audio starts EARLY → delay audio by delta ms.
-            //  - Else, leave as-is (just resample).
             let audioChain = hasAudio ? 'aresample=48000' : '';
             if (hasAudio) {
                 if (delta < -0.02) {
@@ -221,36 +204,33 @@ function bakeImageAsFilterIntoVideo(
                 ? `${vfCanvas};${vfVideo};${vfOverlay};[1:a]${audioChain}[aout]`
                 : `${vfCanvas};${vfVideo};${vfOverlay}`;
 
-            // console.log('[filters] filter_complex =', filterComplex);
-
-            // Cap output duration so we never run into tail freeze: min(true video, audio)
+            // Cap output duration (prevents tail freeze)
             const outSeconds = hasAudio ? Math.max(0, Math.min(trueVDur || fmtDur, aDur || fmtDur)) : (trueVDur || fmtDur);
-            // console.log('[output-cap] -t', outSeconds);
+
+            console.log('[ffmpeg] filter_complex:', filterComplex);
+            console.log('[ffmpeg] fps:', fpsStr, '| audio sync delta (s):', delta.toFixed(3), '| -t:', outSeconds.toFixed(3));
+
+            const baseOutputOpts = [
+                '-loglevel', 'warning',             // cut noise but keep errors/warnings
+                '-muxpreload', '0', '-muxdelay', '0',
+                '-map', '[outv]',
+                ...(hasAudio ? ['-map', '[aout]'] : []),
+                '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '22', '-pix_fmt', 'yuv420p',
+                ...(hasAudio ? ['-c:a', 'aac', '-b:a', '128k', '-ar', '48000'] : []),
+                '-shortest',
+                '-movflags', '+faststart',
+            ];
+            console.log('[ffmpeg] outputOptions:', baseOutputOpts.join(' '));
 
             const cmd = ffmpeg()
-            // Input 0: PNG (looped at FPS)
                 .input(canvasInputPath)
                 .inputOptions(['-loop', '1', '-framerate', fpsStr])
-            // Input 1: normalized MP4
                 .input(normPath)
                 .complexFilter(filterComplex)
-                .outputOptions([
-                    '-loglevel', 'verbose',
-                    // no -copyts here; we aligned inside filters
-                    '-muxpreload', '0', '-muxdelay', '0',
-                    '-map', '[outv]',
-                    ...(hasAudio ? ['-map', '[aout]'] : []),
-                    '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '22', '-pix_fmt', 'yuv420p',
-                    ...(hasAudio ? ['-c:a', 'aac', '-b:a', '128k', '-ar', '48000'] : []),
-                    '-shortest',
-                    '-movflags', '+faststart'
-                ])
+                .outputOptions(baseOutputOpts)
                 .output(videoOutputPath)
-                // .on('start', c => console.log('[ffmpeg] start:', c))
-                // .on('codecData', d => console.log('[ffmpeg] codecData:', d))
-                // .on('progress', p => console.log('[ffmpeg] progress:', p))
-                // .on('stderr', l => console.log('[ffmpeg][stderr]', l))
-                .on('end', () => { console.log('[ffmpeg] end OK'); resolve(videoOutputPath); })
+                .on('start', c => console.log('[ffmpeg] start'))
+                .on('end',   () => { console.log('[ffmpeg] done'); resolve(videoOutputPath); })
                 .on('error', e => { console.error('[ffmpeg] error:', e?.message || e); reject(e); });
 
             if (outSeconds && Number.isFinite(outSeconds)) {
