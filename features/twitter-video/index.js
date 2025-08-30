@@ -155,6 +155,7 @@ function bakeImageAsFilterIntoVideo(
             const a = meta.streams.find(s => s.codec_type === 'audio');
             const hasAudio = Boolean(a);
 
+            // --- Probe facts ---
             const videoStart = Number(v?.start_time) || 0;
             const audioStart = Number(a?.start_time) || 0;
             const delta = videoStart - audioStart;
@@ -164,11 +165,13 @@ function bakeImageAsFilterIntoVideo(
             const aDur   = Number(a?.duration) || 0;
             const outSeconds = Math.max(0, Math.min(vDur || fmtDur, aDur || fmtDur));
 
-            const vTimeBase = v?.time_base ?? null;
             const vRFrame   = v?.r_frame_rate ?? null;
             const vAvgFrame = v?.avg_frame_rate ?? null;
-            const vNbFrames = (v && 'nb_frames' in v) ? Number(v.nb_frames) : null;
+            const fpsStr = vRFrame && parseRate(vRFrame) ? vRFrame : (vAvgFrame || '30000/1001'); // default to ~29.97
+            const fpsVal = parseRate(fpsStr) || 29.97;
 
+            const vTimeBase = v?.time_base ?? null;
+            const vNbFrames = (v && 'nb_frames' in v) ? Number(v.nb_frames) : null;
             const aTimeBase = a?.time_base ?? null;
             const aRate     = a?.sample_rate ?? null;
             const aCh       = (a && 'channels' in a) ? Number(a.channels) : null;
@@ -184,48 +187,36 @@ function bakeImageAsFilterIntoVideo(
             }
             console.log('[sync] delta = video_start - audio_start =', delta.toFixed(6), 'seconds');
             console.log('[canvas] dims:', { adjustedCanvasWidth, adjustedCanvasHeight, scaledDownObjectWidth, scaledDownObjectHeight, overlayX, overlayY, widthPadding });
+            console.log('[clock] using canvas FPS =', fpsStr, `≈${fpsVal}`);
             console.log('[output-cap] outSeconds (min(video,audio,format)) =', outSeconds);
 
-            // ---------- Filter graph ----------
-            // Input order for this fix:
-            //   0 = VIDEO (base timeline)
-            //   1 = PNG (overlay)
-            //
-            // Video chain: scale video to its display size and reset PTS to 0
-            // (we use the video as the base, so its FPS/clock rule the pipeline)
-            let vfVideo =
-        `[0:v]scale=${scaledDownObjectWidth}:${scaledDownObjectHeight},` +
-        `format=yuv420p,setpts=PTS-STARTPTS[base]`;
+            // ---------- Filter graph (canvas as base, at video FPS) ----------
+            // 0:v = PNG (looped), 1:v/a = source video/audio
 
-            // Canvas chain: scale and reset PTS; no looping needed.
-            // overlay repeatlast=1 will keep the still image persistent.
+            // Canvas: scale to full output, force FPS to match the video, reset PTS
             const vfCanvas =
-        `[1:v]scale=${adjustedCanvasWidth + widthPadding}:${adjustedCanvasHeight},` +
-        `format=rgba,setpts=PTS-STARTPTS[fg]`;
+        `[0:v]scale=${adjustedCanvasWidth + widthPadding}:${adjustedCanvasHeight},` +
+        `fps=${fpsStr},format=rgba,setpts=PTS-STARTPTS[bg]`;
 
-            // Composite: drive by base video, keep overlay alive, stop on video end
+            // Video: scale down to its slot, reset PTS
+            const vfVideo =
+        `[1:v]scale=${scaledDownObjectWidth}:${scaledDownObjectHeight},` +
+        `format=yuv420p,setpts=PTS-STARTPTS[vid]`;
+
+            // Composite: base = canvas (600x826 even dims), stop when video ends
             const vfOverlay =
-        `[base][fg]overlay=${overlayX + widthPadding / 2}:${overlayY}:shortest=1:repeatlast=1[outv]`;
+        `[bg][vid]overlay=${overlayX + widthPadding / 2}:${overlayY}:shortest=1[outv]`;
 
-            const filterParts = [vfVideo, vfCanvas, vfOverlay];
+            const filterParts = [vfCanvas, vfVideo, vfOverlay];
 
-            // Audio: from the video input (0:a). Reset PTS and resample to fixed rate.
-            // If there is a non-zero delta, delay whichever starts earlier (rare given your probes).
+            // Audio: from input 1 (the video), reset PTS, resample fixed rate
             let audioDelayMs = 0;
             if (hasAudio) {
-                let af = `[0:a]asetpts=PTS-STARTPTS,aresample=48000`;
+                let af = `[1:a]asetpts=PTS-STARTPTS,aresample=48000`;
                 if (delta > 0) {
-                    // video starts later; delay audio to match video start
                     audioDelayMs = Math.max(0, Math.round(delta * 1000));
                     const ch = (aCh && Number.isFinite(aCh)) ? aCh : 2;
                     af += `,adelay=${Array(ch).fill(audioDelayMs).join('|')}`;
-                } else if (delta < 0) {
-                    // audio starts later; give video a tiny pad so their zero aligns
-                    const padSec = Math.max(0, -delta);
-                    // Add a tiny cloned lead on base video (will be imperceptible unless delta is large)
-                    filterParts[0] =
-            `[0:v]scale=${scaledDownObjectWidth}:${scaledDownObjectHeight},format=yuv420p,setpts=PTS-STARTPTS,` +
-            `tpad=start_duration=${padSec}:start_mode=clone[base]`;
                 }
                 af += `[aout]`;
                 filterParts.push(af);
@@ -234,38 +225,39 @@ function bakeImageAsFilterIntoVideo(
             const filterComplex = filterParts.join(';');
             console.log('[filters] filter_complex =', filterComplex);
             console.log('[decision] apply:', {
-                baseIsVideo: true,
+                baseIsCanvas: true,
                 delayAudioMs: audioDelayMs,
-                delta,
+                fpsStr,
                 hasAudio,
             });
 
             const command = ffmpeg()
-            // IMPORTANT: Now the **video** is input #0 (base timeline)
-                .input(videoInputPath)
-            // PNG overlay is input #1 — no loop, no fps tag from png_pipe
+            // PNG FIRST as base; loop it and set input framerate to match video
                 .input(canvasInputPath)
+                .inputOptions(['-loop', '1', '-framerate', fpsStr])
+            // Video second
+                .input(videoInputPath)
                 .complexFilter(filterComplex)
                 .outputOptions([
                     '-loglevel', 'verbose',
 
-                    // Explicit maps: video from overlay output, audio from processed 0:a
+                    // Explicit maps
                     '-map', '[outv]',
                     ...(hasAudio ? ['-map', '[aout]'] : []),
 
-                    // Keep native timing (don't force CFR)
+                    // Encode video (keep native timing; no forced CFR)
                     '-c:v', 'libx264',
                     '-preset', 'veryfast',
                     '-crf', '22',
                     '-pix_fmt', 'yuv420p',
 
-                    // Audio: fixed rate encode, no async stretching
+                    // Encode audio (no async stretching)
                     ...(hasAudio ? ['-c:a', 'aac', '-b:a', '128k', '-ar', '48000'] : []),
 
                     '-shortest',
                     '-movflags', '+faststart',
                 ])
-            // Optional hard cap to the shorter probed duration (kept for safety)
+            // Cap to shorter duration (safety against tail repeats)
                 .duration(outSeconds || 0)
                 .output(videoOutputPath)
                 .on('start', cmd => console.log('[ffmpeg] start:', cmd))
