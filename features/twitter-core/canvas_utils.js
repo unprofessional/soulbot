@@ -113,16 +113,20 @@ function drawQtBasicElements(ctx, font, metadata, pfp, mediaObj, options) {
 
     const qtX = 20;
     const qtY = canvasHeightOffset;
+
+    // Box height already precomputed upstream (via calculateQuoteHeight + 100)
     const boxHeight = hasMedia || expandQtMedia
         ? Math.max(qtCanvasHeightOffset, expandQtMedia ? (metadata._expandedMediaHeight + 150) : 285)
         : qtCanvasHeightOffset;
 
+    // Quote outer box
     ctx.strokeStyle = '#4d4d4d';
     ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.roundRect(qtX, qtY, 560, boxHeight - 20, 15);
     ctx.stroke();
 
+    // Names
     ctx.fillStyle = 'white';
     ctx.font = `bold 18px ${font}`;
     ctx.fillText(metadata.authorUsername, 100, qtY + 40);
@@ -131,11 +135,17 @@ function drawQtBasicElements(ctx, font, metadata, pfp, mediaObj, options) {
     ctx.font = `18px ${font}`;
     ctx.fillText(`@${metadata.authorNick}`, 100, qtY + 60);
 
-    // Text position: if we expand media, use left padding and place image below.
+    // --- Text block ---
+    // IMPORTANT: drawDescription offsets QT text by +100 (see function), so compute textTop accordingly
+    const textLeftX = expandQtMedia ? 40 : (hasMedia ? 230 : 100);
+    const textTopY  = qtY + 100; // matches drawDescription's internal QT offset
     ctx.fillStyle = 'white';
     ctx.font = `24px ${font}`;
-    const textX = expandQtMedia ? 40 : (hasMedia ? 230 : 100);
-    drawDescription(ctx, hasImgs, hasVids, qtDescLines, font, textX, qtY, true);
+    drawDescription(ctx, hasImgs, hasVids, qtDescLines, font, textLeftX, qtY, true);
+
+    // Where the text actually ends on-canvas:
+    const lineHeight = 30;
+    const textBottomY = textTopY + qtDescLines.length * lineHeight;
 
     // Avatar
     ctx.save();
@@ -145,26 +155,28 @@ function drawQtBasicElements(ctx, font, metadata, pfp, mediaObj, options) {
     ctx.drawImage(pfp, 40, canvasHeightOffset + 20, 50, 50);
     ctx.restore();
 
-    // Media
+    // --- Media ---
     if (mediaObj) {
         ctx.save();
         ctx.beginPath();
+
         if (expandQtMedia && expandedMediaSize) {
-            // Large, near-full-width preview under the text
+            // Large, near-full-width image placed *below* the text
             const mediaW = Math.min(520, expandedMediaSize.width || 520);
             const mediaH = expandedMediaSize.height || 320;
             const mediaX = 40;
-            const mediaY = qtY + 30 + (qtDescLines.length * 30) + 20; // under text, with gap
+            const mediaY = textBottomY + 20; // directly under the text with a small gap
             ctx.roundRect(mediaX, mediaY, mediaW, mediaH, 15);
             ctx.clip();
             cropSingleImage(ctx, mediaObj, mediaW, mediaH, mediaX, mediaY);
         } else {
-            // Legacy compact thumbnail on the left
+            // Compact thumbnail on the left for non-expanded mode
             const qtMediaY = canvasHeightOffset + 80;
             ctx.roundRect(40, qtMediaY, 175, 175, 15);
             ctx.clip();
             cropSingleImage(ctx, mediaObj, 175, 175, 40, qtMediaY);
         }
+
         ctx.restore();
     }
 }
