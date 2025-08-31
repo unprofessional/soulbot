@@ -1,6 +1,5 @@
-const {
-    loadImage,
-} = require('canvas');
+// features/twitter-post/render_image_gallery.js
+const { loadImage } = require('canvas');
 const { cropSingleImage } = require('./crop_single_image.js');
 const { scaleDownToFitAspectRatio } = require('./scale_down.js');
 
@@ -8,12 +7,10 @@ const scaleToFitWiderThanHeight = (
     ctx,
     mainMedia1,
     yPosition,
-    mediaMaxWidth,
+    mediaMaxWidth
 ) => {
     const newWidthRatio = mediaMaxWidth / mainMedia1.width;
-    // console.log('>>>>> newWidthRatio: ', newWidthRatio);
     const adjustedHeight = mainMedia1.height * newWidthRatio;
-    // console.log('>>>>> adjustedHeight: ', adjustedHeight);
     ctx.drawImage(mainMedia1, 20, yPosition, mediaMaxWidth, adjustedHeight);
 };
 
@@ -35,29 +32,41 @@ const singleImage = async (
         width: metadata.mediaExtended[0].size.width,
     };
 
-    mediaObject = scaleDownToFitAspectRatio(mediaObject, mediaMaxHeight, mediaMaxWidth);
+    mediaObject = scaleDownToFitAspectRatio(
+        mediaObject,
+        mediaMaxHeight,
+        mediaMaxWidth
+    );
 
     const firstXPosition = 20 + mediaMaxWidth / 2 - mediaObject.width / 2;
     const firstYPosition = yPosition;
 
-    // Create a rounded rectangle path
     ctx.beginPath();
     ctx.moveTo(firstXPosition + cornerRadius, firstYPosition);
-    ctx.lineTo(firstXPosition + mediaObject.width - cornerRadius, firstYPosition);
+    ctx.lineTo(
+        firstXPosition + mediaObject.width - cornerRadius,
+        firstYPosition
+    );
     ctx.quadraticCurveTo(
         firstXPosition + mediaObject.width,
         firstYPosition,
         firstXPosition + mediaObject.width,
         firstYPosition + cornerRadius
     );
-    ctx.lineTo(firstXPosition + mediaObject.width, firstYPosition + mediaObject.height - cornerRadius);
+    ctx.lineTo(
+        firstXPosition + mediaObject.width,
+        firstYPosition + mediaObject.height - cornerRadius
+    );
     ctx.quadraticCurveTo(
         firstXPosition + mediaObject.width,
         firstYPosition + mediaObject.height,
         firstXPosition + mediaObject.width - cornerRadius,
         firstYPosition + mediaObject.height
     );
-    ctx.lineTo(firstXPosition + cornerRadius, firstYPosition + mediaObject.height);
+    ctx.lineTo(
+        firstXPosition + cornerRadius,
+        firstYPosition + mediaObject.height
+    );
     ctx.quadraticCurveTo(
         firstXPosition,
         firstYPosition + mediaObject.height,
@@ -73,10 +82,8 @@ const singleImage = async (
     );
     ctx.closePath();
 
-    // Apply the clip
     ctx.clip();
 
-    // Draw the image inside the clipped path
     ctx.drawImage(
         mainMedia1,
         firstXPosition,
@@ -85,55 +92,37 @@ const singleImage = async (
         mediaObject.height
     );
 
-    // Optionally, draw a border for the rounded rectangle
-    ctx.strokeStyle = '#4d4d4d'; // Border color
-    ctx.lineWidth = 2; // Border width
-    ctx.stroke(); // Stroke the path
+    ctx.strokeStyle = '#4d4d4d';
+    ctx.lineWidth = 2;
+    ctx.stroke();
 };
 
-
-// REFACTOR with above
-// (probably just replace it since we don't need to do an array search for a single img)
 const singleVideoFrame = async (
     ctx,
     mediaUrl,
     calculatedCanvasHeightFromDescLines,
     heightShim,
     mediaMaxHeight,
-    mediaMaxWidth,
+    mediaMaxWidth
 ) => {
-    // console.log('>>>>> image_gallery_rendering > singleVideoFrame > mediaUrl: ', mediaUrl);
     const mainMedia1 = await loadImage(mediaUrl);
     const xPosition = 20;
     const yPosition = calculatedCanvasHeightFromDescLines - heightShim - 50;
-    // TODO: We might not need to convert this into a Promise, but there's too much blackboxed behind `canvas/ctx` calls to chance it for now
-    // ...Run load tests with a variety of different metadata/videos/concurrency later...
     return new Promise((resolve, reject) => {
         try {
             if (mainMedia1.width > mainMedia1.height) {
                 scaleToFitWiderThanHeight(ctx, mainMedia1, yPosition, mediaMaxWidth);
                 return resolve(true);
             } else {
-                cropSingleImage(ctx, mainMedia1, mediaMaxHeight, mediaMaxWidth, xPosition, yPosition);
+                cropSingleImage(ctx, mainMedia1, mediaMaxWidth, mediaMaxHeight, xPosition, yPosition, { tag: 'gallery/video' });
                 return resolve(true);
             }
-        }
-        catch(err) {
+        } catch (err) {
             return reject(err);
         }
     });
 };
 
-/**
- * 
- * @param {*} ctx 
- * @param {*} metadata 
- * @param {*} calculatedCanvasHeightFromDescLines 
- * @param {*} heightShim 
- * @param {*} mediaMaxHeight 
- * @param {*} mediaMaxWidth 
- * @param {*} defaultYPosition 
- */
 const renderImageGallery = async (
     ctx,
     metadata,
@@ -141,126 +130,87 @@ const renderImageGallery = async (
     heightShim,
     mediaMaxHeight,
     mediaMaxWidth,
-    defaultYPosition,
+    defaultYPosition
 ) => {
-
     console.log('>>>>> renderImageGallery reached!');
 
-    /**
-     * TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO 
-     * 
-     * replace any instance of a media item in a list from the raw mp4 file
-     * to the media_extended.video_thumbnail
-     * 
-     * TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO 
-     */
-    // If we've hit this point then we know all media items should be images
-    // but in case they're not, then we must convert them all to it....
-    // FIXME: this logic might have to happen before we call this, then, but for now
-    // ... we can just fix it here
     const mediaItems = metadata.mediaExtended;
-    const fixedMediaItems = mediaItems.map(mediaItem => {
-        // Each mediaItem should have an associated JPG even if the source is a mp4 video...
-        return mediaItem.thumbnail_url;
-    });
+    const fixedMediaItems = mediaItems.map(mediaItem => mediaItem.thumbnail_url);
 
     let mediaObject1 = {
         height: mediaItems[0].size.height,
         width: mediaItems[0].size.width,
     };
-    const scaledMediaDimensions1 = scaleDownToFitAspectRatio(mediaObject1, mediaMaxHeight, mediaMaxWidth);
-    // console.log('>>> scaledMediaDimensions1: ', scaledMediaDimensions1);
+    const scaledMediaDimensions1 = scaleDownToFitAspectRatio(
+        mediaObject1,
+        mediaMaxHeight,
+        mediaMaxWidth
+    );
 
     /** Single Image */
-    if(fixedMediaItems.length === 1) {
+    if (fixedMediaItems.length === 1) {
         await singleImage(
             ctx,
             metadata,
             calculatedCanvasHeightFromDescLines,
             heightShim,
             mediaMaxHeight,
-            mediaMaxWidth,
+            mediaMaxWidth
         );
     }
+
     /** Two images */
-    if(fixedMediaItems.length === 2) {
-        const mainMedia1Url = fixedMediaItems[0];
-        const mainMedia1 = await loadImage(mainMedia1Url);
+    if (fixedMediaItems.length === 2) {
+        const mainMedia1 = await loadImage(fixedMediaItems[0]);
         const firstXPosition = 20;
         const firstYPosition = calculatedCanvasHeightFromDescLines - heightShim - 50;
-        cropSingleImage(ctx, mainMedia1, scaledMediaDimensions1.height, mediaMaxWidth / 2, firstXPosition, firstYPosition);
+        cropSingleImage(ctx, mainMedia1, mediaMaxWidth / 2, scaledMediaDimensions1.height, firstXPosition, firstYPosition, { tag: 'gallery/2-left' });
 
-        const mainMedia2Url = fixedMediaItems[1];
-        const mainMedia2 = await loadImage(mainMedia2Url);
+        const mainMedia2 = await loadImage(fixedMediaItems[1]);
         const secondXPosition = mediaMaxWidth / 2 + 25;
         const secondYPosition = calculatedCanvasHeightFromDescLines - heightShim - 50;
-        /**
-         * FIXME: This is a hack that forces it from a single (the first's) object's fixed
-         * height since the "first img object" pattern is applied elsewhere throughout the
-         * code — we need to refactor the entire codebase to determine min/max height for
-         * ALL img objs and choose the appropriate one for each scenario...
-         */
-        cropSingleImage(ctx, mainMedia2, scaledMediaDimensions1.height, mediaMaxWidth / 2, secondXPosition, secondYPosition);
+        cropSingleImage(ctx, mainMedia2, mediaMaxWidth / 2, scaledMediaDimensions1.height, secondXPosition, secondYPosition, { tag: 'gallery/2-right' });
     }
+
     /** Three images */
-    if(fixedMediaItems.length === 3) {
-        console.log('>>> renderImageGallery > calculatedCanvasHeightFromDescLines: ', calculatedCanvasHeightFromDescLines);
-        console.log('>>> renderImageGallery > heightShim: ', heightShim);
-        const mainMedia1Url = fixedMediaItems[0];
-        const mainMedia1 = await loadImage(mainMedia1Url);
+    if (fixedMediaItems.length === 3) {
+        const mainMedia1 = await loadImage(fixedMediaItems[0]);
         const firstXPosition = 20;
         const firstYPosition = calculatedCanvasHeightFromDescLines - heightShim - 50;
-        console.log('>>> renderImageGallery > mainMedia1Url: ', mainMedia1Url);
-        console.log('>>> renderImageGallery > firstXPosition: ', firstXPosition);
-        console.log('>>> renderImageGallery > firstYPosition: ', firstYPosition);
-        cropSingleImage(ctx, mainMedia1, scaledMediaDimensions1.height, mediaMaxWidth / 2, firstXPosition, firstYPosition);
+        cropSingleImage(ctx, mainMedia1, mediaMaxWidth / 2, scaledMediaDimensions1.height, firstXPosition, firstYPosition, { tag: 'gallery/3-top-left' });
 
-        const mainMedia2Url = fixedMediaItems[1];
-        const mainMedia2 = await loadImage(mainMedia2Url);
+        const mainMedia2 = await loadImage(fixedMediaItems[1]);
         const secondXPosition = mediaMaxWidth / 2 + 25;
         const secondYPosition = calculatedCanvasHeightFromDescLines - heightShim - 50;
-        console.log('>>> renderImageGallery > mainMedia2Url: ', mainMedia2Url);
-        console.log('>>> renderImageGallery > secondXPosition: ', secondXPosition);
-        console.log('>>> renderImageGallery > secondYPosition: ', secondYPosition);
-        cropSingleImage(ctx, mainMedia2, scaledMediaDimensions1.height / 2, mediaMaxWidth / 2, secondXPosition, secondYPosition);
+        cropSingleImage(ctx, mainMedia2, mediaMaxWidth / 2, scaledMediaDimensions1.height / 2, secondXPosition, secondYPosition, { tag: 'gallery/3-top-right' });
 
-        const mainMedia3Url = fixedMediaItems[2];
-        const mainMedia3 = await loadImage(mainMedia3Url);
+        const mainMedia3 = await loadImage(fixedMediaItems[2]);
         const thirdXPosition = mediaMaxWidth / 2 + 25;
         const thirdYPosition = scaledMediaDimensions1.height / 2 + defaultYPosition - 5;
-        console.log('>>> renderImageGallery > mainMedia3Url: ', mainMedia3Url);
-        console.log('>>> renderImageGallery > thirdXPosition: ', thirdXPosition);
-        console.log('>>> renderImageGallery > thirdYPosition: ', thirdYPosition);
-        console.log('>>> renderImageGallery > scaledMediaDimensions1: ', scaledMediaDimensions1);
-        console.log('>>> renderImageGallery > defaultYPosition: ', defaultYPosition);
-        cropSingleImage(ctx, mainMedia3, scaledMediaDimensions1.height / 2, mediaMaxWidth / 2, thirdXPosition, thirdYPosition);
+        cropSingleImage(ctx, mainMedia3, mediaMaxWidth / 2, scaledMediaDimensions1.height / 2, thirdXPosition, thirdYPosition, { tag: 'gallery/3-bottom-right' });
     }
+
     /** Four images */
-    if(fixedMediaItems.length === 4) {
-        const mainMedia1Url = fixedMediaItems[0];
-        const mainMedia1 = await loadImage(mainMedia1Url);
+    if (fixedMediaItems.length === 4) {
+        const mainMedia1 = await loadImage(fixedMediaItems[0]);
         const firstXPosition = 20;
         const firstYPosition = calculatedCanvasHeightFromDescLines - heightShim - 50;
-        cropSingleImage(ctx, mainMedia1, scaledMediaDimensions1.height / 2, mediaMaxWidth / 2, firstXPosition, firstYPosition);
+        cropSingleImage(ctx, mainMedia1, mediaMaxWidth / 2, scaledMediaDimensions1.height / 2, firstXPosition, firstYPosition, { tag: 'gallery/4-top-left' });
 
-        const mainMedia2Url = fixedMediaItems[1];
-        const mainMedia2 = await loadImage(mainMedia2Url);
+        const mainMedia2 = await loadImage(fixedMediaItems[1]);
         const secondXPosition = mediaMaxWidth / 2 + 25;
         const secondYPosition = calculatedCanvasHeightFromDescLines - heightShim - 50;
-        cropSingleImage(ctx, mainMedia2, scaledMediaDimensions1.height / 2, mediaMaxWidth / 2, secondXPosition, secondYPosition);
+        cropSingleImage(ctx, mainMedia2, mediaMaxWidth / 2, scaledMediaDimensions1.height / 2, secondXPosition, secondYPosition, { tag: 'gallery/4-top-right' });
 
-        const mainMedia3Url = fixedMediaItems[2];
-        const mainMedia3 = await loadImage(mainMedia3Url);
+        const mainMedia3 = await loadImage(fixedMediaItems[2]);
         const thirdXPosition = 20;
         const thirdYPosition = scaledMediaDimensions1.height / 2 + defaultYPosition - 5;
-        cropSingleImage(ctx, mainMedia3, scaledMediaDimensions1.height / 2, mediaMaxWidth / 2, thirdXPosition, thirdYPosition);
+        cropSingleImage(ctx, mainMedia3, mediaMaxWidth / 2, scaledMediaDimensions1.height / 2, thirdXPosition, thirdYPosition, { tag: 'gallery/4-bottom-left' });
 
-        const mainMedia4Url = fixedMediaItems[3];
-        const mainMedia4 = await loadImage(mainMedia4Url);
+        const mainMedia4 = await loadImage(fixedMediaItems[3]);
         const fourthXPosition = mediaMaxWidth / 2 + 25;
         const fourthYPosition = scaledMediaDimensions1.height / 2 + defaultYPosition - 5;
-        cropSingleImage(ctx, mainMedia4, scaledMediaDimensions1.height / 2, mediaMaxWidth / 2, fourthXPosition, fourthYPosition);
-
+        cropSingleImage(ctx, mainMedia4, mediaMaxWidth / 2, scaledMediaDimensions1.height / 2, fourthXPosition, fourthYPosition, { tag: 'gallery/4-bottom-right' });
     }
 };
 
