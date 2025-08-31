@@ -111,17 +111,30 @@ const sendWebhookProxyMsg = async (message, content, files = [], communityNoteTe
 /**
  * Sends a video as a file attachment via webhook proxy, or falls back on failure.
  */
-const sendVideoReply = async (message, successFilePath, localWorkingPath, originalLink) => {
+const sendVideoReply = async (message, successFilePath, localWorkingPath, originalLink, communityNoteText) => {
     const files = [{
         attachment: await readFile(successFilePath),
         name: 'video.mp4',
     }];
 
     try {
-        await sendWebhookProxyMsg(message, 'Here’s the Twitter canvas:', files, undefined, originalLink);
+        await sendWebhookProxyMsg(
+            message,
+            'Here\'s the Twitter canvas:',
+            files,
+            communityNoteText,
+            originalLink
+        );
     } catch (err) {
         console.warn('>>> sendVideoReply > WEBHOOK FAILED!');
-        await sendWebhookProxyMsg(message, `File(s) too large to attach! err: ${err}`, undefined, undefined, originalLink);
+        await sendWebhookProxyMsg(
+            message,
+            `File(s) too large to attach! err: ${err}`,
+            undefined,
+            undefined,
+            communityNoteText,
+            originalLink,
+        );
     } finally {
         await cleanup([], [localWorkingPath]);
     }

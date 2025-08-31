@@ -92,7 +92,13 @@ async function handleVideoPost({
 
         inspectVideoFileDetails(successFilePath, 'output');
 
-        await sendVideoReply(message, successFilePath, localWorkingPath, originalLink);
+        await sendVideoReply(
+            message,
+            successFilePath,
+            localWorkingPath,
+            originalLink,
+            metadataJson.communityNote,
+        );
     } catch (err) {
         console.error('>>> ERROR: renderTwitterPost > err:', err);
         await cleanup([], [localWorkingPath]);
