@@ -248,7 +248,10 @@ function drawQtBasicElements(ctx, font, metadata, pfp, mediaObj, options) {
 
                 try {
                     console.debug(`${TAG} [expanded] cropSingleImage(src: ${safeNum(srcW)}x${safeNum(srcH)} → dst: ${targetW}x${targetH} @ ${mediaX},${mediaY})`);
-                    cropSingleImage(ctx, mediaObj, targetW, targetH, mediaX, mediaY);
+                    cropSingleImage(ctx, mediaObj, targetW, targetH, mediaX, mediaY, {
+                        tag: 'qt/expanded',
+                        debugOverlay: process.env.DEBUG_QT === '1'
+                    });
                 } catch (err) {
                     console.warn(`${TAG} [expanded] cropSingleImage ERROR:`, err);
                 }
