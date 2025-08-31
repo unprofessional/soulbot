@@ -1,77 +1,93 @@
 // features/twitter-post/crop_single_image.js
-const cropSingleImage = (ctx, mediaObject, maxWidth, maxHeight, xPosition, yPosition, opts = {}) => {
-    const TAG = '[qt/cropSingleImage]';
-    const { debugOverlay = true } = opts; // toggle overlay
+function cropSingleImage(ctx, mediaObject, maxWidth, maxHeight, xPosition, yPosition, opts = {}) {
+    const TAG = opts.tag || 'qt/cropSingleImage';
+    const debugOverlay = opts.debugOverlay ?? (process.env.DEBUG_QT === '1');
 
     try {
-    // Some image objects expose width/height vs videoWidth/videoHeight
         const srcW = Number(mediaObject.width) || Number(mediaObject.videoWidth) || null;
         const srcH = Number(mediaObject.height) || Number(mediaObject.videoHeight) || null;
 
-        console.debug(`${TAG} ───────────────────────────────────────────────`);
-        console.debug(`${TAG} INPUT media natural size: ${srcW} x ${srcH}`);
-        console.debug(`${TAG} Destination slot (max): ${maxWidth} x ${maxHeight} @ (${xPosition}, ${yPosition})`);
-
         if (!srcW || !srcH) {
-            console.warn(`${TAG} ERROR: missing natural size; aborting draw.`);
+            console.warn(`[${TAG}] Missing natural size; type=${mediaObject?.constructor?.name}`);
             return;
         }
 
-        // crop from the center of the image
-        const destAspectRatio = maxWidth / maxHeight;
-        const srcAspectRatio = srcW / srcH;
+        let W = Number(maxWidth);
+        let H = Number(maxHeight);
 
-        let cropWidth, cropHeight;
-
-        if (srcAspectRatio > destAspectRatio) {
-            // Image is wider than destination aspect ratio
-            cropHeight = srcH;
-            cropWidth = srcH * destAspectRatio;
-            console.debug(`${TAG} case=WIDER: srcAspect=${srcAspectRatio.toFixed(3)} > destAspect=${destAspectRatio.toFixed(3)}`);
-        } else {
-            // Image is taller than destination aspect ratio
-            cropWidth = srcW;
-            cropHeight = srcW / destAspectRatio;
-            console.debug(`${TAG} case=TALLER: srcAspect=${srcAspectRatio.toFixed(3)} <= destAspect=${destAspectRatio.toFixed(3)}`);
+        // Guard zero/NaN
+        if (!Number.isFinite(W) || !Number.isFinite(H) || W <= 0 || H <= 0) {
+            console.warn(`[${TAG}] Bad dst size W×H=${W}×${H}; abort`);
+            return;
         }
 
-        // Calculate starting point (top left corner) for cropping
-        const sx = (srcW - cropWidth) / 2;
-        const sy = (srcH - cropHeight) / 2;
+        const log = (...a) => (process.env.DEBUG_QT === '1' ? console.debug(`[${TAG}]`, ...a) : void 0);
+        log('SRC', `${srcW}x${srcH}`, 'DST', `${W}x${H}`, '@', `(${xPosition},${yPosition})`);
 
-        console.debug(`${TAG} Computed crop rect (source coords):`);
-        console.debug(`${TAG}   sx=${sx}, sy=${sy}, cropWidth=${cropWidth}, cropHeight=${cropHeight}`);
-        console.debug(`${TAG} Final drawImage params:`);
-        console.debug(`${TAG}   srcRect: (${sx}, ${sy}, ${cropWidth}, ${cropHeight})`);
-        console.debug(`${TAG}   dstRect: (${xPosition}, ${yPosition}, ${maxWidth}, ${maxHeight})`);
+        // Core math bundled for reuse (and to support legacy swap retry)
+        const compute = (w, h) => {
+            const destAspect = w / h;
+            const srcAspect = srcW / srcH;
+            let cropW, cropH;
 
-        // Draw the cropped image on the canvas
+            if (srcAspect > destAspect) {
+                cropH = srcH;
+                cropW = srcH * destAspect;
+            } else {
+                cropW = srcW;
+                cropH = srcW / destAspect;
+            }
+
+            let sx = (srcW - cropW) / 2;
+            let sy = (srcH - cropH) / 2;
+
+            return { destAspect, cropW, cropH, sx, sy };
+        };
+
+        let { destAspect, cropW, cropH, sx, sy } = compute(W, H);
+
+        // Legacy-order auto-detect: if we computed a crop bigger than the source, try swapping W/H once.
+        const tooWide = cropW > srcW + 0.5;
+        const tooTall = cropH > srcH + 0.5;
+        if (tooWide || tooTall) {
+            log('Legacy arg order suspected; swapping W/H.');
+            [W, H] = [H, W];
+            ({ destAspect, cropW, cropH, sx, sy } = compute(W, H));
+        }
+
+        // Clamp crop rect into the source bounds (avoid negatives / overflow)
+        if (sx < 0) { cropW += sx; sx = 0; }
+        if (sy < 0) { cropH += sy; sy = 0; }
+        cropW = Math.max(1, Math.min(cropW, srcW - sx));
+        cropH = Math.max(1, Math.min(cropH, srcH - sy));
+
+        log('srcAspect=', (srcW / srcH).toFixed(3), 'destAspect=', destAspect.toFixed(3));
+        log('srcRect', `(${sx}, ${sy}, ${cropW}, ${cropH})`);
+        log('dstRect', `(${xPosition}, ${yPosition}, ${W}, ${H})`);
+
+        // Draw
         ctx.drawImage(
             mediaObject,
-            sx, sy, cropWidth, cropHeight, // Source rectangle
-            xPosition, yPosition, maxWidth, maxHeight // Destination rectangle
+            sx, sy, cropW, cropH,
+            xPosition, yPosition, W, H
         );
 
-        console.debug(`${TAG} drawImage complete.`);
-
-        // Optional debug overlay
+        // Optional overlay of the destination rect
         if (debugOverlay) {
             try {
                 ctx.save();
-                ctx.strokeStyle = 'rgba(255, 0, 0, 0.65)'; // semi-transparent red
+                ctx.strokeStyle = 'rgba(255, 0, 0, 0.65)';
                 ctx.lineWidth = 2;
-                ctx.strokeRect(xPosition, yPosition, maxWidth, maxHeight);
+                ctx.strokeRect(xPosition, yPosition, W, H);
                 ctx.restore();
-                console.debug(`${TAG} overlay strokeRect drawn around dstRect`);
-            } catch (overlayErr) {
-                console.warn(`${TAG} overlay draw failed:`, overlayErr);
+                log('overlay strokeRect drawn');
+            } catch (e) {
+                console.warn(`[${TAG}] overlay failed:`, e);
             }
         }
-
-        console.debug(`${TAG} ───────────────────────────────────────────────`);
     } catch (err) {
-        console.warn(`${TAG} ERROR during crop:`, err);
+        console.warn(`[${TAG}] ERROR:`, err);
     }
-};
+}
 
 module.exports = { cropSingleImage };
