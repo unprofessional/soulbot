@@ -106,27 +106,32 @@ function drawQtBasicElements(ctx, font, metadata, pfp, mediaObj, options) {
     const hasVids = filterMediaUrls(metadata, ['mp4']).length > 0;
     const hasMedia = hasImgs || hasVids;
 
-    // When expanding media, let text run nearly full width above the image
+    // Text wrap: full width when expanding media, else compact when media is present.
     const qtMaxCharLength = expandQtMedia ? 520 : (hasMedia ? 320 : 420);
     ctx.font = `24px ${font}`;
     const qtDescLines = getWrappedText(ctx, metadata.description, qtMaxCharLength);
 
+    // Quote box geometry
     const qtX = 20;
     const qtY = canvasHeightOffset;
+    const boxW = 560;
+    const innerPad = 20;             // visual padding inside the rounded box
+    const innerLeft = qtX + innerPad;             // 40
+    const innerRight = qtX + boxW - innerPad;     // 560
+    const innerW = innerRight - innerLeft;        // 520
 
-    // Box height already precomputed upstream (via calculateQuoteHeight + 100)
     const boxHeight = hasMedia || expandQtMedia
         ? Math.max(qtCanvasHeightOffset, expandQtMedia ? (metadata._expandedMediaHeight + 150) : 285)
         : qtCanvasHeightOffset;
 
-    // Quote outer box
+    // Outer quote box (stroke only; background already black)
     ctx.strokeStyle = '#4d4d4d';
     ctx.lineWidth = 1;
     ctx.beginPath();
-    ctx.roundRect(qtX, qtY, 560, boxHeight - 20, 15);
+    ctx.roundRect(qtX, qtY, boxW, boxHeight - 20, 15);
     ctx.stroke();
 
-    // Names
+    // Display names
     ctx.fillStyle = 'white';
     ctx.font = `bold 18px ${font}`;
     ctx.fillText(metadata.authorUsername, 100, qtY + 40);
@@ -135,16 +140,15 @@ function drawQtBasicElements(ctx, font, metadata, pfp, mediaObj, options) {
     ctx.font = `18px ${font}`;
     ctx.fillText(`@${metadata.authorNick}`, 100, qtY + 60);
 
-    // --- Text block ---
-    // IMPORTANT: drawDescription offsets QT text by +100 (see function), so compute textTop accordingly
-    const textLeftX = expandQtMedia ? 40 : (hasMedia ? 230 : 100);
-    const textTopY  = qtY + 100; // matches drawDescription's internal QT offset
+    // --- Text block (note drawDescription adds +100 Y for QT text) ---
+    const textX = expandQtMedia ? innerLeft : (hasMedia ? 230 : 100);
+    const textTopY = qtY + 100;
+    const lineHeight = 30;
+
     ctx.fillStyle = 'white';
     ctx.font = `24px ${font}`;
-    drawDescription(ctx, hasImgs, hasVids, qtDescLines, font, textLeftX, qtY, true);
+    drawDescription(ctx, hasImgs, hasVids, qtDescLines, font, textX, qtY, true);
 
-    // Where the text actually ends on-canvas:
-    const lineHeight = 30;
     const textBottomY = textTopY + qtDescLines.length * lineHeight;
 
     // Avatar
@@ -161,20 +165,29 @@ function drawQtBasicElements(ctx, font, metadata, pfp, mediaObj, options) {
         ctx.beginPath();
 
         if (expandQtMedia && expandedMediaSize) {
-            // Large, near-full-width image placed *below* the text
-            const mediaW = Math.min(520, expandedMediaSize.width || 520);
-            const mediaH = expandedMediaSize.height || 320;
-            const mediaX = 40;
-            const mediaY = textBottomY + 20; // directly under the text with a small gap
-            ctx.roundRect(mediaX, mediaY, mediaW, mediaH, 15);
+            // Center the large image; ensure perfect rounded corners by aligning to whole pixels
+            const targetW = Math.min(innerW, Math.round(expandedMediaSize.width || innerW));
+            const targetH = Math.min(420, Math.round(expandedMediaSize.height || 320));
+            const centeredX = Math.round(qtX + (boxW - targetW) / 2); // horizontally centered inside box
+            const mediaY = Math.round(textBottomY + 20);              // directly under text
+
+            // Corner radius adapts to small images; inset avoids 1px anti-alias square edges
+            const r = Math.max(8, Math.min(15, Math.floor(Math.min(targetW, targetH) * 0.08)));
+            const inset = 0.5;
+
+            ctx.roundRect(centeredX + inset, mediaY + inset, targetW - 2 * inset, targetH - 2 * inset, r);
             ctx.clip();
-            cropSingleImage(ctx, mediaObj, mediaW, mediaH, mediaX, mediaY);
+            cropSingleImage(ctx, mediaObj, targetW, targetH, centeredX, mediaY);
         } else {
-            // Compact thumbnail on the left for non-expanded mode
-            const qtMediaY = canvasHeightOffset + 80;
-            ctx.roundRect(40, qtMediaY, 175, 175, 15);
+            // Legacy compact thumbnail on the left
+            const thumbW = 175, thumbH = 175;
+            const thumbX = innerLeft;                // 40
+            const thumbY = canvasHeightOffset + 80;
+            const r = 15, inset = 0.5;
+
+            ctx.roundRect(thumbX + inset, thumbY + inset, thumbW - 2 * inset, thumbH - 2 * inset, r);
             ctx.clip();
-            cropSingleImage(ctx, mediaObj, 175, 175, 40, qtMediaY);
+            cropSingleImage(ctx, mediaObj, thumbW, thumbH, thumbX, thumbY);
         }
 
         ctx.restore();
