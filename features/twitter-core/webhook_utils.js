@@ -62,6 +62,55 @@ const trimQueryParamsFromTwitXUrl = (content) => {
     return cleaned.replace(/(https:\/\/\S+)/, '<$1>');
 };
 
+
+/**
+ * If the incoming message was a Discord "reply", fetch minimal context
+ * about the referenced/original message so we can simulate reply text.
+ */
+async function getReplyMeta(message) {
+    const refId = message?.reference?.messageId;
+    if (!refId) return null;
+    try {
+        const refMsg = await message.fetchReference();
+        const targetId = refMsg.author?.id ?? null;
+        const targetIsWebhook = Boolean(refMsg.webhookId);
+        const targetDisplay =
+      refMsg.member?.nickname ||
+      refMsg.author?.globalName ||
+      refMsg.author?.username ||
+      'Unknown';
+        return {
+            url: refMsg.url,
+            targetId,
+            targetIsWebhook,
+            targetDisplay,
+        };
+    } catch (e) {
+        console.warn('getReplyMeta() failed to fetch reference:', e);
+        return null;
+    }
+}
+
+/**
+ * Build the visible "reply" header + quoted body since webhooks can’t attach
+ * real message references.
+ */
+function buildSimulatedReplyText(message, modifiedContent, replyMeta) {
+    if (!replyMeta) return modifiedContent;
+
+    const replierId = message.author?.id;
+    const replierMention = replierId ? `<@${replierId}>` : '**Someone**';
+
+    // If the original was a webhook, don’t @mention (no real user to ping)
+    const targetLabel = replyMeta.targetIsWebhook
+        ? `**${replyMeta.targetDisplay}**`
+        : (replyMeta.targetId ? `<@${replyMeta.targetId}>` : `**${replyMeta.targetDisplay}**`);
+
+    return `${replierMention} replied to ${targetLabel}'s message: ${replyMeta.url}\n` +
+         `>>> ${modifiedContent}`;
+}
+
+
 /**
  * Sends a message through a webhook with optional files and embeds,
  * impersonating the original user. Deletes the original message and webhook afterward.
@@ -71,7 +120,7 @@ const sendWebhookProxyMsg = async (message, content, files = [], communityNoteTe
         const parentChannel = message.channel.isThread() ? message.channel.parent : message.channel;
         const webhooks = await parentChannel.fetchWebhooks();
 
-        // Clean up bot webhooks first
+        // Clean up bot-owned webhooks first
         const botWebhooks = webhooks.filter(wh => wh.owner?.id === message.client.user.id);
         for (const webhook of botWebhooks.values()) {
             await webhook.delete().catch(err => console.warn(`Failed to delete webhook: ${err}`));
@@ -79,19 +128,30 @@ const sendWebhookProxyMsg = async (message, content, files = [], communityNoteTe
 
         const embed = embedCommunityNote(message, communityNoteText);
 
-        // 🔽 New: unified resolver that prefers guild nickname + guild avatar
+        // Prefer guild nickname + guild avatar for impersonation identity
         const { displayName, avatarURL } = resolveImpersonationIdentity(message);
 
         const { webhook, threadId } = await webhookBuilder(parentChannel, message, displayName, avatarURL);
-        const modifiedContent = trimQueryParamsFromTwitXUrl(message.content);
+        const modifiedContent = trimQueryParamsFromTwitXUrl(message.content || content || '');
+
+        // If this was a reply, simulate it with a header + quote
+        const replyMeta = await getReplyMeta(message);
+        const finalContent = buildSimulatedReplyText(message, modifiedContent, replyMeta);
+
+        // Limit pings: only the replied-to user (if real). Block @everyone/@here/roles.
+        const allowedMentions =
+      replyMeta && !replyMeta.targetIsWebhook && replyMeta.targetId
+          ? { parse: [], users: [replyMeta.targetId] }
+          : { parse: [] };
 
         await webhook.send({
-            content: modifiedContent,
+            content: finalContent,
             ...(embed && { embeds: [embed] }),
             ...(threadId && { threadId }),
             username: displayName,
             avatarURL, // also set per-message to ensure correct avatar on send
             files,
+            allowedMentions,
         });
 
         await message.delete();
@@ -110,6 +170,7 @@ const sendWebhookProxyMsg = async (message, content, files = [], communityNoteTe
 
 /**
  * Sends a video as a file attachment via webhook proxy, or falls back on failure.
+ * (kept here for convenience since other modules import it from webhook_utils)
  */
 const sendVideoReply = async (message, successFilePath, localWorkingPath, originalLink, communityNoteText) => {
     const files = [{
@@ -120,7 +181,7 @@ const sendVideoReply = async (message, successFilePath, localWorkingPath, origin
     try {
         await sendWebhookProxyMsg(
             message,
-            'Here\'s the Twitter canvas:',
+            'Here’s the Twitter canvas:',
             files,
             communityNoteText,
             originalLink
@@ -131,9 +192,8 @@ const sendVideoReply = async (message, successFilePath, localWorkingPath, origin
             message,
             `File(s) too large to attach! err: ${err}`,
             undefined,
-            undefined,
             communityNoteText,
-            originalLink,
+            originalLink
         );
     } finally {
         await cleanup([], [localWorkingPath]);
