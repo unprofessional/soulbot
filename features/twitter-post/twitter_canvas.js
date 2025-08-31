@@ -33,47 +33,23 @@ function getMaxHeight(numImgs) {
 }
 
 function calculateQuoteHeight(ctx, qtMetadata) {
-    // Supports optional flags added by the caller:
-    // - qtMetadata._expandMediaHint (boolean)
-    // - qtMetadata._expandedMediaHeight (number)
     const lineHeight = 30;
     const bottomPadding = 30;
     const hasMedia = (qtMetadata.mediaUrls?.length ?? 0) > 0;
     const text = qtMetadata.error ? qtMetadata.message : qtMetadata.description;
 
     ctx.font = '24px "Noto Color Emoji"';
-    const wrapWidth = (hasMedia && !qtMetadata._expandMediaHint) ? 320 : 520; // full-width when expanded
-    const qtDescLines = getWrappedText(ctx, text, wrapWidth);
+    const wrapWidth = (hasMedia && !qtMetadata._expandMediaHint) ? 320 : 520;
+    const qtDescLines = getWrappedText(ctx, text || '', wrapWidth);
     const descHeight = qtDescLines.length * lineHeight;
 
-    let result;
+    // For expanded media we were ~10px short once the -20 roundRect shrink and inner
+    // padding are accounted for, which clipped the bottom corners. Add +10 safety.
     if (qtMetadata._expandMediaHint && qtMetadata._expandedMediaHeight) {
-        // text above + big image below
-        result = descHeight + 20 /*gap*/ + qtMetadata._expandedMediaHeight + bottomPadding;
-    } else {
-        result = hasMedia ? Math.max(descHeight, 175 + bottomPadding) : descHeight + bottomPadding;
+        return descHeight + 20 + qtMetadata._expandedMediaHeight + bottomPadding + 10;
     }
 
-    // ---------- DEBUG ----------
-    try {
-        console.debug('[twitter_canvas][calcQtHeight]', {
-            hasMedia,
-            expandHint: Boolean(qtMetadata._expandMediaHint),
-            expandedMediaHeight: qtMetadata._expandedMediaHeight ?? null,
-            textLen: (text || '').length,
-            sampleText: (text || '').slice(0, 80),
-            wrapWidth,
-            lineHeight,
-            lines: qtDescLines.length,
-            descHeight,
-            bottomPadding,
-            result
-        });
-    // eslint-disable-next-line no-empty
-    } catch {}
-    // ---------------------------
-
-    return result;
+    return hasMedia ? Math.max(descHeight, 175 + bottomPadding) : descHeight + bottomPadding;
 }
 
 async function safeLoadImage(url) {

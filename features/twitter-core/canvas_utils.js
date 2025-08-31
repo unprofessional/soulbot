@@ -166,16 +166,16 @@ function drawQtBasicElements(ctx, font, metadata, pfp, mediaObj, options) {
         ctx.beginPath();
 
         if (expandQtMedia && expandedMediaSize) {
-            // Start with desired size (clamped to inner width / reasonable height)
-            let targetW = Math.min(innerW, Math.round(expandedMediaSize.width || innerW));
+            // Keep a tiny horizontal margin so corners stay visibly rounded on the right
+            const maxInnerW = innerW - 2; // 1px margin on each side
+            let targetW = Math.min(maxInnerW, Math.round(expandedMediaSize.width || maxInnerW));
             let targetH = Math.min(420, Math.round(expandedMediaSize.height || 320));
 
-            // Place *centered within the inner content area*
             let mediaX = innerLeft + Math.round((innerW - targetW) / 2);
-            let mediaY = Math.round(textBottomY + 20); // gap under text
+            let mediaY = Math.round(textBottomY + 20);
 
-            // If it would run into the lower box edge, scale down to fit
-            const boxBottom = qtY + (boxHeight - 20) - innerPad; // keep inner padding
+            // Don’t run into the bottom edge — scale down if necessary
+            const boxBottom = qtY + (boxHeight - 20) - innerPad;
             if (mediaY + targetH > boxBottom) {
                 const availH = Math.max(1, boxBottom - mediaY);
                 const scale = availH / targetH;
@@ -184,10 +184,12 @@ function drawQtBasicElements(ctx, font, metadata, pfp, mediaObj, options) {
                 mediaX = innerLeft + Math.round((innerW - targetW) / 2);
             }
 
-            // Clip slightly inside to avoid anti-aliasing shaving corners
-            const clipInset = 1; // px
+            // Clip slightly inside to avoid anti-alias shaving on right/bottom
+            const clipInset = 1;
             const r = Math.max(8, Math.min(15, Math.floor(Math.min(targetW, targetH) * 0.08)));
-            ctx.roundRect(mediaX + clipInset, mediaY + clipInset, targetW - 2 * clipInset, targetH - 2 * clipInset, r);
+
+            ctx.roundRect(mediaX + clipInset, mediaY + clipInset,
+                targetW - 2 * clipInset, targetH - 2 * clipInset, r);
             ctx.clip();
             cropSingleImage(ctx, mediaObj, targetW, targetH, mediaX, mediaY);
         } else {
