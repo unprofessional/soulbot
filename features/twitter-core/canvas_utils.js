@@ -95,127 +95,191 @@ function drawBasicElements(ctx, font, metadata, favicon, pfp, descLines, options
 }
 
 function drawQtBasicElements(ctx, font, metadata, pfp, mediaObj, options) {
+    const TAG = '[qt/drawBasic]';
+
     const {
         canvasHeightOffset = 0,
         qtCanvasHeightOffset = 0,
         expandQtMedia = false,
-        expandedMediaSize = null
-    } = options;
+        expandedMediaSize = null,
+    } = options || {};
 
     const hasImgs = filterMediaUrls(metadata, ['jpg', 'jpeg', 'png']).length > 0;
     const hasVids = filterMediaUrls(metadata, ['mp4']).length > 0;
     const hasMedia = hasImgs || hasVids;
 
-    // Wrap width: go wide when expanding media
     const qtMaxCharLength = expandQtMedia ? 520 : (hasMedia ? 320 : 420);
-    ctx.font = `24px ${font}`;
-    const qtDescLines = getWrappedText(ctx, metadata.description, qtMaxCharLength);
 
     // Quote box geometry
     const qtX = 20;
     const qtY = canvasHeightOffset;
     const boxW = 560;
-    const innerPad = 20;                   // inner content padding inside the rounded box
-    const innerLeft = qtX + innerPad;      // 40
-    const innerRight = qtX + boxW - innerPad; // 560
-    const innerW = innerRight - innerLeft; // 520
+    const innerPad = 20;                         // inner content padding inside the rounded box
+    const innerLeft = qtX + innerPad;            // 40
+    const innerRight = qtX + boxW - innerPad;    // 560
+    const innerW = innerRight - innerLeft;       // 520
 
-    // Total height precomputed upstream; ensure it's large enough for our content
+    // Total height is precomputed upstream; ensure it's large enough for our content
     const boxHeight = hasMedia || expandQtMedia
-        ? Math.max(qtCanvasHeightOffset, expandQtMedia ? (metadata._expandedMediaHeight + 150) : 285)
+        ? Math.max(qtCanvasHeightOffset, expandQtMedia ? ((metadata._expandedMediaHeight ?? 0) + 150) : 285)
         : qtCanvasHeightOffset;
 
-    // Outer box (stroke only)
-    ctx.strokeStyle = '#4d4d4d';
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.roundRect(qtX, qtY, boxW, boxHeight - 20, 15);
-    ctx.stroke();
+    // Log helpers
+    const safeNum = (n) => (Number.isFinite(n) ? n : 'n/a');
+    const logRect = (label, x, y, w, h, extra = '') =>
+        console.debug(`${TAG} ${label}: x=${safeNum(x)}, y=${safeNum(y)}, w=${safeNum(w)}, h=${safeNum(h)}${extra ? ' ' + extra : ''}`);
 
-    // Names
-    ctx.fillStyle = 'white';
-    ctx.font = `bold 18px ${font}`;
-    ctx.fillText(metadata.authorUsername, 100, qtY + 40);
+    try {
+        console.debug(`${TAG} ─────────────────────────────────────────────────────────`);
+        console.debug(`${TAG} options:`, {
+            canvasHeightOffset,
+            qtCanvasHeightOffset,
+            expandQtMedia,
+            expandedMediaSize,
+        });
+        console.debug(`${TAG} media flags: hasImgs=${hasImgs}, hasVids=${hasVids}, hasMedia=${hasMedia}`);
+        console.debug(`${TAG} wrap width (chars→px via ctx.font measure): qtMaxCharLength=${qtMaxCharLength}`);
 
-    ctx.fillStyle = 'gray';
-    ctx.font = `18px ${font}`;
-    ctx.fillText(`@${metadata.authorNick}`, 100, qtY + 60);
+        // Text setup + wrap
+        ctx.font = `24px ${font}`;
+        const qtDescLines = getWrappedText(ctx, metadata.description ?? '', qtMaxCharLength);
+        const lineHeight = 30;
 
-    // --- Text block (drawDescription offsets QT text by +100) ---
-    const textX = expandQtMedia ? innerLeft : (hasMedia ? 230 : 100);
-    const textTopY = qtY + 100;
-    const lineHeight = 30;
+        // Outer box (stroke only)
+        ctx.strokeStyle = '#4d4d4d';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.roundRect(qtX, qtY, boxW, boxHeight - 20, 15);
+        ctx.stroke();
 
-    ctx.fillStyle = 'white';
-    ctx.font = `24px ${font}`;
-    drawDescription(ctx, hasImgs, hasVids, qtDescLines, font, textX, qtY, true);
+        logRect('Outer rounded box', qtX, qtY, boxW, boxHeight - 20, 'r=15');
+        console.debug(`${TAG} innerPad=${innerPad}, innerLeft=${innerLeft}, innerRight=${innerRight}, innerW=${innerW}`);
 
-    const textBottomY = textTopY + qtDescLines.length * lineHeight;
+        // Names
+        ctx.fillStyle = 'white';
+        ctx.font = `bold 18px ${font}`;
+        ctx.fillText(metadata.authorUsername ?? '', 100, qtY + 40);
 
-    // Avatar
-    ctx.save();
-    ctx.beginPath();
-    ctx.arc(65, canvasHeightOffset + 45, 25, 0, Math.PI * 2);
-    ctx.clip();
-    ctx.drawImage(pfp, 40, canvasHeightOffset + 20, 50, 50);
-    ctx.restore();
+        ctx.fillStyle = 'gray';
+        ctx.font = `18px ${font}`;
+        ctx.fillText(`@${metadata.authorNick ?? ''}`, 100, qtY + 60);
 
-    // --- Media ---
-    if (mediaObj) {
+        // --- Text block (drawDescription offsets QT text by +100) ---
+        const textX = expandQtMedia ? innerLeft : (hasMedia ? 230 : 100);
+        const textTopY = qtY + 100;
+        const textLines = qtDescLines.length;
+        const textHeight = textLines * lineHeight;
+        const textBottomY = textTopY + textHeight;
+
+        console.debug(`${TAG} text: lines=${textLines}, lineHeight=${lineHeight}, textHeight=${textHeight}`);
+        console.debug(`${TAG} text positions: textX=${textX}, textTopY=${textTopY}, textBottomY=${textBottomY}`);
+
+        ctx.fillStyle = 'white';
+        ctx.font = `24px ${font}`;
+        drawDescription(ctx, hasImgs, hasVids, qtDescLines, font, textX, qtY, true);
+
+        // Avatar
         ctx.save();
         ctx.beginPath();
+        ctx.arc(65, canvasHeightOffset + 45, 25, 0, Math.PI * 2);
+        ctx.clip();
+        ctx.drawImage(pfp, 40, canvasHeightOffset + 20, 50, 50);
+        ctx.restore();
+        logRect('Avatar draw', 40, canvasHeightOffset + 20, 50, 50, '(clip: circle r=25 @ (65, ' + (canvasHeightOffset + 45) + '))');
 
-        if (expandQtMedia && expandedMediaSize) {
-            // Inner content margins so corners stay visible
-            const MARGIN_X = 3;     // left/right inside the quote box
-            const MARGIN_BOTTOM = 8; // bottom inside the quote box (keep in sync with height calc)
-            const maxInnerW = innerW - MARGIN_X * 2;
+        // --- Media ---
+        if (mediaObj) {
+            // Natural source dimensions (from Image object)
+            const srcW = Number(mediaObj.width) || Number(mediaObj.videoWidth) || null;
+            const srcH = Number(mediaObj.height) || Number(mediaObj.videoHeight) || null;
+            console.debug(`${TAG} media source natural size: ${safeNum(srcW)} x ${safeNum(srcH)}`);
 
-            // Start with natural scaled size, then clamp
-            let targetW = Math.min(maxInnerW, Math.round(expandedMediaSize.width || maxInnerW));
-            let targetH = Math.min(420, Math.round(expandedMediaSize.height || 320));
+            ctx.save();
+            ctx.beginPath();
 
-            // Position centered in the inner content area
-            let mediaX = innerLeft + Math.round((innerW - targetW) / 2);
-            let mediaY = Math.round(textBottomY + 20);
+            if (expandQtMedia && expandedMediaSize) {
+                // Inner content margins so corners stay visible
+                const MARGIN_X = 3;       // left/right inside the quote box
+                const MARGIN_BOTTOM = 8;  // bottom inside the quote box (keep in sync with calc)
+                const maxInnerW = innerW - MARGIN_X * 2;
 
-            // Keep the image above the box's rounded bottom (treat equality as overflow)
-            const boxBottom = qtY + (boxHeight - 20) - innerPad - MARGIN_BOTTOM;
-            if (mediaY + targetH >= boxBottom) {
-                const availH = Math.max(1, boxBottom - mediaY);
-                const scale = availH / targetH;
-                targetH = Math.floor(targetH * scale);
-                targetW = Math.floor(targetW * scale);
-                mediaX = innerLeft + Math.round((innerW - targetW) / 2);
+                // Start with proposed expanded size, clamp to bounds
+                let targetW = Math.min(maxInnerW, Math.round(expandedMediaSize.width || maxInnerW));
+                let targetH = Math.min(420, Math.round(expandedMediaSize.height || 320));
+
+                // Center within inner content area (beneath text)
+                let mediaX = innerLeft + Math.round((innerW - targetW) / 2);
+                let mediaY = Math.round(textBottomY + 20);
+
+                const boxBottom = qtY + (boxHeight - 20) - innerPad - MARGIN_BOTTOM;
+                const willOverflow = mediaY + targetH >= boxBottom;
+
+                console.debug(`${TAG} [expanded] innerW=${innerW} maxInnerW=${maxInnerW} MARGIN_X=${MARGIN_X} MARGIN_BOTTOM=${MARGIN_BOTTOM}`);
+                console.debug(`${TAG} [expanded] proposed target size: ${targetW} x ${targetH}`);
+                console.debug(`${TAG} [expanded] media position: x=${mediaX}, y=${mediaY}`);
+                console.debug(`${TAG} [expanded] boxBottom=${boxBottom}, willOverflow=${willOverflow}`);
+
+                if (willOverflow) {
+                    const availH = Math.max(1, boxBottom - mediaY);
+                    const scale = availH / targetH;
+                    const scaledW = Math.floor(targetW * scale);
+                    const scaledH = Math.floor(targetH * scale);
+
+                    console.debug(`${TAG} [expanded] overflow adjust: availH=${availH}, scale=${scale.toFixed(4)} => new target ${scaledW} x ${scaledH}`);
+
+                    targetW = scaledW;
+                    targetH = scaledH;
+                    mediaX = innerLeft + Math.round((innerW - targetW) / 2);
+                }
+
+                // Clip slightly inside to avoid anti-alias “shaving”
+                const clipInset = 0.5;
+                const r = Math.max(8, Math.min(15, Math.floor(Math.min(targetW, targetH) * 0.08)));
+                const clipX = mediaX + clipInset;
+                const clipY = mediaY + clipInset;
+                const clipW = targetW - 2 * clipInset;
+                const clipH = targetH - 2 * clipInset;
+
+                logRect('[expanded] FINAL target draw', mediaX, mediaY, targetW, targetH);
+                logRect('[expanded] CLIP rounded-rect', clipX, clipY, clipW, clipH, `r=${r} (inset=${clipInset})`);
+
+                ctx.roundRect(clipX, clipY, clipW, clipH, r);
+                ctx.clip();
+
+                try {
+                    console.debug(`${TAG} [expanded] cropSingleImage(src: ${safeNum(srcW)}x${safeNum(srcH)} → dst: ${targetW}x${targetH} @ ${mediaX},${mediaY})`);
+                    cropSingleImage(ctx, mediaObj, targetW, targetH, mediaX, mediaY);
+                } catch (err) {
+                    console.warn(`${TAG} [expanded] cropSingleImage ERROR:`, err);
+                }
+            } else {
+                // Compact left thumbnail
+                const thumbW = 175, thumbH = 175;
+                const thumbX = innerLeft;
+                const thumbY = canvasHeightOffset + 80;
+                const r = 15, clipInset = 1;
+
+                logRect('[thumb] target draw', thumbX, thumbY, thumbW, thumbH);
+                logRect('[thumb] CLIP rounded-rect', thumbX + clipInset, thumbY + clipInset, thumbW - 2 * clipInset, thumbH - 2 * clipInset, `r=${r} (inset=${clipInset})`);
+
+                ctx.roundRect(thumbX + clipInset, thumbY + clipInset, thumbW - 2 * clipInset, thumbH - 2 * clipInset, r);
+                ctx.clip();
+
+                try {
+                    console.debug(`${TAG} [thumb] cropSingleImage(src: ${safeNum(srcW)}x${safeNum(srcH)} → dst: ${thumbW}x${thumbH} @ ${thumbX},${thumbY})`);
+                    cropSingleImage(ctx, mediaObj, thumbW, thumbH, thumbX, thumbY);
+                } catch (err) {
+                    console.warn(`${TAG} [thumb] cropSingleImage ERROR:`, err);
+                }
             }
 
-            // Clip slightly inside to avoid anti-alias shaving on right/bottom
-            const clipInset = 0.5;
-            const r = Math.max(8, Math.min(15, Math.floor(Math.min(targetW, targetH) * 0.08)));
-
-            ctx.roundRect(
-                mediaX + clipInset,
-                mediaY + clipInset,
-                targetW - 2 * clipInset,
-                targetH - 2 * clipInset,
-                r
-            );
-            ctx.clip();
-
-            cropSingleImage(ctx, mediaObj, targetW, targetH, mediaX, mediaY);
-        } else {
-            // Compact left thumbnail
-            const thumbW = 175, thumbH = 175;
-            const thumbX = innerLeft;
-            const thumbY = canvasHeightOffset + 80;
-            const r = 15, clipInset = 1;
-
-            ctx.roundRect(thumbX + clipInset, thumbY + clipInset, thumbW - 2 * clipInset, thumbH - 2 * clipInset, r);
-            ctx.clip();
-            cropSingleImage(ctx, mediaObj, thumbW, thumbH, thumbX, thumbY);
+            ctx.restore();
         }
 
-        ctx.restore();
+        console.debug(`${TAG} DONE (boxHeight=${boxHeight}, innerPad=${innerPad}, font=${font})`);
+        console.debug(`${TAG} ─────────────────────────────────────────────────────────`);
+    } catch (e) {
+        console.warn(`${TAG} ERROR during draw:`, e);
     }
 }
 

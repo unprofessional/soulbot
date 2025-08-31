@@ -32,29 +32,54 @@ function getMaxHeight(numImgs) {
     return [0, 800, 600, 530, 530][numImgs] || 600;
 }
 
+// Keep this in sync with drawQtBasicElements (MARGIN_BOTTOM uses the same value)
 function calculateQuoteHeight(ctx, qtMetadata) {
-    const lineHeight = 30;
-    const bottomPadding = 30;
-    const hasMedia = (qtMetadata.mediaUrls?.length ?? 0) > 0;
-    const text = qtMetadata.error ? qtMetadata.message : qtMetadata.description;
+    const TAG = '[qt/calcHeight]';
 
-    // keep this font in sync with drawDescription
-    ctx.font = '24px "Noto Color Emoji"';
+    try {
+        const lineHeight = 30;
+        const bottomPadding = 30;
+        const hasMedia = (qtMetadata.mediaUrls?.length ?? 0) > 0;
+        const text = qtMetadata.error ? qtMetadata.message : qtMetadata.description;
 
-    // When expanded, text spans wider.
-    const wrapWidth = (hasMedia && !qtMetadata._expandMediaHint) ? 320 : 520;
-    const qtDescLines = getWrappedText(ctx, text || '', wrapWidth);
-    const descHeight = qtDescLines.length * lineHeight;
+        // keep this font in sync with drawDescription
+        ctx.font = '24px "Noto Color Emoji"';
 
-    // Extra inner margin so the image never sits flush with the rounded bottom
-    // (must match MARGIN_BOTTOM used in drawQtBasicElements)
-    const MARGIN_BOTTOM = 8;
+        // When expanded, text spans wider.
+        const wrapWidth = (hasMedia && !qtMetadata._expandMediaHint) ? 320 : 520;
 
-    if (qtMetadata._expandMediaHint && qtMetadata._expandedMediaHeight) {
-        // text + gap + big image + padding + margin
-        return descHeight + 20 + qtMetadata._expandedMediaHeight + bottomPadding + MARGIN_BOTTOM;
+        const qtDescLines = getWrappedText(ctx, text || '', wrapWidth);
+        const descHeight = qtDescLines.length * lineHeight;
+
+        // Extra inner margin so the image never sits flush with the rounded bottom
+        // (must match MARGIN_BOTTOM used in drawQtBasicElements)
+        const MARGIN_BOTTOM = 8;
+
+        console.debug(`${TAG} ─────────────────────────────────────────────────────────`);
+        console.debug(`${TAG} hasMedia=${hasMedia} _expandMediaHint=${Boolean(qtMetadata._expandMediaHint)} _expandedMediaHeight=${qtMetadata._expandedMediaHeight ?? 'n/a'}`);
+        console.debug(`${TAG} wrapWidth=${wrapWidth} textLen=${(text ?? '').length} lines=${qtDescLines.length} descHeight=${descHeight}`);
+
+        if (qtMetadata._expandMediaHint && qtMetadata._expandedMediaHeight) {
+            const total =
+        descHeight + /* text */ 20 + /* gap */ qtMetadata._expandedMediaHeight +
+        /* media */ bottomPadding + MARGIN_BOTTOM;
+
+            console.debug(`${TAG} [expanded] desc=${descHeight} + gap=20 + mediaH=${qtMetadata._expandedMediaHeight} + bottomPad=${bottomPadding} + marginBottom=${MARGIN_BOTTOM} => total=${total}`);
+            console.debug(`${TAG} ─────────────────────────────────────────────────────────`);
+            return total;
+        }
+
+        const compactBase = 175 + bottomPadding;
+        const total = hasMedia ? Math.max(descHeight, compactBase) : descHeight + bottomPadding;
+
+        console.debug(`${TAG} [compact] base=${compactBase} hasMedia=${hasMedia} => total=${total}`);
+        console.debug(`${TAG} ─────────────────────────────────────────────────────────`);
+        return total;
+    } catch (e) {
+        console.warn('[qt/calcHeight] ERROR (fallback to 205):', e);
+        // Safe fallback (~ 175 + 30)
+        return 205;
     }
-    return hasMedia ? Math.max(descHeight, 175 + bottomPadding) : descHeight + bottomPadding;
 }
 
 async function safeLoadImage(url) {
