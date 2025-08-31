@@ -17,56 +17,6 @@ const scaleToFitWiderThanHeight = (
     ctx.drawImage(mainMedia1, 20, yPosition, mediaMaxWidth, adjustedHeight);
 };
 
-/**
- * 
- * @param {*} ctx 
- * @param {*} metadata 
- * @param {*} calculatedCanvasHeightFromDescLines 
- * @param {*} heightShim 
- * @param {*} mediaMaxHeight 
- * @param {*} mediaMaxWidth 
- */
-// const singleImage = async (
-//     ctx,
-//     metadata,
-//     calculatedCanvasHeightFromDescLines,
-//     heightShim,
-//     mediaMaxHeight,
-//     mediaMaxWidth,
-// ) => {
-//     const mainMedia1Url = metadata.mediaUrls[0];
-//     const mainMedia1 = await loadImage(mainMedia1Url);
-//     // const xPosition = 20;
-//     const yPosition = calculatedCanvasHeightFromDescLines - heightShim - 50;
-//     if (mainMedia1.width > mainMedia1.height) {
-//         scaleToFitWiderThanHeight(ctx, mainMedia1, yPosition, mediaMaxWidth);
-//     } else {
-//         let mediaObject = {
-//             height: metadata.mediaExtended[0].size.height,
-//             width: metadata.mediaExtended[0].size.width,
-//         };
-//         console.log('>>>>> single image > mediaObject1: ', mediaObject);
-//         mediaObject = scaleDownToFitAspectRatio(mediaObject, mediaMaxHeight, mediaMaxWidth);
-//         console.log('>>>>> single image > mediaObject1: ', mediaObject);
-//         console.log('>>>>> single image > mediaMaxHeight: ', mediaMaxHeight);
-//         console.log('>>>>> single image > mediaMaxWidth: ', mediaMaxWidth);
-        
-//         /*
-//         if maxWidth is 560, then X is the media width
-//         center coordinate of maxWidth is maxWidth/2
-//         then we need to "add" (or subject in this case to shift left):
-//             mediaObject.width/2
-//         then offset right 20 to fit padding
-//         */
-        
-//         const firstXPosition = 20 + mediaMaxWidth/2 - mediaObject.width/2;
-//         const firstYPosition = calculatedCanvasHeightFromDescLines - heightShim - 50;
-//         ctx.drawImage(
-//             mainMedia1,
-//             firstXPosition, firstYPosition, mediaObject.width, mediaObject.height
-//         );
-//     }
-// };
 const singleImage = async (
     ctx,
     metadata,

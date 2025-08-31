@@ -95,18 +95,27 @@ function drawBasicElements(ctx, font, metadata, favicon, pfp, descLines, options
 }
 
 function drawQtBasicElements(ctx, font, metadata, pfp, mediaObj, options) {
-    const { canvasHeightOffset = 0, qtCanvasHeightOffset = 0 } = options;
+    const {
+        canvasHeightOffset = 0,
+        qtCanvasHeightOffset = 0,
+        expandQtMedia = false,
+        expandedMediaSize = null
+    } = options;
+
     const hasImgs = filterMediaUrls(metadata, ['jpg', 'jpeg', 'png']).length > 0;
     const hasVids = filterMediaUrls(metadata, ['mp4']).length > 0;
     const hasMedia = hasImgs || hasVids;
 
-    const qtMaxCharLength = hasMedia ? 320 : 420;
+    // When expanding media, let text run nearly full width above the image
+    const qtMaxCharLength = expandQtMedia ? 520 : (hasMedia ? 320 : 420);
     ctx.font = `24px ${font}`;
     const qtDescLines = getWrappedText(ctx, metadata.description, qtMaxCharLength);
 
     const qtX = 20;
     const qtY = canvasHeightOffset;
-    const boxHeight = hasMedia ? Math.max(qtCanvasHeightOffset, 285) : qtCanvasHeightOffset;
+    const boxHeight = hasMedia || expandQtMedia
+        ? Math.max(qtCanvasHeightOffset, expandQtMedia ? (metadata._expandedMediaHeight + 150) : 285)
+        : qtCanvasHeightOffset;
 
     ctx.strokeStyle = '#4d4d4d';
     ctx.lineWidth = 1;
@@ -122,11 +131,13 @@ function drawQtBasicElements(ctx, font, metadata, pfp, mediaObj, options) {
     ctx.font = `18px ${font}`;
     ctx.fillText(`@${metadata.authorNick}`, 100, qtY + 60);
 
+    // Text position: if we expand media, use left padding and place image below.
     ctx.fillStyle = 'white';
     ctx.font = `24px ${font}`;
-    const textX = hasMedia ? 230 : 100;
+    const textX = expandQtMedia ? 40 : (hasMedia ? 230 : 100);
     drawDescription(ctx, hasImgs, hasVids, qtDescLines, font, textX, qtY, true);
 
+    // Avatar
     ctx.save();
     ctx.beginPath();
     ctx.arc(65, canvasHeightOffset + 45, 25, 0, Math.PI * 2);
@@ -134,13 +145,26 @@ function drawQtBasicElements(ctx, font, metadata, pfp, mediaObj, options) {
     ctx.drawImage(pfp, 40, canvasHeightOffset + 20, 50, 50);
     ctx.restore();
 
+    // Media
     if (mediaObj) {
-        const qtMediaY = canvasHeightOffset + 80;
         ctx.save();
         ctx.beginPath();
-        ctx.roundRect(40, qtMediaY, 175, 175, 15);
-        ctx.clip();
-        cropSingleImage(ctx, mediaObj, 175, 175, 40, qtMediaY);
+        if (expandQtMedia && expandedMediaSize) {
+            // Large, near-full-width preview under the text
+            const mediaW = Math.min(520, expandedMediaSize.width || 520);
+            const mediaH = expandedMediaSize.height || 320;
+            const mediaX = 40;
+            const mediaY = qtY + 30 + (qtDescLines.length * 30) + 20; // under text, with gap
+            ctx.roundRect(mediaX, mediaY, mediaW, mediaH, 15);
+            ctx.clip();
+            cropSingleImage(ctx, mediaObj, mediaW, mediaH, mediaX, mediaY);
+        } else {
+            // Legacy compact thumbnail on the left
+            const qtMediaY = canvasHeightOffset + 80;
+            ctx.roundRect(40, qtMediaY, 175, 175, 15);
+            ctx.clip();
+            cropSingleImage(ctx, mediaObj, 175, 175, 40, qtMediaY);
+        }
         ctx.restore();
     }
 }

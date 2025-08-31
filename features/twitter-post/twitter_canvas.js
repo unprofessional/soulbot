@@ -33,16 +33,23 @@ function getMaxHeight(numImgs) {
 }
 
 function calculateQuoteHeight(ctx, qtMetadata) {
+    // Supports optional flags added by the caller:
+    // - qtMetadata._expandMediaHint (boolean)
+    // - qtMetadata._expandedMediaHeight (number)
     const lineHeight = 30;
     const bottomPadding = 30;
     const hasMedia = qtMetadata.mediaUrls.length > 0;
     const text = qtMetadata.error ? qtMetadata.message : qtMetadata.description;
 
     ctx.font = '24px "Noto Color Emoji"';
-    const wrapWidth = hasMedia ? 320 : 420;
+    const wrapWidth = (hasMedia && !qtMetadata._expandMediaHint) ? 320 : 520; // full-width when expanded
     const qtDescLines = getWrappedText(ctx, text, wrapWidth);
     const descHeight = qtDescLines.length * lineHeight;
 
+    if (qtMetadata._expandMediaHint && qtMetadata._expandedMediaHeight) {
+        // text above + big image below
+        return descHeight + 20 /*gap*/ + qtMetadata._expandedMediaHeight + bottomPadding;
+    }
     return hasMedia ? Math.max(descHeight, 175 + bottomPadding) : descHeight + bottomPadding;
 }
 
@@ -120,11 +127,32 @@ async function createTwitterCanvas(metadataJson, isImage) {
     const baseY = 110;
     const descHeight = (descLines.length * 30) + baseY + 40 + heightShim;
 
+    // --- Quote tweet sizing (supports "expanded" media when main has no media) ---
     let qtHeight = 0;
+    let expandQtMedia = false;
+    let qtExpandedMediaSize = null;
+
     if (qtMetadata) {
         if (qtMetadata.description.length > MAX_QT_DESC_CHARS + 50) {
             qtMetadata.description = qtMetadata.description.slice(0, MAX_QT_DESC_CHARS) + '…';
         }
+
+        const qtHasImgs = filterMediaUrls(qtMetadata, ['jpg', 'jpeg', 'png']).length > 0;
+        const qtHasVids = filterMediaUrls(qtMetadata, ['mp4']).length > 0;
+
+        // Expand quoted image to large/full preview if the main post has no media
+        expandQtMedia = (!hasImgs && !hasVids) && qtHasImgs && !qtHasVids;
+
+        if (expandQtMedia) {
+            const firstSize = qtMetadata.mediaExtended?.[0]?.size;
+            if (firstSize?.width && firstSize?.height) {
+                // near full width inside the quote box
+                qtExpandedMediaSize = scaleDownToFitAspectRatio(firstSize, /*maxH*/ 420, /*maxW*/ 520);
+                qtMetadata._expandMediaHint = true;
+                qtMetadata._expandedMediaHeight = qtExpandedMediaSize.height;
+            }
+        }
+
         qtHeight = calculateQuoteHeight(ctx, qtMetadata) + 100 - (qtMetadata.error ? 40 : 0);
     }
 
@@ -172,14 +200,19 @@ async function createTwitterCanvas(metadataJson, isImage) {
             if (qtUseDesktopLayout) {
                 drawQtDesktopLayout(ctx, font, qtMetadata, qtPfp, qtMediaImg, {
                     canvasHeightOffset: descHeight,
-                    qtCanvasHeightOffset: qtHeight
+                    qtCanvasHeightOffset: qtHeight,
+                    // extra keys are harmless if the desktop variant ignores them
+                    expandQtMedia,
+                    expandedMediaSize: expandQtMedia ? qtExpandedMediaSize : null
                 });
             } else {
                 drawQtBasicElements(ctx, font, qtMetadata, qtPfp, qtMediaImg, {
                     canvasHeightOffset: descHeight,
                     qtCanvasHeightOffset: qtHeight,
                     hasImgs,
-                    hasVids
+                    hasVids,
+                    expandQtMedia,
+                    expandedMediaSize: qtExpandedMediaSize
                 });
             }
         } else {
