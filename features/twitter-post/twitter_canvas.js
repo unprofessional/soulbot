@@ -38,17 +38,22 @@ function calculateQuoteHeight(ctx, qtMetadata) {
     const hasMedia = (qtMetadata.mediaUrls?.length ?? 0) > 0;
     const text = qtMetadata.error ? qtMetadata.message : qtMetadata.description;
 
+    // keep this font in sync with drawDescription
     ctx.font = '24px "Noto Color Emoji"';
+
+    // When expanded, text spans wider.
     const wrapWidth = (hasMedia && !qtMetadata._expandMediaHint) ? 320 : 520;
     const qtDescLines = getWrappedText(ctx, text || '', wrapWidth);
     const descHeight = qtDescLines.length * lineHeight;
 
-    // For expanded media we were ~10px short once the -20 roundRect shrink and inner
-    // padding are accounted for, which clipped the bottom corners. Add +10 safety.
-    if (qtMetadata._expandMediaHint && qtMetadata._expandedMediaHeight) {
-        return descHeight + 20 + qtMetadata._expandedMediaHeight + bottomPadding + 10;
-    }
+    // Extra inner margin so the image never sits flush with the rounded bottom
+    // (must match MARGIN_BOTTOM used in drawQtBasicElements)
+    const MARGIN_BOTTOM = 8;
 
+    if (qtMetadata._expandMediaHint && qtMetadata._expandedMediaHeight) {
+        // text + gap + big image + padding + margin
+        return descHeight + 20 + qtMetadata._expandedMediaHeight + bottomPadding + MARGIN_BOTTOM;
+    }
     return hasMedia ? Math.max(descHeight, 175 + bottomPadding) : descHeight + bottomPadding;
 }
 
