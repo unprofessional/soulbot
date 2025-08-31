@@ -106,7 +106,7 @@ function drawQtBasicElements(ctx, font, metadata, pfp, mediaObj, options) {
     const hasVids = filterMediaUrls(metadata, ['mp4']).length > 0;
     const hasMedia = hasImgs || hasVids;
 
-    // Text wrap: full width when expanding media, else compact when media is present.
+    // Wrap width: go wide when expanding media
     const qtMaxCharLength = expandQtMedia ? 520 : (hasMedia ? 320 : 420);
     ctx.font = `24px ${font}`;
     const qtDescLines = getWrappedText(ctx, metadata.description, qtMaxCharLength);
@@ -115,23 +115,24 @@ function drawQtBasicElements(ctx, font, metadata, pfp, mediaObj, options) {
     const qtX = 20;
     const qtY = canvasHeightOffset;
     const boxW = 560;
-    const innerPad = 20;             // visual padding inside the rounded box
-    const innerLeft = qtX + innerPad;             // 40
-    const innerRight = qtX + boxW - innerPad;     // 560
-    const innerW = innerRight - innerLeft;        // 520
+    const innerPad = 20;                   // inner content padding inside the rounded box
+    const innerLeft = qtX + innerPad;      // 40
+    const innerRight = qtX + boxW - innerPad; // 560
+    const innerW = innerRight - innerLeft; // 520
 
+    // Total height precomputed upstream; ensure it's large enough for our content
     const boxHeight = hasMedia || expandQtMedia
         ? Math.max(qtCanvasHeightOffset, expandQtMedia ? (metadata._expandedMediaHeight + 150) : 285)
         : qtCanvasHeightOffset;
 
-    // Outer quote box (stroke only; background already black)
+    // Outer box (stroke only)
     ctx.strokeStyle = '#4d4d4d';
     ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.roundRect(qtX, qtY, boxW, boxHeight - 20, 15);
     ctx.stroke();
 
-    // Display names
+    // Names
     ctx.fillStyle = 'white';
     ctx.font = `bold 18px ${font}`;
     ctx.fillText(metadata.authorUsername, 100, qtY + 40);
@@ -140,7 +141,7 @@ function drawQtBasicElements(ctx, font, metadata, pfp, mediaObj, options) {
     ctx.font = `18px ${font}`;
     ctx.fillText(`@${metadata.authorNick}`, 100, qtY + 60);
 
-    // --- Text block (note drawDescription adds +100 Y for QT text) ---
+    // --- Text block (drawDescription offsets QT text by +100) ---
     const textX = expandQtMedia ? innerLeft : (hasMedia ? 230 : 100);
     const textTopY = qtY + 100;
     const lineHeight = 30;
@@ -165,27 +166,38 @@ function drawQtBasicElements(ctx, font, metadata, pfp, mediaObj, options) {
         ctx.beginPath();
 
         if (expandQtMedia && expandedMediaSize) {
-            // Center the large image; ensure perfect rounded corners by aligning to whole pixels
-            const targetW = Math.min(innerW, Math.round(expandedMediaSize.width || innerW));
-            const targetH = Math.min(420, Math.round(expandedMediaSize.height || 320));
-            const centeredX = Math.round(qtX + (boxW - targetW) / 2); // horizontally centered inside box
-            const mediaY = Math.round(textBottomY + 20);              // directly under text
+            // Start with desired size (clamped to inner width / reasonable height)
+            let targetW = Math.min(innerW, Math.round(expandedMediaSize.width || innerW));
+            let targetH = Math.min(420, Math.round(expandedMediaSize.height || 320));
 
-            // Corner radius adapts to small images; inset avoids 1px anti-alias square edges
+            // Place *centered within the inner content area*
+            let mediaX = innerLeft + Math.round((innerW - targetW) / 2);
+            let mediaY = Math.round(textBottomY + 20); // gap under text
+
+            // If it would run into the lower box edge, scale down to fit
+            const boxBottom = qtY + (boxHeight - 20) - innerPad; // keep inner padding
+            if (mediaY + targetH > boxBottom) {
+                const availH = Math.max(1, boxBottom - mediaY);
+                const scale = availH / targetH;
+                targetH = Math.floor(targetH * scale);
+                targetW = Math.floor(targetW * scale);
+                mediaX = innerLeft + Math.round((innerW - targetW) / 2);
+            }
+
+            // Clip slightly inside to avoid anti-aliasing shaving corners
+            const clipInset = 1; // px
             const r = Math.max(8, Math.min(15, Math.floor(Math.min(targetW, targetH) * 0.08)));
-            const inset = 0.5;
-
-            ctx.roundRect(centeredX + inset, mediaY + inset, targetW - 2 * inset, targetH - 2 * inset, r);
+            ctx.roundRect(mediaX + clipInset, mediaY + clipInset, targetW - 2 * clipInset, targetH - 2 * clipInset, r);
             ctx.clip();
-            cropSingleImage(ctx, mediaObj, targetW, targetH, centeredX, mediaY);
+            cropSingleImage(ctx, mediaObj, targetW, targetH, mediaX, mediaY);
         } else {
-            // Legacy compact thumbnail on the left
+            // Compact left thumbnail
             const thumbW = 175, thumbH = 175;
-            const thumbX = innerLeft;                // 40
+            const thumbX = innerLeft;
             const thumbY = canvasHeightOffset + 80;
-            const r = 15, inset = 0.5;
+            const r = 15, clipInset = 1;
 
-            ctx.roundRect(thumbX + inset, thumbY + inset, thumbW - 2 * inset, thumbH - 2 * inset, r);
+            ctx.roundRect(thumbX + clipInset, thumbY + clipInset, thumbW - 2 * clipInset, thumbH - 2 * clipInset, r);
             ctx.clip();
             cropSingleImage(ctx, mediaObj, thumbW, thumbH, thumbX, thumbY);
         }
