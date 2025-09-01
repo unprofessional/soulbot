@@ -240,9 +240,7 @@ function bakeImageAsFilterIntoVideoDEBUG(
             // Cap runtime + canvas frames using numeric fps
             if (Number.isFinite(outSeconds) && outSeconds > 0) {
                 cmd.outputOptions(['-t', String(outSeconds)]);
-                const canvasFrames = Math.max(1, Math.round(outSeconds * (fpsNum || 30)));
-                cmd.inputOptions(['-frames:v', String(canvasFrames)]);
-                console.log('[ffmpeg] canvasFrames cap:', canvasFrames);
+                console.log('[ffmpeg] output -t:', outSeconds);
             }
 
             // Watchdog
