@@ -181,7 +181,7 @@ function bakeImageAsFilterIntoVideoDEBUG(
             console.log('[ffmpeg] fps:', fpsStr, '| audio sync delta (s):', delta.toFixed(3), '| -t:', outSeconds.toFixed(3));
 
             const baseOutputOpts = [
-                '-loglevel', 'info', '-stats_period', '0.5',
+                '-loglevel', 'info', '-stats',
                 '-muxpreload', '0', '-muxdelay', '0',
                 '-map', '[outv]',
                 ...(hasAudio ? ['-map', '[aout]'] : []),
