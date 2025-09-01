@@ -5,7 +5,7 @@ const { existsSync, statSync, createReadStream } = fs;
 const ffmpeg = require('fluent-ffmpeg');
 
 // ✅ add this (adjust the path to wherever yours lives)
-const { getAdjustedAspectRatios } = require('./get_adjusted_aspect_ratios');
+const { getAdjustedAspectRatios } = require('../twitter-core/canvas_utils');
 
 const VERBOSE = process.env.TWIT_DEBUG === '1';
 const NO_PROGRESS_TIMEOUT_MS = Number(process.env.TWIT_NOPROG_MS || 30000);
