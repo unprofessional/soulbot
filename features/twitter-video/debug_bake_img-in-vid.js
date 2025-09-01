@@ -266,7 +266,7 @@ function bakeImageAsFilterIntoVideoDEBUG(
             }, Math.min(NO_PROGRESS_TIMEOUT_MS, 10000));
 
             cmd.run();
-        })().then(resolve).catch(reject);
+        })().catch(reject);
     });
 }
 
