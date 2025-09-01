@@ -1,10 +1,9 @@
-// debug_bake_img-in-vid.js
+// features/twitter-video/debug_bake_img-in-vid.js
 const crypto = require('crypto');
 const fs = require('fs');
 const { existsSync, statSync, createReadStream } = fs;
 const ffmpeg = require('fluent-ffmpeg');
-
-// ✅ add this (adjust the path to wherever yours lives)
+// keep your path:
 const { getAdjustedAspectRatios } = require('../twitter-core/canvas_utils');
 
 const VERBOSE = process.env.TWIT_DEBUG === '1';
@@ -19,26 +18,17 @@ function sha1File(path) {
         s.on('end', () => resolve(hash.digest('hex')));
     });
 }
-
 function statLine(p) {
-    try {
-        const st = statSync(p);
-        return `${p} size=${st.size} mtime=${st.mtime.toISOString()}`;
-    } catch {
-        return `${p} (stat failed)`;
-    }
+    try { const st = statSync(p); return `${p} size=${st.size} mtime=${st.mtime.toISOString()}`; }
+    catch { return `${p} (stat failed)`; }
 }
-
-function safeParseRate(r) {
+function parseRate(r) {
     if (!r || typeof r !== 'string') return null;
     const [n, d] = r.split('/').map(Number);
     return (isFinite(n) && isFinite(d) && d) ? (n / d) : null;
 }
 const seconds = n => Number.isFinite(n) ? n.toFixed(3) : 'NaN';
-
-function probeAll(p) {
-    return new Promise((res, rej) => ffmpeg.ffprobe(p, (e, md) => e ? rej(e) : res(md)));
-}
+const probeAll = p => new Promise((res, rej) => ffmpeg.ffprobe(p, (e, md) => e ? rej(e) : res(md)));
 
 async function debugProbe(tag, p, md) {
     const fmt = md.format || {};
@@ -68,12 +58,46 @@ async function debugProbe(tag, p, md) {
     return { fmt, v, a };
 }
 
+// NEW: prefer avg_frame_rate; sanity-check r_frame_rate; derive fps number + string + video seconds
+function pickFpsAndDur(fmt, v) {
+    const aFps = parseRate(v?.avg_frame_rate);
+    const rFps = parseRate(v?.r_frame_rate);
+    const nb   = (v && 'nb_frames' in v) ? Number(v.nb_frames) : NaN;
+    const vDur = Number(v?.duration) || NaN;
+    const fDur = Number(fmt?.duration) || NaN;
+
+    let fpsNum = null;
+    if (aFps && aFps > 0 && aFps <= 120) fpsNum = aFps;
+    else if (rFps && rFps > 0 && rFps <= 120) fpsNum = rFps;
+    else if (Number.isFinite(nb) && nb > 0) {
+        const dur = Number.isFinite(vDur) && vDur > 0 ? vDur
+            : Number.isFinite(fDur) && fDur > 0 ? fDur
+                : NaN;
+        if (Number.isFinite(dur) && dur > 0) fpsNum = Math.min(120, Math.max(1, nb / dur));
+    }
+    if (!fpsNum) fpsNum = 30;
+
+    const vSeconds = Number.isFinite(vDur) && vDur > 0 ? vDur
+        : Number.isFinite(fDur) && fDur > 0 ? fDur
+            : (Number.isFinite(nb) && nb > 0 ? nb / fpsNum : 0);
+
+    const fpsStr = (aFps && aFps > 0 && aFps <= 120) ? (v.avg_frame_rate)
+        : (rFps && rFps > 0 && rFps <= 120) ? (v.r_frame_rate)
+            : String(fpsNum);
+
+    console.log('[fps-pick]', {
+        avg: v?.avg_frame_rate, r: v?.r_frame_rate, nb_frames: nb,
+        vDur, fDur, chosen_num: fpsNum, fpsStr, vSeconds
+    });
+
+    return { fpsNum, fpsStr, vSeconds };
+}
+
 function bakeImageAsFilterIntoVideoDEBUG(
     videoInputPath, canvasInputPath, videoOutputPath,
     videoHeight, videoWidth,
     canvasHeight, canvasWidth, heightShim
 ) {
-    // ✅ FIX: no-async-promise-executor — executor is sync; async work in IIFE
     return new Promise((resolve, reject) => {
         (async () => {
             if (!existsSync(videoInputPath)) throw new Error(`Missing video input: ${videoInputPath}`);
@@ -123,20 +147,12 @@ function bakeImageAsFilterIntoVideoDEBUG(
             const { fmt, v, a } = await debugProbe('norm', normPath, meta);
 
             const hasAudio = !!a;
-            const fmtDur = Number(fmt.duration) || 0;
-            const vDur   = Number(v?.duration) || 0;
-            const aDur   = Number(a?.duration) || 0;
+            const aDur   = Number(a?.duration) || NaN;
             const vStart = Number(v?.start_time) || 0;
             const aStart = hasAudio ? (Number(a.start_time) || 0) : 0;
             const delta  = vStart - aStart;
 
-            const vR = v?.r_frame_rate || '';
-            const vAvgR = v?.avg_frame_rate || '';
-            const fpsStr = (safeParseRate(vR) ? vR : (safeParseRate(vAvgR) ? vAvgR : '30000/1001'));
-            const fpsVal = safeParseRate(fpsStr) || 29.97;
-            const vNbFrames = (v && 'nb_frames' in v) ? Number(v.nb_frames) : NaN;
-            const trueVDur = Number.isFinite(vNbFrames) && vNbFrames > 0 ? (vNbFrames / fpsVal) : (vDur || fmtDur);
-            if (!Number.isFinite(fpsVal) || fpsVal <= 0) console.warn('[warn] invalid fpsVal; defaulting to 29.97');
+            const { fpsNum, fpsStr, vSeconds: trueVDur } = pickFpsAndDur(fmt, v);
 
             const vfCanvas = `[0:v]scale=${adjustedCanvasWidth + widthPadding}:${adjustedCanvasHeight},fps=${fpsStr},format=rgba[bg]`;
             const vfVideo  = `[1:v]scale=${scaledDownObjectWidth}:${scaledDownObjectHeight},format=yuv420p[vid]`;
@@ -154,11 +170,11 @@ function bakeImageAsFilterIntoVideoDEBUG(
                 : `${vfCanvas};${vfVideo};${vfOverlay}`;
 
             let outSeconds = hasAudio
-                ? Math.max(0, Math.min(trueVDur || fmtDur, aDur || fmtDur))
-                : (trueVDur || fmtDur);
+                ? Math.max(0, Math.min(trueVDur || Infinity, aDur || Infinity))
+                : (trueVDur || 0);
             if (!Number.isFinite(outSeconds) || outSeconds <= 0) {
-                console.warn('[warn] computed outSeconds invalid; fallback to fmtDur or 10s');
-                outSeconds = fmtDur > 0 ? fmtDur : 10;
+                console.warn('[warn] computed outSeconds invalid; fallback to trueVDur or 10s');
+                outSeconds = (Number.isFinite(trueVDur) && trueVDur > 0) ? trueVDur : 10;
             }
 
             console.log('[ffmpeg] filter_complex:', filterComplex);
@@ -176,8 +192,7 @@ function bakeImageAsFilterIntoVideoDEBUG(
             ];
 
             let lastProgTs = Date.now();
-            let lastTimemark = ''; // ✅ now used in watchdog
-
+            let lastTimemark = '';
             const stderrTail = [];
             const keepTail = (line) => {
                 const s = String(line);
@@ -192,7 +207,6 @@ function bakeImageAsFilterIntoVideoDEBUG(
                 .complexFilter(filterComplex)
                 .outputOptions(baseOutputOpts)
                 .output(videoOutputPath)
-            // ✅ use the command string so 'c' isn’t unused
                 .on('start', (commandLine) => {
                     console.log('[ffmpeg] start cmd:', commandLine);
                     console.log('[ffmpeg] outputOptions:', baseOutputOpts.join(' '));
@@ -223,14 +237,15 @@ function bakeImageAsFilterIntoVideoDEBUG(
                     reject(e);
                 });
 
-            if (outSeconds && Number.isFinite(outSeconds)) {
+            // Cap runtime + canvas frames using numeric fps
+            if (Number.isFinite(outSeconds) && outSeconds > 0) {
                 cmd.outputOptions(['-t', String(outSeconds)]);
-                const canvasFrames = Math.max(1, Math.round(outSeconds * (safeParseRate(fpsStr) || 30)));
+                const canvasFrames = Math.max(1, Math.round(outSeconds * (fpsNum || 30)));
                 cmd.inputOptions(['-frames:v', String(canvasFrames)]);
                 console.log('[ffmpeg] canvasFrames cap:', canvasFrames);
             }
 
-            // Watchdog uses lastTimemark now (✅ resolves the unused var)
+            // Watchdog
             const watchdog = setInterval(() => {
                 const since = Date.now() - lastProgTs;
                 if (since > NO_PROGRESS_TIMEOUT_MS) {
@@ -251,7 +266,7 @@ function bakeImageAsFilterIntoVideoDEBUG(
             }, Math.min(NO_PROGRESS_TIMEOUT_MS, 10000));
 
             cmd.run();
-        })().then(resolve).catch(reject); // ✅ IIFE drives the promise
+        })().then(resolve).catch(reject);
     });
 }
 
