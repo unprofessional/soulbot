@@ -1,52 +1,75 @@
 // features/twitter-video/index.js
-
 const path = require('node:path');
 const {
     createWriteStream,
     existsSync,
     mkdirSync,
+    statSync,
 } = require('node:fs');
 const ffmpeg = require('fluent-ffmpeg');
-const { getAdjustedAspectRatios } = require('../twitter-core/canvas_utils');
 const { bakeImageAsFilterIntoVideoDEBUG } = require('./debug_bake_img-in-vid');
 
+/** Ensure the parent directory of a target file path exists. */
 const ensureDirectoryExists = (filePath) => {
     const dirname = path.dirname(filePath);
     if (!existsSync(dirname)) {
-        mkdirSync(`${dirname}/canvassed/`, { recursive: true });
+        mkdirSync(dirname, { recursive: true });
     }
     return true;
 };
 
+/** Optional: only call this if you really want a "canvassed" subfolder created. */
+const ensureCanvassedSubdir = (filePath) => {
+    const canvassedDir = path.join(path.dirname(filePath), 'canvassed');
+    if (!existsSync(canvassedDir)) {
+        mkdirSync(canvassedDir, { recursive: true });
+    }
+    return canvassedDir;
+};
+
+const ffprobePromise = (p) =>
+    new Promise((resolve, reject) => {
+        ffmpeg.ffprobe(p, (err, md) => (err ? reject(err) : resolve(md)));
+    });
+
+/** Stream a remote file to disk. Returns true if duration <= 60s after write. */
 const downloadVideo = async (remoteFileUrl, outputPath) => {
     ensureDirectoryExists(outputPath);
     const response = await fetch(remoteFileUrl);
-    const fileStream = createWriteStream(outputPath);
-
-    for await (const chunk of response.body) {
-        fileStream.write(chunk);
+    if (!response.ok || !response.body) {
+        throw new Error(`downloadVideo: HTTP ${response.status} for ${remoteFileUrl}`);
     }
-    fileStream.end();
 
-    return new Promise((resolve, reject) => {
-        fileStream.on('finish', async () => {
-            try {
-                const videoDuration = await getVideoDuration(outputPath);
-                resolve(videoDuration <= 60);
-            } catch (err) {
-                reject(err);
-            }
-        });
-        fileStream.on('error', reject);
+    const fileStream = createWriteStream(outputPath);
+    try {
+        for await (const chunk of response.body) {
+            fileStream.write(chunk);
+        }
+    } finally {
+        fileStream.end();
+    }
+
+    await new Promise((resolve, reject) => {
+    // use both finish & close as some streams flush async
+        let done = false;
+        const finish = () => { if (!done) { done = true; resolve(); } };
+        const error  = (e) => { if (!done) { done = true; reject(e); } };
+        fileStream.once('finish', finish);
+        fileStream.once('close', finish);
+        fileStream.once('error', error);
     });
+
+    const dur = await getVideoDuration(outputPath);
+    return dur <= 60;
 };
 
 function extractAudioFromVideo(videoPath, outputPath) {
     return new Promise((resolve, reject) => {
         ffmpeg(videoPath)
-            .output(outputPath)
             .noVideo()
             .audioCodec('libmp3lame')
+            .outputOptions(['-q:a 2']) // VBR quality; tweak if you like
+            .output(outputPath)
             .on('end', resolve)
             .on('error', reject)
             .run();
@@ -54,15 +77,12 @@ function extractAudioFromVideo(videoPath, outputPath) {
 }
 
 function extractFrames(localVideoFilePath, frameRate = 10) {
-    const pathParts = localVideoFilePath.split('/');
-    const filenameWithExtension = pathParts.pop();
-    const filename = filenameWithExtension.split('.')[0];
-    const basePath = pathParts.join('/');
-    const framesPathPattern = `${basePath}/${filename}_%03d.png`;
+    const base = path.parse(localVideoFilePath);
+    const framesPattern = path.join(base.dir, `${base.name}_%03d.png`);
 
     return new Promise((resolve, reject) => {
         ffmpeg(localVideoFilePath)
-            .output(framesPathPattern)
+            .output(framesPattern)
             .outputOptions([`-vf fps=${frameRate}`])
             .on('end', resolve)
             .on('error', reject)
@@ -71,14 +91,19 @@ function extractFrames(localVideoFilePath, frameRate = 10) {
 }
 
 function recombineFramesToVideo(framesPattern, outputVideoPath, frameRate = 10) {
+    ensureDirectoryExists(outputVideoPath);
     return new Promise((resolve, reject) => {
         ffmpeg()
             .input(framesPattern)
             .inputFPS(frameRate)
-            .outputOptions(['-pix_fmt yuv420p'])
-            .output(outputVideoPath)
+            .outputOptions([
+                '-pix_fmt yuv420p',
+                '-shortest',
+                `-r ${frameRate}`, // explicit output fps
+            ])
             .size('560x?')
             .videoCodec('libx264')
+            .output(outputVideoPath)
             .on('end', resolve)
             .on('error', reject)
             .run();
@@ -86,175 +111,81 @@ function recombineFramesToVideo(framesPattern, outputVideoPath, frameRate = 10) 
 }
 
 function combineAudioWithVideo(videoPath, audioPath, outputPath) {
+    ensureDirectoryExists(outputPath);
     return new Promise((resolve, reject) => {
         ffmpeg()
             .input(videoPath)
             .input(audioPath)
-            .output(outputPath)
+            .outputOptions(['-shortest'])
             .videoCodec('copy')
             .audioCodec('aac')
+            .output(outputPath)
             .on('end', resolve)
             .on('error', reject)
             .run();
     });
 }
 
-function getVideoDuration(filePath) {
-    return new Promise((resolve, reject) => {
-        ffmpeg.ffprobe(filePath, (err, metadata) => {
-            if (err) return reject(err);
-            resolve(metadata.format.duration);
-        });
-    });
+/** Safer duration helper: only probes existing files, throws helpful errors. */
+async function getVideoDuration(filePath) {
+    if (!filePath || typeof filePath !== 'string') {
+        throw new Error(`getVideoDuration: invalid path "${filePath}"`);
+    }
+    if (!existsSync(filePath)) {
+        throw new Error(`getVideoDuration: not found "${filePath}"`);
+    }
+    const md = await ffprobePromise(filePath);
+    const dur = Number(md?.format?.duration);
+    if (!Number.isFinite(dur)) {
+        throw new Error(`getVideoDuration: duration missing for "${filePath}"`);
+    }
+    return dur;
 }
 
-function getVideoFileSize(filePath) {
-    return new Promise((resolve, reject) => {
-        ffmpeg.ffprobe(filePath, (err, metadata) => {
-            if (err) return reject(err);
-            resolve(metadata.format.size);
-        });
-    });
+/** Safer size helper: prefer filesystem size; ffprobe.format.size is often absent. */
+async function getVideoFileSize(filePath) {
+    if (!filePath || typeof filePath !== 'string') {
+        throw new Error(`getVideoFileSize: invalid path "${filePath}"`);
+    }
+    if (!existsSync(filePath)) {
+        throw new Error(`getVideoFileSize: not found "${filePath}"`);
+    }
+    // fs size is authoritative for “what we actually wrote”
+    const st = statSync(filePath);
+    // probe is optional info; don’t let it crash callers
+    try { await ffprobePromise(filePath); } catch (_) { /* ignore */ }
+    return st.size;
 }
 
+/** Forwarder to the debug impl you’re testing. */
 async function bakeImageAsFilterIntoVideo(
     videoInputPath, canvasInputPath, videoOutputPath,
     videoHeight, videoWidth,
     canvasHeight, canvasWidth, heightShim
 ) {
-    return await bakeImageAsFilterIntoVideoDEBUG(
+    return bakeImageAsFilterIntoVideoDEBUG(
         videoInputPath, canvasInputPath, videoOutputPath,
         videoHeight, videoWidth,
         canvasHeight, canvasWidth, heightShim
     );
-    // return new Promise((resolve, reject) => {
-    //     if (!existsSync(videoInputPath)) return reject(new Error(`Missing video input: ${videoInputPath}`));
-    //     if (!existsSync(canvasInputPath)) return reject(new Error(`Missing canvas input: ${canvasInputPath}`));
-
-    //     const {
-    //         adjustedCanvasWidth, adjustedCanvasHeight,
-    //         scaledDownObjectWidth, scaledDownObjectHeight,
-    //         overlayX, overlayY
-    //     } = getAdjustedAspectRatios(
-    //         canvasWidth, canvasHeight,
-    //         videoWidth, videoHeight,
-    //         heightShim
-    //     );
-
-    //     const widthPadding = 40;
-    //     const parseRate = (r) => {
-    //         if (!r || typeof r !== 'string') return null;
-    //         const [n, d] = r.split('/').map(Number);
-    //         return (isFinite(n) && isFinite(d) && d) ? (n / d) : null;
-    //     };
-
-    //     const normPath = videoInputPath.replace(/\.mp4$/i, '-norm.mp4');
-    //     const probe = (p) => new Promise((res, rej) => ffmpeg.ffprobe(p, (e, m) => e ? rej(e) : res(m)));
-
-    //     const normalize = () => new Promise((res, rej) => {
-    //         ffmpeg(videoInputPath)
-    //             .outputOptions([
-    //                 '-fflags', '+genpts',
-    //                 '-avoid_negative_ts', 'make_zero',
-    //                 '-video_track_timescale', '90000',
-    //                 '-movflags', '+faststart',
-    //                 '-muxpreload', '0', '-muxdelay', '0'
-    //             ])
-    //             .videoCodec('copy')
-    //             .audioCodec('copy')
-    //             .on('start', cmd => console.log('[normalize] ffmpeg:', cmd))
-    //             .on('end', () => { console.log('[normalize] done'); res(); })
-    //             .on('error', e => { console.error('[normalize] error:', e?.message || e); rej(e); })
-    //             .save(normPath);
-    //     });
-
-    //     (async () => {
-    //         await normalize();
-
-    //         const meta = await probe(normPath);
-    //         const v = meta.streams.find(s => s.codec_type === 'video');
-    //         const a = meta.streams.find(s => s.codec_type === 'audio');
-    //         const hasAudio = !!a;
-
-    //         const fmtDur = Number(meta.format?.duration) || 0;
-    //         const vDur   = Number(v?.duration) || 0;
-    //         const aDur   = Number(a?.duration) || 0;
-    //         const vStart = Number(v?.start_time) || 0;
-    //         const aStart = hasAudio ? (Number(a.start_time) || 0) : 0;
-    //         const delta  = vStart - aStart; // >0 audio early; <0 audio late
-
-    //         const vR = v?.r_frame_rate || '';
-    //         const vAvgR = v?.avg_frame_rate || '';
-    //         const fpsStr = (parseRate(vR) ? vR : (parseRate(vAvgR) ? vAvgR : '30000/1001'));
-    //         const fpsVal = parseRate(fpsStr) || 29.97;
-    //         const vNbFrames = (v && 'nb_frames' in v) ? Number(v.nb_frames) : NaN;
-    //         const trueVDur = isFinite(vNbFrames) && vNbFrames > 0 ? (vNbFrames / fpsVal) : (vDur || fmtDur);
-
-    //         // --- Build the filter graph (minimal logs) ---
-    //         const vfCanvas = `[0:v]scale=${adjustedCanvasWidth + widthPadding}:${adjustedCanvasHeight},fps=${fpsStr},format=rgba[bg]`;
-    //         const vfVideo  = `[1:v]scale=${scaledDownObjectWidth}:${scaledDownObjectHeight},format=yuv420p[vid]`;
-
-    //         let audioChain = hasAudio ? 'aresample=48000' : '';
-    //         if (hasAudio) {
-    //             if (delta < -0.02) {
-    //                 audioChain = 'asetpts=PTS-STARTPTS,aresample=48000';
-    //             } else if (delta > +0.02) {
-    //                 const ms = Math.round(delta * 1000);
-    //                 audioChain = `adelay=${ms}|${ms},aresample=48000`;
-    //             }
-    //         }
-
-    //         const vfOverlay = `[bg][vid]overlay=${overlayX + widthPadding / 2}:${overlayY}:shortest=1[outv]`;
-
-    //         const filterComplex = hasAudio
-    //             ? `${vfCanvas};${vfVideo};${vfOverlay};[1:a]${audioChain}[aout]`
-    //             : `${vfCanvas};${vfVideo};${vfOverlay}`;
-
-    //         // Cap output duration (prevents tail freeze)
-    //         const outSeconds = hasAudio ? Math.max(0, Math.min(trueVDur || fmtDur, aDur || fmtDur)) : (trueVDur || fmtDur);
-
-    //         console.log('[ffmpeg] filter_complex:', filterComplex);
-    //         console.log('[ffmpeg] fps:', fpsStr, '| audio sync delta (s):', delta.toFixed(3), '| -t:', outSeconds.toFixed(3));
-
-    //         const baseOutputOpts = [
-    //             '-loglevel', 'warning',             // cut noise but keep errors/warnings
-    //             '-muxpreload', '0', '-muxdelay', '0',
-    //             '-map', '[outv]',
-    //             ...(hasAudio ? ['-map', '[aout]'] : []),
-    //             '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '22', '-pix_fmt', 'yuv420p',
-    //             ...(hasAudio ? ['-c:a', 'aac', '-b:a', '128k', '-ar', '48000'] : []),
-    //             '-shortest',
-    //             '-movflags', '+faststart',
-    //         ];
-    //         console.log('[ffmpeg] outputOptions:', baseOutputOpts.join(' '));
-
-    //         const cmd = ffmpeg()
-    //             .input(canvasInputPath)
-    //             .inputOptions(['-loop', '1', '-framerate', fpsStr])
-    //             .input(normPath)
-    //             .complexFilter(filterComplex)
-    //             .outputOptions(baseOutputOpts)
-    //             .output(videoOutputPath)
-    //             .on('start', c => console.log('[ffmpeg] start'))
-    //             .on('end',   () => { console.log('[ffmpeg] done'); resolve(videoOutputPath); })
-    //             .on('error', e => { console.error('[ffmpeg] error:', e?.message || e); reject(e); });
-
-    //         if (outSeconds && Number.isFinite(outSeconds)) {
-    //             cmd.outputOptions(['-t', String(outSeconds)]);
-    //         }
-
-    //         cmd.run();
-    //     })().catch(reject);
-    // });
 }
 
 module.exports = {
+    // fs helpers
+    ensureDirectoryExists,
+    ensureCanvassedSubdir,
+
+    // pipeline helpers
     downloadVideo,
     extractAudioFromVideo,
     extractFrames,
     recombineFramesToVideo,
     combineAudioWithVideo,
+
+    // probes (robust)
     getVideoDuration,
     getVideoFileSize,
+
+    // main
     bakeImageAsFilterIntoVideo,
 };
