@@ -8,6 +8,7 @@ const {
 } = require('node:fs');
 const ffmpeg = require('fluent-ffmpeg');
 const { getAdjustedAspectRatios } = require('../twitter-core/canvas_utils');
+const { bakeImageAsFilterIntoVideoDEBUG } = require('./debug_bake_img-in-vid');
 
 const ensureDirectoryExists = (filePath) => {
     const dirname = path.dirname(filePath);
@@ -116,130 +117,135 @@ function getVideoFileSize(filePath) {
     });
 }
 
-function bakeImageAsFilterIntoVideo(
+async function bakeImageAsFilterIntoVideo(
     videoInputPath, canvasInputPath, videoOutputPath,
     videoHeight, videoWidth,
     canvasHeight, canvasWidth, heightShim
 ) {
-    return new Promise((resolve, reject) => {
-        if (!existsSync(videoInputPath)) return reject(new Error(`Missing video input: ${videoInputPath}`));
-        if (!existsSync(canvasInputPath)) return reject(new Error(`Missing canvas input: ${canvasInputPath}`));
+    return await bakeImageAsFilterIntoVideoDEBUG(
+        videoInputPath, canvasInputPath, videoOutputPath,
+        videoHeight, videoWidth,
+        canvasHeight, canvasWidth, heightShim
+    );
+    // return new Promise((resolve, reject) => {
+    //     if (!existsSync(videoInputPath)) return reject(new Error(`Missing video input: ${videoInputPath}`));
+    //     if (!existsSync(canvasInputPath)) return reject(new Error(`Missing canvas input: ${canvasInputPath}`));
 
-        const {
-            adjustedCanvasWidth, adjustedCanvasHeight,
-            scaledDownObjectWidth, scaledDownObjectHeight,
-            overlayX, overlayY
-        } = getAdjustedAspectRatios(
-            canvasWidth, canvasHeight,
-            videoWidth, videoHeight,
-            heightShim
-        );
+    //     const {
+    //         adjustedCanvasWidth, adjustedCanvasHeight,
+    //         scaledDownObjectWidth, scaledDownObjectHeight,
+    //         overlayX, overlayY
+    //     } = getAdjustedAspectRatios(
+    //         canvasWidth, canvasHeight,
+    //         videoWidth, videoHeight,
+    //         heightShim
+    //     );
 
-        const widthPadding = 40;
-        const parseRate = (r) => {
-            if (!r || typeof r !== 'string') return null;
-            const [n, d] = r.split('/').map(Number);
-            return (isFinite(n) && isFinite(d) && d) ? (n / d) : null;
-        };
+    //     const widthPadding = 40;
+    //     const parseRate = (r) => {
+    //         if (!r || typeof r !== 'string') return null;
+    //         const [n, d] = r.split('/').map(Number);
+    //         return (isFinite(n) && isFinite(d) && d) ? (n / d) : null;
+    //     };
 
-        const normPath = videoInputPath.replace(/\.mp4$/i, '-norm.mp4');
-        const probe = (p) => new Promise((res, rej) => ffmpeg.ffprobe(p, (e, m) => e ? rej(e) : res(m)));
+    //     const normPath = videoInputPath.replace(/\.mp4$/i, '-norm.mp4');
+    //     const probe = (p) => new Promise((res, rej) => ffmpeg.ffprobe(p, (e, m) => e ? rej(e) : res(m)));
 
-        const normalize = () => new Promise((res, rej) => {
-            ffmpeg(videoInputPath)
-                .outputOptions([
-                    '-fflags', '+genpts',
-                    '-avoid_negative_ts', 'make_zero',
-                    '-video_track_timescale', '90000',
-                    '-movflags', '+faststart',
-                    '-muxpreload', '0', '-muxdelay', '0'
-                ])
-                .videoCodec('copy')
-                .audioCodec('copy')
-                .on('start', cmd => console.log('[normalize] ffmpeg:', cmd))
-                .on('end', () => { console.log('[normalize] done'); res(); })
-                .on('error', e => { console.error('[normalize] error:', e?.message || e); rej(e); })
-                .save(normPath);
-        });
+    //     const normalize = () => new Promise((res, rej) => {
+    //         ffmpeg(videoInputPath)
+    //             .outputOptions([
+    //                 '-fflags', '+genpts',
+    //                 '-avoid_negative_ts', 'make_zero',
+    //                 '-video_track_timescale', '90000',
+    //                 '-movflags', '+faststart',
+    //                 '-muxpreload', '0', '-muxdelay', '0'
+    //             ])
+    //             .videoCodec('copy')
+    //             .audioCodec('copy')
+    //             .on('start', cmd => console.log('[normalize] ffmpeg:', cmd))
+    //             .on('end', () => { console.log('[normalize] done'); res(); })
+    //             .on('error', e => { console.error('[normalize] error:', e?.message || e); rej(e); })
+    //             .save(normPath);
+    //     });
 
-        (async () => {
-            await normalize();
+    //     (async () => {
+    //         await normalize();
 
-            const meta = await probe(normPath);
-            const v = meta.streams.find(s => s.codec_type === 'video');
-            const a = meta.streams.find(s => s.codec_type === 'audio');
-            const hasAudio = !!a;
+    //         const meta = await probe(normPath);
+    //         const v = meta.streams.find(s => s.codec_type === 'video');
+    //         const a = meta.streams.find(s => s.codec_type === 'audio');
+    //         const hasAudio = !!a;
 
-            const fmtDur = Number(meta.format?.duration) || 0;
-            const vDur   = Number(v?.duration) || 0;
-            const aDur   = Number(a?.duration) || 0;
-            const vStart = Number(v?.start_time) || 0;
-            const aStart = hasAudio ? (Number(a.start_time) || 0) : 0;
-            const delta  = vStart - aStart; // >0 audio early; <0 audio late
+    //         const fmtDur = Number(meta.format?.duration) || 0;
+    //         const vDur   = Number(v?.duration) || 0;
+    //         const aDur   = Number(a?.duration) || 0;
+    //         const vStart = Number(v?.start_time) || 0;
+    //         const aStart = hasAudio ? (Number(a.start_time) || 0) : 0;
+    //         const delta  = vStart - aStart; // >0 audio early; <0 audio late
 
-            const vR = v?.r_frame_rate || '';
-            const vAvgR = v?.avg_frame_rate || '';
-            const fpsStr = (parseRate(vR) ? vR : (parseRate(vAvgR) ? vAvgR : '30000/1001'));
-            const fpsVal = parseRate(fpsStr) || 29.97;
-            const vNbFrames = (v && 'nb_frames' in v) ? Number(v.nb_frames) : NaN;
-            const trueVDur = isFinite(vNbFrames) && vNbFrames > 0 ? (vNbFrames / fpsVal) : (vDur || fmtDur);
+    //         const vR = v?.r_frame_rate || '';
+    //         const vAvgR = v?.avg_frame_rate || '';
+    //         const fpsStr = (parseRate(vR) ? vR : (parseRate(vAvgR) ? vAvgR : '30000/1001'));
+    //         const fpsVal = parseRate(fpsStr) || 29.97;
+    //         const vNbFrames = (v && 'nb_frames' in v) ? Number(v.nb_frames) : NaN;
+    //         const trueVDur = isFinite(vNbFrames) && vNbFrames > 0 ? (vNbFrames / fpsVal) : (vDur || fmtDur);
 
-            // --- Build the filter graph (minimal logs) ---
-            const vfCanvas = `[0:v]scale=${adjustedCanvasWidth + widthPadding}:${adjustedCanvasHeight},fps=${fpsStr},format=rgba[bg]`;
-            const vfVideo  = `[1:v]scale=${scaledDownObjectWidth}:${scaledDownObjectHeight},format=yuv420p[vid]`;
+    //         // --- Build the filter graph (minimal logs) ---
+    //         const vfCanvas = `[0:v]scale=${adjustedCanvasWidth + widthPadding}:${adjustedCanvasHeight},fps=${fpsStr},format=rgba[bg]`;
+    //         const vfVideo  = `[1:v]scale=${scaledDownObjectWidth}:${scaledDownObjectHeight},format=yuv420p[vid]`;
 
-            let audioChain = hasAudio ? 'aresample=48000' : '';
-            if (hasAudio) {
-                if (delta < -0.02) {
-                    audioChain = 'asetpts=PTS-STARTPTS,aresample=48000';
-                } else if (delta > +0.02) {
-                    const ms = Math.round(delta * 1000);
-                    audioChain = `adelay=${ms}|${ms},aresample=48000`;
-                }
-            }
+    //         let audioChain = hasAudio ? 'aresample=48000' : '';
+    //         if (hasAudio) {
+    //             if (delta < -0.02) {
+    //                 audioChain = 'asetpts=PTS-STARTPTS,aresample=48000';
+    //             } else if (delta > +0.02) {
+    //                 const ms = Math.round(delta * 1000);
+    //                 audioChain = `adelay=${ms}|${ms},aresample=48000`;
+    //             }
+    //         }
 
-            const vfOverlay = `[bg][vid]overlay=${overlayX + widthPadding / 2}:${overlayY}:shortest=1[outv]`;
+    //         const vfOverlay = `[bg][vid]overlay=${overlayX + widthPadding / 2}:${overlayY}:shortest=1[outv]`;
 
-            const filterComplex = hasAudio
-                ? `${vfCanvas};${vfVideo};${vfOverlay};[1:a]${audioChain}[aout]`
-                : `${vfCanvas};${vfVideo};${vfOverlay}`;
+    //         const filterComplex = hasAudio
+    //             ? `${vfCanvas};${vfVideo};${vfOverlay};[1:a]${audioChain}[aout]`
+    //             : `${vfCanvas};${vfVideo};${vfOverlay}`;
 
-            // Cap output duration (prevents tail freeze)
-            const outSeconds = hasAudio ? Math.max(0, Math.min(trueVDur || fmtDur, aDur || fmtDur)) : (trueVDur || fmtDur);
+    //         // Cap output duration (prevents tail freeze)
+    //         const outSeconds = hasAudio ? Math.max(0, Math.min(trueVDur || fmtDur, aDur || fmtDur)) : (trueVDur || fmtDur);
 
-            console.log('[ffmpeg] filter_complex:', filterComplex);
-            console.log('[ffmpeg] fps:', fpsStr, '| audio sync delta (s):', delta.toFixed(3), '| -t:', outSeconds.toFixed(3));
+    //         console.log('[ffmpeg] filter_complex:', filterComplex);
+    //         console.log('[ffmpeg] fps:', fpsStr, '| audio sync delta (s):', delta.toFixed(3), '| -t:', outSeconds.toFixed(3));
 
-            const baseOutputOpts = [
-                '-loglevel', 'warning',             // cut noise but keep errors/warnings
-                '-muxpreload', '0', '-muxdelay', '0',
-                '-map', '[outv]',
-                ...(hasAudio ? ['-map', '[aout]'] : []),
-                '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '22', '-pix_fmt', 'yuv420p',
-                ...(hasAudio ? ['-c:a', 'aac', '-b:a', '128k', '-ar', '48000'] : []),
-                '-shortest',
-                '-movflags', '+faststart',
-            ];
-            console.log('[ffmpeg] outputOptions:', baseOutputOpts.join(' '));
+    //         const baseOutputOpts = [
+    //             '-loglevel', 'warning',             // cut noise but keep errors/warnings
+    //             '-muxpreload', '0', '-muxdelay', '0',
+    //             '-map', '[outv]',
+    //             ...(hasAudio ? ['-map', '[aout]'] : []),
+    //             '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '22', '-pix_fmt', 'yuv420p',
+    //             ...(hasAudio ? ['-c:a', 'aac', '-b:a', '128k', '-ar', '48000'] : []),
+    //             '-shortest',
+    //             '-movflags', '+faststart',
+    //         ];
+    //         console.log('[ffmpeg] outputOptions:', baseOutputOpts.join(' '));
 
-            const cmd = ffmpeg()
-                .input(canvasInputPath)
-                .inputOptions(['-loop', '1', '-framerate', fpsStr])
-                .input(normPath)
-                .complexFilter(filterComplex)
-                .outputOptions(baseOutputOpts)
-                .output(videoOutputPath)
-                .on('start', c => console.log('[ffmpeg] start'))
-                .on('end',   () => { console.log('[ffmpeg] done'); resolve(videoOutputPath); })
-                .on('error', e => { console.error('[ffmpeg] error:', e?.message || e); reject(e); });
+    //         const cmd = ffmpeg()
+    //             .input(canvasInputPath)
+    //             .inputOptions(['-loop', '1', '-framerate', fpsStr])
+    //             .input(normPath)
+    //             .complexFilter(filterComplex)
+    //             .outputOptions(baseOutputOpts)
+    //             .output(videoOutputPath)
+    //             .on('start', c => console.log('[ffmpeg] start'))
+    //             .on('end',   () => { console.log('[ffmpeg] done'); resolve(videoOutputPath); })
+    //             .on('error', e => { console.error('[ffmpeg] error:', e?.message || e); reject(e); });
 
-            if (outSeconds && Number.isFinite(outSeconds)) {
-                cmd.outputOptions(['-t', String(outSeconds)]);
-            }
+    //         if (outSeconds && Number.isFinite(outSeconds)) {
+    //             cmd.outputOptions(['-t', String(outSeconds)]);
+    //         }
 
-            cmd.run();
-        })().catch(reject);
-    });
+    //         cmd.run();
+    //     })().catch(reject);
+    // });
 }
 
 module.exports = {
