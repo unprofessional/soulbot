@@ -40,6 +40,7 @@ function calculateQuoteHeight(ctx, qtMetadata) {
         const lineHeight = 30;
         const bottomPadding = 30;
         const hasMedia = (qtMetadata.mediaUrls?.length ?? 0) > 0;
+        const HEADER = 100; // must match top offset used for QT text in drawQtBasicElements
         const text = qtMetadata.error ? qtMetadata.message : qtMetadata.description;
 
         // keep this font in sync with drawDescription
@@ -60,17 +61,20 @@ function calculateQuoteHeight(ctx, qtMetadata) {
         console.debug(`${TAG} wrapWidth=${wrapWidth} textLen=${(text ?? '').length} lines=${qtDescLines.length} descHeight=${descHeight}`);
 
         if (qtMetadata._expandMediaHint && qtMetadata._expandedMediaHeight) {
+            // HEADER + text + gap(20) + expanded media + bottom paddings
             const total =
-        descHeight + /* text */ 20 + /* gap */ qtMetadata._expandedMediaHeight +
-        /* media */ bottomPadding + MARGIN_BOTTOM;
+        HEADER + descHeight + 20 + qtMetadata._expandedMediaHeight + bottomPadding + MARGIN_BOTTOM;
+            /* media */ bottomPadding + MARGIN_BOTTOM;
 
             console.debug(`${TAG} [expanded] desc=${descHeight} + gap=20 + mediaH=${qtMetadata._expandedMediaHeight} + bottomPad=${bottomPadding} + marginBottom=${MARGIN_BOTTOM} => total=${total}`);
             console.debug(`${TAG} ─────────────────────────────────────────────────────────`);
             return total;
         }
 
-        const compactBase = 175 + bottomPadding;
-        const total = hasMedia ? Math.max(descHeight, compactBase) : descHeight + bottomPadding;
+        // In compact mode, ensure we include the header as part of the text block height.
+        const compactBase = 175 + bottomPadding; // includes header + thumb minimum for media layout
+        const textBlock = HEADER + descHeight + bottomPadding + MARGIN_BOTTOM;
+        const total = hasMedia ? Math.max(textBlock, compactBase) : textBlock;
 
         console.debug(`${TAG} [compact] base=${compactBase} hasMedia=${hasMedia} => total=${total}`);
         console.debug(`${TAG} ─────────────────────────────────────────────────────────`);

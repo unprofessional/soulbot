@@ -120,7 +120,7 @@ function drawQtBasicElements(ctx, font, metadata, pfp, mediaObj, options) {
     const innerW = innerRight - innerLeft;       // 520
 
     // Total height is precomputed upstream; ensure it's large enough for our content
-    const boxHeight = hasMedia || expandQtMedia
+    let boxHeight = hasMedia || expandQtMedia
         ? Math.max(qtCanvasHeightOffset, expandQtMedia ? ((metadata._expandedMediaHeight ?? 0) + 150) : 285)
         : qtCanvasHeightOffset;
 
@@ -170,6 +170,14 @@ function drawQtBasicElements(ctx, font, metadata, pfp, mediaObj, options) {
         const textLines = qtDescLines.length;
         const textHeight = textLines * lineHeight;
         const textBottomY = textTopY + textHeight;
+
+        const MARGIN_BOTTOM = 8;
+        const bottomPadding = 30;
+        // Ensure the outer rounded box encloses the last text line + padding
+        const neededForText = (textBottomY + bottomPadding + MARGIN_BOTTOM) - qtY;
+        if (neededForText > boxHeight) {
+            boxHeight = neededForText;
+        }
 
         console.debug(`${TAG} text: lines=${textLines}, lineHeight=${lineHeight}, textHeight=${textHeight}`);
         console.debug(`${TAG} text positions: textX=${textX}, textTopY=${textTopY}, textBottomY=${textBottomY}`);
