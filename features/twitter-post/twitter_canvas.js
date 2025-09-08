@@ -208,7 +208,7 @@ async function createTwitterCanvas(metadataJson, isImage) {
             qtExpandedMediaSize
         });
 
-        qtHeight = calculateQuoteHeight(ctx, qtMetadata) + 100 - (qtMetadata.error ? 40 : 0);
+        qtHeight = calculateQuoteHeight(ctx, qtMetadata) - (qtMetadata.error ? 40 : 0);
 
         // Debug: QT after height calc
         log('qt:post', { qtHeight });
