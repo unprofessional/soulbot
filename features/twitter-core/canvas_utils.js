@@ -108,8 +108,6 @@ function drawQtBasicElements(ctx, font, metadata, pfp, mediaObj, options) {
     const hasVids = filterMediaUrls(metadata, ['mp4']).length > 0;
     const hasMedia = hasImgs || hasVids;
 
-    const qtMaxCharLength = expandQtMedia ? 520 : (hasMedia ? 320 : 420);
-
     // Quote box geometry
     const qtX = 20;
     const qtY = canvasHeightOffset;
@@ -120,8 +118,11 @@ function drawQtBasicElements(ctx, font, metadata, pfp, mediaObj, options) {
     const innerW = innerRight - innerLeft;       // 520
 
     // Total height is precomputed upstream; ensure it's large enough for our content
-    let boxHeight = hasMedia || expandQtMedia
-        ? Math.max(qtCanvasHeightOffset, expandQtMedia ? ((metadata._expandedMediaHeight ?? 0) + 150) : 285)
+    let boxHeight = (hasMedia || expandQtMedia)
+        ? Math.max(
+            qtCanvasHeightOffset,
+            expandQtMedia ? ((metadata._expandedMediaHeight ?? 0) + 150) : 285
+          )
         : qtCanvasHeightOffset;
 
     // Log helpers
@@ -138,22 +139,25 @@ function drawQtBasicElements(ctx, font, metadata, pfp, mediaObj, options) {
             expandedMediaSize,
         });
         console.debug(`${TAG} media flags: hasImgs=${hasImgs}, hasVids=${hasVids}, hasMedia=${hasMedia}`);
-        console.debug(`${TAG} wrap width (chars→px via ctx.font measure): qtMaxCharLength=${qtMaxCharLength}`);
 
-        // Text setup + wrap
+        // Text setup + wrap (derive wrap width from the SAME geometry we draw with)
+        const textX = expandQtMedia ? innerLeft : (hasMedia ? 230 : 100);
+        const wrapWidth = Math.max(1, innerRight - textX); // 520 (expanded), 330 (media), 460 (no media)
+
         ctx.font = `24px ${font}`;
-        const qtDescLines = getWrappedText(ctx, metadata.description ?? '', qtMaxCharLength);
+        const qtDescLines = getWrappedText(ctx, metadata.description ?? '', wrapWidth);
         const lineHeight = 30;
 
-        // Outer box (stroke only)
+        // Outer box (stroke only) — use full boxHeight (no -20 shrink)
         ctx.strokeStyle = '#4d4d4d';
         ctx.lineWidth = 1;
         ctx.beginPath();
-        ctx.roundRect(qtX, qtY, boxW, boxHeight - 20, 15);
+        ctx.roundRect(qtX, qtY, boxW, boxHeight, 15);
         ctx.stroke();
 
-        logRect('Outer rounded box', qtX, qtY, boxW, boxHeight - 20, 'r=15');
+        logRect('Outer rounded box', qtX, qtY, boxW, boxHeight, 'r=15');
         console.debug(`${TAG} innerPad=${innerPad}, innerLeft=${innerLeft}, innerRight=${innerRight}, innerW=${innerW}`);
+        console.debug(`${TAG} wrapWidth=${wrapWidth}`);
 
         // Names
         ctx.fillStyle = 'white';
@@ -165,7 +169,6 @@ function drawQtBasicElements(ctx, font, metadata, pfp, mediaObj, options) {
         ctx.fillText(`@${metadata.authorNick ?? ''}`, 100, qtY + 60);
 
         // --- Text block (drawDescription offsets QT text by +100) ---
-        const textX = expandQtMedia ? innerLeft : (hasMedia ? 230 : 100);
         const textTopY = qtY + 100;
         const textLines = qtDescLines.length;
         const textHeight = textLines * lineHeight;
@@ -173,6 +176,7 @@ function drawQtBasicElements(ctx, font, metadata, pfp, mediaObj, options) {
 
         const MARGIN_BOTTOM = 8;
         const bottomPadding = 30;
+
         // Ensure the outer rounded box encloses the last text line + padding
         const neededForText = (textBottomY + bottomPadding + MARGIN_BOTTOM) - qtY;
         if (neededForText > boxHeight) {
@@ -189,11 +193,11 @@ function drawQtBasicElements(ctx, font, metadata, pfp, mediaObj, options) {
         // Avatar
         ctx.save();
         ctx.beginPath();
-        ctx.arc(65, canvasHeightOffset + 45, 25, 0, Math.PI * 2);
+        ctx.arc(65, qtY + 45, 25, 0, Math.PI * 2);
         ctx.clip();
-        ctx.drawImage(pfp, 40, canvasHeightOffset + 20, 50, 50);
+        ctx.drawImage(pfp, 40, qtY + 20, 50, 50);
         ctx.restore();
-        logRect('Avatar draw', 40, canvasHeightOffset + 20, 50, 50, '(clip: circle r=25 @ (65, ' + (canvasHeightOffset + 45) + '))');
+        logRect('Avatar draw', 40, qtY + 20, 50, 50, `(clip: circle r=25 @ (65, ${qtY + 45}))`);
 
         // --- Media ---
         if (mediaObj) {
@@ -208,7 +212,7 @@ function drawQtBasicElements(ctx, font, metadata, pfp, mediaObj, options) {
             if (expandQtMedia && expandedMediaSize) {
                 // Inner content margins so corners stay visible
                 const MARGIN_X = 3;       // left/right inside the quote box
-                const MARGIN_BOTTOM = 8;  // bottom inside the quote box (keep in sync with calc)
+                const MARGIN_BOTTOM_INNER = 8;  // keep in sync with calc
                 const maxInnerW = innerW - MARGIN_X * 2;
 
                 // Start with proposed expanded size, clamp to bounds
@@ -219,10 +223,11 @@ function drawQtBasicElements(ctx, font, metadata, pfp, mediaObj, options) {
                 let mediaX = innerLeft + Math.round((innerW - targetW) / 2);
                 let mediaY = Math.round(textBottomY + 20);
 
-                const boxBottom = qtY + (boxHeight - 20) - innerPad - MARGIN_BOTTOM;
+                // Use full boxHeight; no "- 20" shrink
+                const boxBottom = qtY + boxHeight - innerPad - MARGIN_BOTTOM_INNER;
                 const willOverflow = mediaY + targetH >= boxBottom;
 
-                console.debug(`${TAG} [expanded] innerW=${innerW} maxInnerW=${maxInnerW} MARGIN_X=${MARGIN_X} MARGIN_BOTTOM=${MARGIN_BOTTOM}`);
+                console.debug(`${TAG} [expanded] innerW=${innerW} maxInnerW=${maxInnerW} MARGIN_X=${MARGIN_X} MARGIN_BOTTOM=${MARGIN_BOTTOM_INNER}`);
                 console.debug(`${TAG} [expanded] proposed target size: ${targetW} x ${targetH}`);
                 console.debug(`${TAG} [expanded] media position: x=${mediaX}, y=${mediaY}`);
                 console.debug(`${TAG} [expanded] boxBottom=${boxBottom}, willOverflow=${willOverflow}`);
@@ -264,10 +269,10 @@ function drawQtBasicElements(ctx, font, metadata, pfp, mediaObj, options) {
                     console.warn(`${TAG} [expanded] cropSingleImage ERROR:`, err);
                 }
             } else {
-                // Compact left thumbnail
+                // Compact left thumbnail (anchor to qtY, not canvasHeightOffset)
                 const thumbW = 175, thumbH = 175;
                 const thumbX = innerLeft;
-                const thumbY = canvasHeightOffset + 80;
+                const thumbY = qtY + 80;
                 const r = 15, clipInset = 1;
 
                 logRect('[thumb] target draw', thumbX, thumbY, thumbW, thumbH);
@@ -297,14 +302,15 @@ function drawQtBasicElements(ctx, font, metadata, pfp, mediaObj, options) {
 function drawQtMissingStatus(ctx, font, errorMsg, options) {
     const { canvasHeightOffset = 0, qtCanvasHeightOffset = 0 } = options;
     ctx.font = `24px ${font}`;
-    const qtDescLines = getWrappedText(ctx, errorMsg, 420);
+    const qtDescLines = getWrappedText(ctx, errorMsg, 460); // matches no-media text width (560 - 100)
 
     const qtX = 20;
     const qtY = canvasHeightOffset;
     ctx.strokeStyle = '#4d4d4d';
     ctx.lineWidth = 1;
     ctx.beginPath();
-    ctx.roundRect(qtX, qtY, 560, qtCanvasHeightOffset - 20, 15);
+    // Use full height (no -20 shrink)
+    ctx.roundRect(qtX, qtY, 560, qtCanvasHeightOffset, 15);
     ctx.stroke();
 
     ctx.fillStyle = 'white';
