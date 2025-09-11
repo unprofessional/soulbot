@@ -40,64 +40,69 @@ function getMaxHeight(numImgs) {
  * Calculate the total height needed for the quote-tweet rounded box.
  * IMPORTANT: All geometry *must* match drawQtBasicElements to avoid overflow/extra space.
  */
+// Keep this in sync with drawQtBasicElements (MARGIN_BOTTOM uses the same value)
 function calculateQuoteHeight(ctx, qtMetadata) {
+    const DEBUG = process.env.DEBUG_QT === '1';
     const TAG = '[qt/calcHeight]';
 
     try {
         const lineHeight = 30;
         const bottomPadding = 30;
-        const HEADER = 100;        // vertical space above first text line (names/handle area)
-        const MARGIN_BOTTOM = 8;   // inner margin at the rounded bottom (matches drawQtBasicElements)
+        const HEADER = 100;        // vertical space for names/handle
+        const MARGIN_BOTTOM = 8;   // inner margin above rounded bottom (must match draw)
 
-        // Media flags / expansion hints determined by caller
         const hasMedia = (qtMetadata.mediaUrls?.length ?? 0) > 0;
         const expanded = Boolean(qtMetadata._expandMediaHint);
-        const text =
-      qtMetadata.error ? (qtMetadata.message || '') : (qtMetadata.description || '');
+        const text = qtMetadata.error ? (qtMetadata.message || '') : (qtMetadata.description || '');
 
         // Font used for measuring (keep in sync with drawDescription)
         ctx.font = '24px "Noto Color Emoji"';
 
-        // --- Compute wrap width from the SAME geometry the draw path uses ---
-        // Quote box geometry (must mirror drawQtBasicElements)
-        const qtX = 20;          // left edge of the quoted box
-        const boxW = 560;        // quoted box width
-        const innerPad = 20;     // inner padding inside the box
-        const innerLeft = qtX + innerPad;               // 40
-        const innerRight = qtX + boxW - innerPad;       // 560
+        // Quote box geometry (mirror drawQtBasicElements)
+        const qtX = 20;
+        const boxW = 560;
+        const innerPad = 20;
+        const innerLeft = qtX + innerPad;            // 40
+        const innerRight = qtX + boxW - innerPad;    // 560
 
-        // drawQtBasicElements uses:
-        //   textX = expanded ? innerLeft : (hasMedia ? 230 : 100)
+        // textX must match draw: expanded → innerLeft, media → 230, no media → 100
         const textX = expanded ? innerLeft : (hasMedia ? 230 : 100);
         const wrapWidth = Math.max(1, innerRight - textX); // 520, 330, or 460
 
         const qtDescLines = getWrappedText(ctx, text, wrapWidth);
         const descHeight = qtDescLines.length * lineHeight;
 
-        // Debug logging
-        try {
-            console.debug(
-                `${TAG} expanded=${expanded} hasMedia=${hasMedia} wrapWidth=${wrapWidth} ` +
-        `lines=${qtDescLines.length} descHeight=${descHeight}`
-            );
-        } catch {}
+        if (DEBUG) {
+            console.debug(`${TAG} ─────────────────────────────────────────────────────────`);
+            console.debug(`${TAG} flags: expanded=${expanded} hasMedia=${hasMedia}`);
+            console.debug(`${TAG} geom: innerLeft=${innerLeft} innerRight=${innerRight} textX=${textX} wrapWidth=${wrapWidth}`);
+            console.debug(`${TAG} text: lines=${qtDescLines.length} lineHeight=${lineHeight} descHeight=${descHeight}`);
+        }
 
         if (expanded && qtMetadata._expandedMediaHeight) {
-            // Expanded layout: names/header + text + gap(20) + image + paddings
-            const total =
-        HEADER + descHeight + 20 + qtMetadata._expandedMediaHeight + bottomPadding + MARGIN_BOTTOM;
+            const total = HEADER + descHeight + 20 /*gap*/ +
+                    qtMetadata._expandedMediaHeight +
+                    bottomPadding + MARGIN_BOTTOM;
+
+            if (DEBUG) {
+                console.debug(`${TAG} [expanded] parts: HEADER=${HEADER} desc=${descHeight} gap=20 media=${qtMetadata._expandedMediaHeight} bottomPad=${bottomPadding} marginBottom=${MARGIN_BOTTOM} => total=${total}`);
+                console.debug(`${TAG} ─────────────────────────────────────────────────────────`);
+            }
             return total;
         }
 
-        // Compact layout: ensure a minimum when media thumb is shown on the left
-        const compactBase = 175 + bottomPadding; // min to fit avatar + 175px thumb + padding
+        // Compact
+        const compactBase = 175 + bottomPadding; // min to fit avatar + 175 thumb + padding
         const textBlock = HEADER + descHeight + bottomPadding + MARGIN_BOTTOM;
         const total = hasMedia ? Math.max(textBlock, compactBase) : textBlock;
 
+        if (DEBUG) {
+            console.debug(`${TAG} [compact] textBlock=${textBlock} compactBase=${compactBase} hasMedia=${hasMedia} => total=${total}`);
+            console.debug(`${TAG} ─────────────────────────────────────────────────────────`);
+        }
         return total;
     } catch (e) {
         console.warn('[qt/calcHeight] ERROR (fallback to 205):', e);
-        // Safe fallback (~175 + 30)
         return 205;
     }
 }
