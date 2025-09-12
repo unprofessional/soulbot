@@ -172,30 +172,100 @@ function coerceEpochOrIsoToMs(v, label = 'value') {
  * If you already added collectMedia/filterMediaUrls previously, keep those implementations.
  ------------------------------------------------------------------------------------------------- */
 
-// Example no-op stubs if not present; replace with your real implementations.
 function collectMedia(meta) {
     const out = [];
-    if (Array.isArray(meta?.media_extended)) {
-        for (const m of meta.media_extended) {
-            const url = m.url || m.thumbnail_url;
-            if (!url) continue;
-            out.push({
-                type: m.type || (m.format ? 'video' : 'image'),
-                url,
-                thumbnail_url: m.thumbnail_url || url,
-                width: m.size?.width ?? m.width ?? null,
-                height: m.size?.height ?? m.height ?? null,
-                format: m.format,
-                duration_millis: m.duration_millis,
-            });
+    const src = Array.isArray(meta?.media_extended) ? meta.media_extended : [];
+
+    for (const m of src) {
+        const width  = m?.size?.width  ?? m?.width  ?? null;
+        const height = m?.size?.height ?? m?.height ?? null;
+        const size   = (width && height) ? { width, height } : null;
+        const url    = m?.url || m?.thumbnail_url || null;
+        if (!url) continue;
+
+        out.push({
+            type: m?.type || (m?.format ? 'video' : 'image'),
+            url,
+            thumbnail_url: m?.thumbnail_url || url,
+            size,                 // <- ALWAYS include size when possible
+            width: width ?? null, // convenience fields for legacy callers
+            height: height ?? null,
+            format: m?.format,
+            duration_millis:
+        m?.duration_millis ??
+        (typeof m?.duration === 'number' ? Math.round(m.duration * 1000) : undefined),
+            altText: m?.altText ?? null,
+        });
+    }
+
+    // Fallbacks if media_extended wasn't present
+    if (!out.length && (Array.isArray(meta?.photos) || Array.isArray(meta?.videos))) {
+        if (Array.isArray(meta.photos)) {
+            for (const p of meta.photos) {
+                const w = p?.width ?? p?.size?.width ?? null;
+                const h = p?.height ?? p?.size?.height ?? null;
+                const s = (w && h) ? { width: w, height: h } : null;
+                if (!p?.url) continue;
+                out.push({
+                    type: 'image',
+                    url: p.url,
+                    thumbnail_url: p.url,
+                    size: s,
+                    width: w,
+                    height: h,
+                    altText: p?.altText ?? null,
+                });
+            }
+        }
+        if (Array.isArray(meta.videos)) {
+            for (const v of meta.videos) {
+                const w = v?.width ?? v?.size?.width ?? null;
+                const h = v?.height ?? v?.size?.height ?? null;
+                const s = (w && h) ? { width: w, height: h } : null;
+                if (!v?.url) continue;
+                out.push({
+                    type: 'video',
+                    url: v.url,
+                    thumbnail_url: v?.thumbnail_url ?? null,
+                    size: s,
+                    width: w,
+                    height: h,
+                    format: v?.format,
+                    duration_millis:
+            v?.duration_millis ??
+            (typeof v?.duration === 'number' ? Math.round(v.duration * 1000) : undefined),
+                });
+            }
         }
     }
+
     return out;
 }
 
-function filterMediaUrls(meta, { types = ['image', 'video'] } = {}) {
+/**
+ * Back-compat filter. Accepts either:
+ *  - array of types: ['image','video']
+ *  - array of extensions: ['jpg','jpeg','png','mp4']  (heuristic by extension length)
+ *  - object: { types: [...] }
+ */
+function filterMediaUrls(meta, typesOrExts = ['image', 'video']) {
     const all = collectMedia(meta);
-    return all.filter(m => types.includes(m.type));
+
+    // If it looks like an extensions array (e.g., ['jpg','png','mp4'])
+    if (Array.isArray(typesOrExts) && typesOrExts.length && typeof typesOrExts[0] === 'string' && typesOrExts[0].length <= 5) {
+        const exts = new Set(typesOrExts.map(s => s.toLowerCase()));
+        return all.filter(m => {
+            const u = m.url || '';
+            const match = u.match(/\.([a-z0-9]{2,5})(?:[\?#]|$)/i);
+            const ext = match ? match[1].toLowerCase() : '';
+            return exts.has(ext);
+        });
+    }
+
+    // Otherwise treat as types filter
+    const types = Array.isArray(typesOrExts) ? typesOrExts : (typesOrExts?.types || ['image', 'video']);
+    const typeSet = new Set(types);
+    return all.filter(m => typeSet.has(m.type));
 }
 
 
