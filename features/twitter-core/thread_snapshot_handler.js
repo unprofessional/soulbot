@@ -25,10 +25,7 @@ async function handleThreadSnapshot(tweetUrl) {
     const thread = [startingTweet];
     let current = startingTweet;
 
-    while (
-        current.replyingToID &&
-    thread.length < MAX_THREAD_LENGTH
-    ) {
+    while (current.replyingToID && thread.length < MAX_THREAD_LENGTH) {
         const parentTweet = await fetchTweetById(current.replyingToID);
         if (!parentTweet) break;
         thread.unshift(parentTweet);
@@ -48,13 +45,14 @@ async function handleThreadSnapshot(tweetUrl) {
         return `**${user}**: ${text}`;
     }).join('\n\n');
 
-    // Add media properties
+    // Add safe media properties for the renderer
     for (const post of thread) {
-        if (post.media_extended?.length > 0) {
-            const media = post.media_extended[0];
-            post._mediaThumbnailUrl = media.thumbnail_url;
-            post._mediaType = media.type;
-            post._mediaSize = media.size;
+        const media = Array.isArray(post.media_extended) ? post.media_extended : [];
+        if (media.length > 0) {
+            const m0 = media[0];
+            post._mediaThumbnailUrl = m0.thumbnail_url || m0.url || null;
+            post._mediaType = m0.type || (m0.format ? 'video' : 'image');
+            post._mediaSize = m0.size || (m0.width && m0.height ? { width: m0.width, height: m0.height } : null);
         }
     }
 

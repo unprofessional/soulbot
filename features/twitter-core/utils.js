@@ -56,20 +56,10 @@ const formatTwitterDate = (twitterDate) => {
 };
 
 // Find number of associated media
-const filterMediaUrls = (metadata, extensions) => {
-    // console.log('!!! filterMediaUrls > metadata.mediaUrls: ', metadata.mediaUrls);
-    return metadata.mediaUrls.filter((mediaUrl) => {
-        // console.log('!!! filterMediaUrls > mediaUrl: ', mediaUrl);
-        const mediaUrlParts = mediaUrl.split('.');
-        // console.log('!!! filterMediaUrls > mediaUrlParts: ', mediaUrlParts);
-        const fileExtensionWithQueryParams = mediaUrlParts[mediaUrlParts.length - 1];
-        // console.log('!!! filterMediaUrls > fileExtensionWithQueryParams: ', fileExtensionWithQueryParams);
-        const fileExtension = fileExtensionWithQueryParams.split('?')[0];
-        // console.log('!!! filterMediaUrls > fileExtension: ', fileExtension);
-        // console.log('!!! ================================================');
-        return extensions.includes(fileExtension);
-    });
-};
+function filterMediaUrls(meta, { types = ['image', 'video'] } = {}) {
+    const all = collectMedia(meta);
+    return all.filter(m => types.includes(m.type));
+}
 
 function getExtensionFromMediaUrl(mediaUrl) {
     if (typeof mediaUrl !== 'string') {
@@ -122,6 +112,56 @@ const randomNameGenerator = () => {
     return `${adjective}-${noun}-${uniqueId}`;
 };
 
+// NEW helper: collectMedia(meta) + safe filterMediaUrls(meta)
+
+function collectMedia(meta) {
+    // Accept both shapes:
+    // - Your new normalizer: meta.media_extended: [{ type, url, thumbnail_url, size:{width,height}, ... }]
+    // - Older shapes: meta.media, meta.photos, meta.videos, etc.
+    const out = [];
+
+    // Preferred, normalized shape
+    if (Array.isArray(meta?.media_extended)) {
+        for (const m of meta.media_extended) {
+            const url = m.url || m.thumbnail_url;
+            if (!url) continue;
+            out.push({
+                type: m.type || (m.format ? 'video' : 'image'),
+                url,
+                thumbnail_url: m.thumbnail_url || url,
+                width: m.size?.width ?? m.width ?? null,
+                height: m.size?.height ?? m.height ?? null,
+                format: m.format,
+                duration_millis: m.duration_millis,
+            });
+        }
+    }
+
+    // Legacy fallbacks (if any upstream code still sets these)
+    if (Array.isArray(meta?.photos)) {
+        for (const p of meta.photos) {
+            if (!p?.url) continue;
+            out.push({ type: 'image', url: p.url, thumbnail_url: p.url, width: p.width ?? null, height: p.height ?? null });
+        }
+    }
+    if (Array.isArray(meta?.videos)) {
+        for (const v of meta.videos) {
+            if (!v?.url) continue;
+            out.push({
+                type: 'video',
+                url: v.url,
+                thumbnail_url: v.thumbnail_url || null,
+                width: v.width ?? null,
+                height: v.height ?? null,
+                format: v.format,
+                duration_millis: typeof v.duration === 'number' ? Math.round(v.duration * 1000) : v.duration_millis,
+            });
+        }
+    }
+
+    return out;
+}
+
 module.exports = {
     formatTwitterDate,
     filterMediaUrls,
@@ -129,5 +169,6 @@ module.exports = {
     removeTCOLink,
     stripQueryParams,
     randomNameGenerator,
+    collectMedia,
 };
 
