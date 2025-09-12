@@ -40,32 +40,23 @@ async function safeLoadImage(url) {
     }
 }
 
-/**
- * Builds the PNG overlay used for video posts.
- * - Uses the same date-fallback logic as images via formatTwitterDate(meta).
- * - Honors metadataJson._canvasOutputPath if provided (so the caller controls the target path).
- * - Normalizes media so it works with FX/VX variants.
- */
 async function createTwitterVideoCanvas(metadataJson) {
-    // Normalize media (prefer our helper; fall back to legacy arrays)
+    // Normalize media (works for FX/VX)
     const media = Array.isArray(collectMedia?.(metadataJson)) ? collectMedia(metadataJson)
         : (Array.isArray(metadataJson.media_extended) ? metadataJson.media_extended : []);
     const videos = media.filter(m => (m?.type || '').toLowerCase() === 'video');
-
-    // Use the first video’s natural size when available
     const v0 = videos[0] || null;
     const vSize = v0?.size || { width: v0?.width || 0, height: v0?.height || 0 };
 
-    // Prepare metadata for drawBasicElements with full date fields
     const metadata = {
         authorNick: metadataJson.user_screen_name,
         authorUsername: metadataJson.user_name,
         pfpUrl: metadataJson.user_profile_image_url,
 
-        // include all supported date fields so the drawer can format robustly
-        date: metadataJson.date ?? null,                    // VX string
-        date_epoch: metadataJson.date_epoch ?? null,        // VX seconds
-        created_timestamp: metadataJson.created_timestamp ?? null, // FX seconds/ms
+        // full date set for robust formatting
+        date: metadataJson.date ?? null,
+        date_epoch: metadataJson.date_epoch ?? null,
+        created_timestamp: metadataJson.created_timestamp ?? null,
         created_at: metadataJson.created_at ?? null,
 
         description: (metadataJson.text || '').replace(/\s+https?:\/\/t\.co\/\w+$/i, ''),
@@ -73,7 +64,7 @@ async function createTwitterVideoCanvas(metadataJson) {
         mediaExtended: media,
     };
 
-    // Precompute display string (kept for parity with image path; drawer may also do its own)
+    // Precompute display date (drawer can also compute; this is for parity/logs)
     metadata._displayDate = formatTwitterDate(metadataJson, { label: 'videoCanvas/metaJson→displayDate' });
 
     registerFonts();
@@ -87,7 +78,7 @@ async function createTwitterVideoCanvas(metadataJson) {
     ctx.fillStyle = '#000';
     ctx.textDrawingMode = 'glyph';
 
-    // Wrap description (video layout uses a narrower text column)
+    // Text wrapping (video layout used 420 previously)
     ctx.font = '18px "Noto Color Emoji"';
     const hasDescription = (metadata.description || '').trim().length > 0;
     const descLines = hasDescription ? getWrappedText(ctx, metadata.description, 420) : [];
@@ -104,10 +95,9 @@ async function createTwitterVideoCanvas(metadataJson) {
         safeLoadImage(metadata.pfpUrl),
     ]);
 
-    // Draw header/text/timestamp using the same function as images.
-    // hasImgs=false, hasVids=true to keep video text inset behavior, if any.
+    // IMPORTANT: pass hasImgs:true to keep descX=30 (no extra 50px indent)
     drawBasicElements(ctx, globalFont, metadata, favicon, pfp, hasDescription ? descLines : [], {
-        hasImgs: false,
+        hasImgs: true,  // <- forces descX to 30px in drawBasicElements
         hasVids: true,
         yOffset: baseY,
         canvasHeightOffset: canvasHeight,
@@ -115,7 +105,7 @@ async function createTwitterVideoCanvas(metadataJson) {
 
     const buffer = canvas.toBuffer('image/png');
 
-    // If the caller provided a specific output path, use it directly.
+    // Respect explicit output path if provided by caller
     if (metadataJson._canvasOutputPath) {
         const outPath = metadataJson._canvasOutputPath;
         const dir = outPath.replace(/\/[^/]+$/, '');
@@ -123,12 +113,12 @@ async function createTwitterVideoCanvas(metadataJson) {
         writeFileSync(outPath, buffer);
         return {
             canvasHeight,
-            canvasWidth: 560, // overlay region width used by compositor
+            canvasWidth: 560,
             heightShim,
         };
     }
 
-    // Fallback: derive a stable path from the first media URL (kept for backward compat)
+    // Back-compat fallback path
     const videoUrl = (videos[0]?.url) ||
                    (Array.isArray(metadata.mediaUrls) ? metadata.mediaUrls[0] : null) ||
                    '';
