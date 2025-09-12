@@ -156,16 +156,23 @@ function drawQtBasicElements(ctx, font, metadata, pfp, mediaObj, options) {
         // Wrap width from SAME geometry we draw with
         const textX = expandQtMedia ? innerLeft : (hasMedia ? 230 : 100);
         const wrapWidth = Math.max(1, innerRight - textX); // 520 / 330 / 460
+
+        // Measure text *with the exact font used for drawing*
         ctx.font = `24px ${font}`;
         const qtDescLines = getWrappedText(ctx, metadata.description ?? '', wrapWidth);
         const lineHeight = 30;
 
-        // Outer box (full boxHeight; no -20)
-        ctx.strokeStyle = '#4d4d4d';
-        ctx.lineWidth = 1;
+        // Outer rounded box
+        ctx.save();
         ctx.beginPath();
         ctx.roundRect(qtX, qtY, boxW, boxHeight, 15);
+        // Optional fill for contrast (uncomment/tweak as you like)
+        ctx.fillStyle = '#0f0f10';
+        ctx.fill();
+        ctx.strokeStyle = '#4d4d4d';
+        ctx.lineWidth = 1;
         ctx.stroke();
+        ctx.restore();
 
         logRect('Outer rounded box', qtX, qtY, boxW, boxHeight, 'r=15');
         DEBUG && console.debug(`${TAG} innerPad=${innerPad}, innerLeft=${innerLeft}, innerRight=${innerRight}, innerW=${innerW}`);
@@ -180,7 +187,7 @@ function drawQtBasicElements(ctx, font, metadata, pfp, mediaObj, options) {
         ctx.font = `18px ${font}`;
         ctx.fillText(`@${metadata.authorNick ?? ''}`, 100, qtY + 60);
 
-        // Text block
+        // Text block — START AT qtY + 100 (this must match calculateQuoteHeight)
         const textTopY = qtY + 100;
         const textLines = qtDescLines.length;
         const textHeight = textLines * lineHeight;
@@ -203,18 +210,21 @@ function drawQtBasicElements(ctx, font, metadata, pfp, mediaObj, options) {
       `boxHeight(after)=${boxHeight}`
         );
 
+        // Draw text at the correct Y
         ctx.fillStyle = 'white';
         ctx.font = `24px ${font}`;
-        drawDescription(ctx, hasImgs, hasVids, qtDescLines, font, textX, qtY, true);
+        drawDescription(ctx, hasImgs, hasVids, qtDescLines, font, textX, textTopY, true);
 
         // Avatar (anchor to qtY)
-        ctx.save();
-        ctx.beginPath();
-        ctx.arc(65, qtY + 45, 25, 0, Math.PI * 2);
-        ctx.clip();
-        ctx.drawImage(pfp, 40, qtY + 20, 50, 50);
-        ctx.restore();
-        logRect('Avatar draw', 40, qtY + 20, 50, 50, `(clip: circle r=25 @ (65, ${qtY + 45}))`);
+        if (pfp) {
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(65, qtY + 45, 25, 0, Math.PI * 2);
+            ctx.clip();
+            try { ctx.drawImage(pfp, 40, qtY + 20, 50, 50); } catch {}
+            ctx.restore();
+            logRect('Avatar draw', 40, qtY + 20, 50, 50, `(clip: circle r=25 @ (65, ${qtY + 45}))`);
+        }
 
         // Media
         if (mediaObj) {
@@ -226,6 +236,7 @@ function drawQtBasicElements(ctx, font, metadata, pfp, mediaObj, options) {
             ctx.beginPath();
 
             if (expandQtMedia && expandedMediaSize) {
+                // Expanded (big image under text)
                 const MARGIN_X = 3;
                 const MARGIN_BOTTOM_INNER = 8; // keep in sync with calc
                 const maxInnerW = innerW - MARGIN_X * 2;
@@ -278,12 +289,12 @@ function drawQtBasicElements(ctx, font, metadata, pfp, mediaObj, options) {
                     console.warn(`${TAG} [expanded] cropSingleImage ERROR:`, err);
                 }
             } else {
-                // Compact thumbnail (anchor to qtY)
+                // Compact thumbnail (left), text on right
                 const thumbW = 175, thumbH = 175;
                 const thumbX = innerLeft;
-                const thumbY = qtY + 80;
-                const r = 15, clipInset = 1;
+                const thumbY = qtY + 80; // sits just below the header
 
+                const r = 15, clipInset = 1;
                 logRect('[thumb] target', thumbX, thumbY, thumbW, thumbH);
                 logRect('[thumb] CLIP rect', thumbX + clipInset, thumbY + clipInset, thumbW - 2 * clipInset, thumbH - 2 * clipInset, `r=${r} inset=${clipInset}`);
 
@@ -300,7 +311,7 @@ function drawQtBasicElements(ctx, font, metadata, pfp, mediaObj, options) {
             ctx.restore();
         }
 
-        DEBUG && console.debug(`${TAG} SUMMARY: { wrapWidth:${wrapWidth}, textX:${textX}, textBottomY:${textBottomY}, neededForText:${neededForText}, boxHeight:${boxHeight} }`);
+        DEBUG && console.debug(`${TAG} SUMMARY: { wrapWidth:${wrapWidth}, textX:${textX}, textTopY:${textTopY}, textBottomY:${textBottomY}, neededForText:${neededForText}, boxHeight:${boxHeight} }`);
         DEBUG && console.debug(`${TAG} ─────────────────────────────────────────────────────────`);
     } catch (e) {
         console.warn(`${TAG} ERROR during draw:`, e);
