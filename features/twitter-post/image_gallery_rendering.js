@@ -1,91 +1,100 @@
-// features/twitter-post/render_image_gallery.js
+// features/twitter-post/image_gallery_rendering.js
+/* eslint-disable no-empty */
 const { loadImage } = require('canvas');
 const { cropSingleImage } = require('./crop_single_image.js');
 const { scaleDownToFitAspectRatio } = require('./scale_down.js');
 
-// layout constants
+// Layout constants
 const LEFT_X = 20;           // left margin
 const COL_GUTTER_X = 25;     // space between left/right columns
 const ROW_GUTTER_Y = 10;     // space between stacked tiles in right column
 
-const scaleToFitWiderThanHeight = (ctx, mainMedia1, yPosition, mediaMaxWidth) => {
-    const newWidthRatio = mediaMaxWidth / mainMedia1.width;
-    const adjustedHeight = mainMedia1.height * newWidthRatio;
-    ctx.drawImage(mainMedia1, LEFT_X, yPosition, mediaMaxWidth, adjustedHeight);
-};
+// Helpers --------------------------------------------------------------------
 
-const singleImage = async (
-    ctx,
-    metadata,
-    calculatedCanvasHeightFromDescLines,
-    heightShim,
-    mediaMaxHeight,
-    mediaMaxWidth,
-    cornerRadius = 15
-) => {
-    const mainMedia1Url = metadata.mediaUrls[0];
-    const mainMedia1 = await loadImage(mainMedia1Url);
-    const yPosition = calculatedCanvasHeightFromDescLines - heightShim - 50;
+function getItems(metadata) {
+    const items = Array.isArray(metadata?.mediaExtended) ? metadata.mediaExtended : [];
+    // Prefer images; if mixed, keep images only
+    const images = items.filter(m => (m?.type || '').toLowerCase() === 'image');
+    return images.length ? images : items;
+}
 
-    let mediaObject = {
-        height: metadata.mediaExtended[0].size.height,
-        width: metadata.mediaExtended[0].size.width,
-    };
+function getUrl(m) {
+    return m?.thumbnail_url || m?.url || null;
+}
 
-    mediaObject = scaleDownToFitAspectRatio(mediaObject, mediaMaxHeight, mediaMaxWidth);
+function getSize(m) {
+    const w = m?.size?.width ?? m?.width ?? null;
+    const h = m?.size?.height ?? m?.height ?? null;
+    return (w && h) ? { width: w, height: h } : null;
+}
 
-    const firstXPosition = LEFT_X + mediaMaxWidth / 2 - mediaObject.width / 2;
-    const firstYPosition = yPosition;
+// If caller provided a default Y position (from text flow), prefer it.
+// Otherwise, fall back to descHeight - heightShim - 50 (legacy behavior).
+function computeBaseY(defaultYPosition, calculatedCanvasHeightFromDescLines, heightShim) {
+    if (Number.isFinite(defaultYPosition)) return Math.max(0, defaultYPosition);
+    return Math.max(0, (calculatedCanvasHeightFromDescLines || 0) - (heightShim || 0) - 50);
+}
 
-    // rounded-rect clip
+// Draws an image with a rounded-rect mask (centered horizontally)
+function drawRounded(ctx, img, x, y, w, h, radius = 15) {
     ctx.beginPath();
-    ctx.moveTo(firstXPosition + cornerRadius, firstYPosition);
-    ctx.lineTo(firstXPosition + mediaObject.width - cornerRadius, firstYPosition);
-    ctx.quadraticCurveTo(firstXPosition + mediaObject.width, firstYPosition, firstXPosition + mediaObject.width, firstYPosition + cornerRadius);
-    ctx.lineTo(firstXPosition + mediaObject.width, firstYPosition + mediaObject.height - cornerRadius);
-    ctx.quadraticCurveTo(firstXPosition + mediaObject.width, firstYPosition + mediaObject.height, firstXPosition + mediaObject.width - cornerRadius, firstYPosition + mediaObject.height);
-    ctx.lineTo(firstXPosition + cornerRadius, firstYPosition + mediaObject.height);
-    ctx.quadraticCurveTo(firstXPosition, firstYPosition + mediaObject.height, firstXPosition, firstYPosition + mediaObject.height - cornerRadius);
-    ctx.lineTo(firstXPosition, firstYPosition + cornerRadius);
-    ctx.quadraticCurveTo(firstXPosition, firstYPosition, firstXPosition + cornerRadius, firstYPosition);
+    ctx.moveTo(x + radius, y);
+    ctx.lineTo(x + w - radius, y);
+    ctx.quadraticCurveTo(x + w, y, x + w, y + radius);
+    ctx.lineTo(x + w, y + h - radius);
+    ctx.quadraticCurveTo(x + w, y + h, x + w - radius, y + h);
+    ctx.lineTo(x + radius, y + h);
+    ctx.quadraticCurveTo(x, y + h, x, y + h - radius);
+    ctx.lineTo(x, y + radius);
+    ctx.quadraticCurveTo(x, y, x + radius, y);
     ctx.closePath();
     ctx.clip();
-
-    ctx.drawImage(mainMedia1, firstXPosition, firstYPosition, mediaObject.width, mediaObject.height);
-
+    ctx.drawImage(img, x, y, w, h);
+    // subtle border to match your style
     ctx.strokeStyle = '#4d4d4d';
     ctx.lineWidth = 2;
     ctx.stroke();
-};
+}
 
-const singleVideoFrame = async (
-    ctx,
-    mediaUrl,
-    calculatedCanvasHeightFromDescLines,
-    heightShim,
-    mediaMaxHeight,
-    mediaMaxWidth
-) => {
-    const mainMedia1 = await loadImage(mediaUrl);
-    const xPosition = LEFT_X;
-    const yPosition = calculatedCanvasHeightFromDescLines - heightShim - 50;
+// Single-image layout ---------------------------------------------------------
 
-    return new Promise((resolve, reject) => {
-        try {
-            if (mainMedia1.width > mainMedia1.height) {
-                scaleToFitWiderThanHeight(ctx, mainMedia1, yPosition, mediaMaxWidth);
-                resolve(true);
-            } else {
-                cropSingleImage(ctx, mainMedia1, mediaMaxWidth, mediaMaxHeight, xPosition, yPosition, { tag: 'gallery/video' });
-                resolve(true);
-            }
-        } catch (err) {
-            reject(err);
-        }
-    });
-};
+async function singleImage(ctx, metadata, descHeight, heightShim, mediaMaxHeight, mediaMaxWidth, defaultYPosition) {
+    const items = getItems(metadata);
+    const m0 = items[0];
+    const url = getUrl(m0);
+    const nat = getSize(m0) || { width: mediaMaxWidth, height: mediaMaxHeight };
+    if (!url) return;
 
-const renderImageGallery = async (
+    const img = await loadImage(url);
+    const scaled = scaleDownToFitAspectRatio(nat, mediaMaxHeight, mediaMaxWidth);
+
+    const yBase = computeBaseY(defaultYPosition, descHeight, heightShim);
+    const x = LEFT_X + mediaMaxWidth / 2 - scaled.width / 2;
+    const y = yBase;
+
+    drawRounded(ctx, img, x, y, scaled.width, scaled.height, 15);
+}
+
+// Video frame helper (kept for compatibility; rarely used in gallery)
+async function singleVideoFrame(ctx, mediaUrl, descHeight, heightShim, mediaMaxHeight, mediaMaxWidth, defaultYPosition) {
+    const img = await loadImage(mediaUrl);
+    const y = computeBaseY(defaultYPosition, descHeight, heightShim);
+    const x = LEFT_X;
+
+    // If landscape, fit width; else crop to target box
+    if (img.width > img.height) {
+        const ratio = mediaMaxWidth / img.width;
+        const h = img.height * ratio;
+        ctx.drawImage(img, x, y, mediaMaxWidth, h);
+    } else {
+        cropSingleImage(ctx, img, mediaMaxWidth, mediaMaxHeight, x, y, { tag: 'gallery/video' });
+    }
+    return true;
+}
+
+// Main renderer ---------------------------------------------------------------
+
+async function renderImageGallery(
     ctx,
     metadata,
     calculatedCanvasHeightFromDescLines,
@@ -93,90 +102,69 @@ const renderImageGallery = async (
     mediaMaxHeight,
     mediaMaxWidth,
     defaultYPosition
-) => {
+) {
     console.log('>>>>> renderImageGallery reached!');
 
-    const mediaItems = metadata.mediaExtended;
-    const fixedMediaItems = mediaItems.map(m => m.thumbnail_url);
+    const items = getItems(metadata).slice(0, 4); // support up to 4 images
+    if (!items.length) return;
 
-    // baseline scale from first media (keeps behavior the same)
-    const mediaObject1 = {
-        height: mediaItems[0].size.height,
-        width: mediaItems[0].size.width,
-    };
-    const scaledMediaDimensions1 = scaleDownToFitAspectRatio(mediaObject1, mediaMaxHeight, mediaMaxWidth);
+    // Preload URLs & compute baseline scaling from first media
+    const urls = items.map(getUrl).filter(Boolean);
+    if (!urls.length) return;
 
-    // ===== 1 image =====
-    if (fixedMediaItems.length === 1) {
-        await singleImage(
-            ctx,
-            metadata,
-            calculatedCanvasHeightFromDescLines,
-            heightShim,
-            mediaMaxHeight,
-            mediaMaxWidth
-        );
-        return;
-    }
+    const firstSize = getSize(items[0]) || { width: mediaMaxWidth, height: mediaMaxHeight };
+    const scaled1 = scaleDownToFitAspectRatio(firstSize, mediaMaxHeight, mediaMaxWidth);
 
-    // common positions/sizes
-    const yBase = calculatedCanvasHeightFromDescLines - heightShim - 50;
+    const yBase = computeBaseY(defaultYPosition, calculatedCanvasHeightFromDescLines, heightShim);
     const colW = mediaMaxWidth / 2;
 
-    // ===== 2 images (side-by-side, matched height) =====
-    if (fixedMediaItems.length === 2) {
-        const img1 = await loadImage(fixedMediaItems[0]);
-        const img2 = await loadImage(fixedMediaItems[1]);
-
-        const h = scaledMediaDimensions1.height; // keep prior behavior: use first's scaled height
-
-        cropSingleImage(ctx, img1, colW, h, LEFT_X, yBase, { tag: 'gallery/2-left' });
-        cropSingleImage(ctx, img2, colW, h, LEFT_X + colW + COL_GUTTER_X, yBase, { tag: 'gallery/2-right' });
+    // 1 image
+    if (urls.length === 1) {
+        await singleImage(ctx, metadata, calculatedCanvasHeightFromDescLines, heightShim, mediaMaxHeight, mediaMaxWidth, defaultYPosition);
         return;
     }
 
-    // ===== 3 images (balanced) =====
-    if (fixedMediaItems.length === 3) {
-        const img1 = await loadImage(fixedMediaItems[0]); // left
-        const img2 = await loadImage(fixedMediaItems[1]); // right/top
-        const img3 = await loadImage(fixedMediaItems[2]); // right/bottom
+    // Load all images we need in parallel
+    const imgs = await Promise.all(urls.map(u => loadImage(u)));
 
-        // left column height per legacy scaling logic
-        const leftColHeight = scaledMediaDimensions1.height;
+    // 2 images (side-by-side, matched height to first's scaled)
+    if (urls.length === 2) {
+        const h = scaled1.height;
+        cropSingleImage(ctx, imgs[0], colW, h, LEFT_X, yBase, { tag: 'gallery/2-left' });
+        cropSingleImage(ctx, imgs[1], colW, h, LEFT_X + colW + COL_GUTTER_X, yBase, { tag: 'gallery/2-right' });
+        return;
+    }
 
-        // right column gets two tiles that sum to leftColHeight, with a gutter
-        const rightTileHeight = Math.round((leftColHeight - ROW_GUTTER_Y) / 2);
-
-        // left tile
-        cropSingleImage(ctx, img1, colW, leftColHeight, LEFT_X, yBase, { tag: 'gallery/3-left' });
-
-        // right/top
+    // 3 images (left tall, two stacked on right)
+    if (urls.length === 3) {
+        const leftH = scaled1.height;
+        const rightTileH = Math.round((leftH - ROW_GUTTER_Y) / 2);
         const rightX = LEFT_X + colW + COL_GUTTER_X;
-        const rightTopY = yBase;
-        cropSingleImage(ctx, img2, colW, rightTileHeight, rightX, rightTopY, { tag: 'gallery/3-right-top' });
 
+        // left column
+        cropSingleImage(ctx, imgs[0], colW, leftH, LEFT_X, yBase, { tag: 'gallery/3-left' });
+        // right/top
+        cropSingleImage(ctx, imgs[1], colW, rightTileH, rightX, yBase, { tag: 'gallery/3-rt' });
         // right/bottom
-        const rightBotY = rightTopY + rightTileHeight + ROW_GUTTER_Y;
-        cropSingleImage(ctx, img3, colW, rightTileHeight, rightX, rightBotY, { tag: 'gallery/3-right-bot' });
+        cropSingleImage(ctx, imgs[2], colW, rightTileH, rightX, yBase + rightTileH + ROW_GUTTER_Y, { tag: 'gallery/3-rb' });
         return;
     }
 
-    // ===== 4 images (2x2 grid) =====
-    if (fixedMediaItems.length === 4) {
-        const [img1, img2, img3, img4] = await Promise.all(fixedMediaItems.map(loadImage));
-
-        const tileH = Math.round(scaledMediaDimensions1.height / 2);
+    // 4 images (2x2 grid)
+    if (urls.length >= 4) {
+        const tileH = Math.round(scaled1.height / 2);
+        const rightX = LEFT_X + colW + COL_GUTTER_X;
+        const row2Y = yBase + tileH + ROW_GUTTER_Y;
 
         // top row
-        cropSingleImage(ctx, img1, colW, tileH, LEFT_X, yBase, { tag: 'gallery/4-tl' });
-        cropSingleImage(ctx, img2, colW, tileH, LEFT_X + colW + COL_GUTTER_X, yBase, { tag: 'gallery/4-tr' });
+        cropSingleImage(ctx, imgs[0], colW, tileH, LEFT_X, yBase, { tag: 'gallery/4-tl' });
+        cropSingleImage(ctx, imgs[1], colW, tileH, rightX, yBase, { tag: 'gallery/4-tr' });
 
         // bottom row
-        const row2Y = yBase + tileH + ROW_GUTTER_Y;
-        cropSingleImage(ctx, img3, colW, tileH, LEFT_X, row2Y, { tag: 'gallery/4-bl' });
-        cropSingleImage(ctx, img4, colW, tileH, LEFT_X + colW + COL_GUTTER_X, row2Y, { tag: 'gallery/4-br' });
+        cropSingleImage(ctx, imgs[2], colW, tileH, LEFT_X, row2Y, { tag: 'gallery/4-bl' });
+        cropSingleImage(ctx, imgs[3], colW, tileH, rightX, row2Y, { tag: 'gallery/4-br' });
     }
-};
+}
 
 module.exports = {
     singleImage,

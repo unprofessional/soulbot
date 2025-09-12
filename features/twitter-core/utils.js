@@ -256,7 +256,7 @@ function filterMediaUrls(meta, typesOrExts = ['image', 'video']) {
         const exts = new Set(typesOrExts.map(s => s.toLowerCase()));
         return all.filter(m => {
             const u = m.url || '';
-            const match = u.match(/\.([a-z0-9]{2,5})(?:[\?#]|$)/i);
+            const match = u.match(/\.([a-z0-9]{2,5})(?:[?#]|$)/i);
             const ext = match ? match[1].toLowerCase() : '';
             return exts.has(ext);
         });
