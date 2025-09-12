@@ -16,6 +16,15 @@ const {
 const { collectMedia } = require('../twitter-core/utils.js');
 const { formatTwitterDate } = require('../twitter-core/utils.js');
 
+// Robust text extraction (some FX payloads omit `text` but still have tweet.created_at or other props)
+function getBestText(p) {
+    return (
+        p?.text ??
+        p?.full_text ??
+        p?.tweet?.text ??
+        ''
+    );
+}
 
 const FONT_PATHS = [
     ['/truetype/noto/NotoColorEmoji.ttf', 'Noto Color Emoji'],
@@ -146,15 +155,16 @@ async function createTwitterCanvas(metadataJson, isImage) {
         authorUsername: metadataJson.user_name,
         pfpUrl: metadataJson.user_profile_image_url,
 
-        // include all known date fields so formatTwitterDate(metadata) can succeed
         date: metadataJson.date ?? null,
         date_epoch: metadataJson.date_epoch ?? null,
         created_timestamp: metadataJson.created_timestamp ?? null,
         created_at: metadataJson.created_at ?? null,
 
-        description: (metadataJson.text || '').replace(/\s+https?:\/\/t\.co\/\w+$/i, ''), // strip trailing t.co
-        mediaUrls: metadataJson.mediaURLs,          // optional legacy
-        mediaExtended: media,                       // <- use normalized media
+        // 🔽 use robust extractor; keep trailing t.co stripper
+        description: getBestText(metadataJson).replace(/\s+https?:\/\/t\.co\/\w+$/i, ''),
+
+        mediaUrls: metadataJson.mediaURLs,
+        mediaExtended: media, // from collectMedia(payload)
         communityNote: (metadataJson.communityNote || '').replace(/\s+https?:\/\/t\.co\/\w+$/i, ''),
     };
 

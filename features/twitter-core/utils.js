@@ -172,71 +172,121 @@ function coerceEpochOrIsoToMs(v, label = 'value') {
  * If you already added collectMedia/filterMediaUrls previously, keep those implementations.
  ------------------------------------------------------------------------------------------------- */
 
-function collectMedia(meta) {
+/**
+ * Normalize FX/VX payload media into a single array.
+ * Handles images, videos, and card/OG "article" images.
+ *
+ * Output shape (per item):
+ * {
+ *   type: 'image' | 'video',
+ *   url: string,                 // media URL
+ *   thumbnail_url?: string,      // preview/thumbnail (video & sometimes images)
+ *   size?: { width:number, height:number },
+ *   width?: number,
+ *   height?: number,
+ * }
+ */
+function collectMedia(payload) {
+    if (!payload || typeof payload !== 'object') return [];
+
     const out = [];
-    const src = Array.isArray(meta?.media_extended) ? meta.media_extended : [];
+    const seen = new Set();
 
-    for (const m of src) {
-        const width  = m?.size?.width  ?? m?.width  ?? null;
-        const height = m?.size?.height ?? m?.height ?? null;
-        const size   = (width && height) ? { width, height } : null;
-        const url    = m?.url || m?.thumbnail_url || null;
-        if (!url) continue;
+    const push = (item) => {
+        if (!item || !item.url) return;
+        const key = `${item.type}:${item.url}`;
+        if (seen.has(key)) return;
+        seen.add(key);
+        out.push(item);
+    };
 
-        out.push({
-            type: m?.type || (m?.format ? 'video' : 'image'),
-            url,
-            thumbnail_url: m?.thumbnail_url || url,
-            size,                 // <- ALWAYS include size when possible
-            width: width ?? null, // convenience fields for legacy callers
-            height: height ?? null,
-            format: m?.format,
-            duration_millis:
-        m?.duration_millis ??
-        (typeof m?.duration === 'number' ? Math.round(m.duration * 1000) : undefined),
-            altText: m?.altText ?? null,
-        });
+    // --- 1) Preferred: media_extended from FX/VX
+    if (Array.isArray(payload.media_extended)) {
+        for (const m of payload.media_extended) {
+            const type = (m?.type || '').toLowerCase();
+            const size = (m?.size && typeof m.size === 'object') ? {
+                width: Number(m.size.width) || undefined,
+                height: Number(m.size.height) || undefined,
+            } : undefined;
+
+            if (type === 'image') {
+                push({
+                    type: 'image',
+                    url: m.url || m.thumbnail_url || null,
+                    thumbnail_url: m.thumbnail_url || m.url || null,
+                    size,
+                    width: size?.width,
+                    height: size?.height,
+                });
+            } else if (type === 'video' || type === 'gif') {
+                push({
+                    type: 'video',
+                    url: m.url || m.video_url || null,
+                    thumbnail_url: m.thumbnail_url || null,
+                    size,
+                    width: size?.width,
+                    height: size?.height,
+                });
+            }
+        }
     }
 
-    // Fallbacks if media_extended wasn't present
-    if (!out.length && (Array.isArray(meta?.photos) || Array.isArray(meta?.videos))) {
-        if (Array.isArray(meta.photos)) {
-            for (const p of meta.photos) {
-                const w = p?.width ?? p?.size?.width ?? null;
-                const h = p?.height ?? p?.size?.height ?? null;
-                const s = (w && h) ? { width: w, height: h } : null;
-                if (!p?.url) continue;
-                out.push({
+    // --- 2) mediaURLs fallback (heuristic by extension)
+    if (Array.isArray(payload.mediaURLs)) {
+        for (const u of payload.mediaURLs) {
+            if (typeof u !== 'string') continue;
+            const lower = u.toLowerCase();
+            const isImg = /\.(jpe?g|png|webp)(\?|#|$)/i.test(lower);
+            const isVid = /\.(mp4|mov|m4v)(\?|#|$)/i.test(lower);
+
+            if (isImg) {
+                push({
                     type: 'image',
-                    url: p.url,
-                    thumbnail_url: p.url,
-                    size: s,
-                    width: w,
-                    height: h,
-                    altText: p?.altText ?? null,
+                    url: u,
+                    thumbnail_url: u,
+                    // Unknown size; let renderer/load compute/crop
+                    size: undefined,
                 });
-            }
-        }
-        if (Array.isArray(meta.videos)) {
-            for (const v of meta.videos) {
-                const w = v?.width ?? v?.size?.width ?? null;
-                const h = v?.height ?? v?.size?.height ?? null;
-                const s = (w && h) ? { width: w, height: h } : null;
-                if (!v?.url) continue;
-                out.push({
+            } else if (isVid) {
+                push({
                     type: 'video',
-                    url: v.url,
-                    thumbnail_url: v?.thumbnail_url ?? null,
-                    size: s,
-                    width: w,
-                    height: h,
-                    format: v?.format,
-                    duration_millis:
-            v?.duration_millis ??
-            (typeof v?.duration === 'number' ? Math.round(v.duration * 1000) : undefined),
+                    url: u,
+                    thumbnail_url: null,
+                    size: undefined,
                 });
             }
         }
+    }
+
+    // --- 3) Link-preview / card image (FX/VX exposes as `article`)
+    // Many “no media” tweets still have a large preview image here.
+    // Guess a common OG size to reserve space (1200x630).
+    if (payload.article && typeof payload.article === 'object') {
+        const img = payload.article.image || payload.article.image_url || null;
+        if (img && typeof img === 'string') {
+            push({
+                type: 'image',
+                url: img,
+                thumbnail_url: img,
+                size: { width: 1200, height: 630 },
+                width: 1200,
+                height: 630,
+            });
+        }
+    }
+
+    // --- 4) Combined multi-image render (rare but supported by VX)
+    // Treat as a single static image.
+    if (payload.combinedMediaUrl && typeof payload.combinedMediaUrl === 'string') {
+        push({
+            type: 'image',
+            url: payload.combinedMediaUrl,
+            thumbnail_url: payload.combinedMediaUrl,
+            // no reliable size; provide a square-ish fallback
+            size: { width: 1200, height: 1200 },
+            width: 1200,
+            height: 1200,
+        });
     }
 
     return out;
