@@ -3,13 +3,15 @@
 const crypto = require("crypto");
 
 /**
- * Format a tweet-ish date safely.
- * You can pass the whole tweet/meta object, a Date, or a raw ISO/epoch.
- * Returns '' (empty string) if the date is not parseable.
+ * Safe, locale-aware formatter. You can pass:
+ *  - The full tweet/meta object (recommended)
+ *  - A Date
+ *  - An ISO/epoch value
+ * Returns '' if not parseable.
  */
 function formatTwitterDate(input, {
     locale = 'en-US',
-    timeZone, // let Node decide; set to 'UTC' if you want UTC display
+    timeZone, // e.g. 'UTC' if you want, otherwise system/Node default
 } = {}) {
     const dt = coerceTweetDate(input);
     if (!dt) return '';
@@ -24,15 +26,9 @@ function formatTwitterDate(input, {
             minute: '2-digit',
         });
     } catch {
-    // Fallback: ISO without throwing
+    // Fallback: ISO
         return dt.toISOString();
     }
-}
-
-// Find number of associated media
-function filterMediaUrls(meta, { types = ['image', 'video'] } = {}) {
-    const all = collectMedia(meta);
-    return all.filter(m => types.includes(m.type));
 }
 
 function getExtensionFromMediaUrl(mediaUrl) {
@@ -86,15 +82,74 @@ const randomNameGenerator = () => {
     return `${adjective}-${noun}-${uniqueId}`;
 };
 
-// NEW helper: collectMedia(meta) + safe filterMediaUrls(meta)
+/**
+ * Build a Date from any tweet-ish input or return null if unknown.
+ * Accepts:
+ *  - A Date
+ *  - ISO string or epoch (seconds/ms)
+ *  - A tweet/meta object with: date, date_epoch, created_timestamp, tweet.created_at
+ */
+function coerceTweetDate(input) {
+    if (!input) return null;
 
+    if (input instanceof Date) {
+        return Number.isNaN(input.getTime()) ? null : input;
+    }
+
+    if (typeof input === 'number' || typeof input === 'string') {
+        const ms = coerceEpochOrIsoToMs(input);
+        return ms == null ? null : new Date(ms);
+    }
+
+    // Assume object with possible fields
+    const candidates = [
+        input.date,                 // VX: "Fri Sep 12 00:25:15 +0000 2025"
+        input.date_epoch,           // VX: 1757636715 (seconds)
+        input.created_timestamp,    // FX: seconds or ms
+        input.tweet?.created_at,    // some variants
+        input.created_at,           // just in case
+    ];
+
+    for (const c of candidates) {
+        const ms = coerceEpochOrIsoToMs(c);
+        if (ms != null) {
+            const dt = new Date(ms);
+            if (!Number.isNaN(dt.getTime())) return dt;
+        }
+    }
+    return null;
+}
+
+/**
+ * Convert ISO string or epoch (seconds or ms) to milliseconds since epoch, or null.
+ */
+function coerceEpochOrIsoToMs(v) {
+    if (v == null) return null;
+
+    // Numeric or numeric-like string
+    const n = Number(v);
+    if (!Number.isNaN(n) && Number.isFinite(n)) {
+    // Heuristic: < 1e12 → seconds; otherwise → milliseconds
+        return n < 1e12 ? Math.trunc(n) * 1000 : Math.trunc(n);
+    }
+
+    // Non-numeric string → try Date.parse
+    if (typeof v === 'string') {
+        const t = Date.parse(v);
+        return Number.isNaN(t) ? null : t;
+    }
+
+    return null;
+}
+
+/* -------------------------------------------------------------------------------------------------
+ * OPTIONAL: media helpers you may already have; shown here for completeness.
+ * If you already added collectMedia/filterMediaUrls previously, keep those implementations.
+ ------------------------------------------------------------------------------------------------- */
+
+// Example no-op stubs if not present; replace with your real implementations.
 function collectMedia(meta) {
-    // Accept both shapes:
-    // - Your new normalizer: meta.media_extended: [{ type, url, thumbnail_url, size:{width,height}, ... }]
-    // - Older shapes: meta.media, meta.photos, meta.videos, etc.
     const out = [];
-
-    // Preferred, normalized shape
     if (Array.isArray(meta?.media_extended)) {
         for (const m of meta.media_extended) {
             const url = m.url || m.thumbnail_url;
@@ -110,92 +165,11 @@ function collectMedia(meta) {
             });
         }
     }
-
-    // Legacy fallbacks (if any upstream code still sets these)
-    if (Array.isArray(meta?.photos)) {
-        for (const p of meta.photos) {
-            if (!p?.url) continue;
-            out.push({ type: 'image', url: p.url, thumbnail_url: p.url, width: p.width ?? null, height: p.height ?? null });
-        }
-    }
-    if (Array.isArray(meta?.videos)) {
-        for (const v of meta.videos) {
-            if (!v?.url) continue;
-            out.push({
-                type: 'video',
-                url: v.url,
-                thumbnail_url: v.thumbnail_url || null,
-                width: v.width ?? null,
-                height: v.height ?? null,
-                format: v.format,
-                duration_millis: typeof v.duration === 'number' ? Math.round(v.duration * 1000) : v.duration_millis,
-            });
-        }
-    }
-
     return out;
 }
-
-/**
- * Coerce a tweet-ish object into a valid Date, or null if unknown.
- * Accepts:
- *  - obj.date (ISO or epoch as string/number)
- *  - obj.date_epoch (seconds or ms)
- *  - obj.created_timestamp (seconds or ms, FX)
- *  - obj.tweet?.created_at (ISO)
- */
-function coerceTweetDate(input) {
-    if (!input) return null;
-
-    // If a Date was passed directly
-    if (input instanceof Date) {
-        return Number.isNaN(input.getTime()) ? null : input;
-    }
-
-    // If a primitive was passed (number/string)
-    if (typeof input === 'number' || typeof input === 'string') {
-        const ms = coerceEpochOrIsoToMs(input);
-        return ms == null ? null : new Date(ms);
-    }
-
-    // Otherwise assume it's a tweet/meta object
-    const candidates = [
-        input.date,
-        input.created_at,
-        input.tweet?.created_at,
-        input.date_epoch,
-        input.created_timestamp,
-    ];
-
-    for (const c of candidates) {
-        const ms = coerceEpochOrIsoToMs(c);
-        if (ms != null) {
-            const dt = new Date(ms);
-            if (!Number.isNaN(dt.getTime())) return dt;
-        }
-    }
-
-    return null;
-}
-
-/** Helper: convert ISO / epoch (s or ms) → milliseconds, or null */
-function coerceEpochOrIsoToMs(v) {
-    if (v == null) return null;
-
-    // Numeric-ish string or number
-    const n = Number(v);
-    if (!Number.isNaN(n) && Number.isFinite(n)) {
-    // Heuristic: < 1e12 → seconds; otherwise ms
-        return n < 1e12 ? Math.trunc(n) * 1000 : Math.trunc(n);
-    }
-
-    // Non-numeric string → try Date.parse
-    if (typeof v === 'string') {
-        const t = Date.parse(v);
-        return Number.isNaN(t) ? null : t;
-    }
-
-    return null;
+function filterMediaUrls(meta, { types = ['image', 'video'] } = {}) {
+    const all = collectMedia(meta);
+    return all.filter(m => types.includes(m.type));
 }
 
 module.exports = {
