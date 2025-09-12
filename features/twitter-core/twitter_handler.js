@@ -14,9 +14,9 @@ async function handleTwitterUrl(message, { guildId }) {
     const matches = [...content.matchAll(twitterUrlRegex)];
     if (matches.length > 0) {
         const { groups: { statusId }, 1: domain } = matches[0];
-        const isKnown = KNOWN_X_DOMAINS.includes((domain||'').toLowerCase());
-        const isModern = statusId?.length >= 15;
-        if (isKnown && (isModern || ['twitter.com','x.com'].includes(domain))) {
+        const isKnown = KNOWN_X_DOMAINS.includes((domain || '').toLowerCase());
+        const isModern = (statusId || '').length >= 15;
+        if (isKnown && (isModern || ['twitter.com', 'x.com'].includes(domain))) {
             console.log('\n✅ Valid Twitter/X status detected:', matches[0][0]);
         }
     }
@@ -29,6 +29,7 @@ async function handleTwitterUrl(message, { guildId }) {
 
     const urls = (containsX ? content.match(xDotComPattern) : content.match(twitterPattern)) || [];
     const firstUrl = stripQueryParams(urls[0]);
+
     const foundMessages = await findMessagesByLink(guildId, message.id, firstUrl);
     const existing = foundMessages?.filter(msg => String(msg.message_id) !== String(message.id))?.[0];
     if (existing) {
@@ -38,26 +39,25 @@ async function handleTwitterUrl(message, { guildId }) {
     }
 
     try {
-        const meta = await fetchMetadata(firstUrl, message, containsX, (s)=>console.log(s));
+        const meta = await fetchMetadata(firstUrl, message, containsX, (s) => console.log(s));
 
-        if (meta?.error) {
-            // Only show “deleted/protected” for explicit PRIVATE/NOT_FOUND signals
-            if (meta._fx_code === 401 || /PRIVATE/.test(meta.message||'')) {
+        // Guard: upstream/network error or non-OK code
+        if (!meta || meta.error) {
+            const code = meta?._fx_code || 0;
+            const msg  = (meta && meta.message) ? meta.message : 'Unknown upstream error.';
+            if (code === 401 || code === 403) {
                 return message.reply('Post is private (protected).');
             }
-            if (meta._fx_code === 404 || /NOT_FOUND/.test(meta.message||'')) {
+            if (code === 404) {
                 return message.reply('Post not found (deleted?).');
             }
-            // Otherwise surface HTTP details for debugging
-            return message.reply(
-                `Upstream error.\n\`\`\`\n${meta.message || 'Unexpected'}\n${meta.details || ''}\n\`\`\``
-            );
+            return message.reply(`Upstream error.\n\`\`\`\n${msg}\n\`\`\``);
         }
 
-        // Pull QT if present
-        if (meta.qrtURL) {
-            const qtMeta = await fetchQTMetadata(meta.qrtURL, (s)=>console.log(s));
-            meta.qtMetadata = qtMeta?.error ? undefined : qtMeta;
+        // Pull QT if present (null-safe)
+        if (meta?.qrtURL) {
+            const qtMeta = await fetchQTMetadata(meta.qrtURL, (s) => console.log(s));
+            meta.qtMetadata = qtMeta && !qtMeta.error ? qtMeta : undefined;
         }
 
         console.log('>>>>> core detect > firstUrl:', firstUrl);
