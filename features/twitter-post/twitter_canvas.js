@@ -147,18 +147,18 @@ async function createTwitterCanvas(metadataJson, isImage) {
         pfpUrl: metadataJson.user_profile_image_url,
 
         // include all known date fields so formatTwitterDate(metadata) can succeed
-        date: metadataJson.date ?? null,                    // VX string (e.g., "Fri Sep 12 00:25:15 +0000 2025")
-        date_epoch: metadataJson.date_epoch ?? null,        // VX seconds
-        created_timestamp: metadataJson.created_timestamp ?? null, // FX seconds/ms
-        created_at: metadataJson.created_at ?? null,        // some variants
+        date: metadataJson.date ?? null,
+        date_epoch: metadataJson.date_epoch ?? null,
+        created_timestamp: metadataJson.created_timestamp ?? null,
+        created_at: metadataJson.created_at ?? null,
 
         description: (metadataJson.text || '').replace(/\s+https?:\/\/t\.co\/\w+$/i, ''), // strip trailing t.co
-        mediaUrls: metadataJson.mediaURLs,                 // optional legacy
-        mediaExtended: media,                              // <- use normalized media
+        mediaUrls: metadataJson.mediaURLs,          // optional legacy
+        mediaExtended: media,                       // <- use normalized media
         communityNote: (metadataJson.communityNote || '').replace(/\s+https?:\/\/t\.co\/\w+$/i, ''),
     };
 
-    // Precompute display date from the full payload (most robust)
+    // Precompute display date (robust)
     metadata._displayDate = formatTwitterDate(metadataJson, { label: 'canvas.metaJson→displayDate' });
     console.debug('[date] canvas.meta', {
         from_meta: { date: metadata.date, date_epoch: metadata.date_epoch, created_timestamp: metadata.created_timestamp },
@@ -172,13 +172,10 @@ async function createTwitterCanvas(metadataJson, isImage) {
     const qtContainsVideo = qtMedia.some(m => m.type === 'video');
     const qtFirst = qtHasAnyMedia ? qtMedia[0] : null;
 
-    // Helper to get a thumbnail for first QT media (image OR video)
-    const thumbFrom = (m) => {
-        if (!m) return null;
-        return m.thumbnail_url || (m.type === 'image' ? m.url : null);
-    };
-
-    const qtFirstThumbUrl = thumbFrom(qtFirst);
+    // First QT item thumbnail (works for image or video)
+    const qtFirstThumbUrl = qtFirst
+        ? (qtFirst.thumbnail_url || (qtFirst.type === 'image' ? qtFirst.url : null))
+        : null;
 
     const qtMetadata = qt
         ? {
@@ -186,14 +183,12 @@ async function createTwitterCanvas(metadataJson, isImage) {
             authorUsername: qt.user_name || '',
             pfpUrl: qt.user_profile_image_url || '',
 
-            // carry all known date fields so formatTwitterDate(qtMetadata) works
             date: qt.date ?? null,
             date_epoch: qt.date_epoch ?? null,
             created_timestamp: qt.created_timestamp ?? null,
             created_at: qt.created_at ?? null,
 
             description: (qt.text || '').replace(/\s+https?:\/\/t\.co\/\w+$/i, ''),
-            // include first media thumb/url so legacy paths still have something
             mediaUrls: qtMedia.map(m => m.thumbnail_url || m.url).filter(Boolean),
             mediaExtended: qtMedia,
             ...(qt.error && { ...qt }),
@@ -259,8 +254,8 @@ async function createTwitterCanvas(metadataJson, isImage) {
         descHeight, baseY,
     });
 
-    // --- Quote tweet sizing & expansion rules ---
-    let qtHeight = 0;
+    // --- Quote tweet sizing & expansion consistency ---
+    let qtBoxHeight = 0;              // <- authoritative height we will use everywhere
     let expandQtMedia = false;
     let qtExpandedMediaSize = null;
 
@@ -269,23 +264,33 @@ async function createTwitterCanvas(metadataJson, isImage) {
             qtMetadata.description = qtMetadata.description.slice(0, MAX_QT_DESC_CHARS) + '…';
         }
 
-        // Expansion only when:
-        //  - main tweet has NO media (hasImgs/hasVids false)
-        //  - QT contains NO video anywhere
-        //  - the FIRST QT media item is an image (we expand that image)
+        // Expansion allowed only if: main has no media AND QT has no video AND first QT item is an image
         expandQtMedia = (!hasImgs && !hasVids) && !qtContainsVideo && (qtFirst?.type === 'image');
 
         if (expandQtMedia && qtFirst?.size) {
             const size = qtFirst.size?.width && qtFirst.size?.height
                 ? { width: qtFirst.size.width, height: qtFirst.size.height }
                 : null;
-
             if (size) {
-                // near full width inside the quote box
-                qtExpandedMediaSize = scaleDownToFitAspectRatio(size, /* maxH */ 420, /* maxW */ 520);
+                qtExpandedMediaSize = scaleDownToFitAspectRatio(size, /*maxH*/ 420, /*maxW*/ 520);
                 qtMetadata._expandMediaHint = true;
                 qtMetadata._expandedMediaHeight = qtExpandedMediaSize.height;
             }
+        }
+
+        // Base height from calculator
+        const calcHeight = calculateQuoteHeight(ctx, qtMetadata) - (qtMetadata.error ? 40 : 0);
+
+        // Apply the SAME minimums the drawer enforces:
+        // - if any media & not expanded: min 285
+        // - if expanded: min expandedMediaHeight + 150
+        if (expandQtMedia) {
+            const minExpanded = (qtMetadata._expandedMediaHeight ?? 0) + 150;
+            qtBoxHeight = Math.max(calcHeight, minExpanded);
+        } else if (qtHasAnyMedia) {
+            qtBoxHeight = Math.max(calcHeight, 285);
+        } else {
+            qtBoxHeight = calcHeight;
         }
 
         log('qt:pre', {
@@ -295,18 +300,16 @@ async function createTwitterCanvas(metadataJson, isImage) {
             expandQtMedia,
             firstType: qtFirst?.type || null,
             firstSize: qtFirst?.size || null,
+            calcHeight,
+            qtBoxHeight,
             qtExpandedMediaSize,
         });
-
-        // calc height from description + expansion hint
-        qtHeight = calculateQuoteHeight(ctx, qtMetadata) - (qtMetadata.error ? 40 : 0);
-
-        log('qt:post', { qtHeight });
     } else {
         log('qt:none');
     }
 
-    const totalHeight = descHeight + qtHeight;
+    // === Canvas height uses the clamped qtBoxHeight ===
+    const totalHeight = descHeight + qtBoxHeight;
     canvas.height = totalHeight;
     ctx.fillRect(0, 0, maxWidth, totalHeight);
 
@@ -349,7 +352,7 @@ async function createTwitterCanvas(metadataJson, isImage) {
         log('qt:draw', {
             qtUseDesktopLayout,
             canvasHeightOffset: descHeight,
-            qtCanvasHeightOffset: qtHeight,
+            qtCanvasHeightOffset: qtBoxHeight, // <- use clamped height
             expandQtMedia,
             expandedMediaSize: qtExpandedMediaSize,
             qtPfpLoaded: Boolean(qtPfp),
@@ -360,14 +363,14 @@ async function createTwitterCanvas(metadataJson, isImage) {
         if (qtUseDesktopLayout) {
             drawQtDesktopLayout(ctx, font, qtMetadata, qtPfp, qtMediaImg, {
                 canvasHeightOffset: descHeight,
-                qtCanvasHeightOffset: qtHeight,
+                qtCanvasHeightOffset: qtBoxHeight,
                 expandQtMedia,
                 expandedMediaSize: expandQtMedia ? qtExpandedMediaSize : null,
             });
         } else {
             drawQtBasicElements(ctx, font, qtMetadata, qtPfp, qtMediaImg, {
                 canvasHeightOffset: descHeight,
-                qtCanvasHeightOffset: qtHeight,
+                qtCanvasHeightOffset: qtBoxHeight,
                 hasImgs,
                 hasVids,
                 expandQtMedia,
