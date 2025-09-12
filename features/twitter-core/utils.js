@@ -2,22 +2,26 @@
 
 const crypto = require("crypto");
 
+const DATE_DEBUG = process.env.DEBUG_DATES === '1';
+function dateLog(...args) { if (DATE_DEBUG) console.debug('[date]', ...args); }
+
 /**
- * Safe, locale-aware formatter. You can pass:
+ * Safe, locale-aware formatter.
+ * You can pass:
  *  - The full tweet/meta object (recommended)
  *  - A Date
  *  - An ISO/epoch value
  * Returns '' if not parseable.
+ * @param {*} input
+ * @param {{locale?:string,timeZone?:string,label?:string}} [opts]
  */
-function formatTwitterDate(input, {
-    locale = 'en-US',
-    timeZone, // e.g. 'UTC' if you want, otherwise system/Node default
-} = {}) {
-    const dt = coerceTweetDate(input);
-    if (!dt) return '';
+function formatTwitterDate(input, opts = {}) {
+    const { locale = 'en-US', timeZone, label = 'format' } = opts;
+    const dt = coerceTweetDate(input, label);
+    if (!dt) { dateLog('format: no date', { label }); return ''; }
 
     try {
-        return dt.toLocaleString(locale, {
+        const s = dt.toLocaleString(locale, {
             timeZone,
             month: 'short',
             day: 'numeric',
@@ -25,9 +29,12 @@ function formatTwitterDate(input, {
             hour: 'numeric',
             minute: '2-digit',
         });
-    } catch {
-    // Fallback: ISO
-        return dt.toISOString();
+        dateLog('format: OK', { label, out: s });
+        return s;
+    } catch (e) {
+        const iso = dt.toISOString();
+        dateLog('format: toLocaleString threw, fallback ISO', { label, iso, err: String(e) });
+        return iso;
     }
 }
 
@@ -87,58 +94,75 @@ const randomNameGenerator = () => {
  * Accepts:
  *  - A Date
  *  - ISO string or epoch (seconds/ms)
- *  - A tweet/meta object with: date, date_epoch, created_timestamp, tweet.created_at
+ *  - A tweet/meta object with: date, date_epoch, created_timestamp, tweet.created_at, created_at
  */
-function coerceTweetDate(input) {
-    if (!input) return null;
+function coerceTweetDate(input, label = 'input') {
+    if (!input) { dateLog('coerceTweetDate: empty', { label }); return null; }
 
     if (input instanceof Date) {
+        dateLog('coerceTweetDate: got Date', { label, iso: input.toISOString() });
         return Number.isNaN(input.getTime()) ? null : input;
     }
 
     if (typeof input === 'number' || typeof input === 'string') {
-        const ms = coerceEpochOrIsoToMs(input);
-        return ms == null ? null : new Date(ms);
+        const ms = coerceEpochOrIsoToMs(input, `${label}:primitive`);
+        const dt = ms == null ? null : new Date(ms);
+        dateLog('coerceTweetDate: primitive →', { ms, iso: dt && !Number.isNaN(dt.getTime()) ? dt.toISOString() : null });
+        return dt && !Number.isNaN(dt.getTime()) ? dt : null;
     }
 
     // Assume object with possible fields
     const candidates = [
-        input.date,                 // VX: "Fri Sep 12 00:25:15 +0000 2025"
-        input.date_epoch,           // VX: 1757636715 (seconds)
-        input.created_timestamp,    // FX: seconds or ms
-        input.tweet?.created_at,    // some variants
-        input.created_at,           // just in case
+        { k: 'date',               v: input.date },
+        { k: 'date_epoch',         v: input.date_epoch },
+        { k: 'created_timestamp',  v: input.created_timestamp },
+        { k: 'tweet.created_at',   v: input.tweet?.created_at },
+        { k: 'created_at',         v: input.created_at },
     ];
 
+    dateLog('coerceTweetDate: candidates', Object.fromEntries(candidates.map(c => [c.k, c.v])));
     for (const c of candidates) {
-        const ms = coerceEpochOrIsoToMs(c);
+        const ms = coerceEpochOrIsoToMs(c.v, `${label}:${c.k}`);
         if (ms != null) {
             const dt = new Date(ms);
-            if (!Number.isNaN(dt.getTime())) return dt;
+            if (!Number.isNaN(dt.getTime())) {
+                dateLog('coerceTweetDate: chose', { key: c.k, ms, iso: dt.toISOString() });
+                return dt;
+            }
         }
     }
+
+    dateLog('coerceTweetDate: none matched', { label });
     return null;
 }
 
 /**
  * Convert ISO string or epoch (seconds or ms) to milliseconds since epoch, or null.
+ * @param {string|number|null|undefined} v
+ * @param {string} [label] - for debug logs
  */
-function coerceEpochOrIsoToMs(v) {
-    if (v == null) return null;
+function coerceEpochOrIsoToMs(v, label = 'value') {
+    if (v == null) {
+        dateLog('coerce: null/undefined', { label });
+        return null;
+    }
 
-    // Numeric or numeric-like string
+    // Numeric or numeric-like string?
     const n = Number(v);
     if (!Number.isNaN(n) && Number.isFinite(n)) {
-    // Heuristic: < 1e12 → seconds; otherwise → milliseconds
-        return n < 1e12 ? Math.trunc(n) * 1000 : Math.trunc(n);
+        const ms = n < 1e12 ? Math.trunc(n) * 1000 : Math.trunc(n);
+        dateLog('coerce: numeric', { label, input: String(v).slice(0, 40), seconds: n < 1e12, ms });
+        return ms;
     }
 
     // Non-numeric string → try Date.parse
     if (typeof v === 'string') {
         const t = Date.parse(v);
+        dateLog('coerce: string', { label, input: v.slice(0, 80), parsed: t, ok: !Number.isNaN(t) });
         return Number.isNaN(t) ? null : t;
     }
 
+    dateLog('coerce: unsupported type', { label, type: typeof v });
     return null;
 }
 
@@ -167,6 +191,7 @@ function collectMedia(meta) {
     }
     return out;
 }
+
 function filterMediaUrls(meta, { types = ['image', 'video'] } = {}) {
     const all = collectMedia(meta);
     return all.filter(m => types.includes(m.type));

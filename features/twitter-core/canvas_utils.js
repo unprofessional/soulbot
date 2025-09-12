@@ -66,19 +66,16 @@ function drawTextWithSpacing(ctx, text, x, y, letterSpacing = 1) {
 function drawBasicElements(ctx, font, metadata, favicon, pfp, descLines, options) {
     const { yOffset = 0, canvasHeightOffset = 0, hasImgs = false, hasVids = false } = options;
 
-    // Top-right favicon (guard if missing)
-    if (favicon) {
-        try { ctx.drawImage(favicon, 550, 20, 32, 32); } catch {}
-    }
+    // Favicon (guard)
+    if (favicon) { try { ctx.drawImage(favicon, 550, 20, 32, 32); } catch {} }
 
     ctx.textDrawingMode = "glyph";
 
-    // Author name
+    // Author
     ctx.fillStyle = 'white';
     ctx.font = '18px "Noto Color Emoji"';
     ctx.fillText(String(metadata.authorUsername || ''), 100, 40);
 
-    // @handle
     ctx.fillStyle = 'gray';
     ctx.font = `18px ${font}`;
     ctx.fillText(`@${String(metadata.authorNick || '')}`, 100, 60);
@@ -89,15 +86,20 @@ function drawBasicElements(ctx, font, metadata, favicon, pfp, descLines, options
     const descX = (!hasImgs && hasVids) ? 80 : 30;
     drawDescription(ctx, hasImgs, hasVids, descLines, font, descX, yOffset);
 
-    // Footer date (safe)
-    const dateStr = metadata._displayDate || formatTwitterDate(metadata);
+    // Date (safe + debug)
+    const dateStr = metadata._displayDate || formatTwitterDate(metadata, { label: 'canvas.basic/meta' });
+    console.debug('[date] canvas.basic', {
+        _displayDate: metadata._displayDate,
+        computed: dateStr,
+        y: Math.max(0, canvasHeightOffset - 20),
+    });
     if (dateStr) {
         ctx.fillStyle = 'gray';
         ctx.font = `18px ${font}`;
         ctx.fillText(dateStr, 30, Math.max(0, canvasHeightOffset - 20));
     }
 
-    // Avatar (circular clip), guard if missing
+    // Avatar
     if (pfp) {
         ctx.save();
         const radius = 25;
@@ -366,7 +368,7 @@ function drawDesktopLayout(ctx, font, metadata, favicon, pfp, descLines, options
 
     ctx.textDrawingMode = "glyph";
 
-    // === Left: Avatar + User Info ===
+    // Avatar + user info
     const avatarRadius = 30;
     const avatarX = padding + avatarRadius;
     const avatarY = yOffset;
@@ -388,7 +390,7 @@ function drawDesktopLayout(ctx, font, metadata, favicon, pfp, descLines, options
     ctx.font = `18px ${font}`;
     ctx.fillText(`@${String(metadata.authorNick || '')}`, padding, avatarY + avatarRadius * 2 + 55);
 
-    // === Right: Wrapped Description ===
+    // Wrapped description
     const textX = hasMedia ? (padding + leftColumnWidth) : padding;
     const textY = yOffset + 100;
 
@@ -396,19 +398,18 @@ function drawDesktopLayout(ctx, font, metadata, favicon, pfp, descLines, options
     ctx.font = '24px "Noto Color Emoji"';
     drawDescription(ctx, hasImgs, hasVids, descLines, font, textX, textY);
 
-    // === Footer Date (safe) ===
-    const dateStr = metadata._displayDate || formatTwitterDate(metadata);
+    // Footer date (safe + debug)
+    const footerY = Math.max(0, canvasHeightOffset - 20);
+    const dateStr = metadata._displayDate || formatTwitterDate(metadata, { label: 'canvas.desktop/meta' });
+    console.debug('[date] canvas.desktop', { _displayDate: metadata._displayDate, computed: dateStr, y: footerY });
     if (dateStr) {
-        const footerY = Math.max(0, canvasHeightOffset - 20);
         ctx.fillStyle = 'gray';
         ctx.font = `18px ${font}`;
         ctx.fillText(dateStr, padding, footerY);
     }
 
-    // === Favicon Top Right ===
-    if (favicon) {
-        try { ctx.drawImage(favicon, 550, 20, 32, 32); } catch {}
-    }
+    // Favicon top-right
+    if (favicon) { try { ctx.drawImage(favicon, 550, 20, 32, 32); } catch {} }
 }
 
 function drawQtDesktopLayout(ctx, font, metadata, pfp, mediaObj, options) {
