@@ -9,6 +9,27 @@ const twitterUrlRegex   = /https?:\/\/([\w.-]+)\/\w+\/status\/(?<statusId>\d+)/g
 const twitterPattern    = /https?:\/\/twitter\.com\/[a-zA-Z0-9_]+\/status\/\d+/g;
 const xDotComPattern    = /https?:\/\/x\.com\/[a-zA-Z0-9_]+\/status\/\d+/g;
 
+function replyForError(meta) {
+    const code = meta?._fx_code ?? meta?.status ?? meta?.code;
+    const msg  = (meta?.message || meta?.details || '').toString();
+
+    // 404 variants
+    if (code === 404 || /not[-\s]?found|doesn.?t\s+exist/i.test(msg)) {
+        return 'That post doesn’t exist (deleted or bad link).';
+    }
+    // 401 / private / protected
+    if (code === 401 || /private|protected/i.test(msg)) {
+        return 'Post is private (protected).';
+    }
+    // 410 Gone (rare but explicit “removed”)
+    if (code === 410) {
+        return 'That post was removed.';
+    }
+
+    // Fallback: surface brief debug to help ops
+    return `Upstream error.\n\`\`\`\n${meta?.message || 'Unexpected'}\n${meta?.details || ''}\n\`\`\``;
+}
+
 async function handleTwitterUrl(message, { guildId }) {
     const content = message.content;
     const matches = [...content.matchAll(twitterUrlRegex)];
@@ -40,24 +61,17 @@ async function handleTwitterUrl(message, { guildId }) {
     try {
         const meta = await fetchMetadata(firstUrl, message, containsX, (s)=>console.log(s));
 
-        if (meta?.error) {
-            // Only show “deleted/protected” for explicit PRIVATE/NOT_FOUND signals
-            if (meta._fx_code === 401 || /PRIVATE/.test(meta.message||'')) {
-                return message.reply('Post is private (protected).');
-            }
-            if (meta._fx_code === 404 || /NOT_FOUND/.test(meta.message||'')) {
-                return message.reply('Post not found (deleted?).');
-            }
-            // Otherwise surface HTTP details for debugging
-            return message.reply(
-                `Upstream error.\n\`\`\`\n${meta.message || 'Unexpected'}\n${meta.details || ''}\n\`\`\``
-            );
+        // Guard against null/undefined and map errors cleanly
+        if (!meta || meta.error) {
+            return message.reply(replyForError(meta));
         }
 
-        // Pull QT if present
+        // Pull QT if present (guarded)
         if (meta.qrtURL) {
             const qtMeta = await fetchQTMetadata(meta.qrtURL, (s)=>console.log(s));
-            meta.qtMetadata = qtMeta?.error ? undefined : qtMeta;
+            if (!qtMeta?.error) {
+                meta.qtMetadata = qtMeta;
+            }
         }
 
         console.log('>>>>> core detect > firstUrl:', firstUrl);
@@ -65,6 +79,7 @@ async function handleTwitterUrl(message, { guildId }) {
 
     } catch (err) {
         console.error('[TwitterHandler] metadata fetch failed:', err);
+        // Real network/exception path
         return message.reply('Could not fetch post (network error).');
     }
 }
