@@ -1,77 +1,44 @@
-const fetchMetadata = async (url, message, isXDotCom) => {
+// features/twitter-core/fetch_metadata.js
+const { getJsonWithFallback } = require('./http');
+const { normalizeFromVX, normalizeFromFX } = require('./fxvx_normalize');
+
+async function fetchMetadata(url, message, isXDotCom, log = console.log) {
     const urlPattern = isXDotCom ? 'https://x.com/' : 'https://twitter.com/';
-    const parts = url.split(urlPattern);
-    // console.log('>>>>> fetchMetadata > parts: ', parts);
-    const extractedPart = parts[1];
-    const vxApiUrl = `https://api.vxtwitter.com/${extractedPart}`;
-    const result = await fetch(vxApiUrl);
+    const extracted = url.split(urlPattern)[1]; // e.g. DataRepublican/status/12345
+    if (!extracted) return { error: true, message: 'Bad URL parse' };
 
-    if(result.status === 500) {
-        console.log('>>>>> ERROR 500 > result: ', result);
-        result.error = true;
-        result.errorMsg = await result.text();
-        return result;
+    const vx = `https://api.vxtwitter.com/${extracted}`;
+    const fx = `https://api.fxtwitter.com/${extracted}`;
+
+    const res = await getJsonWithFallback([fx, vx], { log });
+    if (!res.ok && !res.json) {
+        return { error: true, message: `HTTP ${res.status}`, details: res.text?.slice(0,200) || res.error };
     }
 
-    let resultJson = {};
-    try {
-        resultJson = await result.json();
-        // console.log('>>>>> fetchMetadata > resultJson: ', resultJson);
-    } catch (err) {
-        // console.error('>>>>> fetchMetadata > err: ', err);
-        // console.error('>>>>> fetchMetadata > typeof err: ', typeof err);
-        if(err.name === 'SyntaxError') {
-            // console.error('>>>>> fetchMetadata > SyntaxError TYPE!');
-            // This is the best we get with result.json()...
-            // Most likely scenario
-            resultJson = {
-                error: 'No status found with that ID.',
-                message: 'The quoted post is unavailable.'
-            };
-        }
+    const j = res.json;
+    if (j?.tweetID || j?.user_name) return normalizeFromVX(j);   // VX
+    if (j?.tweet || typeof j?.code === 'number') return normalizeFromFX(j); // FX
+
+    return { error: true, message: 'Unexpected response', details: res.text?.slice(0,200) };
+}
+
+async function fetchQTMetadata(url, log = console.log) {
+    const extracted = url.split('https://twitter.com/')[1] || url.split('https://x.com/')[1];
+    if (!extracted) return { error: true, message: 'Bad QT URL parse' };
+
+    const vx = `https://api.vxtwitter.com/${extracted}`;
+    const fx = `https://api.fxtwitter.com/${extracted}`;
+
+    const res = await getJsonWithFallback([fx, vx], { log });
+    if (!res.ok && !res.json) {
+        return { error: true, message: `HTTP ${res.status}`, details: res.text?.slice(0,200) || res.error };
     }
 
-    return resultJson;
-};
+    const j = res.json;
+    if (j?.tweetID || j?.user_name) return normalizeFromVX(j);
+    if (j?.tweet || typeof j?.code === 'number') return normalizeFromFX(j);
 
-const fetchQTMetadata = async (url) => {
-    const urlPattern = 'https://twitter.com/';
-    const parts = url.split(urlPattern);
-    // console.log('>>>>> fetchMetadata > parts: ', parts);
-    const extractedPart = parts[1];
-    const vxApiUrl = `https://api.vxtwitter.com/${extractedPart}`;
-    const result = await fetch(vxApiUrl);
+    return { error: true, message: 'Unexpected response', details: res.text?.slice(0,200) };
+}
 
-    if(result.status === 500) {
-        console.error(`>>>>> ERROR 500 (quote-tweet url: ${url}) > result: ${result}`);
-        result.error = true;
-        result.errorMsg = await result.text();
-        return result;
-    }
-
-    let resultJson = {};
-    try {
-        // console.log('>>>>> fetchQTMetadata > result (before async/await): ', result);
-        resultJson = await result.json();
-        // console.log(`>>>>> fetchQTMetadata > resultJson: ${resultJson}`);
-    } catch (err) {
-        // console.error('>>>>> fetchQTMetadata > err: ', err);
-        // console.error('>>>>> fetchQTMetadata > typeof err: ', typeof err);
-        if(err.name === 'SyntaxError') {
-            // console.error('>>>>> fetchQTMetadata > SyntaxError TYPE!');
-            // This is the best we get with result.json()...
-            // Most likely scenario
-            resultJson = {
-                error: 'No status found with that ID.',
-                message: 'The quoted post is unavailable.'
-            };
-        }
-    }
-
-    return resultJson;
-};
-
-module.exports = {
-    fetchMetadata,
-    fetchQTMetadata,
-};
+module.exports = { fetchMetadata, fetchQTMetadata };
