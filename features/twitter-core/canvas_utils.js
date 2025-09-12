@@ -121,9 +121,9 @@ function drawQtBasicElements(ctx, font, metadata, pfp, mediaObj, options) {
         expandedMediaSize = null,
     } = options || {};
 
-    const hasImgs = filterMediaUrls(metadata, ['jpg', 'jpeg', 'png']).length > 0;
-    const hasVids = filterMediaUrls(metadata, ['mp4']).length > 0;
-    const hasMedia = hasImgs || hasVids;
+    // Detect QT media presence from the actual loaded image object we were given.
+    // This is robust regardless of metadata.media_extended vs mediaExtended shape.
+    const qtHasMedia = Boolean(mediaObj);
 
     // Quote box geometry
     const qtX = 20;
@@ -135,7 +135,7 @@ function drawQtBasicElements(ctx, font, metadata, pfp, mediaObj, options) {
     const innerW = innerRight - innerLeft;       // 520
 
     // Precomputed height from calc; still allow clamping up if needed
-    let boxHeight = (hasMedia || expandQtMedia)
+    let boxHeight = (qtHasMedia || expandQtMedia)
         ? Math.max(
             qtCanvasHeightOffset,
             expandQtMedia ? ((metadata._expandedMediaHeight ?? 0) + 150) : 285
@@ -151,10 +151,12 @@ function drawQtBasicElements(ctx, font, metadata, pfp, mediaObj, options) {
         DEBUG && console.debug(`${TAG} options:`, {
             canvasHeightOffset, qtCanvasHeightOffset, expandQtMedia, expandedMediaSize
         });
-        DEBUG && console.debug(`${TAG} media flags: hasImgs=${hasImgs}, hasVids=${hasVids}, hasMedia=${hasMedia}`);
+        DEBUG && console.debug(`${TAG} media flags: qtHasMedia=${qtHasMedia}`);
 
         // Wrap width from SAME geometry we draw with
-        const textX = expandQtMedia ? innerLeft : (hasMedia ? 230 : 100);
+        // For compact mode with media, shift text to the right of the 175px thumb + 15px gap:
+        // innerLeft (40) + 175 + 15 = 230
+        const textX = expandQtMedia ? innerLeft : (qtHasMedia ? 230 : 100);
         const wrapWidth = Math.max(1, innerRight - textX); // 520 / 330 / 460
 
         // Measure text *with the exact font used for drawing*
@@ -162,11 +164,10 @@ function drawQtBasicElements(ctx, font, metadata, pfp, mediaObj, options) {
         const qtDescLines = getWrappedText(ctx, metadata.description ?? '', wrapWidth);
         const lineHeight = 30;
 
-        // Outer rounded box
+        // Outer rounded box (with subtle fill)
         ctx.save();
         ctx.beginPath();
         ctx.roundRect(qtX, qtY, boxW, boxHeight, 15);
-        // Optional fill for contrast (uncomment/tweak as you like)
         ctx.fillStyle = '#0f0f10';
         ctx.fill();
         ctx.strokeStyle = '#4d4d4d';
@@ -187,7 +188,7 @@ function drawQtBasicElements(ctx, font, metadata, pfp, mediaObj, options) {
         ctx.font = `18px ${font}`;
         ctx.fillText(`@${metadata.authorNick ?? ''}`, 100, qtY + 60);
 
-        // Text block — START AT qtY + 100 (this must match calculateQuoteHeight)
+        // Text block — START AT qtY + 100 (must match calculateQuoteHeight)
         const textTopY = qtY + 100;
         const textLines = qtDescLines.length;
         const textHeight = textLines * lineHeight;
@@ -210,10 +211,10 @@ function drawQtBasicElements(ctx, font, metadata, pfp, mediaObj, options) {
       `boxHeight(after)=${boxHeight}`
         );
 
-        // Draw text at the correct Y
+        // Draw text at the correct Y (QT mode)
         ctx.fillStyle = 'white';
         ctx.font = `24px ${font}`;
-        drawDescription(ctx, hasImgs, hasVids, qtDescLines, font, textX, textTopY, true);
+        drawDescription(ctx, /*hasImgs*/ qtHasMedia, /*hasVids*/ false, qtDescLines, font, textX, textTopY, true);
 
         // Avatar (anchor to qtY)
         if (pfp) {
