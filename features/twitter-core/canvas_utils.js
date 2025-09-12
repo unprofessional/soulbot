@@ -121,8 +121,7 @@ function drawQtBasicElements(ctx, font, metadata, pfp, mediaObj, options) {
         expandedMediaSize = null,
     } = options || {};
 
-    // Detect QT media presence from the actual loaded image object we were given.
-    // This is robust regardless of metadata.media_extended vs mediaExtended shape.
+    // Robust QT media check: if we were handed an image, QT has media
     const qtHasMedia = Boolean(mediaObj);
 
     // Quote box geometry
@@ -134,7 +133,7 @@ function drawQtBasicElements(ctx, font, metadata, pfp, mediaObj, options) {
     const innerRight = qtX + boxW - innerPad;    // 560
     const innerW = innerRight - innerLeft;       // 520
 
-    // Precomputed height from calc; still allow clamping up if needed
+    // Use calc height but allow clamp up if text needs it
     let boxHeight = (qtHasMedia || expandQtMedia)
         ? Math.max(
             qtCanvasHeightOffset,
@@ -147,24 +146,33 @@ function drawQtBasicElements(ctx, font, metadata, pfp, mediaObj, options) {
         DEBUG && console.debug(`${TAG} ${label}: x=${safeNum(x)}, y=${safeNum(y)}, w=${safeNum(w)}, h=${safeNum(h)}${extra ? ' ' + extra : ''}`);
 
     try {
-        DEBUG && console.debug(`${TAG} ─────────────────────────────────────────────────────────`);
-        DEBUG && console.debug(`${TAG} options:`, {
-            canvasHeightOffset, qtCanvasHeightOffset, expandQtMedia, expandedMediaSize
-        });
-        DEBUG && console.debug(`${TAG} media flags: qtHasMedia=${qtHasMedia}`);
-
-        // Wrap width from SAME geometry we draw with
-        // For compact mode with media, shift text to the right of the 175px thumb + 15px gap:
-        // innerLeft (40) + 175 + 15 = 230
+    // textX logic MUST mirror calculateQuoteHeight:
+    // expanded? left margin; else if QT has media -> 230 (thumb left), else 100
         const textX = expandQtMedia ? innerLeft : (qtHasMedia ? 230 : 100);
         const wrapWidth = Math.max(1, innerRight - textX); // 520 / 330 / 460
 
-        // Measure text *with the exact font used for drawing*
+        // Measure QT description with the same font used to draw
+        const LINE_H = 30;
         ctx.font = `24px ${font}`;
-        const qtDescLines = getWrappedText(ctx, metadata.description ?? '', wrapWidth);
-        const lineHeight = 30;
+        const desc = metadata.error ? (metadata.message || '') : (metadata.description || '');
+        const qtLines = getWrappedText(ctx, desc, wrapWidth);
 
-        // Outer rounded box (with subtle fill)
+        // Text block starts at HEADER = 100
+        const textTopY = qtY + 100;
+        const textHeight = qtLines.length * LINE_H;
+        const textBottomY = textTopY + textHeight;
+
+        // Clamp box height so text always fits
+        const MARGIN_BOTTOM = 8;
+        const bottomPadding = 30;
+        const neededForText = (textBottomY + bottomPadding + MARGIN_BOTTOM) - qtY;
+        if (neededForText > boxHeight) boxHeight = neededForText;
+
+        DEBUG && console.debug(`${TAG} media: qtHasMedia=${qtHasMedia} expandQtMedia=${expandQtMedia}`);
+        DEBUG && console.debug(`${TAG} wrap: textX=${textX} wrapWidth=${wrapWidth}`);
+        DEBUG && console.debug(`${TAG} text: lines=${qtLines.length} LINE_H=${LINE_H} top=${textTopY} bottom=${textBottomY} boxH=${boxHeight}`);
+
+        // --- Outer rounded box (fill + stroke)
         ctx.save();
         ctx.beginPath();
         ctx.roundRect(qtX, qtY, boxW, boxHeight, 15);
@@ -174,12 +182,9 @@ function drawQtBasicElements(ctx, font, metadata, pfp, mediaObj, options) {
         ctx.lineWidth = 1;
         ctx.stroke();
         ctx.restore();
-
         logRect('Outer rounded box', qtX, qtY, boxW, boxHeight, 'r=15');
-        DEBUG && console.debug(`${TAG} innerPad=${innerPad}, innerLeft=${innerLeft}, innerRight=${innerRight}, innerW=${innerW}`);
-        DEBUG && console.debug(`${TAG} wrapWidth=${wrapWidth} textX=${textX}`);
 
-        // Names
+        // --- Names
         ctx.fillStyle = 'white';
         ctx.font = `bold 18px ${font}`;
         ctx.fillText(metadata.authorUsername ?? '', 100, qtY + 40);
@@ -188,35 +193,7 @@ function drawQtBasicElements(ctx, font, metadata, pfp, mediaObj, options) {
         ctx.font = `18px ${font}`;
         ctx.fillText(`@${metadata.authorNick ?? ''}`, 100, qtY + 60);
 
-        // Text block — START AT qtY + 100 (must match calculateQuoteHeight)
-        const textTopY = qtY + 100;
-        const textLines = qtDescLines.length;
-        const textHeight = textLines * lineHeight;
-        const textBottomY = textTopY + textHeight;
-
-        const MARGIN_BOTTOM = 8;
-        const bottomPadding = 30;
-
-        // Clamp so the text is always inside the box
-        const neededForText = (textBottomY + bottomPadding + MARGIN_BOTTOM) - qtY;
-        const boxHeightBeforeClamp = boxHeight;
-        if (neededForText > boxHeight) boxHeight = neededForText;
-
-        DEBUG && console.debug(
-            `${TAG} text: lines=${textLines} lineHeight=${lineHeight} textHeight=${textHeight} ` +
-      `textTopY=${textTopY} textBottomY=${textBottomY}`
-        );
-        DEBUG && console.debug(
-            `${TAG} clamp: neededForText=${neededForText} boxHeight(before)=${boxHeightBeforeClamp} ` +
-      `boxHeight(after)=${boxHeight}`
-        );
-
-        // Draw text at the correct Y (QT mode)
-        ctx.fillStyle = 'white';
-        ctx.font = `24px ${font}`;
-        drawDescription(ctx, /*hasImgs*/ qtHasMedia, /*hasVids*/ false, qtDescLines, font, textX, textTopY, true);
-
-        // Avatar (anchor to qtY)
+        // --- Avatar
         if (pfp) {
             ctx.save();
             ctx.beginPath();
@@ -224,96 +201,81 @@ function drawQtBasicElements(ctx, font, metadata, pfp, mediaObj, options) {
             ctx.clip();
             try { ctx.drawImage(pfp, 40, qtY + 20, 50, 50); } catch {}
             ctx.restore();
-            logRect('Avatar draw', 40, qtY + 20, 50, 50, `(clip: circle r=25 @ (65, ${qtY + 45}))`);
+            logRect('Avatar', 40, qtY + 20, 50, 50);
         }
 
-        // Media
-        if (mediaObj) {
-            const srcW = Number(mediaObj.width) || Number(mediaObj.videoWidth) || null;
-            const srcH = Number(mediaObj.height) || Number(mediaObj.videoHeight) || null;
-            DEBUG && console.debug(`${TAG} media natural: ${safeNum(srcW)} x ${safeNum(srcH)}`);
+        // --- Compact thumbnail (left) when NOT expanded and QT has media
+        if (!expandQtMedia && qtHasMedia) {
+            const thumbW = 175, thumbH = 175;
+            const thumbX = innerLeft;       // 40
+            const thumbY = qtY + 80;        // just under header
+            const r = 15, inset = 1;
 
             ctx.save();
             ctx.beginPath();
-
-            if (expandQtMedia && expandedMediaSize) {
-                // Expanded (big image under text)
-                const MARGIN_X = 3;
-                const MARGIN_BOTTOM_INNER = 8; // keep in sync with calc
-                const maxInnerW = innerW - MARGIN_X * 2;
-
-                let targetW = Math.min(maxInnerW, Math.round(expandedMediaSize.width || maxInnerW));
-                let targetH = Math.min(420, Math.round(expandedMediaSize.height || 320));
-
-                let mediaX = innerLeft + Math.round((innerW - targetW) / 2);
-                let mediaY = Math.round(textBottomY + 20);
-
-                const boxBottom = qtY + boxHeight - innerPad - MARGIN_BOTTOM_INNER; // FULL height
-                const willOverflow = mediaY + targetH >= boxBottom;
-
-                DEBUG && console.debug(`${TAG} [expanded] innerW=${innerW} maxInnerW=${maxInnerW} MARGIN_X=${MARGIN_X} MARGIN_BOTTOM=${MARGIN_BOTTOM_INNER}`);
-                DEBUG && console.debug(`${TAG} [expanded] target(pre): ${targetW}x${targetH} @ ${mediaX},${mediaY}`);
-                DEBUG && console.debug(`${TAG} [expanded] boxBottom=${boxBottom} willOverflow=${willOverflow}`);
-
-                if (willOverflow) {
-                    const availH = Math.max(1, boxBottom - mediaY);
-                    const scale = availH / targetH;
-                    const scaledW = Math.floor(targetW * scale);
-                    const scaledH = Math.floor(targetH * scale);
-
-                    DEBUG && console.debug(`${TAG} [expanded] overflow adjust: availH=${availH} scale=${scale.toFixed(4)} => ${scaledW}x${scaledH}`);
-
-                    targetW = scaledW;
-                    targetH = scaledH;
-                    mediaX = innerLeft + Math.round((innerW - targetW) / 2);
-                }
-
-                const clipInset = 0.5;
-                const r = Math.max(8, Math.min(15, Math.floor(Math.min(targetW, targetH) * 0.08)));
-                const clipX = mediaX + clipInset;
-                const clipY = mediaY + clipInset;
-                const clipW = targetW - 2 * clipInset;
-                const clipH = targetH - 2 * clipInset;
-
-                logRect('[expanded] FINAL target', mediaX, mediaY, targetW, targetH);
-                logRect('[expanded] CLIP rect', clipX, clipY, clipW, clipH, `r=${r} inset=${clipInset}`);
-
-                ctx.roundRect(clipX, clipY, clipW, clipH, r);
-                ctx.clip();
-
-                try {
-                    cropSingleImage(ctx, mediaObj, targetW, targetH, mediaX, mediaY, {
-                        tag: 'qt/expanded',
-                        debugOverlay: DEBUG
-                    });
-                } catch (err) {
-                    console.warn(`${TAG} [expanded] cropSingleImage ERROR:`, err);
-                }
-            } else {
-                // Compact thumbnail (left), text on right
-                const thumbW = 175, thumbH = 175;
-                const thumbX = innerLeft;
-                const thumbY = qtY + 80; // sits just below the header
-
-                const r = 15, clipInset = 1;
-                logRect('[thumb] target', thumbX, thumbY, thumbW, thumbH);
-                logRect('[thumb] CLIP rect', thumbX + clipInset, thumbY + clipInset, thumbW - 2 * clipInset, thumbH - 2 * clipInset, `r=${r} inset=${clipInset}`);
-
-                ctx.roundRect(thumbX + clipInset, thumbY + clipInset, thumbW - 2 * clipInset, thumbH - 2 * clipInset, r);
-                ctx.clip();
-
-                try {
-                    cropSingleImage(ctx, mediaObj, thumbW, thumbH, thumbX, thumbY);
-                } catch (err) {
-                    console.warn(`${TAG} [thumb] cropSingleImage ERROR:`, err);
-                }
+            ctx.roundRect(thumbX + inset, thumbY + inset, thumbW - 2 * inset, thumbH - 2 * inset, r);
+            ctx.clip();
+            try {
+                cropSingleImage(ctx, mediaObj, thumbW, thumbH, thumbX, thumbY);
+            } catch (e) {
+                console.warn(`${TAG} [thumb] cropSingleImage ERROR:`, e);
             }
-
             ctx.restore();
+
+            logRect('[thumb] drawn', thumbX, thumbY, thumbW, thumbH);
         }
 
-        DEBUG && console.debug(`${TAG} SUMMARY: { wrapWidth:${wrapWidth}, textX:${textX}, textTopY:${textTopY}, textBottomY:${textBottomY}, neededForText:${neededForText}, boxHeight:${boxHeight} }`);
-        DEBUG && console.debug(`${TAG} ─────────────────────────────────────────────────────────`);
+        // --- QT text (draw manually so x is EXACTLY textX)
+        ctx.fillStyle = 'white';
+        ctx.font = `24px ${font}`;
+        for (let i = 0; i < qtLines.length; i++) {
+            ctx.fillText(qtLines[i], textX, textTopY + i * LINE_H);
+        }
+
+        // --- Expanded media (big image under text)
+        if (expandQtMedia && qtHasMedia && expandedMediaSize && expandedMediaSize.width && expandedMediaSize.height) {
+            const GAP = 20;
+            const maxInnerW = innerW - 6; // small side margins
+            let w = Math.min(maxInnerW, Math.round(expandedMediaSize.width));
+            let h = Math.min(420, Math.round(expandedMediaSize.height));
+
+            let mediaX = innerLeft + Math.round((innerW - w) / 2);
+            let mediaY = Math.round(textBottomY + GAP);
+
+            // Ensure it fits inside box
+            const boxBottom = qtY + boxHeight - innerPad - MARGIN_BOTTOM;
+            if (mediaY + h > boxBottom) {
+                const availH = Math.max(1, boxBottom - mediaY);
+                const scale = availH / h;
+                w = Math.floor(w * scale);
+                h = Math.floor(availH);
+                mediaX = innerLeft + Math.round((innerW - w) / 2);
+            }
+
+            // Rounded clip + draw
+            ctx.save();
+            const r = Math.max(8, Math.min(15, Math.floor(Math.min(w, h) * 0.08)));
+            ctx.beginPath();
+            ctx.roundRect(mediaX + 0.5, mediaY + 0.5, w - 1, h - 1, r);
+            ctx.clip();
+            try {
+                cropSingleImage(ctx, mediaObj, w, h, mediaX, mediaY, { tag: 'qt/expanded', debugOverlay: DEBUG });
+            } catch (e) {
+                console.warn(`${TAG} [expanded] cropSingleImage ERROR:`, e);
+            }
+            ctx.restore();
+
+            // Border
+            ctx.save();
+            ctx.strokeStyle = '#4d4d4d';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(mediaX, mediaY, w, h);
+            ctx.restore();
+
+            logRect('[expanded] drawn', mediaX, mediaY, w, h);
+        }
+
+        DEBUG && console.debug(`${TAG} SUMMARY: { textX:${textX}, wrap:${wrapWidth}, top:${textTopY}, bottom:${textBottomY}, boxH:${boxHeight} }`);
     } catch (e) {
         console.warn(`${TAG} ERROR during draw:`, e);
     }
