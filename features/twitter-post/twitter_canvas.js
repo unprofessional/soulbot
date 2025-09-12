@@ -13,9 +13,9 @@ const {
     drawQtMissingStatus,
     getYPosFromLineHeight,
 } = require('../twitter-core/canvas_utils.js');
-
-// NEW: prefer robust media collectors (compatible with FX/VX)
 const { collectMedia } = require('../twitter-core/utils.js');
+const { formatTwitterDate } = require('../twitter-core/utils.js');
+
 
 const FONT_PATHS = [
     ['/truetype/noto/NotoColorEmoji.ttf', 'Noto Color Emoji'],
@@ -128,6 +128,15 @@ async function createTwitterCanvas(metadataJson, isImage) {
     const log = (...args) => { try { console.debug('[twitter_canvas]', ...args); } catch {} };
 
     // --- Normalize incoming metadata (names kept for downstream compatibility) ---
+    console.debug('[date] canvas.input', {
+        date: metadataJson?.date,
+        date_epoch: metadataJson?.date_epoch,
+        created_timestamp: metadataJson?.created_timestamp,
+        created_at: metadataJson?.created_at,
+        tweet_created_at: metadataJson?.tweet?.created_at,
+    });
+
+    // Normalize media from FX/VX into a single shape
     const media = Array.isArray(collectMedia?.(metadataJson)) ? collectMedia(metadataJson) : [];
     const images = media.filter(m => m.type === 'image');
     const videos = media.filter(m => m.type === 'video');
@@ -136,13 +145,27 @@ async function createTwitterCanvas(metadataJson, isImage) {
         authorNick: metadataJson.user_screen_name,
         authorUsername: metadataJson.user_name,
         pfpUrl: metadataJson.user_profile_image_url,
-        date: metadataJson.date,
-        description: (metadataJson.text || '').replace(/\s+https?:\/\/t\.co\/\w+$/i, ''), // remove trailing t.co link
-        mediaUrls: images.map(i => i.url).filter(Boolean),
-        mediaExtended: media, // give drawer the rich objects
+
+        // include all known date fields so formatTwitterDate(metadata) can succeed
+        date: metadataJson.date ?? null,                    // VX string (e.g., "Fri Sep 12 00:25:15 +0000 2025")
+        date_epoch: metadataJson.date_epoch ?? null,        // VX seconds
+        created_timestamp: metadataJson.created_timestamp ?? null, // FX seconds/ms
+        created_at: metadataJson.created_at ?? null,        // some variants
+
+        description: (metadataJson.text || '').replace(/\s+https?:\/\/t\.co\/\w+$/i, ''), // strip trailing t.co
+        mediaUrls: metadataJson.mediaURLs,                 // optional legacy
+        mediaExtended: media,                              // <- use normalized media
         communityNote: (metadataJson.communityNote || '').replace(/\s+https?:\/\/t\.co\/\w+$/i, ''),
     };
 
+    // Precompute display date from the full payload (most robust)
+    metadata._displayDate = formatTwitterDate(metadataJson, { label: 'canvas.metaJson→displayDate' });
+    console.debug('[date] canvas.meta', {
+        from_meta: { date: metadata.date, date_epoch: metadata.date_epoch, created_timestamp: metadata.created_timestamp },
+        _displayDate: metadata._displayDate,
+    });
+
+    // --- Quoted tweet normalization (if present) ---
     const qt = metadataJson.qtMetadata || null;
     const qtMedia = qt ? (Array.isArray(collectMedia?.(qt)) ? collectMedia(qt) : []) : [];
     const qtImages = qtMedia.filter(m => m.type === 'image');
@@ -153,13 +176,31 @@ async function createTwitterCanvas(metadataJson, isImage) {
             authorNick: qt.user_screen_name || '',
             authorUsername: qt.user_name || '',
             pfpUrl: qt.user_profile_image_url || '',
-            date: qt.date || '',
+
+            // carry all known date fields so formatTwitterDate(qtMetadata) works
+            date: qt.date ?? null,
+            date_epoch: qt.date_epoch ?? null,
+            created_timestamp: qt.created_timestamp ?? null,
+            created_at: qt.created_at ?? null,
+
             description: (qt.text || '').replace(/\s+https?:\/\/t\.co\/\w+$/i, ''),
             mediaUrls: qtImages.map(i => i.url).filter(Boolean),
             mediaExtended: qtMedia,
             ...(qt.error && { ...qt }),
         }
         : null;
+
+    if (qtMetadata) {
+        qtMetadata._displayDate = formatTwitterDate(qt, { label: 'canvas.qt→displayDate' });
+        console.debug('[date] canvas.qt.meta', {
+            from_qt: {
+                date: qtMetadata.date,
+                date_epoch: qtMetadata.date_epoch,
+                created_timestamp: qtMetadata.created_timestamp,
+            },
+            _displayDate: qtMetadata._displayDate,
+        });
+    }
 
     // ---- Main media metrics ----
     const numImgs = images.length;
@@ -174,8 +215,10 @@ async function createTwitterCanvas(metadataJson, isImage) {
     let mediaObj = { height: 0, width: 0 };
     if (hasImgs) {
         const first = images[0];
-        const size = first?.width && first?.height ? { width: first.width, height: first.height } :
-            first?.size || null;
+        const size = first?.width && first?.height
+            ? { width: first.width, height: first.height }
+            : first?.size || null;
+
         if (size) {
             mediaObj = scaleDownToFitAspectRatio(size, mediaMaxHeight, 560);
             heightShim =
@@ -224,8 +267,10 @@ async function createTwitterCanvas(metadataJson, isImage) {
 
         if (expandQtMedia) {
             const first = qtImages[0];
-            const size = first?.width && first?.height ? { width: first.width, height: first.height } :
-                first?.size || null;
+            const size = first?.width && first?.height
+                ? { width: first.width, height: first.height }
+                : first?.size || null;
+
             if (size) {
                 // near full width inside the quote box
                 qtExpandedMediaSize = scaleDownToFitAspectRatio(size, /* maxH */ 420, /* maxW */ 520);
