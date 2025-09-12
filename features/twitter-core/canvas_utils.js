@@ -2,7 +2,7 @@
 // Refactored: features/twitter-core/canvas_utils.js
 
 const { cropSingleImage } = require("../twitter-post/crop_single_image");
-const { formatTwitterDate, filterMediaUrls } = require("./utils");
+const { formatTwitterDate, filterMediaUrls, formatTwitterFooter } = require("./utils");
 const { scaleDownToFitAspectRatio } = require("../twitter-post/scale_down");
 
 /**
@@ -66,37 +66,36 @@ function drawTextWithSpacing(ctx, text, x, y, letterSpacing = 1) {
 function drawBasicElements(ctx, font, metadata, favicon, pfp, descLines, options) {
     const { yOffset = 0, canvasHeightOffset = 0, hasImgs = false, hasVids = false } = options;
 
-    // Favicon (guard)
-    if (favicon) { try { ctx.drawImage(favicon, 550, 20, 32, 32); } catch {} }
+    // Top-right icon
+    if (favicon) {
+        try { ctx.drawImage(favicon, 550, 20, 32, 32); } catch {}
+    }
 
     ctx.textDrawingMode = "glyph";
 
-    // Author
+    // Display name
     ctx.fillStyle = 'white';
     ctx.font = '18px "Noto Color Emoji"';
     ctx.fillText(String(metadata.authorUsername || ''), 100, 40);
 
+    // Handle
     ctx.fillStyle = 'gray';
     ctx.font = `18px ${font}`;
     ctx.fillText(`@${String(metadata.authorNick || '')}`, 100, 60);
 
-    // Description
+    // Body text
     ctx.fillStyle = 'white';
     ctx.font = '24px "Noto Color Emoji"';
     const descX = (!hasImgs && hasVids) ? 80 : 30;
     drawDescription(ctx, hasImgs, hasVids, descLines, font, descX, yOffset);
 
-    // Date (safe + debug)
-    const dateStr = metadata._displayDate || formatTwitterDate(metadata, { label: 'canvas.basic/meta' });
-    console.debug('[date] canvas.basic', {
-        _displayDate: metadata._displayDate,
-        computed: dateStr,
-        y: Math.max(0, canvasHeightOffset - 20),
-    });
-    if (dateStr) {
+    // Footer timestamp — "3:58 PM Eastern · Sep 10, 2025"
+    const footerStr = metadata._displayDateFooter || formatTwitterFooter(metadata, { label: 'canvas.basic/footer' });
+    const footerY = Math.max(0, canvasHeightOffset - 20);
+    if (footerStr) {
         ctx.fillStyle = 'gray';
         ctx.font = `18px ${font}`;
-        ctx.fillText(dateStr, 30, Math.max(0, canvasHeightOffset - 20));
+        ctx.fillText(footerStr, 30, footerY);
     }
 
     // Avatar
@@ -368,7 +367,7 @@ function drawDesktopLayout(ctx, font, metadata, favicon, pfp, descLines, options
 
     ctx.textDrawingMode = "glyph";
 
-    // Avatar + user info
+    // Left: avatar
     const avatarRadius = 30;
     const avatarX = padding + avatarRadius;
     const avatarY = yOffset;
@@ -382,6 +381,7 @@ function drawDesktopLayout(ctx, font, metadata, favicon, pfp, descLines, options
         ctx.restore();
     }
 
+    // Name + handle
     ctx.fillStyle = 'white';
     ctx.font = `bold 18px ${font}`;
     ctx.fillText(String(metadata.authorUsername || ''), padding, avatarY + avatarRadius * 2 + 30);
@@ -390,7 +390,7 @@ function drawDesktopLayout(ctx, font, metadata, favicon, pfp, descLines, options
     ctx.font = `18px ${font}`;
     ctx.fillText(`@${String(metadata.authorNick || '')}`, padding, avatarY + avatarRadius * 2 + 55);
 
-    // Wrapped description
+    // Description (right column if media, otherwise full width)
     const textX = hasMedia ? (padding + leftColumnWidth) : padding;
     const textY = yOffset + 100;
 
@@ -398,18 +398,19 @@ function drawDesktopLayout(ctx, font, metadata, favicon, pfp, descLines, options
     ctx.font = '24px "Noto Color Emoji"';
     drawDescription(ctx, hasImgs, hasVids, descLines, font, textX, textY);
 
-    // Footer date (safe + debug)
+    // Footer timestamp
+    const footerStr = metadata._displayDateFooter || formatTwitterFooter(metadata, { label: 'canvas.desktop/footer' });
     const footerY = Math.max(0, canvasHeightOffset - 20);
-    const dateStr = metadata._displayDate || formatTwitterDate(metadata, { label: 'canvas.desktop/meta' });
-    console.debug('[date] canvas.desktop', { _displayDate: metadata._displayDate, computed: dateStr, y: footerY });
-    if (dateStr) {
+    if (footerStr) {
         ctx.fillStyle = 'gray';
         ctx.font = `18px ${font}`;
-        ctx.fillText(dateStr, padding, footerY);
+        ctx.fillText(footerStr, padding, footerY);
     }
 
-    // Favicon top-right
-    if (favicon) { try { ctx.drawImage(favicon, 550, 20, 32, 32); } catch {} }
+    // Top-right icon
+    if (favicon) {
+        try { ctx.drawImage(favicon, 550, 20, 32, 32); } catch {}
+    }
 }
 
 function drawQtDesktopLayout(ctx, font, metadata, pfp, mediaObj, options) {

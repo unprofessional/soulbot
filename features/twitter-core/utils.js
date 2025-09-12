@@ -1,3 +1,4 @@
+/* eslint-disable no-empty */
 // features/twitter-core/utils.js
 
 const crypto = require("crypto");
@@ -197,6 +198,54 @@ function filterMediaUrls(meta, { types = ['image', 'video'] } = {}) {
     return all.filter(m => types.includes(m.type));
 }
 
+
+const TZ_DEFAULT = process.env.TWITTER_TS_TZ || 'America/New_York';
+const TZ_LABEL_DEFAULT = process.env.TWITTER_TS_LABEL || 'Eastern';
+const DOT = '·';
+
+/**
+ * Format a tweet-ish object into:
+ *   "3:58 PM Eastern · Sep 10, 2025"
+ *
+ * Uses env overrides:
+ *   TWITTER_TS_TZ    (default: America/New_York)
+ *   TWITTER_TS_LABEL (default: Eastern)
+ */
+function formatTwitterFooter(input, opts = {}) {
+    const {
+        locale = 'en-US',
+        timeZone = TZ_DEFAULT,
+        tzLabel = TZ_LABEL_DEFAULT,
+        label = 'footer',
+    } = opts;
+
+    const dt = coerceTweetDate(input, label);
+    if (!dt) return '';
+
+    let time = '';
+    let date = '';
+    try {
+        time = dt.toLocaleString(locale, {
+            timeZone,
+            hour: 'numeric',
+            minute: '2-digit',
+        });
+    } catch {}
+
+    try {
+        date = dt.toLocaleString(locale, {
+            timeZone,
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric',
+        });
+    } catch {}
+
+    if (!time && !date) return '';
+    if (time && date) return `${time} ${tzLabel} ${DOT} ${date}`;
+    return time || date;
+}
+
 module.exports = {
     formatTwitterDate,
     filterMediaUrls,
@@ -205,5 +254,6 @@ module.exports = {
     stripQueryParams,
     randomNameGenerator,
     collectMedia,
+    formatTwitterFooter,
 };
 
