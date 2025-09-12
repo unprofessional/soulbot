@@ -168,8 +168,17 @@ async function createTwitterCanvas(metadataJson, isImage) {
     // --- Quoted tweet normalization (if present) ---
     const qt = metadataJson.qtMetadata || null;
     const qtMedia = qt ? (Array.isArray(collectMedia?.(qt)) ? collectMedia(qt) : []) : [];
-    const qtImages = qtMedia.filter(m => m.type === 'image');
-    const qtVideos = qtMedia.filter(m => m.type === 'video');
+    const qtHasAnyMedia = qtMedia.length > 0;
+    const qtContainsVideo = qtMedia.some(m => m.type === 'video');
+    const qtFirst = qtHasAnyMedia ? qtMedia[0] : null;
+
+    // Helper to get a thumbnail for first QT media (image OR video)
+    const thumbFrom = (m) => {
+        if (!m) return null;
+        return m.thumbnail_url || (m.type === 'image' ? m.url : null);
+    };
+
+    const qtFirstThumbUrl = thumbFrom(qtFirst);
 
     const qtMetadata = qt
         ? {
@@ -184,7 +193,8 @@ async function createTwitterCanvas(metadataJson, isImage) {
             created_at: qt.created_at ?? null,
 
             description: (qt.text || '').replace(/\s+https?:\/\/t\.co\/\w+$/i, ''),
-            mediaUrls: qtImages.map(i => i.url).filter(Boolean),
+            // include first media thumb/url so legacy paths still have something
+            mediaUrls: qtMedia.map(m => m.thumbnail_url || m.url).filter(Boolean),
             mediaExtended: qtMedia,
             ...(qt.error && { ...qt }),
         }
@@ -222,9 +232,9 @@ async function createTwitterCanvas(metadataJson, isImage) {
         if (size) {
             mediaObj = scaleDownToFitAspectRatio(size, mediaMaxHeight, 560);
             heightShim =
-        (images.length < 2 && mediaObj.width > mediaObj.height)
-            ? mediaObj.height * (560 / mediaObj.width)
-            : Math.min(mediaObj.height, mediaMaxHeight);
+                (images.length < 2 && mediaObj.width > mediaObj.height)
+                    ? mediaObj.height * (560 / mediaObj.width)
+                    : Math.min(mediaObj.height, mediaMaxHeight);
         }
     }
 
@@ -249,7 +259,7 @@ async function createTwitterCanvas(metadataJson, isImage) {
         descHeight, baseY,
     });
 
-    // --- Quote tweet sizing (supports "expanded" media when main has no media) ---
+    // --- Quote tweet sizing & expansion rules ---
     let qtHeight = 0;
     let expandQtMedia = false;
     let qtExpandedMediaSize = null;
@@ -259,17 +269,16 @@ async function createTwitterCanvas(metadataJson, isImage) {
             qtMetadata.description = qtMetadata.description.slice(0, MAX_QT_DESC_CHARS) + '…';
         }
 
-        const qtHasImgs = qtImages.length > 0;
-        const qtHasVids = qtVideos.length > 0;
+        // Expansion only when:
+        //  - main tweet has NO media (hasImgs/hasVids false)
+        //  - QT contains NO video anywhere
+        //  - the FIRST QT media item is an image (we expand that image)
+        expandQtMedia = (!hasImgs && !hasVids) && !qtContainsVideo && (qtFirst?.type === 'image');
 
-        // Expand quoted image to large/full preview if the main post has no media
-        expandQtMedia = (!hasImgs && !hasVids) && qtHasImgs && !qtHasVids;
-
-        if (expandQtMedia) {
-            const first = qtImages[0];
-            const size = first?.width && first?.height
-                ? { width: first.width, height: first.height }
-                : first?.size || null;
+        if (expandQtMedia && qtFirst?.size) {
+            const size = qtFirst.size?.width && qtFirst.size?.height
+                ? { width: qtFirst.size.width, height: qtFirst.size.height }
+                : null;
 
             if (size) {
                 // near full width inside the quote box
@@ -281,13 +290,15 @@ async function createTwitterCanvas(metadataJson, isImage) {
 
         log('qt:pre', {
             exists: true,
-            qtHasImgs, qtHasVids,
+            qtHasAnyMedia,
+            qtContainsVideo,
             expandQtMedia,
-            firstSize: qtImages[0] ? { width: qtImages[0].width, height: qtImages[0].height } : null,
+            firstType: qtFirst?.type || null,
+            firstSize: qtFirst?.size || null,
             qtExpandedMediaSize,
         });
 
-        // NOTE: no post-padding; calc is authoritative. Only adjust for error box.
+        // calc height from description + expansion hint
         qtHeight = calculateQuoteHeight(ctx, qtMetadata) - (qtMetadata.error ? 40 : 0);
 
         log('qt:post', { qtHeight });
@@ -325,12 +336,12 @@ async function createTwitterCanvas(metadataJson, isImage) {
         });
     }
 
+    // --- Draw QT box (with thumb or expanded image) ---
     if (qtMetadata) {
         const qtPfp = await safeLoadImage(qtMetadata.pfpUrl);
-        const hasQtMedia = qtImages.length > 0 || qtVideos.length > 0;
-        const qtMediaUrl = hasQtMedia
-            ? (qtImages[0]?.thumbnail_url || qtImages[0]?.url || null)
-            : null;
+
+        // Use first-item thumbnail (works for image or video)
+        const qtMediaUrl = qtFirstThumbUrl || null;
         const qtMediaImg = qtMediaUrl ? await safeLoadImage(qtMediaUrl) : undefined;
 
         const qtUseDesktopLayout = false;
@@ -343,6 +354,7 @@ async function createTwitterCanvas(metadataJson, isImage) {
             expandedMediaSize: qtExpandedMediaSize,
             qtPfpLoaded: Boolean(qtPfp),
             qtMediaImgLoaded: Boolean(qtMediaImg),
+            qtMediaUrl,
         });
 
         if (qtUseDesktopLayout) {
