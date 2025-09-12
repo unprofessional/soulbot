@@ -2,58 +2,32 @@
 
 const crypto = require("crypto");
 
-const formatTwitterDate = (twitterDate) => {
+/**
+ * Format a tweet-ish date safely.
+ * You can pass the whole tweet/meta object, a Date, or a raw ISO/epoch.
+ * Returns '' (empty string) if the date is not parseable.
+ */
+function formatTwitterDate(input, {
+    locale = 'en-US',
+    timeZone, // let Node decide; set to 'UTC' if you want UTC display
+} = {}) {
+    const dt = coerceTweetDate(input);
+    if (!dt) return '';
 
-    // console.log('>>>>> formatTwitterDate > twitterDate: ', twitterDate);
-
-    const date = new Date(twitterDate);
-
-    // console.log('>>>>> formatTwitterDate > date: ', date);
-
-    // Define the Eastern Time Zone
-    const timeZone = 'America/New_York';
-
-    // Format the time (e.g., "12:50 PM") with time zone information
-    const twitterTimeFormatter = new Intl.DateTimeFormat('en-US', {
-        hour: 'numeric',
-        minute: 'numeric',
-        hour12: true,
-        timeZone,
-        timeZoneName: 'short',
-    });
-    const formattedTimeWithZone = twitterTimeFormatter.format(date);
-
-    // console.log('>>>>> formatTwitterDate > formattedTimeWithZone: ', formattedTimeWithZone);
-
-    // Extract the time and the time zone abbreviation (e.g., "12:50 PM EST" or "12:50 PM EDT")
-    const [formattedTime, meridiem, timeZoneAbbreviation] = formattedTimeWithZone.split(' ');
-
-    // console.log('>>>>> formatTwitterDate > formattedTime: ', formattedTime);
-    // console.log('>>>>> formatTwitterDate > meridiem: ', meridiem);
-    // console.log('>>>>> formatTwitterDate > timeZoneAbbreviation: ', timeZoneAbbreviation);
-
-    // Map common abbreviations to user-friendly names
-    const timeZoneNames = {
-        EST: 'Eastern',
-        EDT: 'Eastern',
-    };
-
-    const friendlyTimeZoneName = timeZoneNames[timeZoneAbbreviation] || timeZoneAbbreviation;
-
-    // console.log('>>>>> formatTwitterDate > friendlyTimeZoneName: ', friendlyTimeZoneName);
-
-    // Format the date (e.g., "Nov 4, 2024") in Eastern Time
-    const dateFormatter = new Intl.DateTimeFormat('en-US', {
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric',
-        timeZone,
-    });
-    const formattedDate = dateFormatter.format(date);
-
-    // Combine the formatted time, friendly time zone name, and date
-    return `${formattedTime} ${meridiem} ${friendlyTimeZoneName} · ${formattedDate}`;
-};
+    try {
+        return dt.toLocaleString(locale, {
+            timeZone,
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric',
+            hour: 'numeric',
+            minute: '2-digit',
+        });
+    } catch {
+    // Fallback: ISO without throwing
+        return dt.toISOString();
+    }
+}
 
 // Find number of associated media
 function filterMediaUrls(meta, { types = ['image', 'video'] } = {}) {
@@ -160,6 +134,68 @@ function collectMedia(meta) {
     }
 
     return out;
+}
+
+/**
+ * Coerce a tweet-ish object into a valid Date, or null if unknown.
+ * Accepts:
+ *  - obj.date (ISO or epoch as string/number)
+ *  - obj.date_epoch (seconds or ms)
+ *  - obj.created_timestamp (seconds or ms, FX)
+ *  - obj.tweet?.created_at (ISO)
+ */
+function coerceTweetDate(input) {
+    if (!input) return null;
+
+    // If a Date was passed directly
+    if (input instanceof Date) {
+        return Number.isNaN(input.getTime()) ? null : input;
+    }
+
+    // If a primitive was passed (number/string)
+    if (typeof input === 'number' || typeof input === 'string') {
+        const ms = coerceEpochOrIsoToMs(input);
+        return ms == null ? null : new Date(ms);
+    }
+
+    // Otherwise assume it's a tweet/meta object
+    const candidates = [
+        input.date,
+        input.created_at,
+        input.tweet?.created_at,
+        input.date_epoch,
+        input.created_timestamp,
+    ];
+
+    for (const c of candidates) {
+        const ms = coerceEpochOrIsoToMs(c);
+        if (ms != null) {
+            const dt = new Date(ms);
+            if (!Number.isNaN(dt.getTime())) return dt;
+        }
+    }
+
+    return null;
+}
+
+/** Helper: convert ISO / epoch (s or ms) → milliseconds, or null */
+function coerceEpochOrIsoToMs(v) {
+    if (v == null) return null;
+
+    // Numeric-ish string or number
+    const n = Number(v);
+    if (!Number.isNaN(n) && Number.isFinite(n)) {
+    // Heuristic: < 1e12 → seconds; otherwise ms
+        return n < 1e12 ? Math.trunc(n) * 1000 : Math.trunc(n);
+    }
+
+    // Non-numeric string → try Date.parse
+    if (typeof v === 'string') {
+        const t = Date.parse(v);
+        return Number.isNaN(t) ? null : t;
+    }
+
+    return null;
 }
 
 module.exports = {
