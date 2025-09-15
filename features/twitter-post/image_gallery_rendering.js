@@ -6,7 +6,7 @@ const { scaleDownToFitAspectRatio } = require('./scale_down.js');
 
 // Layout constants
 const LEFT_X = 20;           // left margin
-const COL_GUTTER_X = 25;     // space between left/right columns
+const COL_GUTTER_X = 10;     // space between left/right columns
 const ROW_GUTTER_Y = 10;     // space between stacked tiles in right column
 
 // Helpers --------------------------------------------------------------------
