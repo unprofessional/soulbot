@@ -132,6 +132,9 @@ function drawQtBasicElements(ctx, font, metadata, pfp, mediaObj, options) {
         expandedMediaSize = null,
     } = options || {};
 
+    const OUTER_STROKE_W = 1;     // rounded box stroke
+    const EXTRA_BOTTOM_PAD = 2;   // safety so corners never hit canvas edge
+
     // Robust QT media check: if we were handed an image, QT has media
     const qtHasMedia = Boolean(mediaObj);
 
@@ -166,7 +169,7 @@ function drawQtBasicElements(ctx, font, metadata, pfp, mediaObj, options) {
         const LINE_H = 30;
         ctx.font = `24px ${font}`;
         const desc = metadata.error ? (metadata.message || '') : (metadata.description || '');
-        const qtLines = getWrappedText(ctx, desc, wrapWidth);
+        const qtLines = getWrappedText(ctx, desc, Math.max(1, (20 + 560 - 20) - (expandQtMedia ? 40 : (mediaObj ? 230 : 100)))); // keep same wrap math
 
         // Text block starts at HEADER = 100
         const textTopY = qtY + 100;
@@ -176,32 +179,38 @@ function drawQtBasicElements(ctx, font, metadata, pfp, mediaObj, options) {
         // Clamp box height so text always fits
         const MARGIN_BOTTOM = 8;
         const bottomPadding = 30;
-        const neededForText = (textBottomY + bottomPadding + MARGIN_BOTTOM) - qtY;
-
-        // Guarantee text always fits inside the rounded box
-        const textNeeds = neededForText; // already computed above
-        if (textNeeds > boxHeight) {
-            boxHeight = textNeeds;
-        }
-
-
+        const neededForText = (textTopY + textHeight + bottomPadding + MARGIN_BOTTOM) - canvasHeightOffset;
         if (neededForText > boxHeight) boxHeight = neededForText;
+
+        boxHeight = Math.ceil(boxHeight + OUTER_STROKE_W + EXTRA_BOTTOM_PAD);
+
+
 
         DEBUG && console.debug(`${TAG} media: qtHasMedia=${qtHasMedia} expandQtMedia=${expandQtMedia}`);
         DEBUG && console.debug(`${TAG} wrap: textX=${textX} wrapWidth=${wrapWidth}`);
         DEBUG && console.debug(`${TAG} text: lines=${qtLines.length} LINE_H=${LINE_H} top=${textTopY} bottom=${textBottomY} boxH=${boxHeight}`);
 
         // --- Outer rounded box (fill + stroke)
+        // ctx.save();
+        // ctx.beginPath();
+        // ctx.roundRect(qtX, qtY, boxW, boxHeight, 15);
+        // ctx.fillStyle = '#0f0f10';
+        // ctx.fill();
+        // ctx.strokeStyle = '#4d4d4d';
+        // ctx.lineWidth = 1;
+        // ctx.stroke();
+        // ctx.restore();
+        // logRect('Outer rounded box', qtX, qtY, boxW, boxHeight, 'r=15');
+
         ctx.save();
         ctx.beginPath();
-        ctx.roundRect(qtX, qtY, boxW, boxHeight, 15);
+        ctx.roundRect(20, canvasHeightOffset, 560, boxHeight, 15);
         ctx.fillStyle = '#0f0f10';
         ctx.fill();
         ctx.strokeStyle = '#4d4d4d';
-        ctx.lineWidth = 1;
+        ctx.lineWidth = OUTER_STROKE_W;
         ctx.stroke();
         ctx.restore();
-        logRect('Outer rounded box', qtX, qtY, boxW, boxHeight, 'r=15');
 
         // --- Names
         ctx.fillStyle = 'white';

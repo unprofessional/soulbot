@@ -43,21 +43,10 @@ function getMaxHeight(numImgs) {
     return [0, 800, 600, 530, 530][numImgs] || 600;
 }
 
-
-
-
-
-
-
-
-
-
-
-// features/twitter-post/twitter_canvas.js (helpers)
-
 // Main body font/metrics used in both measure and draw
 const MAIN_LINE_HEIGHT = 30;
 const MAIN_FONT = '24px "Noto Color Emoji"';
+const CANVAS_BOTTOM_PAD = 3;
 
 // Must mirror drawBasicElements' descX logic and canvas margins
 function getMainTextX(hasImgs, hasVids) {
@@ -85,18 +74,6 @@ function debugRect(ctx, x, y, w, h, label = '') {
         ctx.restore();
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
 
 /**
  * Calculate the total height needed for the quote-tweet rounded box.
@@ -404,9 +381,22 @@ async function createTwitterCanvas(metadataJson, isImage) {
     }
 
     // === Canvas height uses the clamped qtBoxHeight ===
-    const totalHeight = descHeight + qtBoxHeight;
+    const totalHeight = descHeight + qtBoxHeight + CANVAS_BOTTOM_PAD;
     canvas.height = totalHeight;
     ctx.fillRect(0, 0, maxWidth, totalHeight);
+
+    // if (process.env.DEBUG_CANVAS_BOXES === '1') {
+    // DEBUG:
+        ctx.save();
+        ctx.strokeStyle = '#ff66aa';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(0, canvas.height - 0.5);
+        ctx.lineTo(600, canvas.height - 0.5);
+        ctx.stroke(); // bottom edge guide
+        ctx.restore();
+    // }
+
 
     log('canvas', { maxWidth, totalHeight });
 
