@@ -43,6 +43,61 @@ function getMaxHeight(numImgs) {
     return [0, 800, 600, 530, 530][numImgs] || 600;
 }
 
+
+
+
+
+
+
+
+
+
+
+// features/twitter-post/twitter_canvas.js (helpers)
+
+// Main body font/metrics used in both measure and draw
+const MAIN_LINE_HEIGHT = 30;
+const MAIN_FONT = '24px "Noto Color Emoji"';
+
+// Must mirror drawBasicElements' descX logic and canvas margins
+function getMainTextX(hasImgs, hasVids) {
+    // In drawBasicElements: const descX = (!hasImgs && hasVids) ? 80 : 30;
+    return (!hasImgs && hasVids) ? 80 : 30;
+}
+
+function computeMainWrapWidth(canvasWidth, descX, rightPadding = 20) {
+    // Right padding should roughly match visual margins used elsewhere
+    return Math.max(1, canvasWidth - descX - rightPadding); // e.g., 600 - 30 - 20 = 550
+}
+
+// Small debug overlay you can toggle via env
+function debugRect(ctx, x, y, w, h, label = '') {
+    if (process.env.DEBUG_CANVAS_BOXES === '1') {
+        ctx.save();
+        ctx.strokeStyle = '#33aaff';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(x + 0.5, y + 0.5, w, h);
+        if (label) {
+            ctx.fillStyle = '#33aaff';
+            ctx.font = '10px sans-serif';
+            ctx.fillText(label, x + 4, y + 12);
+        }
+        ctx.restore();
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
 /**
  * Calculate the total height needed for the quote-tweet rounded box.
  * IMPORTANT: All geometry *must* match drawQtBasicElements to avoid overflow/extra space.
@@ -244,17 +299,47 @@ async function createTwitterCanvas(metadataJson, isImage) {
     }
 
     // --- Main text wrapping ---
-    const MAX_DESC_CHARS = 1000;
     const MAX_QT_DESC_CHARS = 500;
 
+    // --- Main text wrapping (pixel-accurate, matches draw path) ---
+    ctx.font = MAIN_FONT;
+
+    const descX = getMainTextX(hasImgs, hasVids);
+    const mainWrapWidth = computeMainWrapWidth(maxWidth, descX, /*rightPadding*/ 20);
+
+    // Always trim absurdly long tweets so layout is bounded
+    const MAX_DESC_CHARS = 1000;
     if ((metadata.description?.length ?? 0) > MAX_DESC_CHARS + 50) {
         metadata.description = metadata.description.slice(0, MAX_DESC_CHARS) + '…';
     }
 
-    const maxCharLength = onlyVids ? 120 : 240; // rough char-based width for main tweet
-    const descLines = getWrappedText(ctx, metadata.description || '', maxCharLength);
+    // IMPORTANT: pass pixel width into getWrappedText
+    const descLines = getWrappedText(ctx, metadata.description || '', mainWrapWidth, { preserveEmptyLines: true });
+
+    // Base text top Y matches earlier logic
     const baseY = 110;
-    const descHeight = descLines.length * 30 + baseY + 40 + heightShim;
+    const textHeight = descLines.length * MAIN_LINE_HEIGHT;
+
+    // Height where the body content ends (before gallery / QT, etc.)
+    const descBottomY = baseY + textHeight;
+
+    // Allow some breathing room + any media shim
+    const descHeight = descBottomY + 40 + heightShim;
+
+    console.debug('[canvas.body]', {
+        descX,
+        mainWrapWidth,
+        lines: descLines.length,
+        textHeight,
+        baseY,
+        descBottomY,
+        heightShim,
+        descHeight,
+    });
+
+    // Optional debug overlay for the text block
+    debugRect(ctx, descX, baseY - MAIN_LINE_HEIGHT + 6, mainWrapWidth, textHeight, `Main text (w=${mainWrapWidth})`);
+
 
     log('main', {
         numImgs, numVids, hasImgs, hasVids, onlyVids,

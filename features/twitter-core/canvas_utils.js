@@ -8,28 +8,39 @@ const { scaleDownToFitAspectRatio } = require("../twitter-post/scale_down");
 /**
  * Wraps text into lines that fit within maxWidth, excluding t.co URLs.
  */
-function getWrappedText(ctx, text, maxWidth) {
+function getWrappedText(ctx, text, maxWidthPx, { preserveEmptyLines = true } = {}) {
     const lines = [];
     const shortTwitterUrlPattern = /https:\/\/t\.co\/\S+/g;
 
-    text.split('\n').forEach(paragraph => {
-        const cleaned = paragraph.replace(shortTwitterUrlPattern, '').trim();
-        // if (!cleaned) return lines.push('');
-        if (!cleaned) return;
+    const paragraphs = String(text ?? '').split('\n');
 
-        const words = cleaned.split(' ');
+    for (const paragraph of paragraphs) {
+        const cleaned = paragraph.replace(shortTwitterUrlPattern, '').trim();
+
+        if (!cleaned) {
+            if (preserveEmptyLines) lines.push(''); // keep vertical rhythm for blank lines
+            continue;
+        }
+
+        const words = cleaned.split(/\s+/);
         let currentLine = words[0];
 
         for (let i = 1; i < words.length; i++) {
             const testLine = `${currentLine} ${words[i]}`;
             const width = ctx.measureText(testLine).width;
-            currentLine = width < maxWidth ? testLine : (lines.push(currentLine), words[i]);
+            if (width < maxWidthPx) {
+                currentLine = testLine;
+            } else {
+                lines.push(currentLine);
+                currentLine = words[i];
+            }
         }
         lines.push(currentLine);
-    });
+    }
 
     return lines;
 }
+
 
 /**
  * Calculates y position based on line height.
@@ -166,6 +177,14 @@ function drawQtBasicElements(ctx, font, metadata, pfp, mediaObj, options) {
         const MARGIN_BOTTOM = 8;
         const bottomPadding = 30;
         const neededForText = (textBottomY + bottomPadding + MARGIN_BOTTOM) - qtY;
+
+        // Guarantee text always fits inside the rounded box
+        const textNeeds = neededForText; // already computed above
+        if (textNeeds > boxHeight) {
+            boxHeight = textNeeds;
+        }
+
+
         if (neededForText > boxHeight) boxHeight = neededForText;
 
         DEBUG && console.debug(`${TAG} media: qtHasMedia=${qtHasMedia} expandQtMedia=${expandQtMedia}`);
