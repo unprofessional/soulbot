@@ -16,14 +16,11 @@ const {
 const { collectMedia } = require('../twitter-core/utils.js');
 const { formatTwitterDate } = require('../twitter-core/utils.js');
 
+/* ----------------------------- Helpers & Fonts ----------------------------- */
+
 // Robust text extraction (some FX payloads omit `text` but still have tweet.created_at or other props)
 function getBestText(p) {
-    return (
-        p?.text ??
-        p?.full_text ??
-        p?.tweet?.text ??
-        ''
-    );
+    return p?.text ?? p?.full_text ?? p?.tweet?.text ?? '';
 }
 
 const FONT_PATHS = [
@@ -33,9 +30,7 @@ const FONT_PATHS = [
 ];
 
 function registerFonts(baseFontUrl = '/usr/share/fonts') {
-    FONT_PATHS.forEach(([path, family]) =>
-        registerFont(`${baseFontUrl}${path}`, { family })
-    );
+    FONT_PATHS.forEach(([path, family]) => registerFont(`${baseFontUrl}${path}`, { family }));
 }
 
 function getMaxHeight(numImgs) {
@@ -48,7 +43,7 @@ const MAIN_LINE_HEIGHT = 30;
 const MAIN_FONT = '24px "Noto Color Emoji"';
 const CANVAS_BOTTOM_PAD = 3;
 
-// Must mirror drawBasicElements' descX logic and canvas margins
+/** Must mirror drawBasicElements' descX logic and canvas margins */
 function getMainTextX(hasImgs, hasVids) {
     // In drawBasicElements: const descX = (!hasImgs && hasVids) ? 80 : 30;
     return (!hasImgs && hasVids) ? 80 : 30;
@@ -59,10 +54,9 @@ function computeMainWrapWidth(canvasWidth, descX, rightPadding = 20) {
     return Math.max(1, canvasWidth - descX - rightPadding); // e.g., 600 - 30 - 20 = 550
 }
 
-// Small debug overlay you can toggle via env
+/** Debug overlay (only when DEBUG_CANVAS_BOXES=1) */
 function debugRect(ctx, x, y, w, h, label = '') {
-
-    // DEBUG:
+    if (process.env.DEBUG_CANVAS_BOXES !== '1') return;
     ctx.save();
     ctx.strokeStyle = '#33aaff';
     ctx.lineWidth = 1;
@@ -94,7 +88,7 @@ function calculateQuoteHeight(ctx, qtMetadata) {
         const expanded = Boolean(qtMetadata._expandMediaHint);
         const text = qtMetadata.error ? (qtMetadata.message || '') : (qtMetadata.description || '');
 
-        // Font used for measuring (keep in sync with drawDescription)
+        // Font used for measuring (keep in sync with drawer)
         ctx.font = '24px "Noto Color Emoji"';
 
         // --- Compute wrap width from the SAME geometry the draw path uses ---
@@ -108,7 +102,7 @@ function calculateQuoteHeight(ctx, qtMetadata) {
         const textX = expanded ? innerLeft : (hasMedia ? 230 : 100);
         const wrapWidth = Math.max(1, innerRight - textX); // 520 (expanded), 330 (with media), 460 (no media)
 
-        const lines = getWrappedText(ctx, text, wrapWidth);
+        const lines = getWrappedText(ctx, text, wrapWidth, { preserveEmptyLines: true });
         const descHeight = lines.length * lineHeight;
 
         if (DEBUG) {
@@ -147,6 +141,42 @@ function calculateQuoteHeight(ctx, qtMetadata) {
     }
 }
 
+/**
+ * Measure the *text-needed* height for the QT box using the exact same rules as the drawer.
+ * This prevents the drawer from growing the box after canvas height is finalized.
+ */
+function measureQtTextNeed(ctx, fontChain, qtMetadata, { expandQtMedia = false } = {}) {
+    if (!qtMetadata) return 0;
+
+    // Geometry must mirror drawQtBasicElements
+    const qtX = 20;
+    const boxW = 560;
+    const innerPad = 20;
+    const innerLeft = qtX + innerPad;            // 40
+    const innerRight = qtX + boxW - innerPad;    // 560
+
+    const qtHasMedia = Array.isArray(qtMetadata.mediaExtended) && qtMetadata.mediaExtended.length > 0;
+
+    // textX logic == drawer
+    const textX = expandQtMedia ? innerLeft : (qtHasMedia ? 230 : 100);
+    const wrapWidth = Math.max(1, innerRight - textX); // 520 / 330 / 460
+
+    // Font MUST match drawer
+    ctx.font = `24px ${fontChain}`;
+
+    const desc = qtMetadata.error ? (qtMetadata.message || '') : (qtMetadata.description || '');
+    const qtLines = getWrappedText(ctx, desc, wrapWidth, { preserveEmptyLines: true });
+
+    const LINE_H = 30;
+    const HEADER = 100;
+    const bottomPadding = 30;
+    const MARGIN_BOTTOM = 8;
+
+    const textHeight = qtLines.length * LINE_H;
+    // Height needed from top of QT box to safely contain text + internal bottom padding
+    return HEADER + textHeight + bottomPadding + MARGIN_BOTTOM;
+}
+
 async function safeLoadImage(url) {
     if (!url || typeof url !== 'string' || !url.startsWith('http')) return undefined;
     try {
@@ -156,9 +186,11 @@ async function safeLoadImage(url) {
     }
 }
 
+/* --------------------------------- Main API -------------------------------- */
+
 async function createTwitterCanvas(metadataJson, isImage) {
     registerFonts();
-    const font = '"Noto Color Emoji", "Noto Sans CJK", "Noto Sans Math"';
+    const fontChain = '"Noto Color Emoji", "Noto Sans CJK", "Noto Sans Math"';
 
     const maxWidth = 600;
     const canvas = createCanvas(maxWidth, 650);
@@ -269,16 +301,13 @@ async function createTwitterCanvas(metadataJson, isImage) {
         if (size) {
             mediaObj = scaleDownToFitAspectRatio(size, mediaMaxHeight, 560);
             heightShim =
-                (images.length < 2 && mediaObj.width > mediaObj.height)
-                    ? mediaObj.height * (560 / mediaObj.width)
-                    : Math.min(mediaObj.height, mediaMaxHeight);
+        (images.length < 2 && mediaObj.width > mediaObj.height)
+            ? mediaObj.height * (560 / mediaObj.width)
+            : Math.min(mediaObj.height, mediaMaxHeight);
         }
     }
 
-    // --- Main text wrapping ---
-    const MAX_QT_DESC_CHARS = 500;
-
-    // --- Main text wrapping (pixel-accurate, matches draw path) ---
+    /* ------------------------- Main text wrapping (pixel) ------------------------- */
     ctx.font = MAIN_FONT;
 
     const descX = getMainTextX(hasImgs, hasVids);
@@ -317,7 +346,6 @@ async function createTwitterCanvas(metadataJson, isImage) {
     // Optional debug overlay for the text block
     debugRect(ctx, descX, baseY - MAIN_LINE_HEIGHT + 6, mainWrapWidth, textHeight, `Main text (w=${mainWrapWidth})`);
 
-
     log('main', {
         numImgs, numVids, hasImgs, hasVids, onlyVids,
         mediaMaxHeight, mediaObj, heightShim,
@@ -326,8 +354,10 @@ async function createTwitterCanvas(metadataJson, isImage) {
         descHeight, baseY,
     });
 
-    // --- Quote tweet sizing & expansion consistency ---
-    let qtBoxHeight = 0;              // <- authoritative height we will use everywhere
+    /* -------------------- Quote tweet sizing & expansion (final) ------------------- */
+    const MAX_QT_DESC_CHARS = 500;
+
+    let qtBoxHeight = 0;      // <- authoritative height we will use everywhere
     let expandQtMedia = false;
     let qtExpandedMediaSize = null;
 
@@ -350,29 +380,33 @@ async function createTwitterCanvas(metadataJson, isImage) {
             }
         }
 
-        // Base height from calculator
+        // 1) Base from calculator (min/media rules)
         const calcHeight = calculateQuoteHeight(ctx, qtMetadata) - (qtMetadata.error ? 40 : 0);
+        const qtHasAny = Array.isArray(qtMetadata.mediaExtended) && qtMetadata.mediaExtended.length > 0;
 
-        // Apply the SAME minimums the drawer enforces:
-        // - if any media & not expanded: min 285
-        // - if expanded: min expandedMediaHeight + 150
+        let minByMedia = calcHeight;
         if (expandQtMedia) {
             const minExpanded = (qtMetadata._expandedMediaHeight ?? 0) + 150;
-            qtBoxHeight = Math.max(calcHeight, minExpanded);
-        } else if (qtHasAnyMedia) {
-            qtBoxHeight = Math.max(calcHeight, 285);
-        } else {
-            qtBoxHeight = calcHeight;
+            minByMedia = Math.max(minByMedia, minExpanded);
+        } else if (qtHasAny) {
+            minByMedia = Math.max(minByMedia, 285);
         }
+
+        // 2) Text-needed height using *same* wrap/font as drawer
+        const textNeed = measureQtTextNeed(ctx, fontChain, qtMetadata, { expandQtMedia });
+
+        // 3) Final box height used for both canvas sizing AND drawing
+        qtBoxHeight = Math.max(minByMedia, textNeed);
 
         log('qt:pre', {
             exists: true,
-            qtHasAnyMedia,
-            qtContainsVideo,
+            qtHasAnyMedia: qtHasAny,
+            qtContainsVideo: qtContainsVideo,
             expandQtMedia,
             firstType: qtFirst?.type || null,
             firstSize: qtFirst?.size || null,
             calcHeight,
+            textNeed,
             qtBoxHeight,
             qtExpandedMediaSize,
         });
@@ -380,20 +414,22 @@ async function createTwitterCanvas(metadataJson, isImage) {
         log('qt:none');
     }
 
-    // === Canvas height uses the clamped qtBoxHeight ===
+    /* ------------------------- Final canvas height & draw ------------------------- */
     const totalHeight = descHeight + qtBoxHeight + CANVAS_BOTTOM_PAD;
     canvas.height = totalHeight;
     ctx.fillRect(0, 0, maxWidth, totalHeight);
 
-    // DEBUG:
-    ctx.save();
-    ctx.strokeStyle = '#ff66aa';
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.moveTo(0, canvas.height - 0.5);
-    ctx.lineTo(600, canvas.height - 0.5);
-    ctx.stroke(); // bottom edge guide
-    ctx.restore();
+    // Optional bottom-edge guide line (DEBUG)
+    if (process.env.DEBUG_CANVAS_BOXES === '1') {
+        ctx.save();
+        ctx.strokeStyle = '#ff66aa';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(0, canvas.height - 0.5);
+        ctx.lineTo(maxWidth, canvas.height - 0.5);
+        ctx.stroke();
+        ctx.restore();
+    }
 
     log('canvas', { maxWidth, totalHeight });
 
@@ -406,14 +442,14 @@ async function createTwitterCanvas(metadataJson, isImage) {
     const useDesktopLayout = false;
 
     if (useDesktopLayout) {
-        drawDesktopLayout(ctx, font, metadata, favicon, pfp, descLines, {
+        drawDesktopLayout(ctx, fontChain, metadata, favicon, pfp, descLines, {
             hasImgs,
             hasVids,
             yOffset: baseY,
             canvasHeightOffset: descHeight,
         });
     } else {
-        drawBasicElements(ctx, font, metadata, favicon, pfp, descLines, {
+        drawBasicElements(ctx, fontChain, metadata, favicon, pfp, descLines, {
             hasImgs,
             hasVids,
             yOffset: baseY,
@@ -443,14 +479,14 @@ async function createTwitterCanvas(metadataJson, isImage) {
         });
 
         if (qtUseDesktopLayout) {
-            drawQtDesktopLayout(ctx, font, qtMetadata, qtPfp, qtMediaImg, {
+            drawQtDesktopLayout(ctx, fontChain, qtMetadata, qtPfp, qtMediaImg, {
                 canvasHeightOffset: descHeight,
                 qtCanvasHeightOffset: qtBoxHeight,
                 expandQtMedia,
                 expandedMediaSize: expandQtMedia ? qtExpandedMediaSize : null,
             });
         } else {
-            drawQtBasicElements(ctx, font, qtMetadata, qtPfp, qtMediaImg, {
+            drawQtBasicElements(ctx, fontChain, qtMetadata, qtPfp, qtMediaImg, {
                 canvasHeightOffset: descHeight,
                 qtCanvasHeightOffset: qtBoxHeight,
                 hasImgs,
