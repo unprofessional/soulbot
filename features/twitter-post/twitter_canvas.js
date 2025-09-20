@@ -61,18 +61,18 @@ function computeMainWrapWidth(canvasWidth, descX, rightPadding = 20) {
 
 // Small debug overlay you can toggle via env
 function debugRect(ctx, x, y, w, h, label = '') {
-    if (process.env.DEBUG_CANVAS_BOXES === '1') {
-        ctx.save();
-        ctx.strokeStyle = '#33aaff';
-        ctx.lineWidth = 1;
-        ctx.strokeRect(x + 0.5, y + 0.5, w, h);
-        if (label) {
-            ctx.fillStyle = '#33aaff';
-            ctx.font = '10px sans-serif';
-            ctx.fillText(label, x + 4, y + 12);
-        }
-        ctx.restore();
+
+    // DEBUG:
+    ctx.save();
+    ctx.strokeStyle = '#33aaff';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(x + 0.5, y + 0.5, w, h);
+    if (label) {
+        ctx.fillStyle = '#33aaff';
+        ctx.font = '10px sans-serif';
+        ctx.fillText(label, x + 4, y + 12);
     }
+    ctx.restore();
 }
 
 /**
@@ -385,18 +385,15 @@ async function createTwitterCanvas(metadataJson, isImage) {
     canvas.height = totalHeight;
     ctx.fillRect(0, 0, maxWidth, totalHeight);
 
-    // if (process.env.DEBUG_CANVAS_BOXES === '1') {
     // DEBUG:
-        ctx.save();
-        ctx.strokeStyle = '#ff66aa';
-        ctx.lineWidth = 1;
-        ctx.beginPath();
-        ctx.moveTo(0, canvas.height - 0.5);
-        ctx.lineTo(600, canvas.height - 0.5);
-        ctx.stroke(); // bottom edge guide
-        ctx.restore();
-    // }
-
+    ctx.save();
+    ctx.strokeStyle = '#ff66aa';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(0, canvas.height - 0.5);
+    ctx.lineTo(600, canvas.height - 0.5);
+    ctx.stroke(); // bottom edge guide
+    ctx.restore();
 
     log('canvas', { maxWidth, totalHeight });
 
