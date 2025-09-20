@@ -42,6 +42,8 @@ function getMaxHeight(numImgs) {
 const MAIN_LINE_HEIGHT = 30;
 const MAIN_FONT = '24px "Noto Color Emoji"';
 const CANVAS_BOTTOM_PAD = 3;
+const DEFAULT_BOTTOM_PAD_NO_QT = Number(process.env.CANVAS_BOTTOM_PAD_NO_QT || 8);
+const DEFAULT_BOTTOM_PAD_WITH_QT = Number(process.env.CANVAS_BOTTOM_PAD_WITH_QT || 16);
 
 /** Must mirror drawBasicElements' descX logic and canvas margins */
 function getMainTextX(hasImgs, hasVids) {
@@ -415,9 +417,13 @@ async function createTwitterCanvas(metadataJson, isImage) {
     }
 
     /* ------------------------- Final canvas height & draw ------------------------- */
-    const totalHeight = descHeight + qtBoxHeight + CANVAS_BOTTOM_PAD;
+    // Add a little margin below the QT box so it doesn't butt against the image bottom
+    const extraBottomPad = qtMetadata ? DEFAULT_BOTTOM_PAD_WITH_QT : DEFAULT_BOTTOM_PAD_NO_QT;
+    const totalHeight = descHeight + qtBoxHeight + extraBottomPad;
+
     canvas.height = totalHeight;
     ctx.fillRect(0, 0, maxWidth, totalHeight);
+
 
     // Optional bottom-edge guide line (DEBUG)
     if (process.env.DEBUG_CANVAS_BOXES === '1') {
