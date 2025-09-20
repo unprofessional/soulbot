@@ -122,7 +122,7 @@ function drawBasicElements(ctx, font, metadata, favicon, pfp, descLines, options
 }
 
 function drawQtBasicElements(ctx, font, metadata, pfp, mediaObj, options) {
-    const DEBUG = process.env.DEBUG_QT === '1';
+    const DEBUG = true;
     const TAG = '[qt/drawBasic]';
 
     const {
