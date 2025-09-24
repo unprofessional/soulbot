@@ -13,29 +13,39 @@ function buildError({ status, text, error, source }) {
     };
 }
 
-async function fetchMetadata(url, message, isXDotCom, log = console.log) {
+function parseExtract(url, isXDotCom) {
     const urlPattern = isXDotCom ? 'https://x.com/' : 'https://twitter.com/';
-    const extracted = url.split(urlPattern)[1]; // e.g., user/status/12345
+    return url.split(urlPattern)[1]; // e.g., user/status/12345
+}
+
+async function fetchMetadata(url, message, isXDotCom, log = console.log) {
+    const extracted = parseExtract(url, isXDotCom);
     if (!extracted) return buildError({ status: 0, error: 'Bad URL parse', source: 'client' });
 
+    // Prefer VX first; FX second. (VX has been stabler lately)
     const vx = `https://api.vxtwitter.com/${extracted}`;
     const fx = `https://api.fxtwitter.com/${extracted}`;
 
-    const res = await getJsonWithFallback([fx, vx], { log });
-    // If fetch failed outright or no JSON available, surface the HTTP status cleanly.
-    if (!res || (!res.ok && !res.json)) {
+    const res = await getJsonWithFallback([vx, fx], { log });
+
+    // If nothing useful came back
+    if (!res || (!res.ok && !res.json && !res.text)) {
         return buildError({ status: res?.status, text: res?.text, error: res?.error, source: res?.url });
     }
 
     const j = res.json;
 
-    // VX success
-    if (j?.tweetID || j?.user_name) return normalizeFromVX(j);
+    // VX success shapes
+    if (j && (j.tweetID || j.user_name)) {
+        return normalizeFromVX(j);
+    }
 
-    // FX success or FX error payloads (many FX errors include `code`)
-    if (j?.tweet || typeof j?.code === 'number') return normalizeFromFX(j);
+    // FX success or FX error payloads (many FX errors include `code` or `tweet`)
+    if (j && (j.tweet || typeof j.code === 'number')) {
+        return normalizeFromFX(j);
+    }
 
-    // If response clearly indicates not found/private in another shape, map to error.
+    // Generic JSON error shape
     if (j && (j.error || j.message)) {
         return {
             error: true,
@@ -47,6 +57,7 @@ async function fetchMetadata(url, message, isXDotCom, log = console.log) {
         };
     }
 
+    // Non-JSON or unexpected shape
     return buildError({ status: res.status, text: res.text, error: 'Unexpected response', source: res.url });
 }
 
@@ -54,18 +65,19 @@ async function fetchQTMetadata(url, log = console.log) {
     const extracted = url.split('https://twitter.com/')[1] || url.split('https://x.com/')[1];
     if (!extracted) return buildError({ status: 0, error: 'Bad QT URL parse', source: 'client' });
 
+    // Prefer VX first
     const vx = `https://api.vxtwitter.com/${extracted}`;
     const fx = `https://api.fxtwitter.com/${extracted}`;
 
-    const res = await getJsonWithFallback([fx, vx], { log });
-    if (!res || (!res.ok && !res.json)) {
+    const res = await getJsonWithFallback([vx, fx], { log });
+    if (!res || (!res.ok && !res.json && !res.text)) {
         return buildError({ status: res?.status, text: res?.text, error: res?.error, source: res?.url });
     }
 
     const j = res.json;
 
-    if (j?.tweetID || j?.user_name) return normalizeFromVX(j);
-    if (j?.tweet || typeof j?.code === 'number') return normalizeFromFX(j);
+    if (j && (j.tweetID || j.user_name)) return normalizeFromVX(j);
+    if (j && (j.tweet || typeof j.code === 'number')) return normalizeFromFX(j);
 
     if (j && (j.error || j.message)) {
         return {
