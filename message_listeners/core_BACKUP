@@ -22,6 +22,7 @@ const twitterFeature = features.find(feature => feature.type === 'twitter');
 const {
     fetchMetadata,
     fetchQTMetadata,
+    toFixupx,
 } = require('../features/twitter-core/fetch_metadata.js');
 
 const {
@@ -204,7 +205,14 @@ const initializeListeners = async (client) => {
                         // msgMarkedForDeletion = false;
                     } else {
                         try {
-                            metadata = await fetchMetadata(firstUrl, message, containsXDotComUrl);
+                            metadata = await fetchMetadata(firstUrl, message, containsXDotComUrl, (s)=>console.log(s));
+                            if (metadata?.error) {
+                                const fallback = metadata.fallback_link || toFixupx(firstUrl);
+                                await message.reply(
+                                    `${metadata.message}\n${fallback ? `→ ${fallback}` : ''}`.trim()
+                                );
+                                return;
+                            }
                             // console.log('>>>>> containsTwitterUrl > CALL-fetchMetadata > metadata: ', metadata);
                         }
                         catch(err) {

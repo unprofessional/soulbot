@@ -1,57 +1,63 @@
+/* eslint-disable no-empty */
 // features/twitter-core/twitter_handler.js
-const { fetchMetadata, fetchQTMetadata } = require('./fetch_metadata.js');
+const { fetchMetadata, fetchQTMetadata, toFixupx } = require('./fetch_metadata.js');
 const { renderTwitterPost } = require('./render_twitter_post.js');
 const { stripQueryParams } = require('./utils.js');
 const { findMessagesByLink } = require('../../store/services/messages.service.js');
 
+// Domains we consider "known" (for optional logging)
 const KNOWN_X_DOMAINS = ['twitter.com','x.com','fixupx.com','vxtwitter.com','fxtwitter.com'];
-const twitterUrlRegex   = /https?:\/\/([\w.-]+)\/\w+\/status\/(?<statusId>\d+)/gi;
-const twitterPattern    = /https?:\/\/twitter\.com\/[a-zA-Z0-9_]+\/status\/\d+/g;
-const xDotComPattern    = /https?:\/\/x\.com\/[a-zA-Z0-9_]+\/status\/\d+/g;
+
+// One global matcher to extract all status URLs from content
+const TW_STATUS_GLOBAL = /https?:\/\/([\w.-]+)\/\w+\/status\/(?<statusId>\d+)/gi;
+
+// Non-global testers (avoid stateful lastIndex)
+const TWITTER_TEST = /https?:\/\/twitter\.com\/[A-Za-z0-9_]+\/status\/\d+/;
+const X_TEST       = /https?:\/\/x\.com\/[A-Za-z0-9_]+\/status\/\d+/;
 
 function replyForError(meta) {
     const code = meta?._fx_code ?? meta?.status ?? meta?.code;
     const msg  = (meta?.message || meta?.details || '').toString();
 
     // 404 variants
-    if (code === 404 || /not[-\s]?found|doesn.?t\s+exist/i.test(msg)) {
-        return 'That post doesn’t exist (deleted or bad link).';
-    }
+    if (code === 404 || /not[-\s]?found|doesn.?t\s+exist/i.test(msg)) return 'That post doesn’t exist (deleted or bad link).';
     // 401 / private / protected
-    if (code === 401 || /private|protected/i.test(msg)) {
-        return 'Post is private (protected).';
-    }
-    // 410 Gone (rare but explicit “removed”)
-    if (code === 410) {
-        return 'That post was removed.';
-    }
+    if (code === 401 || /private|protected/i.test(msg)) return 'Post is private (protected).';
+    // 410 Gone
+    if (code === 410) return 'That post was removed.';
 
-    // Fallback: surface brief debug to help ops
-    return `Upstream error.\n\`\`\`\n${meta?.message || 'Unexpected'}\n${meta?.details || ''}\n\`\`\``;
+    // Fallback: short ops-friendly summary (most cases will already be summarized upstream)
+    return `Upstream error.\n\`\`\`\n${meta?.message || 'Unexpected'}\n\`\`\``;
 }
 
 async function handleTwitterUrl(message, { guildId }) {
-    const content = message.content;
-    const matches = [...content.matchAll(twitterUrlRegex)];
-    if (matches.length > 0) {
-        const { groups: { statusId }, 1: domain } = matches[0];
-        const isKnown = KNOWN_X_DOMAINS.includes((domain||'').toLowerCase());
-        const isModern = statusId?.length >= 15;
-        if (isKnown && (isModern || ['twitter.com','x.com'].includes(domain))) {
-            console.log('\n✅ Valid Twitter/X status detected:', matches[0][0]);
-        }
-    }
-
-    const containsTwitter = twitterPattern.test(content);
-    const containsX = xDotComPattern.test(content);
+    const content = message.content || '';
+    const containsTwitter = TWITTER_TEST.test(content);
+    const containsX       = X_TEST.test(content);
     if (!containsTwitter && !containsX) return;
 
-    await message.suppressEmbeds(true);
+    // Extract first status URL (works for both twitter.com and x.com)
+    const matches = [...content.matchAll(TW_STATUS_GLOBAL)];
+    if (matches.length === 0) return;
 
-    const urls = (containsX ? content.match(xDotComPattern) : content.match(twitterPattern)) || [];
-    const firstUrl = stripQueryParams(urls[0]);
+    const m0 = matches[0];
+    const domain = (m0 && m0[1]) ? String(m0[1]).toLowerCase() : '';
+    const statusId = m0?.groups?.statusId;
+
+    if (domain && KNOWN_X_DOMAINS.includes(domain) && statusId && statusId.length >= 15) {
+        console.log('\n✅ Valid Twitter/X status detected:', m0[0]);
+    }
+
+    try {
+        await message.suppressEmbeds(true).catch(() => {});
+    } catch {}
+
+    const firstUrlRaw = m0[0];
+    const firstUrl = stripQueryParams(firstUrlRaw);
+
+    // De-dup per guild/channel by stored link
     const foundMessages = await findMessagesByLink(guildId, message.id, firstUrl);
-    const existing = foundMessages?.filter(msg => String(msg.message_id) !== String(message.id))?.[0];
+    const existing = foundMessages?.find(msg => String(msg.message_id) !== String(message.id));
     if (existing) {
         const channelId = existing.meta?.thread_id ? existing.meta.threadId : existing.channel_id;
         const link = `https://discord.com/channels/${guildId}/${channelId}/${existing.message_id}`;
@@ -61,17 +67,30 @@ async function handleTwitterUrl(message, { guildId }) {
     try {
         const meta = await fetchMetadata(firstUrl, message, containsX, (s)=>console.log(s));
 
-        // Guard against null/undefined and map errors cleanly
+        if (meta?.error) {
+            const fallback = meta.fallback_link || toFixupx(firstUrl);
+            await message.reply(
+                `${meta.message}\n${fallback ? `→ ${fallback}` : ''}`.trim()
+            );
+            return;
+        }
+
+        // Extra guard (shouldn’t hit with the new summarizer)
         if (!meta || meta.error) {
             return message.reply(replyForError(meta));
         }
 
-        // Pull QT if present (guarded)
+        // Quote-Tweet path (if present)
         if (meta.qrtURL) {
             const qtMeta = await fetchQTMetadata(meta.qrtURL, (s)=>console.log(s));
-            if (!qtMeta?.error) {
-                meta.qtMetadata = qtMeta;
+            if (qtMeta?.error) {
+                const fallback = qtMeta.fallback_link || toFixupx(meta.qrtURL);
+                await message.reply(
+                    `${qtMeta.message}\n${fallback ? `→ ${fallback}` : ''}`.trim()
+                );
+                return;
             }
+            meta.qtMetadata = qtMeta;
         }
 
         console.log('>>>>> core detect > firstUrl:', firstUrl);
@@ -79,7 +98,6 @@ async function handleTwitterUrl(message, { guildId }) {
 
     } catch (err) {
         console.error('[TwitterHandler] metadata fetch failed:', err);
-        // Real network/exception path
         return message.reply('Could not fetch post (network error).');
     }
 }
