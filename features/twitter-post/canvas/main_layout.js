@@ -2,7 +2,7 @@
 
 const { measureGalleryHeight } = require('../image_gallery_rendering.js');
 const { getWrappedText } = require('../../twitter-core/canvas_utils.js');
-const { getMainTextX, computeMainWrapWidth } = require('./geometry.js');
+const { getMainTextX, getMainWrapWidth, MAIN } = require('../../twitter-core/layout/geometry.js');
 const {
     MAIN_FONT,
     MAIN_LINE_HEIGHT,
@@ -39,13 +39,13 @@ function measureMainLayout(ctx, {
     // Always bound length
     metadata.description = trimToMaxChars(metadata.description, MAX_DESC_CHARS);
 
-    const descX = getMainTextX(hasImgs, hasVids);
-    const mainWrapWidth = computeMainWrapWidth(maxWidth, descX, 20);
+    const descX = getMainTextX({ hasImgs, hasVids });
+    const mainWrapWidth = getMainWrapWidth({ canvasW: maxWidth, hasImgs, hasVids });
 
     const descLines = getWrappedText(ctx, metadata.description || '', mainWrapWidth, { preserveEmptyLines: true });
 
-    const baseY = 110;
-    const textHeight = descLines.length * MAIN_LINE_HEIGHT;
+    const baseY = MAIN.baseY;
+    const textHeight = descLines.length * MAIN.lineH;
     const descBottomY = baseY + textHeight;
 
     const { willDrawGallery, ext } = computeWillDrawGallery(images);

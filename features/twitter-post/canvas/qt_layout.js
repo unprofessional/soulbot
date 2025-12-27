@@ -2,6 +2,12 @@
 
 const { scaleDownToFitAspectRatio } = require('../scale_down.js');
 const { getWrappedText } = require('../../twitter-core/canvas_utils.js');
+const {
+    QT,
+    getQtTextX,
+    getQtWrapWidth,
+    getQtInnerRect,
+} = require('../../twitter-core/layout/geometry.js');
 
 function trimToMaxChars(s, maxChars) {
     if ((s?.length ?? 0) > maxChars + 50) return s.slice(0, maxChars) + '…';
@@ -11,33 +17,32 @@ function trimToMaxChars(s, maxChars) {
 /**
  * Calculate the total height needed for the quote-tweet rounded box.
  * IMPORTANT: All geometry *must* match drawQtBasicElements to avoid overflow/extra space.
+ *
+ * This function now derives wrap geometry from shared twitter-core/layout/geometry.js
+ * so it cannot drift from drawQtBasicElements.
  */
 function calculateQuoteHeight(ctx, qtMetadata) {
     const DEBUG = process.env.DEBUG_QT === '1';
     const TAG = '[qt/calcHeight]';
 
     try {
-        const lineHeight = 30;
-        const bottomPadding = 30;
-        const HEADER = 100;
-        const MARGIN_BOTTOM = 8;
+        const lineHeight = QT.lineH;
+        const bottomPadding = QT.bottomPad;
+        const HEADER = QT.headerH;
+        const MARGIN_BOTTOM = QT.marginBottom;
 
         const qtMedia = Array.isArray(qtMetadata.mediaExtended) ? qtMetadata.mediaExtended : [];
         const hasMedia = qtMedia.length > 0;
         const expanded = Boolean(qtMetadata._expandMediaHint);
         const text = qtMetadata.error ? (qtMetadata.message || '') : (qtMetadata.description || '');
 
+        // Font used for measuring (keep in sync with drawer)
         ctx.font = '24px "Noto Color Emoji"';
 
-        const qtX = 20;
-        const boxW = 560;
-        const innerPad = 20;
-        const innerLeft = qtX + innerPad;
-        const innerRight = qtX + boxW - innerPad;
-
-        // drawQtBasicElements: textX = expanded ? innerLeft : (hasMedia ? 230 : 100)
-        const textX = expanded ? innerLeft : (hasMedia ? 230 : 100);
-        const wrapWidth = Math.max(1, innerRight - textX);
+        // Geometry derived from shared rules (must match drawQtBasicElements)
+        const { innerLeft, innerRight } = getQtInnerRect();
+        const textX = getQtTextX({ expandQtMedia: expanded, qtHasMedia: hasMedia });
+        const wrapWidth = getQtWrapWidth({ expandQtMedia: expanded, qtHasMedia: hasMedia });
 
         const lines = getWrappedText(ctx, text, wrapWidth, { preserveEmptyLines: true });
         const descHeight = lines.length * lineHeight;
@@ -49,9 +54,10 @@ function calculateQuoteHeight(ctx, qtMetadata) {
             console.debug(`${TAG} text: lines=${lines.length} lineHeight=${lineHeight} descHeight=${descHeight}`);
         }
 
+        // Expanded layout includes large media under text (when hinted + height provided)
         if (expanded && qtMetadata._expandedMediaHeight) {
             const total =
-                HEADER + descHeight + 20 +
+                HEADER + descHeight + 20 /*gap*/ +
                 qtMetadata._expandedMediaHeight +
                 bottomPadding + MARGIN_BOTTOM;
 
@@ -62,7 +68,8 @@ function calculateQuoteHeight(ctx, qtMetadata) {
             return total;
         }
 
-        const COMPACT_MIN_WITH_MEDIA = 285;
+        // Compact layout (with thumb or no media)
+        const COMPACT_MIN_WITH_MEDIA = QT.compactMinWithMedia;
         const textBlock = HEADER + descHeight + bottomPadding + MARGIN_BOTTOM;
         const total = hasMedia ? Math.max(textBlock, COMPACT_MIN_WITH_MEDIA) : textBlock;
 
@@ -79,34 +86,41 @@ function calculateQuoteHeight(ctx, qtMetadata) {
 
 /**
  * Measure the *text-needed* height for the QT box using the exact same rules as the drawer.
+ * This prevents the drawer from growing the box after canvas height is finalized.
  */
 function measureQtTextNeed(ctx, fontChain, qtMetadata, { expandQtMedia = false } = {}) {
     if (!qtMetadata) return 0;
 
-    const qtX = 20;
-    const boxW = 560;
-    const innerPad = 20;
-    const innerLeft = qtX + innerPad;
-    const innerRight = qtX + boxW - innerPad;
-
     const qtHasMedia = Array.isArray(qtMetadata.mediaExtended) && qtMetadata.mediaExtended.length > 0;
-    const textX = expandQtMedia ? innerLeft : (qtHasMedia ? 230 : 100);
-    const wrapWidth = Math.max(1, innerRight - textX);
 
+    // Geometry must mirror drawQtBasicElements (shared rules)
+    const textX = getQtTextX({ expandQtMedia, qtHasMedia });
+    const wrapWidth = getQtWrapWidth({ expandQtMedia, qtHasMedia });
+
+    // Font MUST match drawer
     ctx.font = `24px ${fontChain}`;
 
     const desc = qtMetadata.error ? (qtMetadata.message || '') : (qtMetadata.description || '');
     const qtLines = getWrappedText(ctx, desc, wrapWidth, { preserveEmptyLines: true });
 
-    const LINE_H = 30;
-    const HEADER = 100;
-    const bottomPadding = 30;
-    const MARGIN_BOTTOM = 8;
+    const LINE_H = QT.lineH;
+    const HEADER = QT.headerH;
+    const bottomPadding = QT.bottomPad;
+    const MARGIN_BOTTOM = QT.marginBottom;
 
     const textHeight = qtLines.length * LINE_H;
+
+    // Height needed from top of QT box to safely contain text + internal bottom padding
+    // NOTE: returned value is relative to top-of-box, not absolute canvas coords.
     return HEADER + textHeight + bottomPadding + MARGIN_BOTTOM;
 }
 
+/**
+ * Computes QT box sizing and whether media should be expanded.
+ * Returns an authoritative qtBoxHeight that should be used consistently for:
+ * - total canvas height calculation
+ * - drawQtBasicElements qtCanvasHeightOffset
+ */
 function computeQtSizing(ctx, {
     qtMetadata,
     qtMedia,
@@ -137,8 +151,11 @@ function computeQtSizing(ctx, {
         const size = qtFirst.size?.width && qtFirst.size?.height
             ? { width: qtFirst.size.width, height: qtFirst.size.height }
             : null;
+
         if (size) {
-            qtExpandedMediaSize = scaleDownToFitAspectRatio(size, 420, 520);
+            // Expanded image is drawn inside inner content width (wrap uses innerRight - innerLeft = 520)
+            // Keep maxW=520 consistent with QT inner width.
+            qtExpandedMediaSize = scaleDownToFitAspectRatio(size, /*maxH*/ 420, /*maxW*/ 520);
             qtMetadata._expandMediaHint = true;
             qtMetadata._expandedMediaHeight = qtExpandedMediaSize.height;
         } else {
@@ -151,17 +168,19 @@ function computeQtSizing(ctx, {
     const qtHasAny = Array.isArray(qtMetadata.mediaExtended) && qtMetadata.mediaExtended.length > 0;
 
     let minByMedia = calcHeight;
+
     if (expandQtMedia) {
+        // Keep consistent with drawer's baseline assumption for expanded layout
         const minExpanded = (qtMetadata._expandedMediaHeight ?? 0) + 150;
         minByMedia = Math.max(minByMedia, minExpanded);
     } else if (qtHasAny) {
-        minByMedia = Math.max(minByMedia, 285);
+        minByMedia = Math.max(minByMedia, QT.compactMinWithMedia);
     }
 
-    // 2) Text-needed height
+    // 2) Text-needed height using *same* wrap/font as drawer
     const textNeed = measureQtTextNeed(ctx, fontChain, qtMetadata, { expandQtMedia });
 
-    // 3) Final
+    // 3) Final box height used for both canvas sizing AND drawing
     const qtBoxHeight = Math.max(minByMedia, textNeed);
 
     return {
