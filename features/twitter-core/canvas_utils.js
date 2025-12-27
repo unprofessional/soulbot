@@ -75,7 +75,7 @@ function drawTextWithSpacing(ctx, text, x, y, letterSpacing = 1) {
 }
 
 function drawBasicElements(ctx, font, metadata, favicon, pfp, descLines, options) {
-    const { yOffset = 0, canvasHeightOffset = 0, hasImgs = false, hasVids = false } = options;
+    const { yOffset = 0, canvasHeightOffset = 0, hasImgs = false, hasVids = false, footerY } = options;
 
     // Top-right icon
     if (favicon) {
@@ -102,11 +102,16 @@ function drawBasicElements(ctx, font, metadata, favicon, pfp, descLines, options
 
     // Footer timestamp — "3:58 PM Eastern · Sep 10, 2025"
     const footerStr = metadata._displayDateFooter || formatTwitterFooter(metadata, { label: 'canvas.basic/footer' });
-    const footerY = Math.max(0, canvasHeightOffset - 20);
+
+    // If footerY provided, use it; otherwise keep legacy behavior
+    const resolvedFooterY = Number.isFinite(footerY)
+        ? footerY
+        : Math.max(0, canvasHeightOffset - 20);
+
     if (footerStr) {
         ctx.fillStyle = 'gray';
         ctx.font = `18px ${font}`;
-        ctx.fillText(footerStr, 30, footerY);
+        ctx.fillText(footerStr, 30, resolvedFooterY);
     }
 
     // Avatar
@@ -403,11 +408,18 @@ function drawDesktopLayout(ctx, font, metadata, favicon, pfp, descLines, options
     // Footer timestamp
     const footerStr = metadata._displayDateFooter || formatTwitterFooter(metadata, { label: 'canvas.desktop/footer' });
     const footerY = Math.max(0, canvasHeightOffset - 20);
+
+    // NEW: if footerY provided, use it; otherwise keep legacy behavior
+    const resolvedFooterY = Number.isFinite(footerY)
+        ? footerY
+        : Math.max(0, canvasHeightOffset - 20);
+
     if (footerStr) {
         ctx.fillStyle = 'gray';
         ctx.font = `18px ${font}`;
-        ctx.fillText(footerStr, padding, footerY);
+        ctx.fillText(footerStr, 30, resolvedFooterY);
     }
+    
 
     // Top-right icon
     if (favicon) {

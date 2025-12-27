@@ -2,7 +2,10 @@
 // features/twitter-post/twitter_canvas.js
 
 const { registerFont, createCanvas, loadImage } = require('canvas');
-const { renderImageGallery } = require('./image_gallery_rendering.js');
+const {
+    renderImageGallery,
+    measureGalleryHeight,
+} = require('./image_gallery_rendering.js');
 const { scaleDownToFitAspectRatio } = require('./scale_down.js');
 const {
     getWrappedText,
@@ -11,10 +14,8 @@ const {
     drawQtBasicElements,
     drawQtDesktopLayout,
     drawQtMissingStatus,
-    getYPosFromLineHeight,
 } = require('../twitter-core/canvas_utils.js');
-const { collectMedia } = require('../twitter-core/utils.js');
-const { formatTwitterDate } = require('../twitter-core/utils.js');
+const { collectMedia, formatTwitterDate, formatTwitterFooter } = require('../twitter-core/utils.js');
 
 /* ----------------------------- Helpers & Fonts ----------------------------- */
 
@@ -41,7 +42,12 @@ function getMaxHeight(numImgs) {
 // Main body font/metrics used in both measure and draw
 const MAIN_LINE_HEIGHT = 30;
 const MAIN_FONT = '24px "Noto Color Emoji"';
-const CANVAS_BOTTOM_PAD = 3;
+
+// Spacing controls for consistent vertical rhythm (text ↔ media ↔ footer)
+const GAP_TEXT_TO_MEDIA = Number(process.env.CANVAS_GAP_TEXT_TO_MEDIA || 14);
+const GAP_MEDIA_TO_FOOTER = Number(process.env.CANVAS_GAP_MEDIA_TO_FOOTER || 14);
+const FOOTER_LINE_H = Number(process.env.CANVAS_FOOTER_LINE_H || 24);
+
 const DEFAULT_BOTTOM_PAD_NO_QT = Number(process.env.CANVAS_BOTTOM_PAD_NO_QT || 8);
 const DEFAULT_BOTTOM_PAD_WITH_QT = Number(process.env.CANVAS_BOTTOM_PAD_WITH_QT || 16);
 
@@ -116,9 +122,9 @@ function calculateQuoteHeight(ctx, qtMetadata) {
 
         if (expanded && qtMetadata._expandedMediaHeight) {
             const total =
-        HEADER + descHeight + 20 /*gap*/ +
-        qtMetadata._expandedMediaHeight +
-        bottomPadding + MARGIN_BOTTOM;
+                HEADER + descHeight + 20 /*gap*/ +
+                qtMetadata._expandedMediaHeight +
+                bottomPadding + MARGIN_BOTTOM;
 
             DEBUG && console.debug(
                 `${TAG} [expanded] parts: HEADER=${HEADER} desc=${descHeight} gap=20 media=${qtMetadata._expandedMediaHeight} bottomPad=${bottomPadding} marginBottom=${MARGIN_BOTTOM} => total=${total}`
@@ -226,7 +232,7 @@ async function createTwitterCanvas(metadataJson, isImage) {
         created_timestamp: metadataJson.created_timestamp ?? null,
         created_at: metadataJson.created_at ?? null,
 
-        // 🔽 use robust extractor; keep trailing t.co stripper
+        // robust extractor; keep trailing t.co stripper
         description: getBestText(metadataJson).replace(/\s+https?:\/\/t\.co\/\w+$/i, ''),
 
         mediaUrls: metadataJson.mediaURLs,
@@ -236,9 +242,12 @@ async function createTwitterCanvas(metadataJson, isImage) {
 
     // Precompute display date (robust)
     metadata._displayDate = formatTwitterDate(metadataJson, { label: 'canvas.metaJson→displayDate' });
+    metadata._displayDateFooter = formatTwitterFooter(metadata, { label: 'canvas.pre/footer' });
+
     console.debug('[date] canvas.meta', {
         from_meta: { date: metadata.date, date_epoch: metadata.date_epoch, created_timestamp: metadata.created_timestamp },
         _displayDate: metadata._displayDate,
+        _displayDateFooter: metadata._displayDateFooter,
     });
 
     // --- Quoted tweet normalization (if present) ---
@@ -273,6 +282,8 @@ async function createTwitterCanvas(metadataJson, isImage) {
 
     if (qtMetadata) {
         qtMetadata._displayDate = formatTwitterDate(qt, { label: 'canvas.qt→displayDate' });
+        qtMetadata._displayDateFooter = formatTwitterFooter(qtMetadata, { label: 'canvas.qt/footer' });
+
         console.debug('[date] canvas.qt.meta', {
             from_qt: {
                 date: qtMetadata.date,
@@ -280,6 +291,7 @@ async function createTwitterCanvas(metadataJson, isImage) {
                 created_timestamp: qtMetadata.created_timestamp,
             },
             _displayDate: qtMetadata._displayDate,
+            _displayDateFooter: qtMetadata._displayDateFooter,
         });
     }
 
@@ -303,9 +315,9 @@ async function createTwitterCanvas(metadataJson, isImage) {
         if (size) {
             mediaObj = scaleDownToFitAspectRatio(size, mediaMaxHeight, 560);
             heightShim =
-        (images.length < 2 && mediaObj.width > mediaObj.height)
-            ? mediaObj.height * (560 / mediaObj.width)
-            : Math.min(mediaObj.height, mediaMaxHeight);
+                (images.length < 2 && mediaObj.width > mediaObj.height)
+                    ? mediaObj.height * (560 / mediaObj.width)
+                    : Math.min(mediaObj.height, mediaMaxHeight);
         }
     }
 
@@ -327,12 +339,33 @@ async function createTwitterCanvas(metadataJson, isImage) {
     // Base text top Y matches earlier logic
     const baseY = 110;
     const textHeight = descLines.length * MAIN_LINE_HEIGHT;
-
-    // Height where the body content ends (before gallery / QT, etc.)
     const descBottomY = baseY + textHeight;
 
-    // Allow some breathing room + any media shim
-    const descHeight = descBottomY + 40 + heightShim;
+    // Determine if we will render an image gallery (same gate as renderer expects)
+    const firstThumbUrl = images[0]?.thumbnail_url || images[0]?.url || null;
+    const extMatch = firstThumbUrl ? firstThumbUrl.match(/\.(jpe?g|png)(\?|#|$)/i) : null;
+    const ext = extMatch ? extMatch[1].toLowerCase() : null;
+    const allowedExts = ['jpg', 'jpeg', 'png'];
+    const willDrawGallery = Boolean(ext && allowedExts.includes(ext));
+
+    // Compute media placement + deterministic gallery height (no image loading needed)
+    const mediaY = willDrawGallery ? (descBottomY + GAP_TEXT_TO_MEDIA) : 0;
+    const galleryH = willDrawGallery ? measureGalleryHeight(metadata, mediaMaxHeight, 560) : 0;
+
+    // Footer placement: make media→footer gap match text→media gap (or controlled separately)
+    // Note: fillText uses baseline. Approximating baseline offset by font size (18px).
+    const FOOTER_FONT_SIZE = 18;
+    const footerBaselineY = willDrawGallery
+        ? (mediaY + galleryH + GAP_MEDIA_TO_FOOTER + FOOTER_FONT_SIZE)
+        : (descBottomY + 40); // legacy-ish rhythm when no media
+
+    // Authoritative "body bottom" (where QT starts, and where canvas ends if no QT)
+    const bodyBottomY = willDrawGallery
+        ? (mediaY + galleryH + GAP_MEDIA_TO_FOOTER + FOOTER_LINE_H)
+        : (footerBaselineY + FOOTER_LINE_H);
+
+    // This is what downstream code uses as canvasHeightOffset / QT start
+    const descHeight = bodyBottomY;
 
     console.debug('[canvas.body]', {
         descX,
@@ -341,16 +374,29 @@ async function createTwitterCanvas(metadataJson, isImage) {
         textHeight,
         baseY,
         descBottomY,
+        willDrawGallery,
+        mediaY,
+        galleryH,
+        footerBaselineY,
+        bodyBottomY,
+        // keep for reference (legacy estimate)
         heightShim,
         descHeight,
     });
 
     // Optional debug overlay for the text block
     debugRect(ctx, descX, baseY - MAIN_LINE_HEIGHT + 6, mainWrapWidth, textHeight, `Main text (w=${mainWrapWidth})`);
+    if (process.env.DEBUG_CANVAS_BOXES === '1' && willDrawGallery) {
+        debugRect(ctx, 20, mediaY, 560, galleryH, `Gallery (h=${galleryH})`);
+        // baseline marker
+        debugRect(ctx, 30, footerBaselineY - FOOTER_FONT_SIZE, 540, FOOTER_LINE_H, 'Footer line box');
+    }
 
     log('main', {
         numImgs, numVids, hasImgs, hasVids, onlyVids,
         mediaMaxHeight, mediaObj, heightShim,
+        willDrawGallery,
+        galleryH,
         textLen: (metadata.description || '').length,
         descLines: descLines.length,
         descHeight, baseY,
@@ -359,7 +405,7 @@ async function createTwitterCanvas(metadataJson, isImage) {
     /* -------------------- Quote tweet sizing & expansion (final) ------------------- */
     const MAX_QT_DESC_CHARS = 500;
 
-    let qtBoxHeight = 0;      // <- authoritative height we will use everywhere
+    let qtBoxHeight = 0;      // authoritative height we will use everywhere
     let expandQtMedia = false;
     let qtExpandedMediaSize = null;
 
@@ -417,13 +463,11 @@ async function createTwitterCanvas(metadataJson, isImage) {
     }
 
     /* ------------------------- Final canvas height & draw ------------------------- */
-    // Add a little margin below the QT box so it doesn't butt against the image bottom
     const extraBottomPad = qtMetadata ? DEFAULT_BOTTOM_PAD_WITH_QT : DEFAULT_BOTTOM_PAD_NO_QT;
     const totalHeight = descHeight + qtBoxHeight + extraBottomPad;
 
     canvas.height = totalHeight;
     ctx.fillRect(0, 0, maxWidth, totalHeight);
-
 
     // Optional bottom-edge guide line (DEBUG)
     if (process.env.DEBUG_CANVAS_BOXES === '1') {
@@ -453,6 +497,7 @@ async function createTwitterCanvas(metadataJson, isImage) {
             hasVids,
             yOffset: baseY,
             canvasHeightOffset: descHeight,
+            footerY: footerBaselineY, // supported if you add footerY override in desktop, otherwise ignored
         });
     } else {
         drawBasicElements(ctx, fontChain, metadata, favicon, pfp, descLines, {
@@ -460,6 +505,7 @@ async function createTwitterCanvas(metadataJson, isImage) {
             hasVids,
             yOffset: baseY,
             canvasHeightOffset: descHeight,
+            footerY: footerBaselineY, // requires drawBasicElements footerY override (recommended)
         });
     }
 
@@ -476,7 +522,7 @@ async function createTwitterCanvas(metadataJson, isImage) {
         log('qt:draw', {
             qtUseDesktopLayout,
             canvasHeightOffset: descHeight,
-            qtCanvasHeightOffset: qtBoxHeight, // <- use clamped height
+            qtCanvasHeightOffset: qtBoxHeight,
             expandQtMedia,
             expandedMediaSize: qtExpandedMediaSize,
             qtPfpLoaded: Boolean(qtPfp),
@@ -503,27 +549,23 @@ async function createTwitterCanvas(metadataJson, isImage) {
         }
     }
 
-    // Optional: draw gallery thumbnails for main tweet
-    const firstThumbUrl = images[0]?.thumbnail_url || images[0]?.url || null;
-    const extMatch = firstThumbUrl ? firstThumbUrl.match(/\.(jpe?g|png)(\?|#|$)/i) : null;
-    const ext = extMatch ? extMatch[1].toLowerCase() : null;
-    const allowedExts = ['jpg', 'jpeg', 'png'];
-
-    if (ext && allowedExts.includes(ext)) {
+    // --- Draw gallery thumbnails for main tweet (only if supported ext) ---
+    if (willDrawGallery) {
         log('gallery', {
             ext,
-            atY: getYPosFromLineHeight(descLines, baseY),
-            heightShim,
+            atY: mediaY,
             mediaMaxHeight,
+            galleryH,
         });
+
         await renderImageGallery(
             ctx,
             metadata,
             descHeight,
-            heightShim,
+            heightShim,        // retained for legacy fallback paths inside renderer
             mediaMaxHeight,
             560,
-            getYPosFromLineHeight(descLines, baseY)
+            mediaY             // authoritative Y
         );
     }
 

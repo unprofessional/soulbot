@@ -4,10 +4,14 @@ const { loadImage } = require('canvas');
 const { cropSingleImage } = require('./crop_single_image.js');
 const { scaleDownToFitAspectRatio } = require('./scale_down.js');
 
+// features/twitter-post/image_gallery_rendering.js
+
+// ...existing imports...
+
 // Layout constants
-const LEFT_X = 20;           // left margin
-const COL_GUTTER_X = 10;     // space between left/right columns
-const ROW_GUTTER_Y = 10;     // space between stacked tiles in right column
+const LEFT_X = 20;
+const COL_GUTTER_X = 10;
+const ROW_GUTTER_Y = 10;
 
 // Helpers --------------------------------------------------------------------
 
@@ -28,12 +32,14 @@ function getSize(m) {
     return (w && h) ? { width: w, height: h } : null;
 }
 
-// If caller provided a default Y position (from text flow), prefer it.
-// Otherwise, fall back to descHeight - heightShim - 50 (legacy behavior).
 function computeBaseY(defaultYPosition, calculatedCanvasHeightFromDescLines, heightShim) {
+    // If caller provides a Y, trust it (this is now the normal path)
     if (Number.isFinite(defaultYPosition)) return Math.max(0, defaultYPosition);
-    return Math.max(0, (calculatedCanvasHeightFromDescLines || 0) - (heightShim || 0) - 50);
+
+    // Fallback only for older callers; keep behavior but do not “mystery offset”
+    return Math.max(0, (calculatedCanvasHeightFromDescLines || 0) - (heightShim || 0));
 }
+
 
 // Draws an image with a rounded-rect mask (centered horizontally)
 function drawRounded(ctx, img, x, y, w, h, radius = 15) {
@@ -90,6 +96,34 @@ async function singleVideoFrame(ctx, mediaUrl, descHeight, heightShim, mediaMaxH
         cropSingleImage(ctx, img, mediaMaxWidth, mediaMaxHeight, x, y, { tag: 'gallery/video' });
     }
     return true;
+}
+
+function measureGalleryHeight(metadata, mediaMaxHeight, mediaMaxWidth) {
+    const items = getItems(metadata).slice(0, 4);
+    if (!items.length) return 0;
+
+    const firstSize = getSize(items[0]) || { width: mediaMaxWidth, height: mediaMaxHeight };
+    const scaled1 = scaleDownToFitAspectRatio(firstSize, mediaMaxHeight, mediaMaxWidth);
+
+    const n = items.length;
+
+    if (n === 1) {
+        return scaled1.height;
+    }
+
+    if (n === 2) {
+        // side-by-side, height matched to first scaled
+        return scaled1.height;
+    }
+
+    if (n === 3) {
+        // left tall defines total height
+        return scaled1.height;
+    }
+
+    // n >= 4 => 2x2 grid
+    const tileH = Math.round(scaled1.height / 2);
+    return tileH * 2 + ROW_GUTTER_Y;
 }
 
 // Main renderer ---------------------------------------------------------------
@@ -170,4 +204,5 @@ module.exports = {
     singleImage,
     singleVideoFrame,
     renderImageGallery,
+    measureGalleryHeight,
 };
