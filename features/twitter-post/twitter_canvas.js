@@ -2,16 +2,13 @@
 // features/twitter-post/twitter_canvas.js
 
 const { createCanvas } = require('canvas');
-
 const { renderImageGallery } = require('./image_gallery_rendering.js');
-
 const {
     drawBasicElements,
     drawDesktopLayout,
     drawQtBasicElements,
     drawQtDesktopLayout,
 } = require('../twitter-core/canvas_utils.js');
-
 const { registerFonts } = require('./canvas/fonts.js');
 const {
     MAX_WIDTH,
@@ -24,7 +21,6 @@ const {
     FOOTER_LINE_H,
     FOOTER_FONT_SIZE,
 } = require('./canvas/constants.js');
-
 const { debugRect } = require('./canvas/debug.js');
 const { safeLoadImage } = require('./canvas/safe_load_image.js');
 const { normalizeMainMetadata, normalizeQtMetadata } = require('./canvas/metadata_normalize.js');
@@ -42,7 +38,7 @@ async function createTwitterCanvas(metadataJson, isImage) {
     ctx.fillStyle = '#000';
     ctx.textDrawingMode = 'glyph';
 
-    const log = (...args) => { try { console.debug('[twitter_canvas]', ...args); } catch {} };
+    const log = (...args) => { try { console.debug('[twitter_canvas]', ...args); } catch { } };
 
     // --- Normalize incoming metadata (names kept for downstream compatibility) ---
     console.debug('[date] canvas.input', {

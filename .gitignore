@@ -21,9 +21,6 @@
 .env.production.local
 .history
 
-# VSCode folder and files
-**/.vscode/
-
 # secrets
 secrets.*.js
 /.nova

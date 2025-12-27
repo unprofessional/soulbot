@@ -1,0 +1,35 @@
+{
+  "editor.insertSpaces": true,
+  "editor.tabSize": 4,
+  "editor.detectIndentation": false,
+  "files.insertFinalNewline": true,
+  "files.trimTrailingWhitespace": true,
+  "files.eol": "\n",
+
+  "editor.formatOnSave": false,
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": "explicit",
+    "source.organizeImports": "explicit",
+  },
+
+  "eslint.validate": ["javascript", "javascriptreact"],
+  "eslint.format.enable": false,
+
+  "javascript.preferences.importModuleSpecifier": "relative",
+  "typescript.preferences.importModuleSpecifier": "relative",
+  "javascript.preferences.updateImportsOnFileMove.enabled": "always",
+  "typescript.preferences.updateImportsOnFileMove.enabled": "always",
+
+  "[javascript]": {
+    "editor.tabSize": 4,
+    "editor.insertSpaces": true
+  },
+  "[json]": {
+    "editor.tabSize": 4,
+    "editor.insertSpaces": true
+  },
+  "[jsonc]": {
+    "editor.tabSize": 4,
+    "editor.insertSpaces": true
+  }
+}
