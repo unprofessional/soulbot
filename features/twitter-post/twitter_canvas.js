@@ -9,7 +9,6 @@ const {
     drawQtBasicElements,
     drawQtDesktopLayout,
 } = require('../twitter-core/canvas_utils.js');
-const { registerFonts } = require('./canvas/fonts.js');
 const {
     MAX_WIDTH,
     INITIAL_HEIGHT,
@@ -29,7 +28,6 @@ const { computeQtSizing } = require('./canvas/qt_layout.js');
 const { scaleDownToFitAspectRatio } = require('./scale_down.js'); // retained because you used it directly for main media sizing
 
 async function createTwitterCanvas(metadataJson, isImage) {
-    registerFonts();
 
     const fontChain = '"Noto Color Emoji", "Noto Sans CJK", "Noto Sans Math"';
 

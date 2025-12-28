@@ -1,22 +1,10 @@
 // features/twitter-video/twitter_video_canvas.js
 
 const { existsSync, mkdirSync, writeFileSync } = require('node:fs');
-const { registerFont, createCanvas, loadImage } = require('canvas');
+const { createCanvas, loadImage } = require('canvas');
 const { buildPathsAndStuff } = require('../twitter-core/path_builder.js');
 const { getWrappedText, drawBasicElements } = require('../twitter-core/canvas_utils.js');
 const { collectMedia, formatTwitterDate } = require('../twitter-core/utils.js');
-
-const FONT_PATHS = [
-    ['/truetype/noto/NotoColorEmoji.ttf', 'Noto Color Emoji'],
-    ['/truetype/noto/NotoSansMath-Regular.ttf', 'Noto Sans Math'],
-    ['/opentype/noto/NotoSansCJK-VF.ttf.ttc', 'Noto Sans CJK'],
-];
-
-function registerFonts(basePath = '/usr/share/fonts') {
-    FONT_PATHS.forEach(([relativePath, family]) => {
-        registerFont(`${basePath}${relativePath}`, { family });
-    });
-}
 
 function calculateCanvasHeight(lines, baseY, heightShim, lineHeight = 30, padding = 40) {
     return (lines.length * lineHeight) + baseY + padding + heightShim;
@@ -67,7 +55,6 @@ async function createTwitterVideoCanvas(metadataJson) {
     // Precompute display date (drawer can also compute; this is for parity/logs)
     metadata._displayDate = formatTwitterDate(metadataJson, { label: 'videoCanvas/metaJson→displayDate' });
 
-    registerFonts();
     const globalFont = '"Noto Color Emoji", "Noto Sans CJK", "Noto Sans Math"';
 
     const canvasWidth = 600;

@@ -1,14 +1,7 @@
 // features/twitter-core/thread_snapshot_canvas.js
 
-const { createCanvas, loadImage, registerFont } = require('canvas');
+const { createCanvas, loadImage } = require('canvas');
 const { threadBubbleWrapText } = require('./canvas_utils');
-
-// Paths to various fonts for multilingual + emoji support
-const FONT_PATHS = [
-    ['/truetype/noto/NotoColorEmoji.ttf', 'Noto Color Emoji'],
-    ['/truetype/noto/NotoSansMath-Regular.ttf', 'Noto Sans Math'],
-    ['/opentype/noto/NotoSansCJK-VF.ttf.ttc', 'Noto Sans CJK'],
-];
 
 // Layout constants
 const MAX_WIDTH = 1080;
@@ -23,12 +16,6 @@ const INNER_BUBBLE_PADDING = 24;
 const THUMB_WIDTH = 96;
 const THUMB_HEIGHT = 96;
 const THUMB_MARGIN_RIGHT = 12;
-
-function registerFonts(baseFontUrl = '/usr/share/fonts') {
-    FONT_PATHS.forEach(([path, family]) =>
-        registerFont(`${baseFontUrl}${path}`, { family })
-    );
-}
 
 function formatTimePassed(msDelta) {
     const seconds = Math.floor(msDelta / 1000);
@@ -198,7 +185,6 @@ async function renderPost(ctx, post, y, isOriginating = false) {
 }
 
 async function renderThreadSnapshotCanvas({ posts, isTruncated }) {
-    registerFonts();
 
     const tmpCanvas = createCanvas(1, 1);
     const tmpCtx = tmpCanvas.getContext('2d');

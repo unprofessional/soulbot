@@ -4,10 +4,12 @@ const { initializeDataStore } = require('./initial_store.js');
 const { initializeListeners } = require('./message_listeners/core.js');
 const { initializeCommands } = require('./initial_commands.js');
 const { initializeGuildMemberUpdate } = require('./events/guild_member_update.js');
-const { initializeGuildMemberAdd } = require('./events/guild_member_add.js');
 const { initializeGuildMemberRemove } = require('./events/guild_member_remove.js');
 const { testPgConnection, initializeDB } = require('./store/db/db.js');
 const { testChromaConnection } = require('./features/ollama/embed.js');
+const { registerFonts } = require('./features/twitter-post/canvas/fonts.js');
+const { initializeGuildMemberAdd } = require('./events/guild_member_add.js');
+
 require('dotenv').config();
 
 const token = process.env.DISCORD_BOT_TOKEN;
@@ -18,30 +20,43 @@ const memberFile = process.env.MEMBER_STORE_FILE;
 const featureFile = process.env.FEATURE_STORE_FILE;
 const runMode = process.env.RUN_MODE || 'development';
 
-// const clientId = process.env.DISCORD_CLIENT_ID;
-// console.log('>>>>> THE_INDEX > token: ', token);
-// console.log('>>>>> THE_INDEX > clientId: ', clientId);
-
 const initializeApp = async () => {
-    // CI/Build/Function test
+    // CI / build-time sanity check
     if (runMode === 'test') {
-        console.log("Syntax check passed.");
+        console.log('Syntax check passed.');
         process.exit(0);
     }
 
+    /**
+     * Font bootstrap (process-global)
+     * Must happen before ANY canvas is created.
+     */
+    try {
+        const { registered, skipped } = registerFonts();
+        console.log(
+            `----- Fonts: registered=${registered.length}, skipped=${skipped.length}`
+        );
+    } catch (error) {
+        console.error('----- Fonts: failed to register fonts:', error);
+        process.exit(1);
+    }
+
+    /**
+     * Data stores
+     */
     [
         guildFile,
         channelFile,
         memberFile,
         featureFile,
     ].forEach((file) => {
-        console.log('>>>>> file: ', file);
         const filePath = `${path}/${file}`;
-        console.log('>>>>> filePath: ', filePath);
         initializeDataStore(filePath);
     });
 
-    // Client
+    /**
+     * Client lifecycle
+     */
     client.on(Events.ClientReady, () => {
         console.log(`----- Events: Logged in as ${client.user.tag}`);
     });
@@ -52,7 +67,9 @@ const initializeApp = async () => {
         console.error('----- Events: Warn:', warning);
     });
 
-    // ShardEvents
+    /**
+     * Shard events
+     */
     client.on(ShardEvents.Disconnect, () => {
         console.log('----- ShardEvents: Disconnect');
     });
@@ -75,7 +92,9 @@ const initializeApp = async () => {
         console.error('----- ShardEvents: Spawn');
     });
 
-    // Websockets
+    /**
+     * WebSocket events
+     */
     client.on(WebSocketShardEvents.Ready, () => {
         console.log('----- WebSocketShardEvents: Ready');
     });
@@ -95,25 +114,37 @@ const initializeApp = async () => {
         console.error('----- WebSocketShardEvents: InvalidSession');
     });
 
+    /**
+     * Feature initialization
+     */
     initializeListeners(client);
     initializeCommands(client);
     initializeGuildMemberUpdate(client);
     initializeGuildMemberAdd(client);
     initializeGuildMemberRemove(client);
 
+    /**
+     * Persistence / external services
+     */
     await testPgConnection();
+
     try {
         const result = await testChromaConnection();
         console.log(result);
     } catch (error) {
         console.error('ChromaDB connection test failed:', error.message);
-        // process.exit(1); // Exit if ChromaDB is not reachable
+        // intentionally non-fatal
     }
+
     await initializeDB();
 
-    client.login(token);
+    /**
+     * Login last — nothing should create canvases before this point
+     */
+    await client.login(token);
 };
 
 initializeApp().catch((error) => {
     console.error('Error during initialization:', error);
+    process.exit(1);
 });
