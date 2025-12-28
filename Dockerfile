@@ -12,10 +12,23 @@ RUN apt-get update && apt-get install -y \
 # Install ffmpeg and ffprobe
 RUN apt-get update && apt-get install -y ffmpeg
 
-# Copy the Noto Color Emoji font into the image
-COPY fonts/truetype/noto/NotoColorEmoji.ttf /usr/share/fonts/truetype/noto/NotoColorEmoji.ttf
-COPY fonts/truetype/noto/NotoSansMath-Regular.ttf /usr/share/fonts/truetype/noto/NotoSansMath-Regular.ttf
-COPY fonts/opentype/noto/NotoSansCJK-VF.ttf.ttc /usr/share/fonts/opentype/noto/NotoSansCJK-VF.ttf.ttc
+# Copy Noto fonts into the image
+COPY fonts/truetype/noto/NotoColorEmoji.ttf \
+     /usr/share/fonts/truetype/noto/NotoColorEmoji.ttf
+
+COPY fonts/truetype/noto/NotoSansMath-Regular.ttf \
+     /usr/share/fonts/truetype/noto/NotoSansMath-Regular.ttf
+
+COPY fonts/truetype/noto/NotoSansBamum-Regular.ttf \
+     /usr/share/fonts/truetype/noto/NotoSansBamum-Regular.ttf
+
+COPY fonts/truetype/noto/NotoSansEgyptianHieroglyphs-Regular.ttf \
+     /usr/share/fonts/truetype/noto/NotoSansEgyptianHieroglyphs-Regular.ttf
+
+COPY fonts/opentype/noto/NotoSansCJK-VF.ttf.ttc \
+     /usr/share/fonts/opentype/noto/NotoSansCJK-VF.ttf.ttc
+
+RUN apt-get install -y fontconfig && fc-cache -f -v
 
 # set /app directory as default working directory
 WORKDIR /app/
