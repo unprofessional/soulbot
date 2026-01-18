@@ -163,12 +163,12 @@ function drawQtBasicElements(ctx, fontChain, metadata, pfp, mediaObj, options) {
             }
             ctx.restore();
 
-            // Border
-            ctx.save();
-            ctx.strokeStyle = '#4d4d4d';
-            ctx.lineWidth = 2;
-            ctx.strokeRect(mediaX, mediaY, w, h);
-            ctx.restore();
+            // DEBUG Border (DEBUG ONLY)
+            // ctx.save();
+            // ctx.strokeStyle = '#4d4d4d';
+            // ctx.lineWidth = 2;
+            // ctx.strokeRect(mediaX, mediaY, w, h);
+            // ctx.restore();
 
             logRect('[expanded] drawn', mediaX, mediaY, w, h);
         }
