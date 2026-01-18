@@ -7,7 +7,19 @@ function getBestText(p) {
 }
 
 function stripTrailingTco(s) {
-    return (s || '').replace(/\s+https?:\/\/t\.co\/\w+$/i, '');
+    const str = String(s || '');
+
+    // Remove a trailing t.co link even if:
+    // - there is no leading whitespace (tweet is ONLY the link)
+    // - there are trailing spaces/newlines
+    // - the short code contains non-\w chars (t.co can include mixed case; be permissive)
+    //
+    // Examples handled:
+    // "https://t.co/AbC123"
+    // "text https://t.co/AbC123"
+    // "https://t.co/AbC123\n"
+    // "https://t.co/AbC123  "
+    return str.replace(/(?:^|\s)https?:\/\/t\.co\/[^\s]+[\s]*$/i, '').trimEnd();
 }
 
 function getEpochMs(obj) {
@@ -69,6 +81,12 @@ function normalizeMainMetadata(metadataJson) {
         mediaExtended: media,
         communityNote: stripTrailingTco(metadataJson.communityNote || ''),
     };
+
+    console.debug('[desc] normalized', {
+        raw: getBestText(metadataJson),
+        stripped: metadata.description,
+        len: (metadata.description || '').length,
+    });
 
     metadata._displayDate = formatTwitterDate(metadataJson, { label: 'canvas.metaJson→displayDate' });
     metadata._displayDateFooter = formatTwitterFooter(metadata, { label: 'canvas.pre/footer' });
