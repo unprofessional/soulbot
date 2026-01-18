@@ -9,10 +9,11 @@ function numEnv(key, fallback) {
 const MAIN_LINE_HEIGHT = 30;
 const MAIN_FONT = '24px "Noto Color Emoji"';
 
-// Spacing controls for consistent vertical rhythm (text ↔ media ↔ footer)
-const GAP_TEXT_TO_MEDIA = numEnv('CANVAS_GAP_TEXT_TO_MEDIA', 14);
+// Spacing controls for consistent vertical rhythm (text ↔ media ↔ footer ↔ QT)
+const GAP_TEXT_TO_MEDIA = numEnv('CANVAS_GAP_TEXT_TO_MEDIA', 8);      // was 14
 const GAP_MEDIA_TO_FOOTER = numEnv('CANVAS_GAP_MEDIA_TO_FOOTER', 14);
 const FOOTER_LINE_H = numEnv('CANVAS_FOOTER_LINE_H', 24);
+const GAP_FOOTER_TO_QT = numEnv('CANVAS_GAP_FOOTER_TO_QT', 16);       // NEW
 
 const DEFAULT_BOTTOM_PAD_NO_QT = numEnv('CANVAS_BOTTOM_PAD_NO_QT', 8);
 const DEFAULT_BOTTOM_PAD_WITH_QT = numEnv('CANVAS_BOTTOM_PAD_WITH_QT', 16);
@@ -37,6 +38,7 @@ module.exports = {
     GAP_TEXT_TO_MEDIA,
     GAP_MEDIA_TO_FOOTER,
     FOOTER_LINE_H,
+    GAP_FOOTER_TO_QT,
 
     DEFAULT_BOTTOM_PAD_NO_QT,
     DEFAULT_BOTTOM_PAD_WITH_QT,

@@ -14,11 +14,11 @@ const {
     INITIAL_HEIGHT,
     DEFAULT_BOTTOM_PAD_NO_QT,
     DEFAULT_BOTTOM_PAD_WITH_QT,
-    MAX_DESC_CHARS,
     MAX_QT_DESC_CHARS,
     getMaxHeight,
     FOOTER_LINE_H,
     FOOTER_FONT_SIZE,
+    GAP_FOOTER_TO_QT, // NEW
 } = require('./canvas/constants.js');
 const { debugRect } = require('./canvas/debug.js');
 const { safeLoadImage } = require('./canvas/safe_load_image.js');
@@ -134,7 +134,11 @@ async function createTwitterCanvas(metadataJson, isImage) {
     } = main;
 
     // This is what downstream code uses as canvasHeightOffset / QT start
-    const descHeight = bodyBottomY;
+    const mainBodyBottomY = bodyBottomY;
+    const qtStartY = qtMetadata ? (mainBodyBottomY + GAP_FOOTER_TO_QT) : mainBodyBottomY;
+
+    // Keep descHeight meaning “end of main body” for downstream logic that depends on it
+    const descHeight = mainBodyBottomY;
 
     console.debug('[canvas.body]', {
         descX,
@@ -206,7 +210,11 @@ async function createTwitterCanvas(metadataJson, isImage) {
 
     /* ------------------------- Final canvas height & draw ------------------------- */
     const extraBottomPad = qtMetadata ? DEFAULT_BOTTOM_PAD_WITH_QT : DEFAULT_BOTTOM_PAD_NO_QT;
-    const totalHeight = descHeight + qtBoxHeight + extraBottomPad;
+
+    // QT starts at qtStartY (not descHeight) to create space after main footer
+    const totalHeight = qtMetadata
+        ? (qtStartY + qtBoxHeight + extraBottomPad)
+        : (descHeight + extraBottomPad);
 
     canvas.height = totalHeight;
     ctx.fillRect(0, 0, MAX_WIDTH, totalHeight);
@@ -272,14 +280,14 @@ async function createTwitterCanvas(metadataJson, isImage) {
 
         if (qtUseDesktopLayout) {
             drawQtDesktopLayout(ctx, fontChain, qtMetadata, qtPfp, qtMediaImg, {
-                canvasHeightOffset: descHeight,
+                canvasHeightOffset: qtStartY, // was descHeight
                 qtCanvasHeightOffset: qtBoxHeight,
                 expandQtMedia,
                 expandedMediaSize: expandQtMedia ? qtExpandedMediaSize : null,
             });
         } else {
             drawQtBasicElements(ctx, fontChain, qtMetadata, qtPfp, qtMediaImg, {
-                canvasHeightOffset: descHeight,
+                canvasHeightOffset: qtStartY, // was descHeight
                 qtCanvasHeightOffset: qtBoxHeight,
                 hasImgs,
                 hasVids,
