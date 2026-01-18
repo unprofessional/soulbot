@@ -25,7 +25,6 @@ function computeWillDrawGallery(images) {
     const extMatch = firstThumbUrl ? firstThumbUrl.match(/\.(jpe?g|png)(\?|#|$)/i) : null;
     const ext = extMatch ? extMatch[1].toLowerCase() : null;
 
-    // keep explicit allowlist
     const allowedExts = new Set(['jpg', 'jpeg', 'png']);
     return { willDrawGallery: Boolean(ext && allowedExts.has(ext)), ext };
 }
@@ -46,7 +45,7 @@ function measureMainLayout(ctx, {
     const descX = getMainTextX({ hasImgs, hasVids });
     const mainWrapWidth = getMainWrapWidth({ canvasW: maxWidth, hasImgs, hasVids });
 
-    // IMPORTANT: avoid phantom empty line height when description is blank
+    // Avoid phantom empty line height when description is blank
     const rawDesc = metadata.description || '';
     const hasVisibleDesc = rawDesc.trim().length > 0;
 
@@ -60,7 +59,13 @@ function measureMainLayout(ctx, {
 
     const { willDrawGallery, ext } = computeWillDrawGallery(images);
 
-    const mediaY = willDrawGallery ? (descBottomY + GAP_TEXT_TO_MEDIA) : 0;
+    // When there is no visible description, anchor media closer to header instead of MAIN.baseY.
+    // This prevents large "phantom" padding for media-only tweets (often just a trailing t.co link).
+    const NO_DESC_MEDIA_Y = 78; // tuned to your current header geometry (avatar/name/handle block)
+    const mediaY = willDrawGallery
+        ? (hasVisibleDesc ? (descBottomY + GAP_TEXT_TO_MEDIA) : NO_DESC_MEDIA_Y)
+        : 0;
+
     const galleryH = willDrawGallery ? measureGalleryHeight(metadata, mediaMaxHeight, 560) : 0;
 
     // Keep legacy no-media footer spacing (descBottomY + 40)
