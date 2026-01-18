@@ -32,7 +32,8 @@ function drawBasicElements(ctx, fontChain, metadata, favicon, pfp, descLines, op
     drawDescriptionLines(ctx, descLines, descX, yOffset, { lineHeight: MAIN.lineH });
 
     // Footer timestamp
-    const footerStr = metadata._displayDateFooter || formatTwitterFooter(metadata, { label: 'canvas.basic/footer' });
+    let footerStr = metadata._displayDateFooter || formatTwitterFooter(metadata, { label: 'canvas.basic/footer' });
+    if (footerStr && metadata._replyDelta) footerStr += ` · ${metadata._replyDelta}`;
 
     // If footerY provided, use it; otherwise keep legacy behavior
     const resolvedFooterY = Number.isFinite(footerY)
