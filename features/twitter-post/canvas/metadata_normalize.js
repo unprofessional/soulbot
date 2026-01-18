@@ -2,13 +2,50 @@
 
 const { collectMedia, formatTwitterDate, formatTwitterFooter } = require('../../twitter-core/utils.js');
 
-// Robust text extraction (some FX payloads omit `text` but still have tweet.created_at or other props)
 function getBestText(p) {
     return p?.text ?? p?.full_text ?? p?.tweet?.text ?? '';
 }
 
 function stripTrailingTco(s) {
     return (s || '').replace(/\s+https?:\/\/t\.co\/\w+$/i, '');
+}
+
+function getEpochMs(obj) {
+    // Prefer epoch-like fields if present
+    const epochSec =
+        (Number.isFinite(obj?.date_epoch) ? obj.date_epoch : null) ??
+        (Number.isFinite(obj?.created_timestamp) ? obj.created_timestamp : null);
+
+    if (Number.isFinite(epochSec)) {
+        // Heuristic: if it's already ms, keep it
+        return epochSec > 10_000_000_000 ? epochSec : epochSec * 1000;
+    }
+
+    // Fall back to ISO-ish strings
+    const s = obj?.created_at ?? obj?.date ?? null;
+    if (!s) return null;
+
+    const ms = Date.parse(String(s));
+    return Number.isFinite(ms) ? ms : null;
+}
+
+function formatReplyDelta(qtMeta, mainMeta) {
+    const qtMs = getEpochMs(qtMeta);
+    const mainMs = getEpochMs(mainMeta);
+    if (!Number.isFinite(qtMs) || !Number.isFinite(mainMs)) return null;
+
+    const diffMs = mainMs - qtMs;
+    if (!Number.isFinite(diffMs) || diffMs <= 0) return null;
+
+    const diffSec = Math.floor(diffMs / 1000);
+    const mins = Math.floor(diffSec / 60);
+    const hours = Math.floor(mins / 60);
+    const days = Math.floor(hours / 24);
+
+    if (days >= 1) return `${days}d later`;
+    if (hours >= 1) return `${hours}h later`;
+    if (mins >= 1) return `${mins}m later`;
+    return `${diffSec}s later`;
 }
 
 function normalizeMainMetadata(metadataJson) {
@@ -45,7 +82,6 @@ function normalizeQtMetadata(qtJson) {
     const qtMedia = Array.isArray(collectMedia?.(qtJson)) ? collectMedia(qtJson) : [];
     const qtFirst = qtMedia.length ? qtMedia[0] : null;
 
-    // First QT item thumbnail (works for image or video)
     const qtFirstThumbUrl = qtFirst
         ? (qtFirst.thumbnail_url || (qtFirst.type === 'image' ? qtFirst.url : null))
         : null;
@@ -75,5 +111,6 @@ function normalizeQtMetadata(qtJson) {
 module.exports = {
     normalizeMainMetadata,
     normalizeQtMetadata,
-    getBestText, // exported only if you want it elsewhere
+    formatReplyDelta, // <-- new (used by twitter_canvas.js)
+    getBestText,
 };

@@ -31,15 +31,16 @@ function calculateQuoteHeight(ctx, qtMetadata) {
         const HEADER = QT.headerH;
         const MARGIN_BOTTOM = QT.marginBottom;
 
+        // Footer sizing (must match qt_draw.js)
+        const QT_FOOTER_LINE_H = 24;
+
         const qtMedia = Array.isArray(qtMetadata.mediaExtended) ? qtMetadata.mediaExtended : [];
         const hasMedia = qtMedia.length > 0;
         const expanded = Boolean(qtMetadata._expandMediaHint);
         const text = qtMetadata.error ? (qtMetadata.message || '') : (qtMetadata.description || '');
 
-        // Font used for measuring (keep in sync with drawer)
         ctx.font = '24px "Noto Color Emoji"';
 
-        // Geometry derived from shared rules (must match drawQtBasicElements)
         const { innerLeft, innerRight } = getQtInnerRect();
         const textX = getQtTextX({ expandQtMedia: expanded, qtHasMedia: hasMedia });
         const wrapWidth = getQtWrapWidth({ expandQtMedia: expanded, qtHasMedia: hasMedia });
@@ -54,23 +55,22 @@ function calculateQuoteHeight(ctx, qtMetadata) {
             console.debug(`${TAG} text: lines=${lines.length} lineHeight=${lineHeight} descHeight=${descHeight}`);
         }
 
-        // Expanded layout includes large media under text (when hinted + height provided)
         if (expanded && qtMetadata._expandedMediaHeight) {
             const total =
                 HEADER + descHeight + 20 /*gap*/ +
                 qtMetadata._expandedMediaHeight +
-                bottomPadding + MARGIN_BOTTOM;
+                bottomPadding + MARGIN_BOTTOM +
+                QT_FOOTER_LINE_H;
 
             DEBUG && console.debug(
-                `${TAG} [expanded] parts: HEADER=${HEADER} desc=${descHeight} gap=20 media=${qtMetadata._expandedMediaHeight} bottomPad=${bottomPadding} marginBottom=${MARGIN_BOTTOM} => total=${total}`
+                `${TAG} [expanded] parts: HEADER=${HEADER} desc=${descHeight} gap=20 media=${qtMetadata._expandedMediaHeight} bottomPad=${bottomPadding} marginBottom=${MARGIN_BOTTOM} footer=${QT_FOOTER_LINE_H} => total=${total}`
             );
             DEBUG && console.debug(`${TAG} ───────────────────────────────────────────`);
             return total;
         }
 
-        // Compact layout (with thumb or no media)
         const COMPACT_MIN_WITH_MEDIA = QT.compactMinWithMedia;
-        const textBlock = HEADER + descHeight + bottomPadding + MARGIN_BOTTOM;
+        const textBlock = HEADER + descHeight + bottomPadding + MARGIN_BOTTOM + QT_FOOTER_LINE_H;
         const total = hasMedia ? Math.max(textBlock, COMPACT_MIN_WITH_MEDIA) : textBlock;
 
         DEBUG && console.debug(
@@ -84,20 +84,16 @@ function calculateQuoteHeight(ctx, qtMetadata) {
     }
 }
 
-/**
- * Measure the *text-needed* height for the QT box using the exact same rules as the drawer.
- * This prevents the drawer from growing the box after canvas height is finalized.
- */
 function measureQtTextNeed(ctx, fontChain, qtMetadata, { expandQtMedia = false } = {}) {
     if (!qtMetadata) return 0;
 
     const qtHasMedia = Array.isArray(qtMetadata.mediaExtended) && qtMetadata.mediaExtended.length > 0;
 
-    // Geometry must mirror drawQtBasicElements (shared rules)
-    const textX = getQtTextX({ expandQtMedia, qtHasMedia });
+    // Footer sizing (must match qt_draw.js)
+    const QT_FOOTER_LINE_H = 24;
+
     const wrapWidth = getQtWrapWidth({ expandQtMedia, qtHasMedia });
 
-    // Font MUST match drawer
     ctx.font = `24px ${fontChain}`;
 
     const desc = qtMetadata.error ? (qtMetadata.message || '') : (qtMetadata.description || '');
@@ -110,9 +106,7 @@ function measureQtTextNeed(ctx, fontChain, qtMetadata, { expandQtMedia = false }
 
     const textHeight = qtLines.length * LINE_H;
 
-    // Height needed from top of QT box to safely contain text + internal bottom padding
-    // NOTE: returned value is relative to top-of-box, not absolute canvas coords.
-    return HEADER + textHeight + bottomPadding + MARGIN_BOTTOM;
+    return HEADER + textHeight + bottomPadding + MARGIN_BOTTOM + QT_FOOTER_LINE_H;
 }
 
 /**

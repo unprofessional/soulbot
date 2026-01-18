@@ -5,7 +5,7 @@ const { cropSingleImage } = require('../../twitter-post/crop_single_image');
 const { getWrappedText } = require('./text_wrap');
 const { drawDescriptionLines } = require('./misc_draw');
 const { QT, getQtInnerRect, getQtTextX, getQtWrapWidth } = require('../layout/geometry');
-const { filterMediaUrls } = require('../utils');
+const { filterMediaUrls, formatTwitterFooter } = require('../utils');
 
 function drawQtBasicElements(ctx, fontChain, metadata, pfp, mediaObj, options) {
     const DEBUG = true;
@@ -20,6 +20,10 @@ function drawQtBasicElements(ctx, fontChain, metadata, pfp, mediaObj, options) {
 
     const OUTER_STROKE_W = 1;
     const EXTRA_BOTTOM_PAD = 2;
+
+    // Footer sizing (must match qt_layout.js reserved height)
+    const QT_FOOTER_FONT_SIZE = 18;
+    const QT_FOOTER_LINE_H = 24; // baseline padding + font size
 
     // Robust QT media check: if we were handed an image, QT has media
     const qtHasMedia = Boolean(mediaObj);
@@ -57,9 +61,9 @@ function drawQtBasicElements(ctx, fontChain, metadata, pfp, mediaObj, options) {
         const textHeight = qtLines.length * LINE_H;
         const textBottomY = textTopY + textHeight;
 
-        // Clamp box height so text always fits
+        // Clamp box height so text + footer always fits
         const neededForText =
-            (QT.headerH + textHeight + QT.bottomPad + QT.marginBottom); // height needed from top of box
+            (QT.headerH + textHeight + QT.bottomPad + QT.marginBottom + QT_FOOTER_LINE_H);
         if (neededForText > boxHeight) boxHeight = neededForText;
 
         // Account for stroke/padding safety
@@ -137,8 +141,8 @@ function drawQtBasicElements(ctx, fontChain, metadata, pfp, mediaObj, options) {
             let mediaX = innerLeft + Math.round((innerW - w) / 2);
             let mediaY = Math.round(textBottomY + GAP);
 
-            // Ensure it fits inside box
-            const boxBottom = qtY + boxHeight - QT.innerPad - QT.marginBottom;
+            // Ensure it fits inside box (leave footer space)
+            const boxBottom = qtY + boxHeight - QT.innerPad - QT.marginBottom - QT_FOOTER_LINE_H;
             if (mediaY + h > boxBottom) {
                 const availH = Math.max(1, boxBottom - mediaY);
                 const scale = availH / h;
@@ -167,6 +171,20 @@ function drawQtBasicElements(ctx, fontChain, metadata, pfp, mediaObj, options) {
             ctx.restore();
 
             logRect('[expanded] drawn', mediaX, mediaY, w, h);
+        }
+
+        // QT footer timestamp (bottom line in gray)
+        const qtFooterStr =
+            metadata._displayDateFooter ||
+            formatTwitterFooter(metadata, { label: 'canvas.qt/footer' });
+
+        if (qtFooterStr) {
+            const footerBaselineY = Math.round(
+                qtY + boxHeight - QT.marginBottom - 6
+            );
+            ctx.fillStyle = 'gray';
+            ctx.font = `${QT_FOOTER_FONT_SIZE}px ${fontChain}`;
+            ctx.fillText(qtFooterStr, innerLeft, footerBaselineY);
         }
 
         DEBUG && console.debug(`${TAG} SUMMARY: { textX:${textX}, wrap:${wrapWidth}, top:${textTopY}, bottom:${textBottomY}, boxH:${boxHeight} }`);

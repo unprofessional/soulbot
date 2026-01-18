@@ -22,7 +22,7 @@ const {
 } = require('./canvas/constants.js');
 const { debugRect } = require('./canvas/debug.js');
 const { safeLoadImage } = require('./canvas/safe_load_image.js');
-const { normalizeMainMetadata, normalizeQtMetadata } = require('./canvas/metadata_normalize.js');
+const { normalizeMainMetadata, normalizeQtMetadata, formatReplyDelta } = require('./canvas/metadata_normalize.js');
 const { measureMainLayout } = require('./canvas/main_layout.js');
 const { computeQtSizing } = require('./canvas/qt_layout.js');
 const { scaleDownToFitAspectRatio } = require('./scale_down.js'); // retained because you used it directly for main media sizing
@@ -59,6 +59,11 @@ async function createTwitterCanvas(metadataJson, isImage) {
     const qt = metadataJson.qtMetadata || null;
     const qtNorm = normalizeQtMetadata(qt);
     const qtMetadata = qtNorm?.qtMetadata || null;
+
+    if (qtMetadata) {
+        metadata._replyDelta = formatReplyDelta(qtMetadata, metadata);
+    }
+
     const qtMedia = qtNorm?.qtMedia || [];
     const qtFirst = qtNorm?.qtFirst || null;
     const qtFirstThumbUrl = qtNorm?.qtFirstThumbUrl || null;

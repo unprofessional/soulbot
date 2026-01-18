@@ -104,7 +104,8 @@ function drawDesktopLayout(ctx, fontChain, metadata, favicon, pfp, descLines, op
     drawDescriptionLines(ctx, descLines, textX, textY, { lineHeight: MAIN.lineH });
 
     // Footer timestamp
-    const footerStr = metadata._displayDateFooter || formatTwitterFooter(metadata, { label: 'canvas.desktop/footer' });
+    let footerStr = metadata._displayDateFooter || formatTwitterFooter(metadata, { label: 'canvas.basic/footer' });
+    if (footerStr && metadata._replyDelta) footerStr += ` · ${metadata._replyDelta}`;
 
     const resolvedFooterY = Number.isFinite(footerY)
         ? footerY
