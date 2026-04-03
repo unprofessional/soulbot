@@ -60,7 +60,7 @@ function drawBasicElements(ctx, fontChain, metadata, favicon, pfp, descLines, op
         try { ctx.drawImage(favicon, 550, 20, 32, 32); } catch {}
     }
 
-    // ctx.textDrawingMode = 'glyph';
+    ctx.textDrawingMode = 'glyph';
 
     // Name
     ctx.fillStyle = 'white';
@@ -123,7 +123,7 @@ function drawDesktopLayout(ctx, fontChain, metadata, favicon, pfp, descLines, op
     const padding = 30;
     const leftColumnWidth = 150;
 
-    // ctx.textDrawingMode = 'glyph';
+    ctx.textDrawingMode = 'glyph';
 
     const avatarRadius = 30;
     const avatarX = padding + avatarRadius;

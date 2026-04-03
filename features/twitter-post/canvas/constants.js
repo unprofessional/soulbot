@@ -10,7 +10,7 @@ function numEnv(key, fallback) {
  * - Use Liberation Sans as primary (Arial-compatible)
  * - Use Noto Color Emoji ONLY as fallback
  */
-const TEXT_FONT_FAMILY = '"Liberation Sans", "Noto Color Emoji"';
+const TEXT_FONT_FAMILY = '"Liberation Sans"';
 
 // Main body font/metrics used in both measure and draw
 const MAIN_LINE_HEIGHT = 30;
