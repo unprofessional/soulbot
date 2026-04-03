@@ -1,6 +1,6 @@
-FROM node:18.18-bullseye
+FROM node:22.22.0-bullseye
 
-# Install the necessary Canvas/Cairo libs + fontconfig
+# Install runtime/build deps for canvas + ffmpeg, then clean apt cache
 RUN apt-get update && apt-get install -y \
     build-essential \
     libcairo2-dev \
@@ -8,10 +8,9 @@ RUN apt-get update && apt-get install -y \
     libjpeg-dev \
     libgif-dev \
     librsvg2-dev \
-    fontconfig
-
-# Install ffmpeg and ffprobe
-RUN apt-get update && apt-get install -y ffmpeg
+    fontconfig \
+    ffmpeg && \
+    rm -rf /var/lib/apt/lists/*
 
 # Ensure font dirs exist
 RUN mkdir -p /usr/share/fonts/truetype/noto /usr/share/fonts/opentype/noto
@@ -23,15 +22,18 @@ COPY fonts/opentype/noto/ /usr/share/fonts/opentype/noto/
 # Rebuild font cache
 RUN fc-cache -f -v
 
-# set /app directory as default working directory
+# Set /app directory as default working directory
 WORKDIR /app/
-COPY . /app/
 
-# Run NPM ci (install)
+# Install deps first for better layer caching
+COPY package.json package-lock.json ./
 RUN npm ci --verbose
 
-# expose for HTTP and HTTPS
+# Copy application source
+COPY . /app/
+
+# Expose for HTTP and HTTPS
 EXPOSE 80 443
 
-# cmd to start service
+# Start service
 CMD ["npm", "start"]

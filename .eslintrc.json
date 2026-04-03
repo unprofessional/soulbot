@@ -6,12 +6,15 @@
         "es2021": true
     },
     "extends": "eslint:recommended",
+    "plugins": ["simple-import-sort"],
     "parserOptions": {
         "ecmaVersion": "latest"
     },
     "rules": {
         "indent": ["warn", 4],
-        "no-unused-vars": "warn"
+        "no-unused-vars": "warn",
+        "simple-import-sort/imports": "warn",
+        "simple-import-sort/exports": "warn"
     },
     "overrides": [
         {
