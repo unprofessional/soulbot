@@ -1,3 +1,4 @@
+// index.js
 const { Events, ShardEvents, WebSocketShardEvents } = require('discord.js');
 const { client } = require('./initial_client.js');
 const { initializeDataStore } = require('./initial_store.js');

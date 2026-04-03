@@ -1,8 +1,8 @@
+// features/discord-profile/profile_canvas.js
 const {
     createCanvas,
     loadImage,
 } = require('canvas');
-
 const TimeAgo = require('javascript-time-ago');
 const en = require('javascript-time-ago/locale/en');
 TimeAgo.addDefaultLocale(en);
