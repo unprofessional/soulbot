@@ -5,15 +5,27 @@ function numEnv(key, fallback) {
     return Number.isFinite(v) ? v : fallback;
 }
 
+/**
+ * 🔥 Font system (FIXED)
+ * - Use Liberation Sans as primary (Arial-compatible)
+ * - Use Noto Color Emoji ONLY as fallback
+ */
+const TEXT_FONT_FAMILY = '"Liberation Sans", "Noto Color Emoji"';
+
 // Main body font/metrics used in both measure and draw
 const MAIN_LINE_HEIGHT = 30;
-const MAIN_FONT = '24px "Noto Color Emoji"';
+const MAIN_FONT = `24px ${TEXT_FONT_FAMILY}`;
+
+// Additional font helpers (NEW, but non-breaking)
+const NAME_FONT = `18px ${TEXT_FONT_FAMILY}`;
+const NAME_BOLD_FONT = `bold 18px ${TEXT_FONT_FAMILY}`;
+const FOOTER_FONT = `18px ${TEXT_FONT_FAMILY}`;
 
 // Spacing controls for consistent vertical rhythm (text ↔ media ↔ footer ↔ QT)
-const GAP_TEXT_TO_MEDIA = numEnv('CANVAS_GAP_TEXT_TO_MEDIA', 8);      // was 14
+const GAP_TEXT_TO_MEDIA = numEnv('CANVAS_GAP_TEXT_TO_MEDIA', 8);
 const GAP_MEDIA_TO_FOOTER = numEnv('CANVAS_GAP_MEDIA_TO_FOOTER', 14);
 const FOOTER_LINE_H = numEnv('CANVAS_FOOTER_LINE_H', 24);
-const GAP_FOOTER_TO_QT = numEnv('CANVAS_GAP_FOOTER_TO_QT', 16);       // NEW
+const GAP_FOOTER_TO_QT = numEnv('CANVAS_GAP_FOOTER_TO_QT', 16);
 
 const DEFAULT_BOTTOM_PAD_NO_QT = numEnv('CANVAS_BOTTOM_PAD_NO_QT', 8);
 const DEFAULT_BOTTOM_PAD_WITH_QT = numEnv('CANVAS_BOTTOM_PAD_WITH_QT', 16);
@@ -32,9 +44,15 @@ function getMaxHeight(numImgs) {
 }
 
 module.exports = {
-    MAIN_LINE_HEIGHT,
+    // font system
+    TEXT_FONT_FAMILY,
     MAIN_FONT,
+    NAME_FONT,
+    NAME_BOLD_FONT,
+    FOOTER_FONT,
 
+    // layout
+    MAIN_LINE_HEIGHT,
     GAP_TEXT_TO_MEDIA,
     GAP_MEDIA_TO_FOOTER,
     FOOTER_LINE_H,

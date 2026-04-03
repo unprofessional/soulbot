@@ -29,6 +29,16 @@ function computeWillDrawGallery(images) {
     return { willDrawGallery: Boolean(ext && allowedExts.has(ext)), ext };
 }
 
+/**
+ * 🔍 Debug helper for measurement phase
+ */
+function debugMeasurement(ctx, label, text, widthLimit) {
+    const measured = ctx.measureText(text).width;
+    console.log(
+        `[measure-debug] ${label} | font=${ctx.font} | width=${measured} | max=${widthLimit} | text="${text}"`
+    );
+}
+
 function measureMainLayout(ctx, {
     metadata,
     images,
@@ -36,8 +46,16 @@ function measureMainLayout(ctx, {
     hasVids,
     maxWidth,
     mediaMaxHeight,
+    debugFonts = false,
 }) {
+    /**
+     * 🔥 CRITICAL: Ensure measurement uses SAME font as rendering
+     */
     ctx.font = MAIN_FONT;
+
+    if (debugFonts) {
+        console.log(`[measure-debug] Using MAIN_FONT: ${MAIN_FONT}`);
+    }
 
     // Always bound length; preserve metadata shape for downstream users
     metadata.description = trimToMaxChars(metadata.description, MAX_DESC_CHARS);
@@ -45,13 +63,28 @@ function measureMainLayout(ctx, {
     const descX = getMainTextX({ hasImgs, hasVids });
     const mainWrapWidth = getMainWrapWidth({ canvasW: maxWidth, hasImgs, hasVids });
 
-    // Avoid phantom empty line height when description is blank
     const rawDesc = metadata.description || '';
     const hasVisibleDesc = rawDesc.trim().length > 0;
+
+    /**
+     * 🔍 Optional debug on raw text before wrapping
+     */
+    if (debugFonts && hasVisibleDesc) {
+        debugMeasurement(ctx, 'pre-wrap', rawDesc.slice(0, 80), mainWrapWidth);
+    }
 
     const descLines = hasVisibleDesc
         ? getWrappedText(ctx, rawDesc, mainWrapWidth, { preserveEmptyLines: true })
         : [];
+
+    /**
+     * 🔍 Debug wrapped lines
+     */
+    if (debugFonts && descLines.length > 0) {
+        for (let i = 0; i < Math.min(descLines.length, 3); i++) {
+            debugMeasurement(ctx, `line-${i}`, descLines[i], mainWrapWidth);
+        }
+    }
 
     const baseY = MAIN.baseY;
     const textHeight = descLines.length * MAIN.lineH;
@@ -59,16 +92,16 @@ function measureMainLayout(ctx, {
 
     const { willDrawGallery, ext } = computeWillDrawGallery(images);
 
-    // When there is no visible description, anchor media closer to header instead of MAIN.baseY.
-    // This prevents large "phantom" padding for media-only tweets (often just a trailing t.co link).
-    const NO_DESC_MEDIA_Y = 78; // tuned to your current header geometry (avatar/name/handle block)
+    const NO_DESC_MEDIA_Y = 78;
+
     const mediaY = willDrawGallery
         ? (hasVisibleDesc ? (descBottomY + GAP_TEXT_TO_MEDIA) : NO_DESC_MEDIA_Y)
         : 0;
 
-    const galleryH = willDrawGallery ? measureGalleryHeight(metadata, mediaMaxHeight, 560) : 0;
+    const galleryH = willDrawGallery
+        ? measureGalleryHeight(metadata, mediaMaxHeight, 560)
+        : 0;
 
-    // Keep legacy no-media footer spacing (descBottomY + 40)
     const footerBaselineY = willDrawGallery
         ? (mediaY + galleryH + GAP_MEDIA_TO_FOOTER + FOOTER_FONT_SIZE)
         : (descBottomY + 40);
@@ -76,6 +109,22 @@ function measureMainLayout(ctx, {
     const bodyBottomY = willDrawGallery
         ? (mediaY + galleryH + GAP_MEDIA_TO_FOOTER + FOOTER_LINE_H)
         : (footerBaselineY + FOOTER_LINE_H);
+
+    /**
+     * 🔍 Final layout debug
+     */
+    if (debugFonts) {
+        console.log('[layout-debug]', {
+            lines: descLines.length,
+            textHeight,
+            descBottomY,
+            mediaY,
+            galleryH,
+            footerBaselineY,
+            bodyBottomY,
+            font: ctx.font,
+        });
+    }
 
     return {
         // text

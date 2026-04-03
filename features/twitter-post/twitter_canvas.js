@@ -18,27 +18,33 @@ const {
     getMaxHeight,
     FOOTER_LINE_H,
     FOOTER_FONT_SIZE,
-    GAP_FOOTER_TO_QT, // NEW
+    GAP_FOOTER_TO_QT,
+    TEXT_FONT_FAMILY,
 } = require('./canvas/constants.js');
 const { debugRect } = require('./canvas/debug.js');
 const { safeLoadImage } = require('./canvas/safe_load_image.js');
-const { normalizeMainMetadata, normalizeQtMetadata, formatReplyDelta } = require('./canvas/metadata_normalize.js');
+const {
+    normalizeMainMetadata,
+    normalizeQtMetadata,
+    formatReplyDelta,
+} = require('./canvas/metadata_normalize.js');
 const { measureMainLayout } = require('./canvas/main_layout.js');
 const { computeQtSizing } = require('./canvas/qt_layout.js');
-const { scaleDownToFitAspectRatio } = require('./scale_down.js'); // retained because you used it directly for main media sizing
+const { scaleDownToFitAspectRatio } = require('./scale_down.js');
 
 async function createTwitterCanvas(metadataJson, isImage) {
-
-    const fontChain = '"Noto Color Emoji", "Noto Sans CJK", "Noto Sans Math"';
+    const fontChain = TEXT_FONT_FAMILY;
+    const debugFonts = process.env.DEBUG_CANVAS_FONTS === '1';
 
     const canvas = createCanvas(MAX_WIDTH, INITIAL_HEIGHT);
     const ctx = canvas.getContext('2d');
     ctx.fillStyle = '#000';
     ctx.textDrawingMode = 'glyph';
 
-    const log = (...args) => { try { console.debug('[twitter_canvas]', ...args); } catch { } };
+    const log = (...args) => {
+        try { console.debug('[twitter_canvas]', ...args); } catch {}
+    };
 
-    // --- Normalize incoming metadata (names kept for downstream compatibility) ---
     console.debug('[date] canvas.input', {
         date: metadataJson?.date,
         date_epoch: metadataJson?.date_epoch,
@@ -50,12 +56,15 @@ async function createTwitterCanvas(metadataJson, isImage) {
     const { metadata, images, videos } = normalizeMainMetadata(metadataJson);
 
     console.debug('[date] canvas.meta', {
-        from_meta: { date: metadata.date, date_epoch: metadata.date_epoch, created_timestamp: metadata.created_timestamp },
+        from_meta: {
+            date: metadata.date,
+            date_epoch: metadata.date_epoch,
+            created_timestamp: metadata.created_timestamp,
+        },
         _displayDate: metadata._displayDate,
         _displayDateFooter: metadata._displayDateFooter,
     });
 
-    // --- Quoted tweet normalization (if present) ---
     const qt = metadataJson.qtMetadata || null;
     const qtNorm = normalizeQtMetadata(qt);
     const qtMetadata = qtNorm?.qtMetadata || null;
@@ -80,7 +89,6 @@ async function createTwitterCanvas(metadataJson, isImage) {
         });
     }
 
-    // ---- Main media metrics ----
     const numImgs = images.length;
     const numVids = videos.length;
     const hasImgs = numImgs > 0;
@@ -90,7 +98,6 @@ async function createTwitterCanvas(metadataJson, isImage) {
     const mediaMaxHeight = getMaxHeight(numImgs);
     let heightShim = 0;
 
-    // Legacy-ish size hints used by gallery renderer fallback paths
     let mediaObj = { height: 0, width: 0 };
     if (hasImgs) {
         const first = images[0];
@@ -107,8 +114,6 @@ async function createTwitterCanvas(metadataJson, isImage) {
         }
     }
 
-    /* ------------------------- Main layout measurement ------------------------- */
-    // measureMainLayout will trim description to MAX_DESC_CHARS (kept in constants)
     const main = measureMainLayout(ctx, {
         metadata,
         images,
@@ -116,6 +121,7 @@ async function createTwitterCanvas(metadataJson, isImage) {
         hasVids,
         maxWidth: MAX_WIDTH,
         mediaMaxHeight,
+        debugFonts,
     });
 
     const {
@@ -133,11 +139,8 @@ async function createTwitterCanvas(metadataJson, isImage) {
         bodyBottomY,
     } = main;
 
-    // This is what downstream code uses as canvasHeightOffset / QT start
     const mainBodyBottomY = bodyBottomY;
     const qtStartY = qtMetadata ? (mainBodyBottomY + GAP_FOOTER_TO_QT) : mainBodyBottomY;
-
-    // Keep descHeight meaning “end of main body” for downstream logic that depends on it
     const descHeight = mainBodyBottomY;
 
     console.debug('[canvas.body]', {
@@ -154,25 +157,48 @@ async function createTwitterCanvas(metadataJson, isImage) {
         bodyBottomY,
         heightShim,
         descHeight,
+        fontChain,
+        debugFonts,
     });
 
-    debugRect(ctx, descX, baseY - 30 + 6, mainWrapWidth, textHeight, `Main text (w=${mainWrapWidth})`);
+    debugRect(
+        ctx,
+        descX,
+        baseY - 30 + 6,
+        mainWrapWidth,
+        textHeight,
+        `Main text (w=${mainWrapWidth})`
+    );
+
     if (process.env.DEBUG_CANVAS_BOXES === '1' && willDrawGallery) {
         debugRect(ctx, 20, mediaY, 560, galleryH, `Gallery (h=${galleryH})`);
-        debugRect(ctx, 30, footerBaselineY - FOOTER_FONT_SIZE, 540, FOOTER_LINE_H, 'Footer line box');
+        debugRect(
+            ctx,
+            30,
+            footerBaselineY - FOOTER_FONT_SIZE,
+            540,
+            FOOTER_LINE_H,
+            'Footer line box'
+        );
     }
 
     log('main', {
-        numImgs, numVids, hasImgs, hasVids, onlyVids,
-        mediaMaxHeight, mediaObj, heightShim,
+        numImgs,
+        numVids,
+        hasImgs,
+        hasVids,
+        onlyVids,
+        mediaMaxHeight,
+        mediaObj,
+        heightShim,
         willDrawGallery,
         galleryH,
         textLen: (metadata.description || '').length,
         descLines: descLines.length,
-        descHeight, baseY,
+        descHeight,
+        baseY,
     });
 
-    /* -------------------- Quote tweet sizing & expansion (final) ------------------- */
     let qtBoxHeight = 0;
     let expandQtMedia = false;
     let qtExpandedMediaSize = null;
@@ -203,20 +229,25 @@ async function createTwitterCanvas(metadataJson, isImage) {
             textNeed: qtSizing.textNeed,
             qtBoxHeight,
             qtExpandedMediaSize,
+            fontChain,
         });
     } else {
         log('qt:none');
     }
 
-    /* ------------------------- Final canvas height & draw ------------------------- */
-    const extraBottomPad = qtMetadata ? DEFAULT_BOTTOM_PAD_WITH_QT : DEFAULT_BOTTOM_PAD_NO_QT;
+    const extraBottomPad = qtMetadata
+        ? DEFAULT_BOTTOM_PAD_WITH_QT
+        : DEFAULT_BOTTOM_PAD_NO_QT;
 
-    // QT starts at qtStartY (not descHeight) to create space after main footer
     const totalHeight = qtMetadata
         ? (qtStartY + qtBoxHeight + extraBottomPad)
         : (descHeight + extraBottomPad);
 
     canvas.height = totalHeight;
+
+    // Canvas resize resets context state; reapply the essentials.
+    ctx.fillStyle = '#000';
+    ctx.textDrawingMode = 'glyph';
     ctx.fillRect(0, 0, MAX_WIDTH, totalHeight);
 
     if (process.env.DEBUG_CANVAS_BOXES === '1') {
@@ -236,7 +267,11 @@ async function createTwitterCanvas(metadataJson, isImage) {
         safeLoadImage('https://abs.twimg.com/favicons/twitter.3.ico'),
         safeLoadImage(metadata.pfpUrl),
     ]);
-    log('assets', { faviconLoaded: Boolean(favicon), pfpLoaded: Boolean(pfp) });
+
+    log('assets', {
+        faviconLoaded: Boolean(favicon),
+        pfpLoaded: Boolean(pfp),
+    });
 
     const useDesktopLayout = false;
 
@@ -247,6 +282,7 @@ async function createTwitterCanvas(metadataJson, isImage) {
             yOffset: baseY,
             canvasHeightOffset: descHeight,
             footerY: footerBaselineY,
+            debugFonts,
         });
     } else {
         drawBasicElements(ctx, fontChain, metadata, favicon, pfp, descLines, {
@@ -255,16 +291,14 @@ async function createTwitterCanvas(metadataJson, isImage) {
             yOffset: baseY,
             canvasHeightOffset: descHeight,
             footerY: footerBaselineY,
+            debugFonts,
         });
     }
 
-    // --- Draw QT box (with thumb or expanded image) ---
     if (qtMetadata) {
         const qtPfp = await safeLoadImage(qtMetadata.pfpUrl);
-
         const qtMediaUrl = qtFirstThumbUrl || null;
         const qtMediaImg = qtMediaUrl ? await safeLoadImage(qtMediaUrl) : undefined;
-
         const qtUseDesktopLayout = false;
 
         log('qt:draw', {
@@ -276,18 +310,19 @@ async function createTwitterCanvas(metadataJson, isImage) {
             qtPfpLoaded: Boolean(qtPfp),
             qtMediaImgLoaded: Boolean(qtMediaImg),
             qtMediaUrl,
+            fontChain,
         });
 
         if (qtUseDesktopLayout) {
             drawQtDesktopLayout(ctx, fontChain, qtMetadata, qtPfp, qtMediaImg, {
-                canvasHeightOffset: qtStartY, // was descHeight
+                canvasHeightOffset: qtStartY,
                 qtCanvasHeightOffset: qtBoxHeight,
                 expandQtMedia,
                 expandedMediaSize: expandQtMedia ? qtExpandedMediaSize : null,
             });
         } else {
             drawQtBasicElements(ctx, fontChain, qtMetadata, qtPfp, qtMediaImg, {
-                canvasHeightOffset: qtStartY, // was descHeight
+                canvasHeightOffset: qtStartY,
                 qtCanvasHeightOffset: qtBoxHeight,
                 hasImgs,
                 hasVids,
@@ -297,7 +332,6 @@ async function createTwitterCanvas(metadataJson, isImage) {
         }
     }
 
-    // --- Draw gallery thumbnails for main tweet (only if supported ext) ---
     if (willDrawGallery) {
         log('gallery', {
             ext,

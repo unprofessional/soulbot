@@ -5,44 +5,90 @@ const { formatTwitterFooter } = require('../utils');
 const { getMainTextX, MAIN } = require('../layout/geometry');
 const { drawDescriptionLines } = require('./misc_draw');
 
-function drawBasicElements(ctx, fontChain, metadata, favicon, pfp, descLines, options) {
-    const { yOffset = 0, canvasHeightOffset = 0, hasImgs = false, hasVids = false, footerY } = options;
+const {
+    MAIN_FONT,
+    NAME_FONT,
+    NAME_BOLD_FONT,
+    FOOTER_FONT,
+} = require('../../twitter-post/canvas/constants');
 
-    // Top-right icon
+/**
+ * Debug block: renders multiple fonts side-by-side to visually inspect spacing
+ */
+function drawFontDebugBlock(ctx, startX = 30, startY = 320) {
+    const samples = [
+        { label: 'Arial', font: '18px Arial' },
+        { label: 'Liberation Sans', font: '18px "Liberation Sans"' },
+        { label: 'DejaVu Sans', font: '18px "DejaVu Sans"' },
+        { label: 'Noto Sans', font: '18px "Noto Sans"' },
+        { label: 'Emoji Only', font: '18px "Noto Color Emoji"' },
+        { label: 'Final Chain', font: FOOTER_FONT },
+    ];
+
+    const sampleText = '7:10 PM Eastern · Apr 2, 2026';
+    let y = startY;
+
+    for (const { label, font } of samples) {
+        ctx.fillStyle = '#888';
+        ctx.font = '12px "Liberation Sans"';
+        ctx.fillText(label, startX, y);
+
+        ctx.fillStyle = 'white';
+        ctx.font = font;
+        ctx.fillText(sampleText, startX + 140, y);
+
+        console.log(`[font-debug] label=${label} font=${font}`);
+        console.log(
+            `[font-debug] width=${ctx.measureText(sampleText).width} text="${sampleText}"`
+        );
+
+        y += 22;
+    }
+}
+
+function drawBasicElements(ctx, fontChain, metadata, favicon, pfp, descLines, options) {
+    const {
+        yOffset = 0,
+        canvasHeightOffset = 0,
+        hasImgs = false,
+        hasVids = false,
+        footerY,
+        debugFonts = false,
+    } = options;
+
     if (favicon) {
         try { ctx.drawImage(favicon, 550, 20, 32, 32); } catch {}
     }
 
     ctx.textDrawingMode = 'glyph';
 
-    // Display name
+    // Name
     ctx.fillStyle = 'white';
-    ctx.font = '18px "Noto Color Emoji"';
+    ctx.font = NAME_BOLD_FONT;
     ctx.fillText(String(metadata.authorUsername || ''), 100, 40);
 
     // Handle
     ctx.fillStyle = 'gray';
-    ctx.font = `18px ${fontChain}`;
+    ctx.font = NAME_FONT;
     ctx.fillText(`@${String(metadata.authorNick || '')}`, 100, 60);
 
-    // Body text
+    // Description (uses SAME font as measurement)
     ctx.fillStyle = 'white';
-    ctx.font = '24px "Noto Color Emoji"';
+    ctx.font = MAIN_FONT;
     const descX = getMainTextX({ hasImgs, hasVids });
     drawDescriptionLines(ctx, descLines, descX, yOffset, { lineHeight: MAIN.lineH });
 
-    // Footer timestamp
+    // Footer
     let footerStr = metadata._displayDateFooter || formatTwitterFooter(metadata, { label: 'canvas.basic/footer' });
     if (footerStr && metadata._replyDelta) footerStr += ` · ${metadata._replyDelta}`;
 
-    // If footerY provided, use it; otherwise keep legacy behavior
     const resolvedFooterY = Number.isFinite(footerY)
         ? footerY
         : Math.max(0, canvasHeightOffset - 20);
 
     if (footerStr) {
         ctx.fillStyle = 'gray';
-        ctx.font = `18px ${fontChain}`;
+        ctx.font = FOOTER_FONT;
         ctx.fillText(footerStr, 30, resolvedFooterY);
     }
 
@@ -56,6 +102,11 @@ function drawBasicElements(ctx, fontChain, metadata, favicon, pfp, descLines, op
         try { ctx.drawImage(pfp, 20, 20, 50, 50); } catch {}
         ctx.restore();
     }
+
+    // 🔥 Debug overlay (optional)
+    if (debugFonts) {
+        drawFontDebugBlock(ctx);
+    }
 }
 
 function drawDesktopLayout(ctx, fontChain, metadata, favicon, pfp, descLines, options) {
@@ -65,6 +116,7 @@ function drawDesktopLayout(ctx, fontChain, metadata, favicon, pfp, descLines, op
         hasImgs = false,
         hasVids = false,
         footerY,
+        debugFonts = false,
     } = options;
 
     const hasMedia = hasImgs || hasVids;
@@ -73,7 +125,6 @@ function drawDesktopLayout(ctx, fontChain, metadata, favicon, pfp, descLines, op
 
     ctx.textDrawingMode = 'glyph';
 
-    // Left: avatar
     const avatarRadius = 30;
     const avatarX = padding + avatarRadius;
     const avatarY = yOffset;
@@ -87,24 +138,21 @@ function drawDesktopLayout(ctx, fontChain, metadata, favicon, pfp, descLines, op
         ctx.restore();
     }
 
-    // Name + handle
     ctx.fillStyle = 'white';
-    ctx.font = `bold 18px ${fontChain}`;
+    ctx.font = NAME_BOLD_FONT;
     ctx.fillText(String(metadata.authorUsername || ''), padding, avatarY + avatarRadius * 2 + 30);
 
     ctx.fillStyle = 'gray';
-    ctx.font = `18px ${fontChain}`;
+    ctx.font = NAME_FONT;
     ctx.fillText(`@${String(metadata.authorNick || '')}`, padding, avatarY + avatarRadius * 2 + 55);
 
-    // Description
     const textX = hasMedia ? (padding + leftColumnWidth) : padding;
     const textY = yOffset + 100;
 
     ctx.fillStyle = 'white';
-    ctx.font = '24px "Noto Color Emoji"';
+    ctx.font = MAIN_FONT;
     drawDescriptionLines(ctx, descLines, textX, textY, { lineHeight: MAIN.lineH });
 
-    // Footer timestamp
     let footerStr = metadata._displayDateFooter || formatTwitterFooter(metadata, { label: 'canvas.basic/footer' });
     if (footerStr && metadata._replyDelta) footerStr += ` · ${metadata._replyDelta}`;
 
@@ -114,13 +162,16 @@ function drawDesktopLayout(ctx, fontChain, metadata, favicon, pfp, descLines, op
 
     if (footerStr) {
         ctx.fillStyle = 'gray';
-        ctx.font = `18px ${fontChain}`;
+        ctx.font = FOOTER_FONT;
         ctx.fillText(footerStr, 30, resolvedFooterY);
     }
 
-    // Top-right icon
     if (favicon) {
         try { ctx.drawImage(favicon, 550, 20, 32, 32); } catch {}
+    }
+
+    if (debugFonts) {
+        drawFontDebugBlock(ctx);
     }
 }
 
