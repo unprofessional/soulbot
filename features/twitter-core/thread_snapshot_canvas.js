@@ -237,7 +237,7 @@ async function renderThreadSnapshotCanvas({ posts, isTruncated }) {
 
     ctx.fillStyle = '#0C162E';
     ctx.fillRect(0, 0, effectiveWidth, totalHeight);
-    ctx.textDrawingMode = 'glyph';
+    // ctx.textDrawingMode = 'glyph';
 
     let y = PADDING_Y;
     const postAnchors = [];

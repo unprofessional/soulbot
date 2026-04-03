@@ -39,7 +39,7 @@ async function createTwitterCanvas(metadataJson, isImage) {
     const canvas = createCanvas(MAX_WIDTH, INITIAL_HEIGHT);
     const ctx = canvas.getContext('2d');
     ctx.fillStyle = '#000';
-    ctx.textDrawingMode = 'glyph';
+    // ctx.textDrawingMode = 'glyph';
 
     const log = (...args) => {
         try { console.debug('[twitter_canvas]', ...args); } catch {}
@@ -247,7 +247,7 @@ async function createTwitterCanvas(metadataJson, isImage) {
 
     // Canvas resize resets context state; reapply the essentials.
     ctx.fillStyle = '#000';
-    ctx.textDrawingMode = 'glyph';
+    // ctx.textDrawingMode = 'glyph';
     ctx.fillRect(0, 0, MAX_WIDTH, totalHeight);
 
     if (process.env.DEBUG_CANVAS_BOXES === '1') {

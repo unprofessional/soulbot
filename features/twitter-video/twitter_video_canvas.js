@@ -63,7 +63,7 @@ async function createTwitterVideoCanvas(metadataJson) {
     const canvas = createCanvas(canvasWidth, 650);
     const ctx = canvas.getContext('2d');
     ctx.fillStyle = '#000';
-    ctx.textDrawingMode = 'glyph';
+    // ctx.textDrawingMode = 'glyph';
 
     // Text wrapping (video layout used 420 previously)
     ctx.font = '18px "Noto Color Emoji"';
