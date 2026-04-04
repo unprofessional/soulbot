@@ -12,20 +12,18 @@ RUN apt-get update && apt-get install -y \
     ffmpeg \
     fonts-liberation \
     fonts-dejavu-core \
+    fonts-noto-cjk \
+    fonts-noto-color-emoji \
     && rm -rf /var/lib/apt/lists/*
 
-# Ensure font dirs exist (for custom fonts like Noto)
-RUN mkdir -p /usr/share/fonts/truetype/noto /usr/share/fonts/opentype/noto
-
-# Copy Noto fonts (optional but retained from your setup)
-COPY fonts/truetype/noto/ /usr/share/fonts/truetype/noto/
-COPY fonts/opentype/noto/ /usr/share/fonts/opentype/noto/
-
-# Rebuild font cache AFTER all fonts are installed/copied
+# Rebuild font cache AFTER install
 RUN fc-cache -f -v
 
-# (Optional but recommended) Verify resolution at build-time
-RUN fc-match Arial && fc-match "Arial:weight=bold"
+# (Optional sanity checks at build time)
+RUN fc-match "Liberation Sans" && \
+    fc-match "DejaVu Sans" && \
+    fc-match "Noto Sans CJK JP" && \
+    fc-match "Noto Color Emoji"
 
 # Set /app directory as default working directory
 WORKDIR /app/
