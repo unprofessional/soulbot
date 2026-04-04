@@ -8,9 +8,8 @@ function numEnv(key, fallback) {
 /**
  * Font system
  * - Use Liberation Sans as primary (Arial-compatible)
- * - Japanese and Emoji as fallbacks
  */
-const TEXT_FONT_FAMILY = '"Liberation Sans", "Noto Sans JP", "Noto Color Emoji"';
+const TEXT_FONT_FAMILY = '"Liberation Sans"';
 
 // Main body font/metrics used in both measure and draw
 const MAIN_LINE_HEIGHT = 30;
