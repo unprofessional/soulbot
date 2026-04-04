@@ -38,6 +38,19 @@ async function createTwitterCanvas(metadataJson, isImage) {
 
     const canvas = createCanvas(MAX_WIDTH, INITIAL_HEIGHT);
     const ctx = canvas.getContext('2d');
+
+    const { execSync } = require('child_process');
+
+    try {
+        console.log('----- FONT DEBUG START -----');
+        console.log(execSync('fc-match "Liberation Sans"').toString());
+        console.log(execSync('fc-match "DejaVu Sans"').toString());
+        console.log(execSync('fc-match "Noto Sans JP"').toString());
+        console.log('----- FONT DEBUG END -----');
+    } catch (e) {
+        console.error('Font debug failed:', e.message);
+    }
+
     ctx.fillStyle = '#000';
     ctx.textDrawingMode = 'glyph';
 
