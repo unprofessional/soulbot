@@ -6,11 +6,11 @@ function numEnv(key, fallback) {
 }
 
 /**
- * 🔥 Font system (FIXED)
+ * Font system
  * - Use Liberation Sans as primary (Arial-compatible)
- * - Use Noto Color Emoji ONLY as fallback
+ * - Japanese and Emoji as fallbacks
  */
-const TEXT_FONT_FAMILY = '"Liberation Sans"';
+const TEXT_FONT_FAMILY = '"Liberation Sans", "Noto Sans JP", "Noto Color Emoji"';
 
 // Main body font/metrics used in both measure and draw
 const MAIN_LINE_HEIGHT = 30;

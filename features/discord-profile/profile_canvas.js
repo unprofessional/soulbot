@@ -9,11 +9,6 @@ TimeAgo.addDefaultLocale(en);
 
 const createProfileCanvas = async (guildMember) => {
 
-    // console.log('>>>>> createProfileCanvas > guildMember: ', guildMember);
-
-    // Unnecessary if the font is loaded in the local OS
-    // TODO: Investigate if `fonts/` is even necessary...
-    // registerFont('/usr/share/fonts/truetype/noto/NotoColorEmoji.ttf', { family: 'Noto Color Emoji' });
     const globalFont = 'Arial';
 
     const canvasWidth = 300;
