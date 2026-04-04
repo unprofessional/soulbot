@@ -51,6 +51,15 @@ async function createTwitterCanvas(metadataJson, isImage) {
         console.error('Font debug failed:', e.message);
     }
 
+    ctx.font = '24px "Liberation Sans"';
+    console.log('Liberation width:', ctx.measureText('1234567890').width);
+
+    ctx.font = '24px "DejaVu Sans"';
+    console.log('DejaVu width:', ctx.measureText('1234567890').width);
+
+    ctx.font = '24px "Noto Sans JP"';
+    console.log('Noto JP width:', ctx.measureText('1234567890').width);
+
     ctx.fillStyle = '#000';
     ctx.textDrawingMode = 'glyph';
 
