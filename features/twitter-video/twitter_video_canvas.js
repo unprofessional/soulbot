@@ -73,9 +73,10 @@ async function createTwitterVideoCanvas(metadataJson) {
         ? condenseTranslatedDisplayLines(getWrappedText(ctx, metadata.description, 420))
         : [];
     const baseY = 110;
+    const reservedLineCount = hasDescription ? descLines.length : 1;
+    const layoutLines = new Array(reservedLineCount).fill('');
 
-    let canvasHeight = calculateCanvasHeight(descLines, baseY, heightShim);
-    if (!hasDescription) canvasHeight -= 40;
+    const canvasHeight = calculateCanvasHeight(layoutLines, baseY, heightShim);
 
     canvas.height = canvasHeight;
     ctx.fillRect(0, 0, canvasWidth, canvasHeight);

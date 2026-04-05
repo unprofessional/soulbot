@@ -88,15 +88,14 @@ function measureMainLayout(ctx, {
     }
 
     const baseY = MAIN.baseY;
-    const textHeight = descLines.length * MAIN.lineH;
+    const reservedLineCount = descLines.length > 0 ? descLines.length : (hasImgs ? 1 : 0);
+    const textHeight = reservedLineCount * MAIN.lineH;
     const descBottomY = baseY + textHeight;
 
     const { willDrawGallery, ext } = computeWillDrawGallery(images);
 
-    const NO_DESC_MEDIA_Y = 78;
-
     const mediaY = willDrawGallery
-        ? (hasVisibleDesc ? (descBottomY + GAP_TEXT_TO_MEDIA) : NO_DESC_MEDIA_Y)
+        ? (descBottomY + GAP_TEXT_TO_MEDIA)
         : 0;
 
     const galleryH = willDrawGallery
