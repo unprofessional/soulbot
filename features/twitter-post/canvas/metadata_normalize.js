@@ -1,6 +1,7 @@
 // features/twitter-post/canvas/metadata_normalize.js
 
 const { collectMedia, formatTwitterDate, formatTwitterFooter } = require('../../twitter-core/utils.js');
+const { buildDisplayText } = require('../../twitter-core/translation_service.js');
 
 function getBestText(p) {
     return p?.text ?? p?.full_text ?? p?.tweet?.text ?? '';
@@ -75,7 +76,10 @@ function normalizeMainMetadata(metadataJson) {
         created_timestamp: metadataJson.created_timestamp ?? null,
         created_at: metadataJson.created_at ?? null,
 
-        description: stripTrailingTco(getBestText(metadataJson)),
+        description: stripTrailingTco(buildDisplayText({
+            ...metadataJson,
+            text: getBestText(metadataJson),
+        })),
 
         mediaUrls: metadataJson.mediaURLs,
         mediaExtended: media,
@@ -114,7 +118,10 @@ function normalizeQtMetadata(qtJson) {
         created_timestamp: qtJson.created_timestamp ?? null,
         created_at: qtJson.created_at ?? null,
 
-        description: stripTrailingTco(qtJson.text || ''),
+        description: stripTrailingTco(buildDisplayText({
+            ...qtJson,
+            text: getBestText(qtJson),
+        })),
         mediaUrls: qtMedia.map(m => m.thumbnail_url || m.url).filter(Boolean),
         mediaExtended: qtMedia,
         communityNote: stripTrailingTco(qtJson.communityNote || ''),

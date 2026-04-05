@@ -64,6 +64,7 @@ function normalizeFromVX(vx) {
     return {
         tweetID: vx.tweetID,
         replyingToID: vx.replyingToID ?? vx.replying_to_status ?? null,
+        lang: vx.lang ?? null,
         text: vx.text ?? '',
         user_name: vx.user_name ?? 'Unknown',
         user_screen_name: vx.user_screen_name ?? 'unknown',
@@ -106,6 +107,7 @@ function normalizeFromFX(fx) {
     return {
         tweetID: t.id,
         replyingToID: t.replying_to_status ?? null,
+        lang: t.lang ?? fx?.lang ?? null,
         text: t.text ?? '',
         user_name: t.author?.name ?? 'Unknown',
         user_screen_name: t.author?.screen_name ?? 'unknown',

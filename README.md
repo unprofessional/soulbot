@@ -9,6 +9,9 @@ makes use of Kubernetes, a Persistent Volume, and a Persistent Volume Claim
 - all config resids in the `/kubernetes` directory
 - you must set the `DISCORD_BOT_TOKEN` environment variable within Kubernetes via:
   - `kubectl create secret generic discord-bot-secret --from-literal=DISCORD_BOT_TOKEN=xxxxx`
+- for tweet translation, also set the OpenAI API key as a Kubernetes secret:
+  - `kubectl create secret generic openai-api-key --from-literal=OPENAI_API_KEY=xxxxx`
+- translation runs server-side only; keep `OPENAI_API_KEY` out of browser/client code
 
 ## If using Minikube
 ### Start
@@ -18,7 +21,8 @@ makes use of Kubernetes, a Persistent Volume, and a Persistent Volume Claim
 3) `docker build --platform="linux/amd64" --no-cache -t unprofessional/soulbot:rc-0.0.1 .`
   - generic: `docker build --no-cache -t unprofessional/soulbot:rc-0.0.1 .`
 4) `kubectl create secret generic discord-bot-secret --from-literal=DISCORD_BOT_TOKEN=xxxxx`
-5) `kubectl apply -f kubernetes/soulbot-deployment.yaml ; kubectl apply -f kubernetes/soulbot-http-service.yaml`
+5) `kubectl create secret generic openai-api-key --from-literal=OPENAI_API_KEY=xxxxx`
+6) `kubectl apply -f kubernetes/soulbot-deployment.yaml ; kubectl apply -f kubernetes/soulbot-http-service.yaml`
 ### Stop
 1) `kubectl delete service soulbot-http-service ; kubectl delete deployment soulbot`
 2) `kubectl delete persistentvolumeclaim soulbot-pvc ; kubectl delete persistentvolume soulbot-pv`

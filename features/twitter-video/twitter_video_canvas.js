@@ -5,6 +5,7 @@ const { createCanvas, loadImage } = require('canvas');
 const { buildPathsAndStuff } = require('../twitter-core/path_builder.js');
 const { getWrappedText, drawBasicElements } = require('../twitter-core/canvas_utils.js');
 const { collectMedia, formatTwitterDate } = require('../twitter-core/utils.js');
+const { buildDisplayText } = require('../twitter-core/translation_service.js');
 
 function calculateCanvasHeight(lines, baseY, heightShim, lineHeight = 30, padding = 40) {
     return (lines.length * lineHeight) + baseY + padding + heightShim;
@@ -47,7 +48,7 @@ async function createTwitterVideoCanvas(metadataJson) {
         created_timestamp: metadataJson.created_timestamp ?? null,
         created_at: metadataJson.created_at ?? null,
 
-        description: (metadataJson.text || '').replace(/\s+https?:\/\/t\.co\/\w+$/i, ''),
+        description: buildDisplayText(metadataJson).replace(/\s+https?:\/\/t\.co\/\w+$/i, ''),
         mediaUrls: Array.isArray(metadataJson.mediaURLs) ? metadataJson.mediaURLs : media.map(m => m.url).filter(Boolean),
         mediaExtended: media,
     };
