@@ -1,4 +1,65 @@
 // features/twitter-core/fxvx_normalize.js
+function firstNonEmptyString(values) {
+    for (const value of values) {
+        if (typeof value === 'string' && value.trim()) return value.trim();
+    }
+    return null;
+}
+
+function extractNoteText(value) {
+    if (!value) return null;
+    if (typeof value === 'string') return value.trim() || null;
+    if (Array.isArray(value)) {
+        for (const entry of value) {
+            const text = extractNoteText(entry);
+            if (text) return text;
+        }
+        return null;
+    }
+    if (typeof value !== 'object') return null;
+
+    return firstNonEmptyString([
+        value.text,
+        value.noteText,
+        value.description,
+        value.body,
+        value.content,
+        value.summary,
+    ]);
+}
+
+function extractCommunityNote(...sources) {
+    for (const source of sources) {
+        if (!source || typeof source !== 'object') continue;
+
+        const direct = firstNonEmptyString([
+            source.communityNote,
+            source.community_note,
+            source.communityNotes,
+            source.community_notes,
+            source.birdwatch_note,
+        ]);
+        if (direct) return direct;
+
+        const nested = [
+            source.communityNote,
+            source.community_note,
+            source.communityNotes,
+            source.community_notes,
+            source.birdwatch,
+            source.birdwatch_note,
+            source.note,
+        ];
+
+        for (const candidate of nested) {
+            const text = extractNoteText(candidate);
+            if (text) return text;
+        }
+    }
+
+    return null;
+}
+
 function normalizeFromVX(vx) {
     return {
         tweetID: vx.tweetID,
@@ -10,6 +71,7 @@ function normalizeFromVX(vx) {
         date_epoch: vx.date_epoch ?? Math.floor(Date.now() / 1000),
         hasMedia: Boolean(vx.media_extended?.length),
         media_extended: vx.media_extended ?? [],
+        communityNote: extractCommunityNote(vx),
         qrtURL: vx.qrtURL ?? undefined,
     };
 }
@@ -51,10 +113,11 @@ function normalizeFromFX(fx) {
         date_epoch: t.created_timestamp ?? Math.floor(Date.now() / 1000),
         hasMedia: Boolean(media.length),
         media_extended: media,
+        communityNote: extractCommunityNote(fx, t),
         qrtURL: t.quote?.url ?? undefined,
         _fx_message: fx.message, // e.g., OK / PRIVATE_TWEET / NOT_FOUND
         _fx_code: fx.code,
     };
 }
 
-module.exports = { normalizeFromVX, normalizeFromFX };
+module.exports = { normalizeFromVX, normalizeFromFX, extractCommunityNote };
