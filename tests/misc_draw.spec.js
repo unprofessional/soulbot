@@ -1,4 +1,5 @@
 const {
+    condenseTranslatedDisplayLines,
     drawDescriptionLines,
     getTranslationMarkerFont,
     isTranslationMarkerLine,
@@ -13,6 +14,24 @@ describe('misc_draw translation marker styling', () => {
     test('reduces font size for translation markers', () => {
         expect(getTranslationMarkerFont('24px "Liberation Sans"')).toBe('18px "Liberation Sans"');
         expect(getTranslationMarkerFont('18px "Liberation Sans"')).toBe('14px "Liberation Sans"');
+    });
+
+    test('condenses translated source text to three lines and removes blank lines', () => {
+        expect(condenseTranslatedDisplayLines([
+            'line 1',
+            '',
+            'line 2',
+            'line 3',
+            'line 4',
+            '[Translated from PT]',
+            'translated line',
+        ])).toEqual([
+            'line 1',
+            'line 2',
+            'line 3...',
+            '[Translated from PT]',
+            'translated line',
+        ]);
     });
 
     test('drawDescriptionLines draws translation markers in smaller gray text', () => {

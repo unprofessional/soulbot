@@ -12,6 +12,35 @@ function getTranslationMarkerFont(font) {
     return font.replace(/(\d+(?:\.\d+)?)px/, (_, px) => `${Math.max(14, Number(px) - 6)}px`);
 }
 
+function withTrailingEllipsis(text) {
+    const line = String(text || '').trimEnd();
+    if (!line) return '...';
+    if (/[.]{3}$|…$/.test(line)) return line;
+    return `${line}...`;
+}
+
+function condenseTranslatedDisplayLines(lines, { maxSourceLines = 3 } = {}) {
+    if (!Array.isArray(lines) || lines.length === 0) return [];
+
+    const markerIndex = lines.findIndex(isTranslationMarkerLine);
+    if (markerIndex <= 0) return lines;
+
+    const sourceLines = lines
+        .slice(0, markerIndex)
+        .map(line => String(line || '').trim())
+        .filter(Boolean);
+
+    const trailingLines = lines.slice(markerIndex);
+
+    if (sourceLines.length === 0) return trailingLines;
+    if (sourceLines.length <= maxSourceLines) return [...sourceLines, ...trailingLines];
+
+    const truncatedSourceLines = sourceLines.slice(0, maxSourceLines);
+    truncatedSourceLines[maxSourceLines - 1] = withTrailingEllipsis(truncatedSourceLines[maxSourceLines - 1]);
+
+    return [...truncatedSourceLines, ...trailingLines];
+}
+
 /**
  * Renders individual letters with spacing.
  */
@@ -63,6 +92,7 @@ function drawDescriptionLines(ctx, lines, x, y, { lineHeight = 30, yOffset = 0 }
 }
 
 module.exports = {
+    condenseTranslatedDisplayLines,
     drawTextWithSpacing,
     embedCommunityNote,
     getYPosFromLineHeight,
