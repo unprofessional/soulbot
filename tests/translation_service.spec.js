@@ -23,12 +23,26 @@ describe('translation_service', () => {
         jest.restoreAllMocks();
     });
 
-    test('shouldTranslateMetadata only enables translation for non-English posts when key is configured', () => {
-        const { shouldTranslateMetadata } = loadServiceWithEnv({ OPENAI_API_KEY: 'test-key' });
+    test('shouldTranslateMetadata only enables translation for non-English posts', () => {
+        const { shouldTranslateMetadata } = loadServiceWithEnv();
 
         expect(shouldTranslateMetadata({ text: 'ola', lang: 'pt' })).toBe(true);
         expect(shouldTranslateMetadata({ text: 'hello', lang: 'en' })).toBe(false);
         expect(shouldTranslateMetadata({ text: 'bonjour', lang: null })).toBe(false);
+    });
+
+    test('buildTranslateGemmaPrompt matches the expected translation template shape', () => {
+        const { buildTranslateGemmaPrompt } = loadServiceWithEnv();
+
+        const prompt = buildTranslateGemmaPrompt({
+            text: 'Guten Morgen, wie geht es Ihnen?',
+            sourceLanguage: 'de',
+            targetLanguage: 'en',
+        });
+
+        expect(prompt).toContain('You are a professional German (de) to English (en) translator.');
+        expect(prompt).toContain('Please translate the following German text into English:');
+        expect(prompt).toContain('\n\n\nGuten Morgen, wie geht es Ihnen?');
     });
 
     test('buildDisplayText appends the translated English copy', () => {
@@ -50,14 +64,15 @@ describe('translation_service', () => {
 
     test('enrichMetadataWithTranslation stores translated text on metadata', async () => {
         const { enrichMetadataWithTranslation } = loadServiceWithEnv({
-            OPENAI_API_KEY: 'test-key',
-            OPENAI_TRANSLATION_MODEL: 'gpt-5-mini',
+            OLLAMA_TRANSLATION_MODEL: 'translategemma:12b',
+            OLLAMA_HOST: 'ollama-service',
+            OLLAMA_PORT: '11434',
         });
 
         global.fetch = jest.fn().mockResolvedValue({
             ok: true,
-            text: async () => JSON.stringify({
-                output_text: 'Charlie Sheen created a lot of aura in this 90s Japanese cigarette commercial.',
+            json: async () => ({
+                response: 'Charlie Sheen created a lot of aura in this 90s Japanese cigarette commercial.',
             }),
         });
 
@@ -72,8 +87,8 @@ describe('translation_service', () => {
         expect(global.fetch).toHaveBeenCalledTimes(1);
         expect(metadata.translatedText).toBe('Charlie Sheen created a lot of aura in this 90s Japanese cigarette commercial.');
         expect(metadata.translation).toEqual(expect.objectContaining({
-            provider: 'openai',
-            model: 'gpt-5-mini',
+            provider: 'ollama',
+            model: 'translategemma:12b',
             sourceLanguage: 'pt',
             destinationLanguage: 'en',
         }));

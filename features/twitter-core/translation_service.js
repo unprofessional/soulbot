@@ -1,13 +1,15 @@
 const {
-    openAiApiKey,
-    openAiOrganizationId,
-    openAiProjectId,
-    openAiTranslationModel,
+    ollamaGenerateEndpoint,
+    ollamaHost,
+    ollamaPort,
+    ollamaTranslationModel,
 } = require('../../config/env_config.js');
 
-const OPENAI_RESPONSES_URL = 'https://api.openai.com/v1/responses';
 const ENGLISH_LANGUAGE_RE = /^en(?:[-_]|$)/i;
 const translationCache = new Map();
+const languageDisplayNames = typeof Intl !== 'undefined' && typeof Intl.DisplayNames === 'function'
+    ? new Intl.DisplayNames(['en'], { type: 'language' })
+    : null;
 
 function getSourceText(metadata) {
     const raw = metadata?.text ?? metadata?.full_text ?? metadata?.tweet?.text ?? '';
@@ -26,7 +28,6 @@ function isEnglishLanguage(lang) {
 }
 
 function shouldTranslateMetadata(metadata) {
-    if (!openAiApiKey) return false;
     if (!metadata || metadata.error) return false;
     if (metadata.translation?.text || metadata.translatedText) return false;
 
@@ -42,81 +43,90 @@ function buildTranslationCacheKey(metadata) {
 }
 
 function extractOutputText(payload) {
-    if (typeof payload?.output_text === 'string' && payload.output_text.trim()) {
-        return payload.output_text.trim();
+    return typeof payload?.response === 'string' ? payload.response.trim() : '';
+}
+
+function fallbackLanguageName(code) {
+    const normalized = String(code || 'unknown').trim();
+    if (!normalized) return 'Unknown';
+
+    return normalized
+        .split('-')[0]
+        .replace(/_/g, '-')
+        .replace(/^[a-z]/i, c => c.toUpperCase());
+}
+
+function getLanguageName(code) {
+    const normalized = String(code || '').trim();
+    if (!normalized) return 'Unknown';
+
+    const candidates = [
+        normalized,
+        normalized.replace(/_/g, '-'),
+        normalized.replace(/_/g, '-').split('-')[0],
+    ];
+
+    for (const candidate of candidates) {
+        try {
+            const name = languageDisplayNames?.of(candidate);
+            if (typeof name === 'string' && name.trim()) return name.trim();
+        } catch {}
     }
 
-    const output = Array.isArray(payload?.output) ? payload.output : [];
-    for (const item of output) {
-        const content = Array.isArray(item?.content) ? item.content : [];
-        for (const block of content) {
-            if (typeof block?.text === 'string' && block.text.trim()) {
-                return block.text.trim();
-            }
-        }
-    }
+    return fallbackLanguageName(normalized);
+}
 
-    return '';
+function buildTranslateGemmaPrompt({ text, sourceLanguage, targetLanguage = 'en' }) {
+    const sourceCode = String(sourceLanguage || 'auto').trim() || 'auto';
+    const targetCode = String(targetLanguage || 'en').trim() || 'en';
+    const sourceName = getLanguageName(sourceCode);
+    const targetName = getLanguageName(targetCode);
+
+    return [
+        `You are a professional ${sourceName} (${sourceCode}) to ${targetName} (${targetCode}) translator. Your goal is to accurately convey the meaning and nuances of the original ${sourceName} text while adhering to ${targetName} grammar, vocabulary, and cultural sensitivities.`,
+        `Produce only the ${targetName} translation, without any additional explanations or commentary. Please translate the following ${sourceName} text into ${targetName}:`,
+        '',
+        '',
+        text,
+    ].join('\n');
 }
 
 async function translateTextToEnglish({ text, sourceLanguage, log = console.log }) {
-    const headers = {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${openAiApiKey}`,
-    };
-
-    if (openAiOrganizationId) headers['OpenAI-Organization'] = openAiOrganizationId;
-    if (openAiProjectId) headers['OpenAI-Project'] = openAiProjectId;
-
+    const url = `http://${ollamaHost}:${ollamaPort}/${ollamaGenerateEndpoint}`;
+    const prompt = buildTranslateGemmaPrompt({ text, sourceLanguage, targetLanguage: 'en' });
     const payload = {
-        model: openAiTranslationModel,
-        reasoning: { effort: 'minimal' },
-        instructions: [
-            'Translate the provided social media post into natural English.',
-            'Preserve meaning, tone, slang, line breaks, @mentions, hashtags, emojis, and proper nouns.',
-            'Return only the translated English text.',
-            'If the text is already effectively English, return it unchanged.',
-        ].join(' '),
-        input: [
-            {
-                role: 'user',
-                content: [
-                    {
-                        type: 'input_text',
-                        text: `Source language: ${sourceLanguage || 'unknown'}\n\nPost:\n${text}`,
-                    },
-                ],
-            },
-        ],
+        model: ollamaTranslationModel,
+        prompt,
+        stream: false,
+        keep_alive: -1,
+        options: {
+            temperature: 0,
+        },
     };
 
-    const response = await fetch(OPENAI_RESPONSES_URL, {
+    const response = await fetch(url, {
         method: 'POST',
-        headers,
+        headers: {
+            'Content-Type': 'application/json',
+        },
         body: JSON.stringify(payload),
     });
 
-    const bodyText = await response.text();
-    let parsed;
-    try {
-        parsed = bodyText ? JSON.parse(bodyText) : null;
-    } catch {
-        parsed = null;
-    }
+    const parsed = await response.json();
 
     if (!response.ok) {
-        const message = parsed?.error?.message || bodyText || `OpenAI request failed with status ${response.status}`;
+        const message = parsed?.error || parsed?.message || `Ollama request failed with status ${response.status}`;
         throw new Error(message);
     }
 
     const translatedText = normalizeWhitespace(extractOutputText(parsed));
     if (!translatedText) {
-        throw new Error('OpenAI returned an empty translation payload');
+        throw new Error('Ollama returned an empty translation payload');
     }
 
     log?.('[translation] translation complete', {
         sourceLanguage,
-        model: openAiTranslationModel,
+        model: ollamaTranslationModel,
         charsIn: text.length,
         charsOut: translatedText.length,
     });
@@ -149,8 +159,8 @@ async function enrichMetadataWithTranslation(metadata, log = console.log) {
         }
 
         const translation = {
-            provider: 'openai',
-            model: openAiTranslationModel,
+            provider: 'ollama',
+            model: ollamaTranslationModel,
             sourceLanguage: metadata.lang,
             destinationLanguage: 'en',
             text: translatedText,
@@ -181,8 +191,10 @@ function buildDisplayText(metadata) {
 
 module.exports = {
     buildDisplayText,
+    buildTranslateGemmaPrompt,
     enrichMetadataWithTranslation,
     getSourceText,
+    getLanguageName,
     isEnglishLanguage,
     shouldTranslateMetadata,
     translateTextToEnglish,

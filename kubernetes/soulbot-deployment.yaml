@@ -63,13 +63,8 @@ spec:
             secretKeyRef:
               name: pg-db
               key: PG_DB
-        - name: OPENAI_API_KEY
-          valueFrom:
-            secretKeyRef:
-              name: openai-api-key
-              key: OPENAI_API_KEY
-        - name: OPENAI_TRANSLATION_MODEL
-          value: "gpt-5-mini"
+        - name: OLLAMA_TRANSLATION_MODEL
+          value: "translategemma:12b"
         # TODO: Kokoro Config
         - name: STORE_PATH
           value: "/data"
