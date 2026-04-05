@@ -9,6 +9,8 @@ makes use of Kubernetes, a Persistent Volume, and a Persistent Volume Claim
 - all config resids in the `/kubernetes` directory
 - you must set the `DISCORD_BOT_TOKEN` environment variable within Kubernetes via:
   - `kubectl create secret generic discord-bot-secret --from-literal=DISCORD_BOT_TOKEN=xxxxx`
+- tweet translation runs server-side through Ollama/Kokoro using `translategemma:12b`
+- set `OLLAMA_TRANSLATION_MODEL` if you want to override the default model
 
 ## If using Minikube
 ### Start

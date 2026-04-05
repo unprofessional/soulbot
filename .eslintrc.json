@@ -12,6 +12,7 @@
     },
     "rules": {
         "indent": ["warn", 4],
+        "no-empty": "off",
         "no-unused-vars": "warn",
         "simple-import-sort/imports": "warn",
         "simple-import-sort/exports": "warn"

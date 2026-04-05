@@ -33,10 +33,14 @@ const chromaUpsertEndpoint = process.env.CHROMA_UPSERT_ENDPOINT || 'api/v1/upser
 // Kokoro
 const kokoroUrl = process.env.KOKORO_URL || 'http://kokoro-http-service:8081';
 
+// Translation
+const ollamaTranslationModel = process.env.OLLAMA_TRANSLATION_MODEL || 'translategemma:12b';
+
 module.exports = {
     token, path, guildFile, channelFile, memberFile, featureFile, runMode,
     ollamaHost, ollamaPort, ollamaChatEndpoint, ollamaGenerateEndpoint, ollamaEmbeddingEndpoint, ollamaModel, ollamaEmbedModel,
     pgHost, pgPort, pgUser, pgPass, pgDb,
     chromaHost, chromaPort, chromaUpsertEndpoint,
     kokoroUrl,
+    ollamaTranslationModel,
 };

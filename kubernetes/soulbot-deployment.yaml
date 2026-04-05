@@ -63,6 +63,8 @@ spec:
             secretKeyRef:
               name: pg-db
               key: PG_DB
+        - name: OLLAMA_TRANSLATION_MODEL
+          value: "translategemma:12b"
         # TODO: Kokoro Config
         - name: STORE_PATH
           value: "/data"

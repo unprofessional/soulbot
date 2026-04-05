@@ -5,6 +5,7 @@
 const { fetchMetadata, fetchQTMetadata, toFixupx } = require('./fetch_metadata.js');
 const { renderTwitterPost } = require('./render_twitter_post.js');
 const { stripQueryParams } = require('./utils.js');
+const { enrichMetadataWithTranslation } = require('./translation_service.js');
 const { findMessagesByLink } = require('../../store/services/messages.service.js');
 
 // Domains we consider "known" (for optional logging)
@@ -201,6 +202,8 @@ async function handleTwitterUrl(message, { guildId }) {
             return message.reply(replyForError(meta));
         }
 
+        await enrichMetadataWithTranslation(meta, (s) => console.log('[TwitterHandler][translation]', s));
+
         // Quote-Tweet path (if present)
         if (meta.qrtURL) {
             console.log('[TwitterHandler] QRT detected, fetching QT metadata:', meta.qrtURL);
@@ -221,6 +224,7 @@ async function handleTwitterUrl(message, { guildId }) {
                 );
                 return;
             }
+            await enrichMetadataWithTranslation(qtMeta, (s) => console.log('[TwitterHandler][qtTranslation]', s));
             meta.qtMetadata = qtMeta;
         }
 
