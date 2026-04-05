@@ -29,6 +29,8 @@ describe('translation_service', () => {
         expect(shouldTranslateMetadata({ text: 'ola', lang: 'pt' })).toBe(true);
         expect(shouldTranslateMetadata({ text: 'hello', lang: 'en' })).toBe(false);
         expect(shouldTranslateMetadata({ text: 'bonjour', lang: null })).toBe(false);
+        expect(shouldTranslateMetadata({ text: 'https://t.co/abcdef', lang: 'pt' })).toBe(false);
+        expect(shouldTranslateMetadata({ text: 'video only', lang: 'zxx' })).toBe(false);
     });
 
     test('buildTranslateGemmaPrompt matches the expected translation template shape', () => {
@@ -60,6 +62,35 @@ describe('translation_service', () => {
         expect(rendered).toContain('Charlie Sheen farmou muita aura nesse comercial');
         expect(rendered).toContain('[Translated from PT]');
         expect(rendered).toContain('Charlie Sheen farmed a lot of aura in this commercial.');
+    });
+
+    test('buildDisplayText returns empty string when the source text is effectively empty', () => {
+        const { buildDisplayText } = loadServiceWithEnv();
+
+        expect(buildDisplayText({
+            text: 'https://t.co/abcdef',
+            lang: 'zxx',
+            translatedText: 'Refusal text that should not render',
+        })).toBe('');
+    });
+
+    test('translateTextToEnglish rejects refusal-style non-translation responses', async () => {
+        const { translateTextToEnglish } = loadServiceWithEnv({
+            OLLAMA_TRANSLATION_MODEL: 'translategemma:12b',
+        });
+
+        global.fetch = jest.fn().mockResolvedValue({
+            ok: true,
+            json: async () => ({
+                response: 'I am unable to access external URLs, including the one provided. Please provide the text you would like me to translate.',
+            }),
+        });
+
+        await expect(translateTextToEnglish({
+            text: 'ola',
+            sourceLanguage: 'pt',
+            log: jest.fn(),
+        })).rejects.toThrow('non-translation response');
     });
 
     test('enrichMetadataWithTranslation stores translated text on metadata', async () => {

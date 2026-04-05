@@ -6,12 +6,14 @@ const {
 } = require('../../config/env_config.js');
 
 const ENGLISH_LANGUAGE_RE = /^en(?:[-_]|$)/i;
+const NON_TRANSLATABLE_LANGUAGE_RE = /^(?:zxx|und)(?:[-_]|$)/i;
+const URL_ONLY_RE = /https?:\/\/\S+/gi;
 const translationCache = new Map();
 const languageDisplayNames = typeof Intl !== 'undefined' && typeof Intl.DisplayNames === 'function'
     ? new Intl.DisplayNames(['en'], { type: 'language' })
     : null;
 
-function getSourceText(metadata) {
+function getRawSourceText(metadata) {
     const raw = metadata?.text ?? metadata?.full_text ?? metadata?.tweet?.text ?? '';
     return typeof raw === 'string' ? raw.trim() : '';
 }
@@ -27,12 +29,37 @@ function isEnglishLanguage(lang) {
     return typeof lang === 'string' && ENGLISH_LANGUAGE_RE.test(lang.trim());
 }
 
+function isNonTranslatableLanguage(lang) {
+    return typeof lang === 'string' && NON_TRANSLATABLE_LANGUAGE_RE.test(lang.trim());
+}
+
+function getSourceText(metadata) {
+    return normalizeWhitespace(
+        getRawSourceText(metadata)
+            .replace(URL_ONLY_RE, ' ')
+    );
+}
+
+function isLikelyTranslationFailure(text) {
+    const normalized = normalizeWhitespace(text).toLowerCase();
+    if (!normalized) return true;
+
+    return [
+        'i am unable to access external urls',
+        'i cannot access external urls',
+        'including the one provided',
+        'please provide the text you would like me to translate',
+        'cannot translate the content',
+    ].some(fragment => normalized.includes(fragment));
+}
+
 function shouldTranslateMetadata(metadata) {
     if (!metadata || metadata.error) return false;
     if (metadata.translation?.text || metadata.translatedText) return false;
 
     const text = getSourceText(metadata);
     if (!text) return false;
+    if (isNonTranslatableLanguage(metadata.lang)) return false;
 
     return Boolean(metadata.lang) && !isEnglishLanguage(metadata.lang);
 }
@@ -123,6 +150,9 @@ async function translateTextToEnglish({ text, sourceLanguage, log = console.log 
     if (!translatedText) {
         throw new Error('Ollama returned an empty translation payload');
     }
+    if (isLikelyTranslationFailure(translatedText)) {
+        throw new Error('Ollama returned a translation refusal or non-translation response');
+    }
 
     log?.('[translation] translation complete', {
         sourceLanguage,
@@ -180,6 +210,7 @@ function buildDisplayText(metadata) {
     const sourceText = normalizeWhitespace(getSourceText(metadata));
     const translatedText = normalizeWhitespace(metadata?.translatedText || metadata?.translation?.text);
 
+    if (!sourceText) return '';
     if (!translatedText) return sourceText;
 
     const sourceLanguage = String(
@@ -196,6 +227,8 @@ module.exports = {
     getSourceText,
     getLanguageName,
     isEnglishLanguage,
+    isLikelyTranslationFailure,
+    isNonTranslatableLanguage,
     shouldTranslateMetadata,
     translateTextToEnglish,
 };
