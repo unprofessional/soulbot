@@ -11,11 +11,11 @@ function drawTextWithSpacing(ctx, text, x, y, letterSpacing = 1) {
     }
 }
 
-function embedCommunityNote(message, noteText) {
+function embedCommunityNote(message, noteText, title = 'Community Note:') {
     return noteText
         ? {
             color: 0x0099ff,
-            title: 'Community Note:',
+            title,
             description: noteText,
         }
         : undefined;

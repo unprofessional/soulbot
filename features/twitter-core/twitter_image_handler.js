@@ -15,8 +15,13 @@ async function handleImagePost({ metadataJson, message, originalLink }) {
         name: `${randomNameGenerator()}.png`,
     }];
 
+    const communityNotes = {
+        main: metadataJson.communityNote,
+        qt: metadataJson.qtMetadata?.communityNote,
+    };
+
     try {
-        await sendWebhookProxyMsg(message, 'Here’s the Twitter canvas:', files, metadataJson.communityNote, originalLink);
+        await sendWebhookProxyMsg(message, 'Here’s the Twitter canvas:', files, communityNotes, originalLink);
     } catch (err) {
         console.warn('>>> handleImagePost > WEBHOOK FAILED!');
         await sendWebhookProxyMsg(message, `File(s) too large to attach! err: ${err}`, undefined, undefined, originalLink);

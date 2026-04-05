@@ -117,6 +117,7 @@ function normalizeQtMetadata(qtJson) {
         description: stripTrailingTco(qtJson.text || ''),
         mediaUrls: qtMedia.map(m => m.thumbnail_url || m.url).filter(Boolean),
         mediaExtended: qtMedia,
+        communityNote: stripTrailingTco(qtJson.communityNote || ''),
         ...(qtJson.error && { ...qtJson }),
     };
 

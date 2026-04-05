@@ -5,6 +5,22 @@ const { stripQueryParams } = require('./utils.js');
 const { cleanup } = require('../twitter-video/cleanup.js');
 const { embedCommunityNote } = require('./canvas_utils.js');
 
+function normalizeCommunityNotes(communityNotes) {
+    if (!communityNotes) return {};
+    if (typeof communityNotes === 'string') return { main: communityNotes };
+    return typeof communityNotes === 'object' ? communityNotes : {};
+}
+
+function buildCommunityNoteEmbeds(message, communityNotes) {
+    const notes = normalizeCommunityNotes(communityNotes);
+    const embeds = [
+        embedCommunityNote(message, notes.main, 'Community Note:'),
+        embedCommunityNote(message, notes.qt, 'QT Community Note:'),
+    ].filter(Boolean);
+
+    return embeds;
+}
+
 /** Resolve impersonation identity: server nickname + server avatar if set, else global. */
 const resolveImpersonationIdentity = (message) => {
     // Prefer server nickname; fall back to global display name or username
@@ -115,7 +131,7 @@ function buildSimulatedReplyText(message, modifiedContent, replyMeta) {
  * Sends a message through a webhook with optional files and embeds,
  * impersonating the original user. Deletes the original message and webhook afterward.
  */
-const sendWebhookProxyMsg = async (message, content, files = [], communityNoteText, originalLink) => {
+const sendWebhookProxyMsg = async (message, content, files = [], communityNotes, originalLink) => {
     try {
         const parentChannel = message.channel.isThread() ? message.channel.parent : message.channel;
         const webhooks = await parentChannel.fetchWebhooks();
@@ -126,7 +142,7 @@ const sendWebhookProxyMsg = async (message, content, files = [], communityNoteTe
             await webhook.delete().catch(err => console.warn(`Failed to delete webhook: ${err}`));
         }
 
-        const embed = embedCommunityNote(message, communityNoteText);
+        const embeds = buildCommunityNoteEmbeds(message, communityNotes);
 
         // Prefer guild nickname + guild avatar for impersonation identity
         const { displayName, avatarURL } = resolveImpersonationIdentity(message);
@@ -146,7 +162,7 @@ const sendWebhookProxyMsg = async (message, content, files = [], communityNoteTe
 
         await webhook.send({
             content: finalContent,
-            ...(embed && { embeds: [embed] }),
+            ...(embeds.length && { embeds }),
             ...(threadId && { threadId }),
             username: displayName,
             avatarURL, // also set per-message to ensure correct avatar on send
@@ -172,7 +188,7 @@ const sendWebhookProxyMsg = async (message, content, files = [], communityNoteTe
  * Sends a video as a file attachment via webhook proxy, or falls back on failure.
  * (kept here for convenience since other modules import it from webhook_utils)
  */
-const sendVideoReply = async (message, successFilePath, localWorkingPath, originalLink, communityNoteText) => {
+const sendVideoReply = async (message, successFilePath, localWorkingPath, originalLink, communityNotes) => {
     const files = [{
         attachment: await readFile(successFilePath),
         name: 'video.mp4',
@@ -183,7 +199,7 @@ const sendVideoReply = async (message, successFilePath, localWorkingPath, origin
             message,
             'Here’s the Twitter canvas:',
             files,
-            communityNoteText,
+            communityNotes,
             originalLink
         );
     } catch (err) {
@@ -192,7 +208,7 @@ const sendVideoReply = async (message, successFilePath, localWorkingPath, origin
             message,
             `File(s) too large to attach! err: ${err}`,
             undefined,
-            communityNoteText,
+            communityNotes,
             originalLink
         );
     } finally {
@@ -201,6 +217,7 @@ const sendVideoReply = async (message, successFilePath, localWorkingPath, origin
 };
 
 module.exports = {
+    buildCommunityNoteEmbeds,
     sendWebhookProxyMsg,
     sendVideoReply,
     webhookBuilder, // optional: only export if reused directly elsewhere

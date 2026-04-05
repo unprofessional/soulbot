@@ -30,6 +30,11 @@ async function handleVideoPost({
     processingDir,
     MAX_CONCURRENT_REQUESTS,
 }) {
+    const communityNotes = {
+        main: metadataJson.communityNote,
+        qt: metadataJson.qtMetadata?.communityNote,
+    };
+
     const currentDirCount = await countDirectoriesInDirectory(processingDir);
     if (currentDirCount >= MAX_CONCURRENT_REQUESTS) {
         return message.reply({ content: 'Video processing at capacity; try again later.' });
@@ -126,7 +131,7 @@ async function handleVideoPost({
             successFilePath,
             localWorkingPath,
             originalLink,
-            metadataJson.communityNote,
+            communityNotes,
         );
     } catch (err) {
         console.error('>>> ERROR: renderTwitterPost > err:', err);
