@@ -1,7 +1,7 @@
 // features/twitter-post/canvas/main_layout.js
 
 const { measureGalleryHeight } = require('../image_gallery_rendering.js');
-const { getWrappedText } = require('../../twitter-core/canvas_utils.js');
+const { condenseTranslatedDisplayLines, getWrappedText } = require('../../twitter-core/canvas_utils.js');
 const { getMainTextX, getMainWrapWidth, MAIN } = require('../../twitter-core/layout/geometry.js');
 const {
     MAIN_FONT,
@@ -73,9 +73,10 @@ function measureMainLayout(ctx, {
         debugMeasurement(ctx, 'pre-wrap', rawDesc.slice(0, 80), mainWrapWidth);
     }
 
-    const descLines = hasVisibleDesc
+    const descLinesRaw = hasVisibleDesc
         ? getWrappedText(ctx, rawDesc, mainWrapWidth, { preserveEmptyLines: true })
         : [];
+    const descLines = condenseTranslatedDisplayLines(descLinesRaw);
 
     /**
      * 🔍 Debug wrapped lines

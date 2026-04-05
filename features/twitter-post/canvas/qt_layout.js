@@ -1,7 +1,7 @@
 // features/twitter-post/canvas/qt_layout.js
 
 const { scaleDownToFitAspectRatio } = require('../scale_down.js');
-const { getWrappedText } = require('../../twitter-core/canvas_utils.js');
+const { condenseTranslatedDisplayLines, getWrappedText } = require('../../twitter-core/canvas_utils.js');
 const {
     QT,
     getQtTextX,
@@ -45,7 +45,9 @@ function calculateQuoteHeight(ctx, qtMetadata) {
         const textX = getQtTextX({ expandQtMedia: expanded, qtHasMedia: hasMedia });
         const wrapWidth = getQtWrapWidth({ expandQtMedia: expanded, qtHasMedia: hasMedia });
 
-        const lines = getWrappedText(ctx, text, wrapWidth, { preserveEmptyLines: true });
+        const lines = condenseTranslatedDisplayLines(
+            getWrappedText(ctx, text, wrapWidth, { preserveEmptyLines: true })
+        );
         const descHeight = lines.length * lineHeight;
 
         if (DEBUG) {
@@ -97,7 +99,9 @@ function measureQtTextNeed(ctx, fontChain, qtMetadata, { expandQtMedia = false }
     ctx.font = `24px ${fontChain}`;
 
     const desc = qtMetadata.error ? (qtMetadata.message || '') : (qtMetadata.description || '');
-    const qtLines = getWrappedText(ctx, desc, wrapWidth, { preserveEmptyLines: true });
+    const qtLines = condenseTranslatedDisplayLines(
+        getWrappedText(ctx, desc, wrapWidth, { preserveEmptyLines: true })
+    );
 
     const LINE_H = QT.lineH;
     const HEADER = QT.headerH;

@@ -3,7 +3,7 @@
 const { existsSync, mkdirSync, writeFileSync } = require('node:fs');
 const { createCanvas, loadImage } = require('canvas');
 const { buildPathsAndStuff } = require('../twitter-core/path_builder.js');
-const { getWrappedText, drawBasicElements } = require('../twitter-core/canvas_utils.js');
+const { condenseTranslatedDisplayLines, getWrappedText, drawBasicElements } = require('../twitter-core/canvas_utils.js');
 const { collectMedia, formatTwitterDate } = require('../twitter-core/utils.js');
 const { buildDisplayText } = require('../twitter-core/translation_service.js');
 
@@ -69,7 +69,9 @@ async function createTwitterVideoCanvas(metadataJson) {
     // Text wrapping (video layout used 420 previously)
     ctx.font = '18px "Noto Color Emoji"';
     const hasDescription = (metadata.description || '').trim().length > 0;
-    const descLines = hasDescription ? getWrappedText(ctx, metadata.description, 420) : [];
+    const descLines = hasDescription
+        ? condenseTranslatedDisplayLines(getWrappedText(ctx, metadata.description, 420))
+        : [];
     const baseY = 110;
 
     let canvasHeight = calculateCanvasHeight(descLines, baseY, heightShim);

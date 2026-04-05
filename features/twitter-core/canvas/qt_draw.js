@@ -3,7 +3,7 @@
 
 const { cropSingleImage } = require('../../twitter-post/crop_single_image');
 const { getWrappedText } = require('./text_wrap');
-const { drawDescriptionLines } = require('./misc_draw');
+const { condenseTranslatedDisplayLines, drawDescriptionLines } = require('./misc_draw');
 const { QT, getQtInnerRect, getQtTextX, getQtWrapWidth } = require('../layout/geometry');
 const { filterMediaUrls, formatTwitterFooter } = require('../utils');
 
@@ -55,7 +55,9 @@ function drawQtBasicElements(ctx, fontChain, metadata, pfp, mediaObj, options) {
 
         ctx.font = `24px ${fontChain}`;
         const desc = metadata.error ? (metadata.message || '') : (metadata.description || '');
-        const qtLines = getWrappedText(ctx, desc, wrapWidth, { preserveEmptyLines: true });
+        const qtLines = condenseTranslatedDisplayLines(
+            getWrappedText(ctx, desc, wrapWidth, { preserveEmptyLines: true })
+        );
 
         const textTopY = qtY + QT.headerH;
         const textHeight = qtLines.length * LINE_H;
@@ -200,7 +202,9 @@ function drawQtMissingStatus(ctx, fontChain, errorMsg, options) {
 
     // matches no-media wrap width: innerRight - textX(=100)
     const wrapWidth = getQtWrapWidth({ expandQtMedia: false, qtHasMedia: false });
-    const qtDescLines = getWrappedText(ctx, errorMsg, wrapWidth, { preserveEmptyLines: true });
+    const qtDescLines = condenseTranslatedDisplayLines(
+        getWrappedText(ctx, errorMsg, wrapWidth, { preserveEmptyLines: true })
+    );
 
     const qtX = QT.x;
     const qtY = canvasHeightOffset;
@@ -229,7 +233,9 @@ function drawQtDesktopLayout(ctx, fontChain, metadata, pfp, mediaObj, options) {
 
     const textWrapWidth = hasMedia ? 320 : 420;
     ctx.font = `24px ${fontChain}`;
-    const qtDescLines = getWrappedText(ctx, metadata.description, textWrapWidth, { preserveEmptyLines: true });
+    const qtDescLines = condenseTranslatedDisplayLines(
+        getWrappedText(ctx, metadata.description, textWrapWidth, { preserveEmptyLines: true })
+    );
 
     const qtX = QT.x;
     const qtY = canvasHeightOffset;
