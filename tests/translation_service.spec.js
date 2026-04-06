@@ -47,6 +47,15 @@ describe('translation_service', () => {
         expect(prompt).toContain('\n\n\nGuten Morgen, wie geht es Ihnen?');
     });
 
+    test('resolveLanguageCode supports language names and explicit codes', () => {
+        const { resolveLanguageCode } = loadServiceWithEnv();
+
+        expect(resolveLanguageCode('French')).toBe('fr');
+        expect(resolveLanguageCode('Chinese Simplified')).toBe('zh-Hans');
+        expect(resolveLanguageCode('pt-BR')).toBe('pt-BR');
+        expect(resolveLanguageCode('not-a-real-language')).toBeNull();
+    });
+
     test('buildDisplayText appends the translated English copy', () => {
         const { buildDisplayText } = loadServiceWithEnv();
 
@@ -60,7 +69,7 @@ describe('translation_service', () => {
         });
 
         expect(rendered).toContain('Charlie Sheen farmou muita aura nesse comercial');
-        expect(rendered).toContain('[Translated from PT]');
+        expect(rendered).toContain('[Translated from Portuguese]');
         expect(rendered).toContain('Charlie Sheen farmed a lot of aura in this commercial.');
     });
 
@@ -91,6 +100,33 @@ describe('translation_service', () => {
             sourceLanguage: 'pt',
             log: jest.fn(),
         })).rejects.toThrow('non-translation response');
+    });
+
+    test('translateText supports arbitrary target languages', async () => {
+        const { translateText } = loadServiceWithEnv({
+            OLLAMA_TRANSLATION_MODEL: 'translategemma:12b',
+        });
+
+        global.fetch = jest.fn().mockResolvedValue({
+            ok: true,
+            json: async () => ({
+                response: 'Bonjour tout le monde',
+            }),
+        });
+
+        const translated = await translateText({
+            text: 'Hello everyone',
+            sourceLanguage: 'en',
+            targetLanguage: 'fr',
+            log: jest.fn(),
+        });
+
+        expect(translated).toBe('Bonjour tout le monde');
+        expect(global.fetch).toHaveBeenCalledTimes(1);
+        expect(JSON.parse(global.fetch.mock.calls[0][1].body)).toEqual(expect.objectContaining({
+            model: 'translategemma:12b',
+            prompt: expect.stringContaining('English (en) to French (fr)'),
+        }));
     });
 
     test('enrichMetadataWithTranslation stores translated text on metadata', async () => {

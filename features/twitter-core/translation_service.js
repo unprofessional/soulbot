@@ -12,6 +12,97 @@ const translationCache = new Map();
 const languageDisplayNames = typeof Intl !== 'undefined' && typeof Intl.DisplayNames === 'function'
     ? new Intl.DisplayNames(['en'], { type: 'language' })
     : null;
+const LANGUAGE_NAME_TO_CODE = new Map(Object.entries({
+    afrikaans: 'af',
+    albanian: 'sq',
+    amharic: 'am',
+    arabic: 'ar',
+    armenian: 'hy',
+    azerbaijani: 'az',
+    basque: 'eu',
+    belarusian: 'be',
+    bengali: 'bn',
+    bosnian: 'bs',
+    bulgarian: 'bg',
+    burmese: 'my',
+    catalan: 'ca',
+    chinese: 'zh',
+    'chinese simplified': 'zh-Hans',
+    simplifiedchinese: 'zh-Hans',
+    mandarin: 'zh',
+    cantonese: 'zh-Hant',
+    'chinese traditional': 'zh-Hant',
+    traditionalchinese: 'zh-Hant',
+    croatian: 'hr',
+    czech: 'cs',
+    danish: 'da',
+    dutch: 'nl',
+    english: 'en',
+    estonian: 'et',
+    filipino: 'fil-PH',
+    finnish: 'fi',
+    french: 'fr',
+    galician: 'gl',
+    georgian: 'ka',
+    german: 'de',
+    greek: 'el',
+    gujarati: 'gu',
+    haitian: 'ht',
+    hebrew: 'he',
+    hindi: 'hi',
+    hungarian: 'hu',
+    icelandic: 'is',
+    indonesian: 'id',
+    irish: 'ga',
+    italian: 'it',
+    japanese: 'ja',
+    kannada: 'kn',
+    kazakh: 'kk',
+    korean: 'ko',
+    kurdish: 'ku',
+    lao: 'lo',
+    latin: 'la',
+    latvian: 'lv',
+    lithuanian: 'lt',
+    macedonian: 'mk',
+    malay: 'ms',
+    malayalam: 'ml',
+    maltese: 'mt',
+    maori: 'mi',
+    marathi: 'mr',
+    mongolian: 'mn',
+    nepali: 'ne',
+    norwegian: 'no',
+    norwegianbokmal: 'nb',
+    norwegiannynorsk: 'nn',
+    persian: 'fa',
+    polish: 'pl',
+    portuguese: 'pt',
+    punjabi: 'pa',
+    romanian: 'ro',
+    russian: 'ru',
+    serbian: 'sr',
+    sinhala: 'si',
+    slovak: 'sk',
+    slovenian: 'sl',
+    somali: 'so',
+    spanish: 'es',
+    swahili: 'sw',
+    swedish: 'sv',
+    tagalog: 'tl',
+    tamil: 'ta',
+    telugu: 'te',
+    thai: 'th',
+    turkish: 'tr',
+    ukrainian: 'uk',
+    urdu: 'ur',
+    uzbek: 'uz',
+    vietnamese: 'vi',
+    welsh: 'cy',
+    yiddish: 'yi',
+    yoruba: 'yo',
+    zulu: 'zu',
+}));
 
 function getRawSourceText(metadata) {
     const raw = metadata?.text ?? metadata?.full_text ?? metadata?.tweet?.text ?? '';
@@ -83,6 +174,32 @@ function fallbackLanguageName(code) {
         .replace(/^[a-z]/i, c => c.toUpperCase());
 }
 
+function normalizeLanguageLookupKey(value) {
+    return String(value || '')
+        .trim()
+        .toLowerCase()
+        .replace(/[()]/g, ' ')
+        .replace(/[_-]+/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+}
+
+function resolveLanguageCode(input) {
+    const raw = String(input || '').trim();
+    if (!raw) return null;
+
+    const directCode = raw.replace(/_/g, '-');
+    if (/^[a-z]{2,3}(?:-[A-Za-z0-9]{2,8})*$/i.test(directCode)) return directCode;
+
+    const lookupKey = normalizeLanguageLookupKey(raw);
+    if (LANGUAGE_NAME_TO_CODE.has(lookupKey)) return LANGUAGE_NAME_TO_CODE.get(lookupKey);
+
+    const compactKey = lookupKey.replace(/\s+/g, '');
+    if (LANGUAGE_NAME_TO_CODE.has(compactKey)) return LANGUAGE_NAME_TO_CODE.get(compactKey);
+
+    return null;
+}
+
 function getLanguageName(code) {
     const normalized = String(code || '').trim();
     if (!normalized) return 'Unknown';
@@ -118,9 +235,14 @@ function buildTranslateGemmaPrompt({ text, sourceLanguage, targetLanguage = 'en'
     ].join('\n');
 }
 
-async function translateTextToEnglish({ text, sourceLanguage, log = console.log }) {
+async function translateText({
+    text,
+    sourceLanguage,
+    targetLanguage = 'en',
+    log = console.log,
+}) {
     const url = `http://${ollamaHost}:${ollamaPort}/${ollamaGenerateEndpoint}`;
-    const prompt = buildTranslateGemmaPrompt({ text, sourceLanguage, targetLanguage: 'en' });
+    const prompt = buildTranslateGemmaPrompt({ text, sourceLanguage, targetLanguage });
     const payload = {
         model: ollamaTranslationModel,
         prompt,
@@ -156,12 +278,22 @@ async function translateTextToEnglish({ text, sourceLanguage, log = console.log 
 
     log?.('[translation] translation complete', {
         sourceLanguage,
+        targetLanguage,
         model: ollamaTranslationModel,
         charsIn: text.length,
         charsOut: translatedText.length,
     });
 
     return translatedText;
+}
+
+async function translateTextToEnglish({ text, sourceLanguage, log = console.log }) {
+    return translateText({
+        text,
+        sourceLanguage,
+        targetLanguage: 'en',
+        log,
+    });
 }
 
 async function enrichMetadataWithTranslation(metadata, log = console.log) {
@@ -213,11 +345,12 @@ function buildDisplayText(metadata) {
     if (!sourceText) return '';
     if (!translatedText) return sourceText;
 
-    const sourceLanguage = String(
+    const sourceLanguageCode = String(
         metadata?.translation?.sourceLanguage || metadata?.lang || 'unknown'
-    ).trim().toUpperCase();
+    ).trim();
+    const sourceLanguageName = getLanguageName(sourceLanguageCode);
 
-    return `${sourceText}\n\n[Translated from ${sourceLanguage}]\n${translatedText}`.trim();
+    return `${sourceText}\n\n[Translated from ${sourceLanguageName}]\n${translatedText}`.trim();
 }
 
 module.exports = {
@@ -229,6 +362,8 @@ module.exports = {
     isEnglishLanguage,
     isLikelyTranslationFailure,
     isNonTranslatableLanguage,
+    resolveLanguageCode,
     shouldTranslateMetadata,
+    translateText,
     translateTextToEnglish,
 };
