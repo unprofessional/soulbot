@@ -121,6 +121,7 @@ describe('handleVideoPost progress lifecycle', () => {
             originalLink: 'https://x.com/test/status/2',
             videoUrl: 'https://video.example.com/file.mp4',
             processingDir: '/tempdata',
+            processingRunId: 'run-123',
             MAX_CONCURRENT_REQUESTS: 3,
             progressMessage,
         });
@@ -153,6 +154,7 @@ describe('handleVideoPost progress lifecycle', () => {
             originalLink: 'https://x.com/test/status/3',
             videoUrl: 'https://video.example.com/file.mp4',
             processingDir: '/tempdata',
+            processingRunId: 'run-123',
             MAX_CONCURRENT_REQUESTS: 3,
             progressMessage,
         });
@@ -182,6 +184,7 @@ describe('handleVideoPost progress lifecycle', () => {
             originalLink: 'https://x.com/test/status/4',
             videoUrl: 'https://video.example.com/file.mp4',
             processingDir: '/tempdata',
+            processingRunId: 'run-123',
             MAX_CONCURRENT_REQUESTS: 3,
             progressMessage,
         });

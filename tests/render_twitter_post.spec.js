@@ -12,6 +12,14 @@ jest.mock('../features/twitter-core/twitter_image_handler.js', () => ({
     handleImagePost: jest.fn().mockResolvedValue(undefined),
 }));
 
+jest.mock('../features/twitter-core/path_builder.js', () => ({
+    createProcessingRunId: jest.fn(() => 'run-123'),
+    buildPathsAndStuff: jest.fn(() => ({
+        filename: 'video-file',
+        localWorkingPath: '/tempdata/run-123',
+    })),
+}));
+
 jest.mock('../features/twitter-core/progress_message.js', () => ({
     createVideoProgressMessage: jest.fn().mockResolvedValue({
         update: jest.fn(),
@@ -29,6 +37,7 @@ const { handleVideoPost } = require('../features/twitter-core/twitter_video_hand
 const { handleImagePost } = require('../features/twitter-core/twitter_image_handler.js');
 const { createVideoProgressMessage } = require('../features/twitter-core/progress_message.js');
 const { collectMedia } = require('../features/twitter-core/utils.js');
+const { buildPathsAndStuff } = require('../features/twitter-core/path_builder.js');
 
 describe('renderTwitterPost community note flow', () => {
     beforeEach(() => {
@@ -76,11 +85,21 @@ describe('renderTwitterPost community note flow', () => {
             }),
             originalLink: 'https://x.com/test/status/2',
             videoUrl: 'https://example.com/video.mp4',
+            processingRunId: 'run-123',
+            pathInfo: {
+                filename: 'video-file',
+                localWorkingPath: '/tempdata/run-123',
+            },
             progressMessage: expect.objectContaining({
                 update: expect.any(Function),
                 dismiss: expect.any(Function),
             }),
         }));
+        expect(buildPathsAndStuff).toHaveBeenCalledWith(
+            '/tempdata',
+            'https://example.com/video.mp4',
+            'run-123',
+        );
         expect(handleImagePost).not.toHaveBeenCalled();
     });
 });

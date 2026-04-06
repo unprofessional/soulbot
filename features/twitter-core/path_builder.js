@@ -1,3 +1,5 @@
+const crypto = require('node:crypto');
+
 let pathObject = {
     filename: '',
     localWorkingPath: '',
@@ -18,7 +20,9 @@ const extractFilename = (videoUrl) => {
     return filename;
 };
 
-const buildPathsAndStuff = (processingDir = '/tempdata', videoUrl) => {
+const createProcessingRunId = () => crypto.randomBytes(6).toString('hex');
+
+const buildPathsAndStuff = (processingDir = '/tempdata', videoUrl, processingRunId) => {
     const sourceVideoFilename = extractFilename(videoUrl);
     // building blocks, not useful on their own
     const workingDir = 'canvassed';
@@ -26,7 +30,9 @@ const buildPathsAndStuff = (processingDir = '/tempdata', videoUrl) => {
     // useful
     const filename = filenameParts[0]; // grab filename/fileID without extension
     // console.log('>>>>> pathBuilder > extractFilename > filename: ', filename);
-    const localWorkingPath = `${processingDir}/${filename}`; // filename is the directory here for uniqueness
+    const localWorkingPath = processingRunId
+        ? `${processingDir}/${processingRunId}`
+        : `${processingDir}/${filename}`;
     // console.log('>>>>> pathBuilder > extractFilename > localWorkingPath: ', localWorkingPath);
     const localVideoOutputPath = `${localWorkingPath}/${sourceVideoFilename}`;
     // console.log('>>>>> pathBuilder > extractFilename > localVideoOutputPath: ', localVideoOutputPath);
@@ -53,5 +59,6 @@ const buildPathsAndStuff = (processingDir = '/tempdata', videoUrl) => {
 };
 
 module.exports = {
+    createProcessingRunId,
     buildPathsAndStuff,
 };

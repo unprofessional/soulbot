@@ -28,6 +28,8 @@ async function handleVideoPost({
     originalLink,
     videoUrl,
     processingDir,
+    processingRunId,
+    pathInfo,
     MAX_CONCURRENT_REQUESTS,
     progressMessage,
 }) {
@@ -45,7 +47,8 @@ async function handleVideoPost({
         });
     }
 
-    const { filename, localWorkingPath } = buildPathsAndStuff(processingDir, videoUrl);
+    const { filename, localWorkingPath } =
+        pathInfo || buildPathsAndStuff(processingDir, videoUrl, processingRunId);
     const videoInputPath = `${localWorkingPath}/${filename}.mp4`;
     const canvasInputPath = `${localWorkingPath}/${filename}.png`;
     const videoOutputPath = `${localWorkingPath}/${filename}-output.mp4`;

@@ -1,5 +1,9 @@
 // features/twitter-core/render_twitter_post.js
 const {
+    createProcessingRunId,
+    buildPathsAndStuff,
+} = require('./path_builder.js');
+const {
     createDirectoryIfNotExists,
     extractFirstVideoUrl,
     isFirstMediaVideo,
@@ -60,8 +64,11 @@ const renderTwitterPost = async (metadataJson, message, originalLink) => {
 
     await createDirectoryIfNotExists(processingDir);
 
+    const processingRunId = createProcessingRunId();
+
     if (isVideo && videoUrl) {
         const progressMessage = await createVideoProgressMessage(message);
+        const pathInfo = buildPathsAndStuff(processingDir, videoUrl, processingRunId);
 
         return await handleVideoPost({
             metadataJson,
@@ -69,11 +76,18 @@ const renderTwitterPost = async (metadataJson, message, originalLink) => {
             originalLink,
             videoUrl,
             processingDir,
+            processingRunId,
+            pathInfo,
             MAX_CONCURRENT_REQUESTS,
             progressMessage,
         });
     } else {
-        return await handleImagePost({ metadataJson, message, originalLink });
+        return await handleImagePost({
+            metadataJson,
+            message,
+            originalLink,
+            processingRunId,
+        });
     }
 };
 
