@@ -41,6 +41,38 @@ function condenseTranslatedDisplayLines(lines, { maxSourceLines = 3 } = {}) {
     return [...truncatedSourceLines, ...trailingLines];
 }
 
+function trimRenderedLinesToMaxChars(lines, maxChars) {
+    if (!Array.isArray(lines) || lines.length === 0) return [];
+    if (!Number.isFinite(maxChars) || maxChars <= 0) return lines;
+
+    const renderedLength = lines.join('\n').length;
+    if (renderedLength <= maxChars) return lines;
+
+    const out = [];
+    let used = 0;
+
+    for (let i = 0; i < lines.length; i++) {
+        const line = String(lines[i] || '');
+        const separatorLen = out.length > 0 ? 1 : 0;
+        const remaining = maxChars - used - separatorLen;
+
+        if (remaining <= 0) break;
+        if (line.length <= remaining) {
+            out.push(line);
+            used += separatorLen + line.length;
+            continue;
+        }
+
+        out.push(withTrailingEllipsis(line.slice(0, Math.max(0, remaining))));
+        used = maxChars;
+        break;
+    }
+
+    if (out.length === 0) return [withTrailingEllipsis(lines[0] || '')];
+
+    return out;
+}
+
 /**
  * Renders individual letters with spacing.
  */
@@ -99,4 +131,5 @@ module.exports = {
     drawDescriptionLines,
     getTranslationMarkerFont,
     isTranslationMarkerLine,
+    trimRenderedLinesToMaxChars,
 };

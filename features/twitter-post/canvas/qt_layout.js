@@ -1,18 +1,13 @@
 // features/twitter-post/canvas/qt_layout.js
 
 const { scaleDownToFitAspectRatio } = require('../scale_down.js');
-const { condenseTranslatedDisplayLines, getWrappedText } = require('../../twitter-core/canvas_utils.js');
+const { condenseTranslatedDisplayLines, getWrappedText, trimRenderedLinesToMaxChars } = require('../../twitter-core/canvas_utils.js');
 const {
     QT,
     getQtTextX,
     getQtWrapWidth,
     getQtInnerRect,
 } = require('../../twitter-core/layout/geometry.js');
-
-function trimToMaxChars(s, maxChars) {
-    if ((s?.length ?? 0) > maxChars + 50) return s.slice(0, maxChars) + '…';
-    return s || '';
-}
 
 /**
  * Calculate the total height needed for the quote-tweet rounded box.
@@ -137,7 +132,18 @@ function computeQtSizing(ctx, {
         };
     }
 
-    qtMetadata.description = trimToMaxChars(qtMetadata.description, maxQtDescChars);
+    ctx.font = `24px ${fontChain}`;
+    const initialWrapWidth = getQtWrapWidth({
+        expandQtMedia: false,
+        qtHasMedia: Array.isArray(qtMetadata.mediaExtended) && qtMetadata.mediaExtended.length > 0,
+    });
+    const initialRenderedLines = trimRenderedLinesToMaxChars(
+        condenseTranslatedDisplayLines(
+            getWrappedText(ctx, qtMetadata.description || '', initialWrapWidth, { preserveEmptyLines: true })
+        ),
+        maxQtDescChars
+    );
+    qtMetadata.description = initialRenderedLines.join('\n');
 
     const qtContainsVideo = Array.isArray(qtMedia) ? qtMedia.some(m => m.type === 'video') : false;
 

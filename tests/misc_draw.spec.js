@@ -3,6 +3,7 @@ const {
     drawDescriptionLines,
     getTranslationMarkerFont,
     isTranslationMarkerLine,
+    trimRenderedLinesToMaxChars,
 } = require('../features/twitter-core/canvas/misc_draw.js');
 
 describe('misc_draw translation marker styling', () => {
@@ -31,6 +32,34 @@ describe('misc_draw translation marker styling', () => {
             'line 3...',
             '[Translated from PT]',
             'translated line',
+        ]);
+    });
+
+    test('applies max-char trimming after condensation to the final rendered lines', () => {
+        const condensed = condenseTranslatedDisplayLines([
+            'source line 1',
+            'source line 2',
+            'source line 3',
+            'source line 4',
+            '[Translated from PT]',
+            'translated line 1',
+            'translated line 2',
+        ]);
+
+        expect(condensed).toEqual([
+            'source line 1',
+            'source line 2',
+            'source line 3...',
+            '[Translated from PT]',
+            'translated line 1',
+            'translated line 2',
+        ]);
+
+        expect(trimRenderedLinesToMaxChars(condensed, 62)).toEqual([
+            'source line 1',
+            'source line 2',
+            'source line 3...',
+            '[Translated from...',
         ]);
     });
 

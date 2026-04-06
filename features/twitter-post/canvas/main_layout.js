@@ -1,7 +1,7 @@
 // features/twitter-post/canvas/main_layout.js
 
 const { measureGalleryHeight } = require('../image_gallery_rendering.js');
-const { condenseTranslatedDisplayLines, getWrappedText } = require('../../twitter-core/canvas_utils.js');
+const { condenseTranslatedDisplayLines, getWrappedText, trimRenderedLinesToMaxChars } = require('../../twitter-core/canvas_utils.js');
 const { getMainTextX, getMainWrapWidth, MAIN } = require('../../twitter-core/layout/geometry.js');
 const {
     MAIN_FONT,
@@ -11,12 +11,6 @@ const {
     FOOTER_FONT_SIZE,
     MAX_DESC_CHARS,
 } = require('./constants.js');
-
-function trimToMaxChars(s, maxChars) {
-    const str = s || '';
-    if (str.length > maxChars + 50) return str.slice(0, maxChars) + '…';
-    return str;
-}
 
 function computeWillDrawGallery(images) {
     const first = images?.[0];
@@ -57,9 +51,6 @@ function measureMainLayout(ctx, {
         console.log(`[measure-debug] Using MAIN_FONT: ${MAIN_FONT}`);
     }
 
-    // Always bound length; preserve metadata shape for downstream users
-    metadata.description = trimToMaxChars(metadata.description, MAX_DESC_CHARS);
-
     const descX = getMainTextX({ hasImgs, hasVids });
     const mainWrapWidth = getMainWrapWidth({ canvasW: maxWidth, hasImgs, hasVids });
 
@@ -76,7 +67,10 @@ function measureMainLayout(ctx, {
     const descLinesRaw = hasVisibleDesc
         ? getWrappedText(ctx, rawDesc, mainWrapWidth, { preserveEmptyLines: true })
         : [];
-    const descLines = condenseTranslatedDisplayLines(descLinesRaw);
+    const descLines = trimRenderedLinesToMaxChars(
+        condenseTranslatedDisplayLines(descLinesRaw),
+        MAX_DESC_CHARS
+    );
 
     /**
      * 🔍 Debug wrapped lines
