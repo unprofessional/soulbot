@@ -14,23 +14,27 @@ console.log('>>>>> members: ', members)
  * @param {*} message 
  * @returns 
  */
-const addMember = (user, prefix, message) => {
+const addMember = (user, prefix) => {
     const { id, username } = user;
     const member = members.find((_member) => _member.memberId === id);
-    try {
-        if(member) {
-            throw new Error('Member already exists!');
-        }
+
+    if (member) {
+        return {
+            ok: false,
+            message: 'Member already exists!',
+        };
     }
-    catch (err) {
-        message.channel.send('Member already exists!');
-    }
-    message.channel.send(`Adding \`${username}\` with prefix: \`${prefix}\`...`);
+
     members.push({
         memberId: id,
         prefix,
     });
     memberDAO.save({ members });
+
+    return {
+        ok: true,
+        message: `Adding \`${username}\` with prefix: \`${prefix}\`...`,
+    };
 };
 
 /**
@@ -39,8 +43,8 @@ const addMember = (user, prefix, message) => {
  * @param {*} guildId 
  * @returns 
  */
-const initializeMemberCache = async (client) => {
-    const cachedGuild = client.guilds.cache.get('818606858780147712');
+const initializeMemberCache = async (client, guildId) => {
+    const cachedGuild = client.guilds.cache.get(guildId);
     if (!cachedGuild) {
         console.error("Guild not found!");
         return;
@@ -60,8 +64,10 @@ const initializeMemberCache = async (client) => {
  * @param {*} guildId 
  * @returns 
  */
-const getMembers = async (client) => {
-    const cachedMembers = await initializeMemberCache(client);
+const getMembers = async (client, guildId) => {
+    const cachedMembers = await initializeMemberCache(client, guildId);
+    if (!cachedMembers) return [];
+
     // console.log('!!!!! cachedGuild: ', cachedMembers); // will print out huge list.....
     const nicknames = [];
     members.forEach((_member) => {
@@ -71,16 +77,12 @@ const getMembers = async (client) => {
         if(!cachedMember) {
             nicknames.push(`MISSING: ${_member.prefix}`);
         } else {
-            nicknames.push(cachedMember.nickname);
+            nicknames.push(cachedMember.nickname || cachedMember.user.username);
         }
     });
 
-    let nicknamesStringFormatted = "";
-    nicknames.forEach((nickname) => {
-        nicknamesStringFormatted += `\`${nickname}\`, ` // TODO: fix singular dangling comma
-    })
-    console.log('>>>>> nicknamesStringFormatted: ', nicknamesStringFormatted);
-    return nicknamesStringFormatted;
+    console.log('>>>>> nicknames: ', nicknames);
+    return nicknames;
 };
 
 /**

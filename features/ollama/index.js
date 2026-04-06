@@ -37,7 +37,7 @@ const processChunks = async (ollamaResponse) => {
 async function sendPromptToOllama(prompt, imagePath, intent) {
     const url = `http://${ollamaHost}:${ollamaPort}/${ollamaChatEndpoint}`;
     let finalUserPrompt = imagePath
-        ? 'Analyze this image. Please be brief and concise. If you do not know what it is, then just say so.'
+        ? (prompt || 'Analyze this image. Please be brief and concise. If you do not know what it is, then just say so.')
         : prompt;
     if(intent === 'catvision') {
         finalUserPrompt = `You are assisting with categorizing images into categories for a database. 

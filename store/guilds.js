@@ -7,48 +7,50 @@ const guildDAO = new DAO(filePath);
 const guilds = guildDAO.initializeLocalStore().guilds || [];
 console.log('>>>>> guilds: ', guilds)
 
-// TODO: Consider adding return booleans for success/failure scenarios
-const addGuild = (guildId, message) => {
-    try {
-        if(guilds.includes(guildId)) {
-            throw new Error('Server already exists!');
-        }
-        message.channel.send('Adding server to the list...');
-        guilds.push(guildId); // if it works, return updated ref, else return nothing
-        guildDAO.save({ guilds });
+const addGuild = (guildId) => {
+    if (guilds.includes(guildId)) {
+        return {
+            ok: false,
+            message: 'Server already exists!',
+        };
     }
-    catch (err) {
-        message.channel.send('Server already exists!');
-    }
+
+    guilds.push(guildId);
+    guildDAO.save({ guilds });
+
+    return {
+        ok: true,
+        message: 'Adding server to the list...',
+    };
 };
 
 const getGuilds = (client) => {
-    const guildNames = [];
-    client.guilds.cache.forEach((guild) => {
-    // console.log('!!!!! guild.name: ', guild.name);
-
-        // Find the guild name from the guildId in the list....
-        guilds.forEach(guildId => {
-            if(guildId === guild.id) {
-                guildNames.push(guild.name);
-            }
-        });
-
+    const guildNames = guilds.map(guildId => {
+        const guild = client.guilds.cache.get(guildId);
+        return guild?.name || `Unknown guild (${guildId})`;
     });
 
-    // console.log('>>>>> guildNames: ', guildNames);
-    // return guildNames;
-  
-    let guildNamesStringFormatted = "";
-    guildNames.forEach((guildName) => {
-        guildNamesStringFormatted += `\`${guildName}\`, ` // TODO: fix singular dangling comma
-    })
-    console.log('>>>>> guildNamesStringFormatted: ', guildNamesStringFormatted);
-    return guildNamesStringFormatted;
+    console.log('>>>>> guildNames: ', guildNames);
+    return guildNames;
 };
 
 const removeGuild = (guildId) => {
-    return guilds.filter((_guildId) => _guildId === guildId);
+    const guildIndex = guilds.findIndex(_guildId => _guildId === guildId);
+
+    if (guildIndex === -1) {
+        return {
+            ok: false,
+            message: 'Server is not in the supported list.',
+        };
+    }
+
+    guilds.splice(guildIndex, 1);
+    guildDAO.save({ guilds });
+
+    return {
+        ok: true,
+        message: 'Removing server from supported list...',
+    };
 };
 
 /**
@@ -58,7 +60,7 @@ const removeGuild = (guildId) => {
  */
 const guildIsSupported = (guildId) => {
     return guilds.includes(guildId);
-}
+};
 
 module.exports = { 
     guilds,

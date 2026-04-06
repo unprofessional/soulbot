@@ -7,7 +7,7 @@ const metaDAO = new DAO(filePath);
 const features = metaDAO.initializeLocalStore().features || [];
 console.log('>>>>> features > features: ', features)
 
-const toggleTwitter = (message) => {
+const toggleTwitter = () => {
 
     console.log('>>>>> toggleTwitter > features{1}: ', features)
 
@@ -16,16 +16,22 @@ const toggleTwitter = (message) => {
 
     console.log('>>>>> toggleTwitter > twitterFeatureIndex: ', twitterFeatureIndex)
 
-    if(twitterFeatureIndex === -1) {
-        message.reply(`Twitter feature not found!`);
+    if (twitterFeatureIndex === -1) {
+        return {
+            ok: false,
+            message: 'Twitter feature not found!',
+        };
     }
 
-    if(twitterFeatureIndex !== -1) {
-        features[twitterFeatureIndex].on = !twitterFeature.on;
-        console.log('>>>>> toggleTwitter > features{2}: ', features);
-        metaDAO.save({ features });
-        message.reply(`Twitter functionality toggled to \`${features[twitterFeatureIndex].on}\``);
-    }
+    features[twitterFeatureIndex].on = !twitterFeature.on;
+    console.log('>>>>> toggleTwitter > features{2}: ', features);
+    metaDAO.save({ features });
+
+    return {
+        ok: true,
+        on: features[twitterFeatureIndex].on,
+        message: `Twitter functionality toggled to \`${features[twitterFeatureIndex].on}\``,
+    };
 };
 
 module.exports = { 
