@@ -12,6 +12,13 @@ jest.mock('../features/twitter-core/twitter_image_handler.js', () => ({
     handleImagePost: jest.fn().mockResolvedValue(undefined),
 }));
 
+jest.mock('../features/twitter-core/progress_message.js', () => ({
+    createVideoProgressMessage: jest.fn().mockResolvedValue({
+        update: jest.fn(),
+        dismiss: jest.fn(),
+    }),
+}));
+
 jest.mock('../features/twitter-core/utils.js', () => ({
     collectMedia: jest.fn(),
     formatTwitterDate: jest.fn(() => 'Apr 4, 2026'),
@@ -20,6 +27,7 @@ jest.mock('../features/twitter-core/utils.js', () => ({
 const { renderTwitterPost } = require('../features/twitter-core/render_twitter_post.js');
 const { handleVideoPost } = require('../features/twitter-core/twitter_video_handler.js');
 const { handleImagePost } = require('../features/twitter-core/twitter_image_handler.js');
+const { createVideoProgressMessage } = require('../features/twitter-core/progress_message.js');
 const { collectMedia } = require('../features/twitter-core/utils.js');
 
 describe('renderTwitterPost community note flow', () => {
@@ -45,6 +53,7 @@ describe('renderTwitterPost community note flow', () => {
             }),
             originalLink: 'https://x.com/test/status/1',
         }));
+        expect(createVideoProgressMessage).not.toHaveBeenCalled();
         expect(handleVideoPost).not.toHaveBeenCalled();
     });
 
@@ -60,12 +69,17 @@ describe('renderTwitterPost community note flow', () => {
 
         await renderTwitterPost(metadataJson, { reply: jest.fn() }, 'https://x.com/test/status/2');
 
+        expect(createVideoProgressMessage).toHaveBeenCalledTimes(1);
         expect(handleVideoPost).toHaveBeenCalledWith(expect.objectContaining({
             metadataJson: expect.objectContaining({
                 communityNote: 'Context for the video post.',
             }),
             originalLink: 'https://x.com/test/status/2',
             videoUrl: 'https://example.com/video.mp4',
+            progressMessage: expect.objectContaining({
+                update: expect.any(Function),
+                dismiss: expect.any(Function),
+            }),
         }));
         expect(handleImagePost).not.toHaveBeenCalled();
     });

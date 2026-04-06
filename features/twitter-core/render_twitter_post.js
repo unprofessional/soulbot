@@ -4,6 +4,7 @@ const {
     extractFirstVideoUrl,
     isFirstMediaVideo,
 } = require('./twitter_post_utils.js');
+const { createVideoProgressMessage } = require('./progress_message.js');
 const { handleVideoPost } = require('./twitter_video_handler.js');
 const { handleImagePost } = require('./twitter_image_handler.js');
 
@@ -60,6 +61,8 @@ const renderTwitterPost = async (metadataJson, message, originalLink) => {
     await createDirectoryIfNotExists(processingDir);
 
     if (isVideo && videoUrl) {
+        const progressMessage = await createVideoProgressMessage(message);
+
         return await handleVideoPost({
             metadataJson,
             message,
@@ -67,6 +70,7 @@ const renderTwitterPost = async (metadataJson, message, originalLink) => {
             videoUrl,
             processingDir,
             MAX_CONCURRENT_REQUESTS,
+            progressMessage,
         });
     } else {
         return await handleImagePost({ metadataJson, message, originalLink });

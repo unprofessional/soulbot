@@ -11,7 +11,7 @@ const { createTwitterVideoCanvas } = require('../twitter-video/twitter_video_can
 const { sendVideoReply } = require('./webhook_utils.js');
 const { cleanup } = require('../twitter-video/cleanup.js');
 const { estimateOutputSizeBytes, inspectVideoFileDetails } = require('./estimate_output_size');
-const { collectMedia } = require('./utils.js');
+const { toFixupx } = require('./fetch_metadata.js');
 
 const USE_ESTIMATION = false; // 🔧 Toggle to `true` to re-enable output size estimation
 
@@ -29,6 +29,7 @@ async function handleVideoPost({
     videoUrl,
     processingDir,
     MAX_CONCURRENT_REQUESTS,
+    progressMessage,
 }) {
     const communityNotes = {
         main: metadataJson.communityNote,
@@ -37,7 +38,11 @@ async function handleVideoPost({
 
     const currentDirCount = await countDirectoriesInDirectory(processingDir);
     if (currentDirCount >= MAX_CONCURRENT_REQUESTS) {
-        return message.reply({ content: 'Video processing at capacity; try again later.' });
+        await progressMessage?.dismiss?.();
+        return message.reply({
+            content: 'Video processing at capacity; try again later.',
+            allowedMentions: { repliedUser: false },
+        });
     }
 
     const { filename, localWorkingPath } = buildPathsAndStuff(processingDir, videoUrl);
@@ -62,7 +67,7 @@ async function handleVideoPost({
 
             if (estimatedSize > maxBytes) {
                 const fixupLink = originalLink.replace('https://x.com', 'https://fixupx.com');
-                await cleanup([], [localWorkingPath]);
+                await progressMessage?.dismiss?.();
                 return message.reply(
                     `⚠️ Estimated output file too large for this server tier (max ${DISCORD_UPLOAD_LIMITS_MB[boostTier]}MB). Defaulting to FIXUPX link: ${fixupLink}`,
                 );
@@ -126,17 +131,39 @@ async function handleVideoPost({
         // Optional: dump output file media info
         inspectVideoFileDetails(successFilePath, 'output');
 
-        await sendVideoReply(
-            message,
-            successFilePath,
-            localWorkingPath,
-            originalLink,
-            communityNotes,
-        );
+        await progressMessage?.update?.('Uploading the rendered Twitter/X video...');
+
+        try {
+            await sendVideoReply(
+                message,
+                successFilePath,
+                originalLink,
+                communityNotes,
+            );
+            await progressMessage?.dismiss?.();
+        } catch (err) {
+            await progressMessage?.dismiss?.();
+
+            if (err?.name === 'DiscordAPIError[40005]') {
+                const fixupLink = toFixupx(originalLink);
+                await message.reply({
+                    content: `Discord upload rejected the rendered video because it was too large for this server tier. Defaulting to FIXUPX link: ${fixupLink}`,
+                    allowedMentions: { repliedUser: false },
+                });
+                return;
+            }
+
+            throw err;
+        }
     } catch (err) {
         console.error('>>> ERROR: renderTwitterPost > err:', err);
-        await cleanup([], [localWorkingPath]);
+        await progressMessage?.dismiss?.();
+        await message.reply({
+            content: `Video processing failed for this post. Try again later or use FIXUPX: ${toFixupx(originalLink)}`,
+            allowedMentions: { repliedUser: false },
+        });
     } finally {
+        await cleanup([], [localWorkingPath]);
         const totalTime = (Date.now() - startTime) / 1000;
         console.log(`⏱️ Video processing completed in ${totalTime.toFixed(2)}s`);
     }

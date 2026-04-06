@@ -2,7 +2,6 @@
 
 const { readFile } = require('node:fs/promises');
 const { stripQueryParams } = require('./utils.js');
-const { cleanup } = require('../twitter-video/cleanup.js');
 const { embedCommunityNote } = require('./canvas_utils.js');
 
 function normalizeCommunityNotes(communityNotes) {
@@ -132,22 +131,23 @@ function buildSimulatedReplyText(message, modifiedContent, replyMeta) {
  * impersonating the original user. Deletes the original message and webhook afterward.
  */
 const sendWebhookProxyMsg = async (message, content, files = [], communityNotes, originalLink) => {
+    const parentChannel = message.channel.isThread() ? message.channel.parent : message.channel;
+    const webhooks = await parentChannel.fetchWebhooks();
+
+    // Clean up bot-owned webhooks first
+    const botWebhooks = webhooks.filter(wh => wh.owner?.id === message.client.user.id);
+    for (const webhook of botWebhooks.values()) {
+        await webhook.delete().catch(err => console.warn(`Failed to delete webhook: ${err}`));
+    }
+
+    const embeds = buildCommunityNoteEmbeds(message, communityNotes);
+
+    // Prefer guild nickname + guild avatar for impersonation identity
+    const { displayName, avatarURL } = resolveImpersonationIdentity(message);
+
+    const { webhook, threadId } = await webhookBuilder(parentChannel, message, displayName, avatarURL);
+
     try {
-        const parentChannel = message.channel.isThread() ? message.channel.parent : message.channel;
-        const webhooks = await parentChannel.fetchWebhooks();
-
-        // Clean up bot-owned webhooks first
-        const botWebhooks = webhooks.filter(wh => wh.owner?.id === message.client.user.id);
-        for (const webhook of botWebhooks.values()) {
-            await webhook.delete().catch(err => console.warn(`Failed to delete webhook: ${err}`));
-        }
-
-        const embeds = buildCommunityNoteEmbeds(message, communityNotes);
-
-        // Prefer guild nickname + guild avatar for impersonation identity
-        const { displayName, avatarURL } = resolveImpersonationIdentity(message);
-
-        const { webhook, threadId } = await webhookBuilder(parentChannel, message, displayName, avatarURL);
         const modifiedContent = trimQueryParamsFromTwitXUrl(message.content || content || '');
 
         // If this was a reply, simulate it with a header + quote
@@ -169,51 +169,34 @@ const sendWebhookProxyMsg = async (message, content, files = [], communityNotes,
             files,
             allowedMentions,
         });
-
-        await message.delete();
-        await webhook.delete();
     } catch (error) {
         console.error('>>> sendWebhookProxyMsg error:', error);
-
-        const tooLargeErrorStr = 'DiscordAPIError[40005]: Request entity too large';
-        const fixupLink = originalLink?.replace('https://x.com', 'https://fixupx.com');
-
-        if (error?.name === 'DiscordAPIError[40005]') {
-            await message.reply(`${tooLargeErrorStr}: video file size was likely too large for this server's tier... defaulting to FIXUPX link: ${fixupLink}`);
-        }
+        await webhook.delete().catch(err => console.warn(`Failed to delete webhook after send error: ${err}`));
+        error.originalLink = originalLink;
+        throw error;
     }
+
+    await message.delete().catch(err => console.warn(`Failed to delete source message: ${err}`));
+    await webhook.delete().catch(err => console.warn(`Failed to delete webhook: ${err}`));
 };
 
 /**
  * Sends a video as a file attachment via webhook proxy, or falls back on failure.
  * (kept here for convenience since other modules import it from webhook_utils)
  */
-const sendVideoReply = async (message, successFilePath, localWorkingPath, originalLink, communityNotes) => {
+const sendVideoReply = async (message, successFilePath, originalLink, communityNotes) => {
     const files = [{
         attachment: await readFile(successFilePath),
         name: 'video.mp4',
     }];
 
-    try {
-        await sendWebhookProxyMsg(
-            message,
-            'Here’s the Twitter canvas:',
-            files,
-            communityNotes,
-            originalLink
-        );
-    } catch (err) {
-        console.warn('>>> sendVideoReply > WEBHOOK FAILED!');
-        await sendWebhookProxyMsg(
-            message,
-            `File(s) too large to attach! err: ${err}`,
-            undefined,
-            communityNotes,
-            originalLink
-        );
-    } finally {
-        await cleanup([], [localWorkingPath]);
-    }
+    await sendWebhookProxyMsg(
+        message,
+        'Here’s the Twitter canvas:',
+        files,
+        communityNotes,
+        originalLink
+    );
 };
 
 module.exports = {
