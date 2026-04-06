@@ -7,11 +7,6 @@ require('dotenv').config();
 
 const { DISCORD_CLIENT_ID, DISCORD_BOT_TOKEN } = process.env;
 
-// === Preload handlers to avoid re-requiring per interaction ===
-const buttonHandler = require('./features/rpg-tracker/button_handlers.js');
-const modalHandler = require('./features/rpg-tracker/modal_handlers.js');
-const selectMenuHandler = require('./features/rpg-tracker/select_menu_handlers.js');
-
 /**
  * Recursively collect all .js files in a directory
  */
@@ -75,19 +70,6 @@ const initializeCommands = async (client) => {
                     return;
                 }
                 await command.execute(interaction);
-            }
-
-            else if (interaction.isModalSubmit()) {
-                await modalHandler.handleModal(interaction);
-            }
-
-            else if (interaction.isButton()) {
-                console.log('🔘 Button interaction received:', interaction.customId);
-                await buttonHandler.handleButton(interaction);
-            }
-
-            else if (interaction.isStringSelectMenu()) {
-                await selectMenuHandler.handleSelectMenu(interaction);
             }
 
             else {
