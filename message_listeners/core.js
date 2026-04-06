@@ -2,6 +2,7 @@
 
 const { Events } = require('discord.js');
 const { enforceGoldyRole } = require('../features/role-enforcement/role-enforcement.js');
+const { handleSpeakEnglishRole } = require('../features/translation/auto_speak_english.js');
 const { logMessage } = require('../logger/logger.js');
 const { handleTwitterUrl } = require('../features/twitter-core/twitter_handler.js');
 const { updateMessage, deleteMessage } = require('../store/services/messages.service.js');
@@ -22,6 +23,7 @@ async function initializeListeners(client) {
 
         if (isUser) {
             await enforceGoldyRole(message);
+            await handleSpeakEnglishRole(message);
 
             if (twitterFeature.on) {
                 await handleTwitterUrl(message, { twitterFeature, guildId });

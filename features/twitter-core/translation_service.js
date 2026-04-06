@@ -296,6 +296,15 @@ async function translateTextToEnglish({ text, sourceLanguage, log = console.log 
     });
 }
 
+async function improveEnglishText({ text, log = console.log }) {
+    return translateText({
+        text,
+        sourceLanguage: 'en',
+        targetLanguage: 'en',
+        log,
+    });
+}
+
 async function enrichMetadataWithTranslation(metadata, log = console.log) {
     if (!shouldTranslateMetadata(metadata)) return metadata;
 
@@ -359,9 +368,11 @@ module.exports = {
     enrichMetadataWithTranslation,
     getSourceText,
     getLanguageName,
+    improveEnglishText,
     isEnglishLanguage,
     isLikelyTranslationFailure,
     isNonTranslatableLanguage,
+    normalizeWhitespace,
     resolveLanguageCode,
     shouldTranslateMetadata,
     translateText,
