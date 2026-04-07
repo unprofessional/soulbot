@@ -161,12 +161,14 @@ async function getVideoFileSize(filePath) {
 async function bakeImageAsFilterIntoVideo(
     videoInputPath, canvasInputPath, videoOutputPath,
     videoHeight, videoWidth,
-    canvasHeight, canvasWidth, heightShim
+    canvasHeight, canvasWidth, heightShim,
+    options = {}
 ) {
     return bakeImageAsFilterIntoVideoDEBUG(
         videoInputPath, canvasInputPath, videoOutputPath,
         videoHeight, videoWidth,
-        canvasHeight, canvasWidth, heightShim
+        canvasHeight, canvasWidth, heightShim,
+        options
     );
 }
 

@@ -30,6 +30,21 @@ function parseRate(r) {
 const seconds = n => Number.isFinite(n) ? n.toFixed(3) : 'NaN';
 const probeAll = p => new Promise((res, rej) => ffmpeg.ffprobe(p, (e, md) => e ? rej(e) : res(md)));
 
+function parseTimemarkToSeconds(timemark) {
+    if (!timemark || typeof timemark !== 'string') return 0;
+
+    const [hh = '0', mm = '0', ss = '0'] = timemark.split(':');
+    const hours = Number(hh);
+    const minutes = Number(mm);
+    const seconds = Number(ss);
+
+    if (!Number.isFinite(hours) || !Number.isFinite(minutes) || !Number.isFinite(seconds)) {
+        return 0;
+    }
+
+    return (hours * 3600) + (minutes * 60) + seconds;
+}
+
 async function debugProbe(tag, p, md) {
     const fmt = md.format || {};
     const streams = md.streams || [];
@@ -97,9 +112,11 @@ function bakeImageAsFilterIntoVideoDEBUG(
     videoInputPath, canvasInputPath, videoOutputPath,
     videoHeight, videoWidth,
     canvasHeight, canvasWidth, heightShim
+    , options = {}
 ) {
     return new Promise((resolve, reject) => {
         (async () => {
+            const onProgress = typeof options?.onProgress === 'function' ? options.onProgress : null;
             if (!existsSync(videoInputPath)) throw new Error(`Missing video input: ${videoInputPath}`);
             if (!existsSync(canvasInputPath)) throw new Error(`Missing canvas input: ${canvasInputPath}`);
 
@@ -180,6 +197,18 @@ function bakeImageAsFilterIntoVideoDEBUG(
             console.log('[ffmpeg] filter_complex:', filterComplex);
             console.log('[ffmpeg] fps:', fpsStr, '| audio sync delta (s):', delta.toFixed(3), '| -t:', outSeconds.toFixed(3));
 
+            if (onProgress) {
+                Promise.resolve(onProgress({
+                    phase: 'encoding',
+                    percent: 0,
+                    currentSeconds: 0,
+                    totalSeconds: outSeconds,
+                    timemark: '00:00:00.00',
+                })).catch(error => {
+                    console.warn('[ffmpeg] onProgress(start) failed:', error);
+                });
+            }
+
             const baseOutputOpts = [
                 '-loglevel', 'info', '-stats',
                 '-muxpreload', '0', '-muxdelay', '0',
@@ -215,11 +244,39 @@ function bakeImageAsFilterIntoVideoDEBUG(
                 .on('progress', p => {
                     lastProgTs = Date.now();
                     lastTimemark = p.timemark || lastTimemark;
-                    const pct = typeof p.percent === 'number' ? p.percent.toFixed(2) : 'n/a';
+                    const currentSeconds = parseTimemarkToSeconds(lastTimemark);
+                    const pctNum = outSeconds > 0
+                        ? Math.max(0, Math.min(100, (currentSeconds / outSeconds) * 100))
+                        : 0;
+                    const pct = pctNum.toFixed(2);
                     console.log(`[ffmpeg][progress] pct=${pct} frames=${p.frames ?? 'n/a'} timemark=${p.timemark ?? 'n/a'}`);
+
+                    if (onProgress) {
+                        Promise.resolve(onProgress({
+                            phase: 'encoding',
+                            percent: pctNum,
+                            currentSeconds,
+                            totalSeconds: outSeconds,
+                            timemark: lastTimemark,
+                            frames: p.frames ?? null,
+                        })).catch(error => {
+                            console.warn('[ffmpeg] onProgress(progress) failed:', error);
+                        });
+                    }
                 })
                 .on('stderr', line => { if (VERBOSE) console.log('[ffmpeg][stderr]', String(line).trim()); keepTail(line); })
                 .on('end', async () => {
+                    if (onProgress) {
+                        Promise.resolve(onProgress({
+                            phase: 'encoding',
+                            percent: 100,
+                            currentSeconds: outSeconds,
+                            totalSeconds: outSeconds,
+                            timemark: lastTimemark || '00:00:00.00',
+                        })).catch(error => {
+                            console.warn('[ffmpeg] onProgress(end) failed:', error);
+                        });
+                    }
                     console.log('[ffmpeg] done', statLine(videoOutputPath));
                     try {
                         const outProbe = await probeAll(videoOutputPath);

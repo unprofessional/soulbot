@@ -60,6 +60,7 @@ function buildMessageMock() {
 function buildProgressMock() {
     return {
         update: jest.fn().mockResolvedValue(undefined),
+        updateVideoEncodeProgress: jest.fn().mockResolvedValue(undefined),
         dismiss: jest.fn().mockResolvedValue(undefined),
     };
 }
@@ -111,6 +112,15 @@ describe('handleVideoPost progress lifecycle', () => {
     test('dismisses the placeholder after a successful upload', async () => {
         const message = buildMessageMock();
         const progressMessage = buildProgressMock();
+        bakeImageAsFilterIntoVideo.mockImplementation(async (...args) => {
+            const options = args[8];
+            await options.onProgress({
+                percent: 62,
+                currentSeconds: 25,
+                totalSeconds: 40,
+            });
+            return '/tempdata/video-file/video-file-output.mp4';
+        });
 
         await handleVideoPost({
             metadataJson: {
@@ -126,6 +136,11 @@ describe('handleVideoPost progress lifecycle', () => {
             progressMessage,
         });
 
+        expect(progressMessage.updateVideoEncodeProgress).toHaveBeenCalledWith({
+            percent: 62,
+            currentSeconds: 25,
+            totalSeconds: 40,
+        });
         expect(progressMessage.update).toHaveBeenCalledWith('Uploading the rendered Twitter/X video...');
         expect(sendVideoReply).toHaveBeenCalledWith(
             message,

@@ -125,6 +125,11 @@ async function handleVideoPost({
             /* canvas (overlay) size: */ canvasHeight,
             canvasWidth,
             heightShim,
+            {
+                onProgress: async (progress) => {
+                    await progressMessage?.updateVideoEncodeProgress?.(progress);
+                },
+            },
         );
 
         const actualSize = await getVideoFileSize(successFilePath);
