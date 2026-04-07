@@ -20,8 +20,8 @@ function assertOwner(interaction) {
     return null;
 }
 
-function assertSupportedGuild(interaction) {
-    if (!guildIsSupported(interaction.guildId)) {
+async function assertSupportedGuild(interaction) {
+    if (!(await guildIsSupported(interaction.guildId))) {
         return interaction.reply({
             content: 'Server not supported!!',
             ephemeral: true,
@@ -112,7 +112,7 @@ module.exports = {
         const subcommand = interaction.options.getSubcommand();
 
         if (group === 'server' && subcommand === 'init') {
-            const result = addGuild(interaction.guildId);
+            const result = await addGuild(interaction.guildId);
             return interaction.reply({
                 content: result.message,
                 ephemeral: true,
@@ -129,7 +129,7 @@ module.exports = {
                 });
             }
 
-            const result = toggleTwitter();
+            const result = await toggleTwitter();
             return interaction.reply({
                 content: result.message,
                 ephemeral: true,
@@ -140,7 +140,7 @@ module.exports = {
         if (unsupported) return unsupported;
 
         if (group === 'server' && subcommand === 'delete') {
-            const result = removeGuild(interaction.guildId);
+            const result = await removeGuild(interaction.guildId);
             return interaction.reply({
                 content: result.message,
                 ephemeral: true,
@@ -148,7 +148,7 @@ module.exports = {
         }
 
         if (group === 'server' && subcommand === 'list') {
-            const guildNames = getGuilds(interaction.client);
+            const guildNames = await getGuilds(interaction.client);
             return interaction.reply({
                 content: guildNames.length > 0
                     ? `Current supported servers:\n${formatCodeList(guildNames)}`
@@ -189,7 +189,7 @@ module.exports = {
                 });
             }
 
-            const result = addMember(user, prefix);
+            const result = await addMember(user, prefix);
             return interaction.reply({
                 content: result.ok
                     ? `${result.message}\nUpdated nickname to \`${newName}\`.`

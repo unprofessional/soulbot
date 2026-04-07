@@ -1,7 +1,6 @@
 // index.js
 const { Events, ShardEvents, WebSocketShardEvents } = require('discord.js');
 const { client } = require('./initial_client.js');
-const { initializeDataStore } = require('./initial_store.js');
 const { initializeListeners } = require('./message_listeners/core.js');
 const { initializeCommands } = require('./initial_commands.js');
 const { initializeGuildMemberUpdate } = require('./events/guild_member_update.js');
@@ -14,11 +13,6 @@ const { initializeGuildMemberAdd } = require('./events/guild_member_add.js');
 require('dotenv').config();
 
 const token = process.env.DISCORD_BOT_TOKEN;
-const path = process.env.STORE_PATH;
-const guildFile = process.env.GUILD_STORE_FILE;
-const channelFile = process.env.CHANNEL_STORE_FILE;
-const memberFile = process.env.MEMBER_STORE_FILE;
-const featureFile = process.env.FEATURE_STORE_FILE;
 const runMode = process.env.RUN_MODE || 'development';
 
 const initializeApp = async () => {
@@ -41,19 +35,6 @@ const initializeApp = async () => {
         console.error('----- Fonts: failed to register fonts:', error);
         process.exit(1);
     }
-
-    /**
-     * Data stores
-     */
-    [
-        guildFile,
-        channelFile,
-        memberFile,
-        featureFile,
-    ].forEach((file) => {
-        const filePath = `${path}/${file}`;
-        initializeDataStore(filePath);
-    });
 
     /**
      * Client lifecycle
@@ -129,6 +110,8 @@ const initializeApp = async () => {
      */
     await testPgConnection();
 
+    await initializeDB();
+
     try {
         const result = await testChromaConnection();
         console.log(result);
@@ -136,8 +119,6 @@ const initializeApp = async () => {
         console.error('ChromaDB connection test failed:', error.message);
         // intentionally non-fatal
     }
-
-    await initializeDB();
 
     /**
      * Login last — nothing should create canvases before this point

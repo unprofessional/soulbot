@@ -1,11 +1,6 @@
-const DAO = require('./dao/store.dao.js');
-require('dotenv').config();
-const path = process.env.STORE_PATH;
-const file = process.env.OLLAMA_WHITELIST_STORE_FILE;
-const filePath = `${path}/${file}`;
-const ollamaWhitelistDAO = new DAO(filePath);
-const ollamaWhitelist = ollamaWhitelistDAO.initializeLocalStore().members || [];
-console.log('>>>>> members: ', ollamaWhitelist)
+const OllamaWhitelistDAO = require('./dao/ollama_whitelist.dao.js');
+
+const ollamaWhitelistDAO = new OllamaWhitelistDAO();
 
 /**
  * 
@@ -14,9 +9,9 @@ console.log('>>>>> members: ', ollamaWhitelist)
  * @param {*} message 
  * @returns 
  */
-const addMember = (user, prefix, message) => {
+const addMember = async (user, prefix, message) => {
     const { id, username } = user;
-    const member = ollamaWhitelist.find((_member) => _member.memberId === id);
+    const member = await ollamaWhitelistDAO.findByMemberId(id);
     try {
         if(member) {
             throw new Error('Member already exists!');
@@ -26,10 +21,7 @@ const addMember = (user, prefix, message) => {
         message.channel.send('Member already exists!');
     }
     message.channel.send(`Adding \`${username}\` to whitelist!`);
-    ollamaWhitelist.push({
-        memberId: id,
-    });
-    ollamaWhitelistDAO.save({ members: ollamaWhitelist });
+    await ollamaWhitelistDAO.save(id);
 };
 
 /**
@@ -61,11 +53,12 @@ const initializeMemberCache = async (client) => {
  */
 const getMembers = async (client) => {
     const cachedMembers = await initializeMemberCache(client);
+    const ollamaWhitelist = await ollamaWhitelistDAO.findAll();
     // console.log('!!!!! cachedGuild: ', cachedMembers); // will print out huge list.....
     const nicknames = [];
     ollamaWhitelist.forEach((_member) => {
         console.log('!!!!! _member: ', _member);
-        const cachedMember = cachedMembers.get(_member.memberId);
+        const cachedMember = cachedMembers.get(_member.member_id);
         console.log('!!!!! cachedMember: ', cachedMember);
         if(!cachedMember) {
             nicknames.push(`MISSING: ${_member.prefix}`);
@@ -87,8 +80,8 @@ const getMembers = async (client) => {
  * @param {*} membersId 
  * @returns 
  */
-const removeMember = (membersId) => {
-    return ollamaWhitelist.filter((_membersId) => _membersId === membersId);
+const removeMember = async (memberId) => {
+    return await ollamaWhitelistDAO.delete(memberId);
 };
 
 /**
@@ -96,13 +89,10 @@ const removeMember = (membersId) => {
  * @param {*} membersId 
  * @returns true if member is supported
  */
-const memberIsControlled = (memberId) => {
-    // console.log('>>>>> memberIsControlled > memberId: ', memberId);
-    // console.log('>>>>> memberIsControlled > members: ', members);
-    const member = ollamaWhitelist.find((_member) => _member.memberId === memberId);
-    if(member) return true;
-    return false;
-}
+const memberIsControlled = async (memberId) => {
+    const member = await ollamaWhitelistDAO.findByMemberId(memberId);
+    return Boolean(member);
+};
 
 /**
  * 
@@ -122,7 +112,6 @@ const nickNameIsAlreadySet = (nickname, prefix) => {
 };
 
 module.exports = { 
-    members: ollamaWhitelist,
     addMember,
     getMembers,
     removeMember,

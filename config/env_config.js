@@ -2,11 +2,6 @@ require('dotenv').config();
 
 // core
 const token = process.env.DISCORD_BOT_TOKEN;
-const path = process.env.STORE_PATH;
-const guildFile = process.env.GUILD_STORE_FILE;
-const channelFile = process.env.CHANNEL_STORE_FILE;
-const memberFile = process.env.MEMBER_STORE_FILE;
-const featureFile = process.env.FEATURE_STORE_FILE;
 const runMode = process.env.RUN_MODE || 'development';
 
 // ollama
@@ -37,7 +32,7 @@ const kokoroUrl = process.env.KOKORO_URL || 'http://kokoro-http-service:8081';
 const ollamaTranslationModel = process.env.OLLAMA_TRANSLATION_MODEL || 'translategemma:12b';
 
 module.exports = {
-    token, path, guildFile, channelFile, memberFile, featureFile, runMode,
+    token, runMode,
     ollamaHost, ollamaPort, ollamaChatEndpoint, ollamaGenerateEndpoint, ollamaEmbeddingEndpoint, ollamaModel, ollamaEmbedModel,
     pgHost, pgPort, pgUser, pgPass, pgDb,
     chromaHost, chromaPort, chromaUpsertEndpoint,

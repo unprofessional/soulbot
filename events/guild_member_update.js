@@ -2,8 +2,8 @@
 
 const { Events } = require('discord.js');
 const {
-    members,
     memberIsControlled,
+    getMemberRecord,
     nickNameIsAlreadySet,
 } = require('../store/members.js');
 const { guildIsSupported } = require('../store/guilds.js');
@@ -15,7 +15,7 @@ const initializeGuildMemberUpdate = (client) => {
         // Hard-coded channel for logging (dev server #general)
         const channel = client.channels.cache.get('1170400835763707946');
 
-        if (!guildIsSupported(guildId)) {
+        if (!(await guildIsSupported(guildId))) {
             console.log('🚫 Unsupported guild. Ignoring GuildMemberUpdate event.');
             channel?.send('Server is not in the supported list. Ignoring...');
             return;
@@ -31,12 +31,12 @@ const initializeGuildMemberUpdate = (client) => {
             console.log('📝 Nickname change detected.');
             channel?.send(`\`${oldMember.user.username}\` changed nickname from **${oldNick}** to **${newNick}**.`);
 
-            if (!memberIsControlled(oldMember.id)) {
+            if (!(await memberIsControlled(oldMember.id))) {
                 console.log('🛑 Member not controlled. Ignoring nickname enforcement.');
                 return;
             }
 
-            const record = members.find((m) => m.memberId === oldMember.id);
+            const record = await getMemberRecord(oldMember.id);
             const nicknamePrefix = record?.prefix;
 
             if (!nicknamePrefix) {

@@ -1,22 +1,17 @@
-const DAO = require('./dao/store.dao.js');
-require('dotenv').config();
-const path = process.env.STORE_PATH;
-const file = process.env.GUILD_STORE_FILE;
-const filePath = `${path}/${file}`;
-const guildDAO = new DAO(filePath);
-const guilds = guildDAO.initializeLocalStore().guilds || [];
-console.log('>>>>> guilds: ', guilds)
+const GuildDAO = require('./dao/guild.dao.js');
 
-const addGuild = (guildId) => {
-    if (guilds.includes(guildId)) {
+const guildDAO = new GuildDAO();
+
+const addGuild = async (guildId) => {
+    const exists = await guildDAO.exists(guildId);
+    if (exists) {
         return {
             ok: false,
             message: 'Server already exists!',
         };
     }
 
-    guilds.push(guildId);
-    guildDAO.save({ guilds });
+    await guildDAO.save(guildId);
 
     return {
         ok: true,
@@ -24,8 +19,9 @@ const addGuild = (guildId) => {
     };
 };
 
-const getGuilds = (client) => {
-    const guildNames = guilds.map(guildId => {
+const getGuilds = async (client) => {
+    const guilds = await guildDAO.findAll();
+    const guildNames = guilds.map(({ guild_id: guildId }) => {
         const guild = client.guilds.cache.get(guildId);
         return guild?.name || `Unknown guild (${guildId})`;
     });
@@ -34,18 +30,14 @@ const getGuilds = (client) => {
     return guildNames;
 };
 
-const removeGuild = (guildId) => {
-    const guildIndex = guilds.findIndex(_guildId => _guildId === guildId);
-
-    if (guildIndex === -1) {
+const removeGuild = async (guildId) => {
+    const deleted = await guildDAO.delete(guildId);
+    if (!deleted) {
         return {
             ok: false,
             message: 'Server is not in the supported list.',
         };
     }
-
-    guilds.splice(guildIndex, 1);
-    guildDAO.save({ guilds });
 
     return {
         ok: true,
@@ -58,12 +50,11 @@ const removeGuild = (guildId) => {
  * @param {*} guildId 
  * @returns true if guild is supported
  */
-const guildIsSupported = (guildId) => {
-    return guilds.includes(guildId);
+const guildIsSupported = async (guildId) => {
+    return await guildDAO.exists(guildId);
 };
 
 module.exports = { 
-    guilds,
     addGuild,
     getGuilds,
     removeGuild,

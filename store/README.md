@@ -1,15 +1,13 @@
-The store makes use of the file system:
-- If the file doesn't exist locally, it creates it
-- For Kubernetes, it makes use of a Persistent Volume and Persistent Volume Claim
+The store now uses Postgres-backed persistence for:
+- `guilds`
+- `members`
+- `channels`
+- `features`
+- `ollama_member_whitelist`
 
 Required Environment Variables:
-- STORE_PATH
-  - default: "/data"
-- GUILD_STORE_FILE
-  - default: "guild.store.json"
-- CHANNEL_STORE_FILE
-  - default: "channel.store.json"
-- MEMBER_STORE_FILE
-  - default: "member.store.json"
-- FEATURE_STORE_FILE
-  - default: "feature.store.json"
+- PG_HOST
+- PG_PORT
+- PG_USER
+- PG_PASS
+- PG_DB

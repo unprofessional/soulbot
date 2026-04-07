@@ -1,11 +1,6 @@
-const DAO = require('./dao/store.dao.js');
-require('dotenv').config();
-const path = process.env.STORE_PATH;
-const file = process.env.MEMBER_STORE_FILE;
-const filePath = `${path}/${file}`;
-const memberDAO = new DAO(filePath);
-const members = memberDAO.initializeLocalStore().members || [];
-console.log('>>>>> members: ', members)
+const MemberDAO = require('./dao/member.dao.js');
+
+const memberDAO = new MemberDAO();
 
 /**
  * 
@@ -14,9 +9,9 @@ console.log('>>>>> members: ', members)
  * @param {*} message 
  * @returns 
  */
-const addMember = (user, prefix) => {
+const addMember = async (user, prefix) => {
     const { id, username } = user;
-    const member = members.find((_member) => _member.memberId === id);
+    const member = await memberDAO.findByMemberId(id);
 
     if (member) {
         return {
@@ -25,11 +20,10 @@ const addMember = (user, prefix) => {
         };
     }
 
-    members.push({
+    await memberDAO.save({
         memberId: id,
         prefix,
     });
-    memberDAO.save({ members });
 
     return {
         ok: true,
@@ -67,12 +61,13 @@ const initializeMemberCache = async (client, guildId) => {
 const getMembers = async (client, guildId) => {
     const cachedMembers = await initializeMemberCache(client, guildId);
     if (!cachedMembers) return [];
+    const members = await memberDAO.findAll();
 
     // console.log('!!!!! cachedGuild: ', cachedMembers); // will print out huge list.....
     const nicknames = [];
     members.forEach((_member) => {
         console.log('!!!!! _member: ', _member);
-        const cachedMember = cachedMembers.get(_member.memberId);
+        const cachedMember = cachedMembers.get(_member.member_id);
         console.log('!!!!! cachedMember: ', cachedMember);
         if(!cachedMember) {
             nicknames.push(`MISSING: ${_member.prefix}`);
@@ -90,8 +85,8 @@ const getMembers = async (client, guildId) => {
  * @param {*} membersId 
  * @returns 
  */
-const removeMember = (membersId) => {
-    return members.filter((_membersId) => _membersId === membersId);
+const removeMember = async (memberId) => {
+    return await memberDAO.delete(memberId);
 };
 
 /**
@@ -99,13 +94,19 @@ const removeMember = (membersId) => {
  * @param {*} membersId 
  * @returns true if member is supported
  */
-const memberIsControlled = (memberId) => {
-    // console.log('>>>>> memberIsControlled > memberId: ', memberId);
-    // console.log('>>>>> memberIsControlled > members: ', members);
-    const member = members.find((_member) => _member.memberId === memberId);
-    if(member) return true;
-    return false;
-}
+const memberIsControlled = async (memberId) => {
+    const member = await memberDAO.findByMemberId(memberId);
+    return Boolean(member);
+};
+
+const getMemberRecord = async (memberId) => {
+    const member = await memberDAO.findByMemberId(memberId);
+    if (!member) return null;
+    return {
+        memberId: member.member_id,
+        prefix: member.prefix,
+    };
+};
 
 /**
  * 
@@ -125,10 +126,10 @@ const nickNameIsAlreadySet = (nickname, prefix) => {
 };
 
 module.exports = { 
-    members,
     addMember,
     getMembers,
     removeMember,
     memberIsControlled,
+    getMemberRecord,
     nickNameIsAlreadySet,
 };

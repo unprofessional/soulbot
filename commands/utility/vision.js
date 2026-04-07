@@ -38,7 +38,7 @@ module.exports = {
         ),
 
     async execute(interaction) {
-        if (!guildIsSupported(interaction.guildId)) {
+        if (!(await guildIsSupported(interaction.guildId))) {
             return interaction.reply({
                 content: 'Server not supported!!',
                 ephemeral: true,

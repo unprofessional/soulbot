@@ -66,25 +66,10 @@ spec:
         - name: OLLAMA_TRANSLATION_MODEL
           value: "translategemma:12b"
         # TODO: Kokoro Config
-        - name: STORE_PATH
-          value: "/data"
-        - name: GUILD_STORE_FILE
-          value: "guild.store.json"
-        - name: CHANNEL_STORE_FILE
-          value: "channel.store.json"
-        - name: MEMBER_STORE_FILE
-          value: "member.store.json"
-        - name: FEATURE_STORE_FILE
-          value: "feature.store.json"
         volumeMounts:
-        - name: data-volume
-          mountPath: /data
         - name: temp-data-volume
           mountPath: /tempdata
       volumes:
-      - name: data-volume
-        persistentVolumeClaim:
-          claimName: soulbot-pvc
       - name: temp-data-volume
         emptyDir:
           medium: Memory

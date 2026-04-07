@@ -1,40 +1,36 @@
-const DAO = require('./dao/store.dao.js');
-require('dotenv').config();
-const path = process.env.STORE_PATH;
-const file = process.env.FEATURE_STORE_FILE;
-const filePath = `${path}/${file}`;
-const metaDAO = new DAO(filePath);
-const features = metaDAO.initializeLocalStore().features || [];
-console.log('>>>>> features > features: ', features)
+const FeatureDAO = require('./dao/feature.dao.js');
 
-const toggleTwitter = () => {
+const featureDAO = new FeatureDAO();
 
-    console.log('>>>>> toggleTwitter > features{1}: ', features)
+async function getFeature(type) {
+    await featureDAO.ensure(type, true);
+    return await featureDAO.findByType(type);
+}
 
-    const twitterFeature = features.find((_feature) => _feature.type === 'twitter');
-    const twitterFeatureIndex = features.findIndex((_feature) => _feature.type === 'twitter');
+async function getFeatures() {
+    await featureDAO.ensure('twitter', true);
+    return await featureDAO.findAll();
+}
 
-    console.log('>>>>> toggleTwitter > twitterFeatureIndex: ', twitterFeatureIndex)
+async function toggleTwitter() {
+    const twitterFeature = await featureDAO.toggle('twitter');
 
-    if (twitterFeatureIndex === -1) {
+    if (!twitterFeature) {
         return {
             ok: false,
             message: 'Twitter feature not found!',
         };
     }
 
-    features[twitterFeatureIndex].on = !twitterFeature.on;
-    console.log('>>>>> toggleTwitter > features{2}: ', features);
-    metaDAO.save({ features });
-
     return {
         ok: true,
-        on: features[twitterFeatureIndex].on,
-        message: `Twitter functionality toggled to \`${features[twitterFeatureIndex].on}\``,
+        on: twitterFeature.on,
+        message: `Twitter functionality toggled to \`${twitterFeature.on}\``,
     };
-};
+}
 
-module.exports = { 
-    features,
+module.exports = {
+    getFeature,
+    getFeatures,
     toggleTwitter,
 };

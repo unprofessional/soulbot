@@ -6,9 +6,7 @@ const { handleSpeakEnglishRole } = require('../features/translation/auto_speak_e
 const { logMessage } = require('../logger/logger.js');
 const { handleTwitterUrl } = require('../features/twitter-core/twitter_handler.js');
 const { updateMessage, deleteMessage } = require('../store/services/messages.service.js');
-const { features } = require('../store/features.js');
-
-const twitterFeature = features.find(f => f.type === 'twitter');
+const { getFeature } = require('../store/features.js');
 
 // Identity checks
 const isABot = message => message.author.bot;
@@ -25,7 +23,8 @@ async function initializeListeners(client) {
             await enforceGoldyRole(message);
             await handleSpeakEnglishRole(message);
 
-            if (twitterFeature.on) {
+            const twitterFeature = await getFeature('twitter');
+            if (twitterFeature?.on) {
                 await handleTwitterUrl(message, { twitterFeature, guildId });
             }
         }
