@@ -3,8 +3,8 @@ const { extractMediaFromTweetUrl } = require('../../features/twitter-core/extrac
 
 module.exports = {
     data: new SlashCommandBuilder()
-        .setName('extract-media')
-        .setDescription('Extract and upload media from a Twitter/X post.')
+        .setName('explode-tweet')
+        .setDescription('Upload a tweet/X post\'s media, text, and date without an embed.')
         .setDMPermission(false)
         .addStringOption(option =>
             option
@@ -33,6 +33,7 @@ module.exports = {
             }
 
             return await interaction.editReply({
+                content: result.content,
                 files: result.files,
             });
         } catch (error) {

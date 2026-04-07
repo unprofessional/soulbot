@@ -1,7 +1,9 @@
 // features/twitter-core/extract_media.js
 
 const { fetchMetadata, toFixupx } = require('./fetch_metadata.js');
-const { collectMedia, stripQueryParams } = require('./utils.js');
+const { collectMedia, formatTwitterDate, stripQueryParams } = require('./utils.js');
+const { getSourceText, normalizeWhitespace } = require('./translation_service.js');
+const { MAX_DESC_CHARS } = require('../twitter-post/canvas/constants.js');
 
 const STATUS_URL_RE = /https?:\/\/(?:twitter\.com|x\.com)\/[A-Za-z0-9_]+\/status\/\d+(?:\?[^\s>]*)?/i;
 const MEDIA_FETCH_HEADERS = {
@@ -63,6 +65,29 @@ async function downloadMediaFile(media, index) {
     };
 }
 
+function stripTrailingTco(text) {
+    return String(text || '')
+        .replace(/(?:^|\s)https?:\/\/t\.co\/[^\s]+[\s]*$/i, '')
+        .trimEnd();
+}
+
+function truncateText(text, maxChars = MAX_DESC_CHARS) {
+    const normalized = normalizeWhitespace(text);
+    if (!normalized || normalized.length <= maxChars) return normalized;
+    return `${normalized.slice(0, Math.max(0, maxChars - 1)).trimEnd()}…`;
+}
+
+function buildMessageContent(meta, statusUrl) {
+    const lines = [`<${statusUrl}>`];
+    const originalText = truncateText(stripTrailingTco(getSourceText(meta)), MAX_DESC_CHARS);
+    const displayDate = formatTwitterDate(meta, { label: 'extract-media/contentDate' });
+
+    if (originalText) lines.push(originalText);
+    if (displayDate) lines.push(displayDate);
+
+    return lines.join('\n\n');
+}
+
 async function extractMediaFromTweetUrl(rawInput, log = console.log) {
     const statusUrl = extractStatusUrl(rawInput);
     if (!statusUrl) {
@@ -96,6 +121,7 @@ async function extractMediaFromTweetUrl(rawInput, log = console.log) {
     return {
         ok: true,
         files,
+        content: buildMessageContent(meta, statusUrl),
         statusUrl,
         fallbackLink: toFixupx(statusUrl),
     };

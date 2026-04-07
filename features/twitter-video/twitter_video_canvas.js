@@ -6,6 +6,13 @@ const { buildPathsAndStuff } = require('../twitter-core/path_builder.js');
 const { condenseTranslatedDisplayLines, getWrappedText, drawBasicElements } = require('../twitter-core/canvas_utils.js');
 const { collectMedia, formatTwitterDate } = require('../twitter-core/utils.js');
 const { buildDisplayText } = require('../twitter-core/translation_service.js');
+const { MAX_DESC_CHARS } = require('../twitter-post/canvas/constants.js');
+
+function truncateDescription(text, maxChars = MAX_DESC_CHARS) {
+    const normalized = String(text || '').trim();
+    if (!normalized || normalized.length <= maxChars) return normalized;
+    return `${normalized.slice(0, Math.max(0, maxChars - 1)).trimEnd()}…`;
+}
 
 function calculateCanvasHeight(lines, baseY, heightShim, lineHeight = 30, padding = 40) {
     return (lines.length * lineHeight) + baseY + padding + heightShim;
@@ -48,7 +55,10 @@ async function createTwitterVideoCanvas(metadataJson) {
         created_timestamp: metadataJson.created_timestamp ?? null,
         created_at: metadataJson.created_at ?? null,
 
-        description: buildDisplayText(metadataJson).replace(/\s+https?:\/\/t\.co\/\w+$/i, ''),
+        description: truncateDescription(
+            buildDisplayText(metadataJson).replace(/\s+https?:\/\/t\.co\/\w+$/i, ''),
+            MAX_DESC_CHARS
+        ),
         mediaUrls: Array.isArray(metadataJson.mediaURLs) ? metadataJson.mediaURLs : media.map(m => m.url).filter(Boolean),
         mediaExtended: media,
     };
