@@ -3,6 +3,7 @@ require('dotenv').config();
 // core
 const token = process.env.DISCORD_BOT_TOKEN;
 const runMode = process.env.RUN_MODE || 'development';
+const soulbotUserId = process.env.SOULBOT_USER_ID || '891854264845094922';
 
 // ollama
 const ollamaHost = process.env.OLLAMA_HOST || '192.168.7.73';
@@ -32,7 +33,7 @@ const kokoroUrl = process.env.KOKORO_URL || 'http://kokoro-http-service:8081';
 const ollamaTranslationModel = process.env.OLLAMA_TRANSLATION_MODEL || 'translategemma:12b';
 
 module.exports = {
-    token, runMode,
+    token, runMode, soulbotUserId,
     ollamaHost, ollamaPort, ollamaChatEndpoint, ollamaGenerateEndpoint, ollamaEmbeddingEndpoint, ollamaModel, ollamaEmbedModel,
     pgHost, pgPort, pgUser, pgPass, pgDb,
     chromaHost, chromaPort, chromaUpsertEndpoint,

@@ -13,7 +13,9 @@ class MessageDAO {
      * @returns {Promise<Array>} - List of messages.
      */
     async findAll(options = {}) {
-        const { userId, guildId, channelId, limit = 50 } = options;
+        const {
+            userId, guildId, channelId, limit = 50, fields, excludeContent, excludeContentPrefixes, excludeUserId,
+        } = options;
         const params = [];
         const conditions = ['deleted_at IS NULL']; // Always filter out soft-deleted messages
 
@@ -32,7 +34,28 @@ class MessageDAO {
             params.push(channelId);
         }
 
-        let sql = `SELECT * FROM message`;
+        if (excludeUserId) {
+            conditions.push(`user_id != $${params.length + 1}`);
+            params.push(excludeUserId);
+        }
+
+        if (excludeContent) {
+            conditions.push(`content != $${params.length + 1}`);
+            params.push(excludeContent);
+        }
+
+        if (Array.isArray(excludeContentPrefixes) && excludeContentPrefixes.length > 0) {
+            excludeContentPrefixes.forEach((prefix) => {
+                conditions.push(`content NOT LIKE $${params.length + 1}`);
+                params.push(`${prefix}%`);
+            });
+        }
+
+        const selectedFields = Array.isArray(fields) && fields.length > 0
+            ? fields.join(', ')
+            : '*';
+
+        let sql = `SELECT ${selectedFields} FROM message`;
 
         if (conditions.length > 0) {
             sql += ` WHERE ${conditions.join(' AND ')}`;

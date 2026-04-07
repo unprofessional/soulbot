@@ -7,10 +7,11 @@ const { logMessage } = require('../logger/logger.js');
 const { handleTwitterUrl } = require('../features/twitter-core/twitter_handler.js');
 const { updateMessage, deleteMessage } = require('../store/services/messages.service.js');
 const { getFeature } = require('../store/features.js');
+const { soulbotUserId } = require('../config/env_config.js');
 
 // Identity checks
 const isABot = message => message.author.bot;
-const isSelf = message => message.author.id === '891854264845094922';
+const isSelf = message => message.author.id === soulbotUserId;
 
 async function initializeListeners(client) {
     client.on(Events.MessageCreate, async (message) => {

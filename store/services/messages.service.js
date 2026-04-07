@@ -1,6 +1,7 @@
 // store/services/messages.service.js
 
 const MessageDAO = require('../dao/message.dao.js');
+const { soulbotUserId } = require('../../config/env_config.js');
 require('dotenv').config();
 
 const messageDAO = new MessageDAO();
@@ -77,6 +78,23 @@ const getMessages = async (options = {}) => {
     }
 };
 
+const getSummaryMessages = async (options = {}) => {
+    try {
+        const messages = await messageDAO.findAll({
+            ...options,
+            fields: ['user_id', 'content'],
+            excludeUserId: soulbotUserId,
+            excludeContent: '[Non-text message]',
+            excludeContentPrefixes: ['**Summary:**'],
+        });
+        console.log('Summary messages retrieved successfully:', messages);
+        return messages.reverse();
+    } catch (err) {
+        console.error('Error in getSummaryMessages service:', err);
+        throw err;
+    }
+};
+
 const findMessagesByLink = async (guildId, messageId, url) => {
     try {
         const messages = await messageDAO.findMessagesByLink(guildId, messageId, url);
@@ -121,8 +139,8 @@ const deleteMessage = async (messageId) => {
 module.exports = {
     addMessage,
     getMessages,
+    getSummaryMessages,
     findMessagesByLink,
     updateMessage,
     deleteMessage,
 };
-
