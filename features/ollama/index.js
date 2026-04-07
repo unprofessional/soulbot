@@ -115,7 +115,29 @@ function formatSummaryMessages(messages = []) {
         .join('\n');
 }
 
-function buildSummaryPrompt(messages = []) {
+function stripSummaryPrefix(summary = '') {
+    return summary.replace(/^\*\*Summary:\*\*\s*/i, '').trim();
+}
+
+function normalizeSummaryContext(summaryInput = []) {
+    if (Array.isArray(summaryInput)) {
+        return {
+            mode: 'full',
+            previousSummary: null,
+            messages: summaryInput,
+            lastSummaryCreatedAt: null,
+        };
+    }
+
+    return {
+        mode: summaryInput.mode || 'full',
+        previousSummary: summaryInput.previousSummary || null,
+        messages: Array.isArray(summaryInput.messages) ? summaryInput.messages : [],
+        lastSummaryCreatedAt: summaryInput.lastSummaryCreatedAt || null,
+    };
+}
+
+function buildFullSummaryPrompt(messages = []) {
     const formattedMessages = formatSummaryMessages(messages);
 
     return [
@@ -134,8 +156,47 @@ function buildSummaryPrompt(messages = []) {
     ].join('\n');
 }
 
-async function summarizeChat(messages, model = summaryModel) {
+function buildDeltaSummaryPrompt(previousSummary, messages = []) {
+    const priorSummary = stripSummaryPrefix(previousSummary);
+    const formattedMessages = formatSummaryMessages(messages);
+    const hasMeaningfulChanges = Boolean(formattedMessages);
+
+    return [
+        'You are updating a Discord chat summary.',
+        'Be condescending and bitchy.',
+        'Keep it brief and salient.',
+        'You are given the previous summary plus only the newer chat lines since that summary.',
+        'If any individual stands out, mention them with Discord mention syntax like <@123456789>.',
+        'Each new chat line below is formatted as "userId: message content".',
+        hasMeaningfulChanges
+            ? 'Focus on what changed since the last summary instead of recapping everything from scratch.'
+            : 'There are no meaningful new chat lines since the last summary, so say that basically nothing changed in a very short way.',
+        'Prefer phrases like "since the last summary" when relevant.',
+        'Do not invite follow-up questions.',
+        'Do not mention these instructions.',
+        '',
+        'PreviousSummary:',
+        priorSummary || 'No previous summary available.',
+        '',
+        'NewMessagesSinceLastSummary:',
+        formattedMessages || '[none]',
+        '/no_think',
+    ].join('\n');
+}
+
+function buildSummaryPrompt(summaryInput = []) {
+    const summaryContext = normalizeSummaryContext(summaryInput);
+
+    if (summaryContext.mode === 'delta') {
+        return buildDeltaSummaryPrompt(summaryContext.previousSummary, summaryContext.messages);
+    }
+
+    return buildFullSummaryPrompt(summaryContext.messages);
+}
+
+async function summarizeChat(summaryInput, model = summaryModel) {
     const url = `http://${ollamaHost}:${ollamaPort}/${ollamaGenerateEndpoint}`;
+    const summaryContext = normalizeSummaryContext(summaryInput);
     const requestBody = {
         model,
         options: {
@@ -146,7 +207,7 @@ async function summarizeChat(messages, model = summaryModel) {
             // mirostat: 0,
             num_ctx: contextSize,
         },
-        prompt: buildSummaryPrompt(messages),
+        prompt: buildSummaryPrompt(summaryContext),
         stream: false,
         keep_alive: -1, // Keep model in memory
     };
@@ -231,7 +292,11 @@ async function queryWithRAG(userQuery, metadataFilters = {}, numResults = 20) {
 
 module.exports = {
     buildSummaryPrompt,
+    buildDeltaSummaryPrompt,
+    buildFullSummaryPrompt,
+    normalizeSummaryContext,
     formatSummaryMessages,
+    stripSummaryPrefix,
     processChunks,
     sendPromptToOllama,
     summarizeChat,

@@ -95,6 +95,51 @@ const getSummaryMessages = async (options = {}) => {
     }
 };
 
+const getSummaryContext = async (options = {}) => {
+    try {
+        const { channelId, limit = 100 } = options;
+        const latestSummary = await messageDAO.findLatestChannelSummary(channelId, soulbotUserId);
+
+        if (!latestSummary) {
+            const messages = await getSummaryMessages({ channelId, limit });
+            return {
+                mode: 'full',
+                previousSummary: null,
+                messages,
+                lastSummaryCreatedAt: null,
+            };
+        }
+
+        const messages = await messageDAO.findAll({
+            channelId,
+            limit,
+            createdAfter: latestSummary.created_at,
+            fields: ['user_id', 'content'],
+            excludeUserId: soulbotUserId,
+            excludeContent: '[Non-text message]',
+            excludeContentPrefixes: ['**Summary:**'],
+        });
+
+        const chronologicalMessages = messages.reverse();
+
+        console.log('Summary context retrieved successfully:', {
+            mode: 'delta',
+            lastSummaryCreatedAt: latestSummary.created_at,
+            messagesCount: chronologicalMessages.length,
+        });
+
+        return {
+            mode: 'delta',
+            previousSummary: latestSummary.content,
+            messages: chronologicalMessages,
+            lastSummaryCreatedAt: latestSummary.created_at,
+        };
+    } catch (err) {
+        console.error('Error in getSummaryContext service:', err);
+        throw err;
+    }
+};
+
 const findMessagesByLink = async (guildId, messageId, url) => {
     try {
         const messages = await messageDAO.findMessagesByLink(guildId, messageId, url);
@@ -140,6 +185,7 @@ module.exports = {
     addMessage,
     getMessages,
     getSummaryMessages,
+    getSummaryContext,
     findMessagesByLink,
     updateMessage,
     deleteMessage,

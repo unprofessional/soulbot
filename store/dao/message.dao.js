@@ -14,7 +14,7 @@ class MessageDAO {
      */
     async findAll(options = {}) {
         const {
-            userId, guildId, channelId, limit = 50, fields, excludeContent, excludeContentPrefixes, excludeUserId,
+            userId, guildId, channelId, limit = 50, fields, excludeContent, excludeContentPrefixes, excludeUserId, createdAfter,
         } = options;
         const params = [];
         const conditions = ['deleted_at IS NULL']; // Always filter out soft-deleted messages
@@ -32,6 +32,11 @@ class MessageDAO {
         if (channelId) {
             conditions.push(`channel_id = $${params.length + 1}`);
             params.push(channelId);
+        }
+
+        if (createdAfter) {
+            conditions.push(`created_at > $${params.length + 1}`);
+            params.push(createdAfter);
         }
 
         if (excludeUserId) {
@@ -70,6 +75,28 @@ class MessageDAO {
             return result.rows;
         } catch (err) {
             console.error('Error fetching messages:', err);
+            throw err;
+        }
+    }
+
+    async findLatestChannelSummary(channelId, userId, contentPrefix = '**Summary:**') {
+        const sql = `
+            SELECT user_id, content, created_at
+            FROM message
+            WHERE deleted_at IS NULL
+              AND channel_id = $1
+              AND user_id = $2
+              AND content LIKE $3
+            ORDER BY created_at DESC
+            LIMIT 1
+        `;
+
+        try {
+            console.log('>>>>> MessageDAO > findLatestChannelSummary > sql:', sql);
+            const result = await pool.query(sql, [channelId, userId, `${contentPrefix}%`]);
+            return result.rows[0] || null;
+        } catch (err) {
+            console.error('Error fetching latest channel summary:', err);
             throw err;
         }
     }

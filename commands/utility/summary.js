@@ -2,7 +2,7 @@
 
 const { SlashCommandBuilder } = require('discord.js');
 const PromiseQueue = require('../../lib/promise_queue');
-const { getSummaryMessages } = require('../../store/services/messages.service');
+const { getSummaryContext } = require('../../store/services/messages.service');
 const { summarizeChat } = require('../../features/ollama');
 const queue = new PromiseQueue(1, 60000); // Max 1 concurrent task, 20 seconds timeout
 const queueLimit = 3;
@@ -21,11 +21,11 @@ module.exports = {
         }
         await interaction.deferReply();
         const channelId = interaction.channel.id;
-        const messages = await getSummaryMessages({ channelId, limit: 100 });
-        // console.log('>>>>> summary > execute > messages: ', messages);
+        const summaryContext = await getSummaryContext({ channelId, limit: 100 });
+        // console.log('>>>>> summary > execute > summaryContext: ', summaryContext);
 
         try {
-            const response = await queue.add(() => summarizeChat(messages));
+            const response = await queue.add(() => summarizeChat(summaryContext));
             const messageToShow = `**Summary:**\n${response}`;
             if (messageToShow.length <= 2000) {
                 await interaction.editReply(messageToShow);
@@ -48,7 +48,10 @@ module.exports = {
                     user: interaction.user.id,
                     channelId: interaction.channel.id,
                     command: interaction.commandName,
-                    inputMessages: messages.slice(0, 3), // Log a few messages for context
+                    summaryContext: {
+                        ...summaryContext,
+                        messages: summaryContext.messages.slice(0, 3),
+                    },
                 });
                 
                 await interaction.editReply(
