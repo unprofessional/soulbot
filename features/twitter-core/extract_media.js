@@ -3,7 +3,8 @@
 const { fetchMetadata, toFixupx } = require('./fetch_metadata.js');
 const { collectMedia, formatTwitterDate, stripQueryParams } = require('./utils.js');
 const { getSourceText, normalizeWhitespace } = require('./translation_service.js');
-const { MAX_DESC_CHARS } = require('../twitter-post/canvas/constants.js');
+
+const EXPLODE_TWEET_MAX_DESC_CHARS = 1500;
 
 const STATUS_URL_RE = /https?:\/\/(?:twitter\.com|x\.com)\/[A-Za-z0-9_]+\/status\/\d+(?:\?[^\s>]*)?/i;
 const MEDIA_FETCH_HEADERS = {
@@ -71,7 +72,7 @@ function stripTrailingTco(text) {
         .trimEnd();
 }
 
-function truncateText(text, maxChars = MAX_DESC_CHARS) {
+function truncateText(text, maxChars = EXPLODE_TWEET_MAX_DESC_CHARS) {
     const normalized = normalizeWhitespace(text);
     if (!normalized || normalized.length <= maxChars) return normalized;
     return `${normalized.slice(0, Math.max(0, maxChars - 1)).trimEnd()}…`;
@@ -79,7 +80,10 @@ function truncateText(text, maxChars = MAX_DESC_CHARS) {
 
 function buildMessageContent(meta, statusUrl) {
     const lines = [`<${statusUrl}>`];
-    const originalText = truncateText(stripTrailingTco(getSourceText(meta)), MAX_DESC_CHARS);
+    const originalText = truncateText(
+        stripTrailingTco(getSourceText(meta)),
+        EXPLODE_TWEET_MAX_DESC_CHARS
+    );
     const displayDate = formatTwitterDate(meta, { label: 'extract-media/contentDate' });
 
     if (originalText) lines.push(originalText);
