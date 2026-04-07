@@ -32,7 +32,7 @@ CREATE TABLE IF NOT EXISTS member (
 CREATE TABLE IF NOT EXISTS feature (
     id SERIAL PRIMARY KEY,
     type VARCHAR(50) NOT NULL UNIQUE,
-    on BOOLEAN NOT NULL DEFAULT TRUE,
+    enabled BOOLEAN NOT NULL DEFAULT TRUE,
     created_at TIMESTAMP DEFAULT NOW()
 );
 
@@ -65,6 +65,6 @@ CREATE INDEX IF NOT EXISTS idx_message_guild_id ON message (guild_id);
 CREATE INDEX idx_message_content_trgm ON message USING GIN (content gin_trgm_ops);
 CREATE INDEX IF NOT EXISTS idx_message_guild_created ON message (guild_id, created_at DESC);
 
-INSERT INTO feature (type, on)
+INSERT INTO feature (type, enabled)
 VALUES ('twitter', TRUE)
 ON CONFLICT (type) DO NOTHING;

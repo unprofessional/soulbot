@@ -3,7 +3,7 @@ const { pool } = require('../db/pool.js');
 class FeatureDAO {
     async findAll() {
         const sql = `
-            SELECT type, on
+            SELECT type, enabled AS "on"
             FROM feature
             ORDER BY type ASC
         `;
@@ -13,7 +13,7 @@ class FeatureDAO {
 
     async findByType(type) {
         const sql = `
-            SELECT type, on
+            SELECT type, enabled AS "on"
             FROM feature
             WHERE type = $1
             LIMIT 1
@@ -24,7 +24,7 @@ class FeatureDAO {
 
     async ensure(type, on = true) {
         const sql = `
-            INSERT INTO feature (type, on)
+            INSERT INTO feature (type, enabled)
             VALUES ($1, $2)
             ON CONFLICT (type) DO NOTHING
         `;
@@ -36,9 +36,9 @@ class FeatureDAO {
 
         const sql = `
             UPDATE feature
-            SET on = NOT on
+            SET enabled = NOT enabled
             WHERE type = $1
-            RETURNING type, on
+            RETURNING type, enabled AS "on"
         `;
         const result = await pool.query(sql, [type]);
         return result.rows[0] || null;
