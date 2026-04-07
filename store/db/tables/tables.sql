@@ -62,7 +62,7 @@ CREATE INDEX IF NOT EXISTS idx_feature_type ON feature (type);
 CREATE INDEX IF NOT EXISTS idx_ollama_member_whitelist_member_id ON ollama_member_whitelist (member_id);
 CREATE INDEX IF NOT EXISTS idx_message_user_id ON message (user_id);
 CREATE INDEX IF NOT EXISTS idx_message_guild_id ON message (guild_id);
-CREATE INDEX idx_message_content_trgm ON message USING GIN (content gin_trgm_ops);
+CREATE INDEX IF NOT EXISTS idx_message_content_trgm ON message USING GIN (content gin_trgm_ops);
 CREATE INDEX IF NOT EXISTS idx_message_guild_created ON message (guild_id, created_at DESC);
 
 INSERT INTO feature (type, enabled)
