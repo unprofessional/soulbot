@@ -1,4 +1,7 @@
-const { computeQtSizing } = require('../features/twitter-post/canvas/qt_layout.js');
+const {
+    calculateQuoteHeight,
+    computeQtSizing,
+} = require('../features/twitter-post/canvas/qt_layout.js');
 
 function makeCtx() {
     return {
@@ -75,5 +78,36 @@ describe('computeQtSizing', () => {
 
         expect(result.expandQtMedia).toBe(false);
         expect(qtMetadata.description).toContain('\n');
+    });
+
+    test('compact QT with media does not reserve the old oversized bottom box for multiline text', () => {
+        const qtMetadata = {
+            description: 'a\na\na\na\na\na',
+            mediaExtended: [{
+                type: 'image',
+                size: { width: 1200, height: 800 },
+            }],
+            _displayDateFooter: '1:23 PM EDT · Apr 7, 2026',
+        };
+
+        const height = calculateQuoteHeight(makeCtx(), qtMetadata);
+
+        expect(height).toBe(324);
+        expect(height).toBeLessThan(342);
+    });
+
+    test('compact QT with media does not reserve footer space when no footer will render', () => {
+        const qtMetadata = {
+            description: 'short line',
+            mediaExtended: [{
+                type: 'image',
+                size: { width: 1200, height: 800 },
+            }],
+            _displayDateFooter: '',
+        };
+
+        const height = calculateQuoteHeight(makeCtx(), qtMetadata);
+
+        expect(height).toBe(267);
     });
 });

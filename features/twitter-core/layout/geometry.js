@@ -24,6 +24,9 @@ const QT = {
     bottomPad: 30,
     marginBottom: 8,
     compactMinWithMedia: 285,
+    compactThumbTop: 80,
+    compactThumbH: 175,
+    compactFooterGap: 12,
 
     // textX rules
     textXNoMedia: 100,
@@ -58,6 +61,17 @@ function getQtWrapWidth({ expandQtMedia, qtHasMedia }) {
     return Math.max(1, innerRight - textX);
 }
 
+function getQtCompactContentBottom({ textHeight, qtHasMedia }) {
+    const textBottom = QT.headerH + textHeight;
+    const thumbBottom = qtHasMedia ? (QT.compactThumbTop + QT.compactThumbH) : 0;
+    return Math.max(textBottom, thumbBottom);
+}
+
+function getQtCompactFooterReserve({ hasFooter }) {
+    if (!hasFooter) return QT.compactFooterGap;
+    return QT.compactFooterGap + QT.marginBottom + FOOTER.lineH;
+}
+
 module.exports = {
     MAIN,
     FOOTER,
@@ -67,4 +81,6 @@ module.exports = {
     getQtInnerRect,
     getQtTextX,
     getQtWrapWidth,
+    getQtCompactContentBottom,
+    getQtCompactFooterReserve,
 };

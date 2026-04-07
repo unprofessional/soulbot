@@ -7,6 +7,8 @@ const {
     getQtTextX,
     getQtWrapWidth,
     getQtInnerRect,
+    getQtCompactContentBottom,
+    getQtCompactFooterReserve,
 } = require('../../twitter-core/layout/geometry.js');
 
 /**
@@ -25,6 +27,7 @@ function calculateQuoteHeight(ctx, qtMetadata) {
         const bottomPadding = QT.bottomPad;
         const HEADER = QT.headerH;
         const MARGIN_BOTTOM = QT.marginBottom;
+        const hasFooter = Boolean(qtMetadata._displayDateFooter);
 
         // Footer sizing (must match qt_draw.js)
         const QT_FOOTER_LINE_H = 24;
@@ -57,24 +60,34 @@ function calculateQuoteHeight(ctx, qtMetadata) {
                 HEADER + descHeight + 20 /*gap*/ +
                 qtMetadata._expandedMediaHeight +
                 bottomPadding + MARGIN_BOTTOM +
-                QT_FOOTER_LINE_H;
+                (hasFooter ? QT_FOOTER_LINE_H : 0);
 
             DEBUG && console.debug(
-                `${TAG} [expanded] parts: HEADER=${HEADER} desc=${descHeight} gap=20 media=${qtMetadata._expandedMediaHeight} bottomPad=${bottomPadding} marginBottom=${MARGIN_BOTTOM} footer=${QT_FOOTER_LINE_H} => total=${total}`
+                `${TAG} [expanded] parts: HEADER=${HEADER} desc=${descHeight} gap=20 media=${qtMetadata._expandedMediaHeight} bottomPad=${bottomPadding} marginBottom=${MARGIN_BOTTOM} footer=${hasFooter ? QT_FOOTER_LINE_H : 0} => total=${total}`
             );
             DEBUG && console.debug(`${TAG} ───────────────────────────────────────────`);
             return total;
         }
 
-        const COMPACT_MIN_WITH_MEDIA = QT.compactMinWithMedia;
-        const textBlock = HEADER + descHeight + bottomPadding + MARGIN_BOTTOM + QT_FOOTER_LINE_H;
-        const total = hasMedia ? Math.max(textBlock, COMPACT_MIN_WITH_MEDIA) : textBlock;
+        if (hasMedia) {
+            const contentBottom = getQtCompactContentBottom({ textHeight: descHeight, qtHasMedia: hasMedia });
+            const footerReserve = getQtCompactFooterReserve({ hasFooter });
+            const total = contentBottom + footerReserve;
+
+            DEBUG && console.debug(
+                `${TAG} [compact/media] contentBottom=${contentBottom} footerReserve=${footerReserve} hasFooter=${hasFooter} => total=${total}`
+            );
+            DEBUG && console.debug(`${TAG} ───────────────────────────────────────────`);
+            return total;
+        }
+
+        const textBlock = HEADER + descHeight + bottomPadding + MARGIN_BOTTOM + (hasFooter ? QT_FOOTER_LINE_H : 0);
 
         DEBUG && console.debug(
-            `${TAG} [compact] textBlock=${textBlock} minWithMedia=${COMPACT_MIN_WITH_MEDIA} hasMedia=${hasMedia} => total=${total}`
+            `${TAG} [compact/text-only] textBlock=${textBlock} hasFooter=${hasFooter} => total=${textBlock}`
         );
         DEBUG && console.debug(`${TAG} ───────────────────────────────────────────`);
-        return total;
+        return textBlock;
     } catch (e) {
         console.warn('[qt/calcHeight] ERROR (fallback to 205):', e);
         return 205;
@@ -85,6 +98,7 @@ function measureQtTextNeed(ctx, fontChain, qtMetadata, { expandQtMedia = false }
     if (!qtMetadata) return 0;
 
     const qtHasMedia = Array.isArray(qtMetadata.mediaExtended) && qtMetadata.mediaExtended.length > 0;
+    const hasFooter = Boolean(qtMetadata._displayDateFooter);
 
     // Footer sizing (must match qt_draw.js)
     const QT_FOOTER_LINE_H = 24;
@@ -105,7 +119,12 @@ function measureQtTextNeed(ctx, fontChain, qtMetadata, { expandQtMedia = false }
 
     const textHeight = qtLines.length * LINE_H;
 
-    return HEADER + textHeight + bottomPadding + MARGIN_BOTTOM + QT_FOOTER_LINE_H;
+    if (!expandQtMedia && qtHasMedia) {
+        return getQtCompactContentBottom({ textHeight, qtHasMedia }) +
+            getQtCompactFooterReserve({ hasFooter });
+    }
+
+    return HEADER + textHeight + bottomPadding + MARGIN_BOTTOM + (hasFooter ? QT_FOOTER_LINE_H : 0);
 }
 
 function shouldExpandQtMedia({ qtFirst, hasImgs, hasVids, qtContainsVideo }) {
@@ -179,8 +198,6 @@ function computeQtSizing(ctx, {
         // Keep consistent with drawer's baseline assumption for expanded layout
         const minExpanded = (qtMetadata._expandedMediaHeight ?? 0) + 150;
         minByMedia = Math.max(minByMedia, minExpanded);
-    } else if (qtHasAny) {
-        minByMedia = Math.max(minByMedia, QT.compactMinWithMedia);
     }
 
     // 2) Text-needed height using *same* wrap/font as drawer
