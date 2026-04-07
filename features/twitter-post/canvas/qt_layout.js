@@ -108,6 +108,10 @@ function measureQtTextNeed(ctx, fontChain, qtMetadata, { expandQtMedia = false }
     return HEADER + textHeight + bottomPadding + MARGIN_BOTTOM + QT_FOOTER_LINE_H;
 }
 
+function shouldExpandQtMedia({ qtFirst, hasImgs, hasVids, qtContainsVideo }) {
+    return (!hasImgs && !hasVids) && !qtContainsVideo && (qtFirst?.type === 'image');
+}
+
 /**
  * Computes QT box sizing and whether media should be expanded.
  * Returns an authoritative qtBoxHeight that should be used consistently for:
@@ -133,8 +137,11 @@ function computeQtSizing(ctx, {
     }
 
     ctx.font = `24px ${fontChain}`;
+    const qtContainsVideo = Array.isArray(qtMedia) ? qtMedia.some(m => m.type === 'video') : false;
+    let expandQtMedia = shouldExpandQtMedia({ qtFirst, hasImgs, hasVids, qtContainsVideo });
+
     const initialWrapWidth = getQtWrapWidth({
-        expandQtMedia: false,
+        expandQtMedia,
         qtHasMedia: Array.isArray(qtMetadata.mediaExtended) && qtMetadata.mediaExtended.length > 0,
     });
     const initialRenderedLines = trimRenderedLinesToMaxChars(
@@ -144,11 +151,6 @@ function computeQtSizing(ctx, {
         maxQtDescChars
     );
     qtMetadata.description = initialRenderedLines.join('\n');
-
-    const qtContainsVideo = Array.isArray(qtMedia) ? qtMedia.some(m => m.type === 'video') : false;
-
-    // Expansion allowed only if: main has no media AND QT has no video AND first QT item is an image
-    let expandQtMedia = (!hasImgs && !hasVids) && !qtContainsVideo && (qtFirst?.type === 'image');
 
     let qtExpandedMediaSize = null;
     if (expandQtMedia && qtFirst?.size) {
@@ -201,4 +203,5 @@ module.exports = {
     calculateQuoteHeight,
     measureQtTextNeed,
     computeQtSizing,
+    shouldExpandQtMedia,
 };
