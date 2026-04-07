@@ -1,7 +1,12 @@
 const {
     buildSummaryPrompt,
+    buildSummaryIntelligence,
     formatSummaryMessages,
+    isLowSignalContent,
+    isUrlOnlyContent,
     normalizeSummaryContext,
+    scoreSummaryMessages,
+    selectMessagesForPrompt,
     stripSummaryPrefix,
 } = require('../features/ollama');
 
@@ -37,11 +42,62 @@ describe('summary prompt formatting', () => {
             previousSummary: null,
             messages: [{ user_id: '111', content: 'hello there' }],
             lastSummaryCreatedAt: null,
+            summaryHistory: [],
         });
     });
 
     test('stripSummaryPrefix removes the Discord heading before prompting', () => {
         expect(stripSummaryPrefix('**Summary:**\nSomething happened')).toBe('Something happened');
+    });
+
+    test('detects url-only and low-signal content', () => {
+        expect(isUrlOnlyContent('https://x.com/test/status/123')).toBe(true);
+        expect(isUrlOnlyContent('hello https://x.com/test/status/123')).toBe(false);
+        expect(isLowSignalContent('<:sideeye:1346560987737755688>')).toBe(true);
+        expect(isLowSignalContent('actual sentence here')).toBe(false);
+    });
+
+    test('scores discussion higher than bare links', () => {
+        const scored = scoreSummaryMessages([
+            { user_id: '111', content: 'https://x.com/test/status/123' },
+            { user_id: '111', content: 'the server upgrade is moving and the database is huge now' },
+        ]);
+
+        expect(scored[1].score).toBeGreaterThan(scored[0].score);
+    });
+
+    test('selectMessagesForPrompt keeps the highest-signal messages while preserving chronology', () => {
+        const selected = selectMessagesForPrompt([
+            { user_id: '111', content: 'https://x.com/test/status/123' },
+            { user_id: '111', content: 'server upgrade is happening and the database is huge' },
+            { user_id: '222', content: 'fishing rivalry continues in a surprisingly hostile way' },
+        ], 2);
+
+        expect(selected).toEqual([
+            { user_id: '111', content: 'server upgrade is happening and the database is huge' },
+            { user_id: '222', content: 'fishing rivalry continues in a surprisingly hostile way' },
+        ]);
+    });
+
+    test('buildSummaryIntelligence derives participants, topics, and continuity', () => {
+        const intelligence = buildSummaryIntelligence({
+            mode: 'delta',
+            previousSummary: '**Summary:**\nserver and fishing nonsense',
+            summaryHistory: [
+                { content: '**Summary:**\nserver and fishing nonsense' },
+                { content: '**Summary:**\nmore server chatter' },
+            ],
+            messages: [
+                { user_id: '111', content: 'server upgrade is happening now' },
+                { user_id: '222', content: 'fishing rivalry continues today' },
+                { user_id: '111', content: 'database size is absurd now' },
+            ],
+        });
+
+        expect(intelligence.dominantParticipants[0]).toContain('<@111>');
+        expect(intelligence.dominantTopics.length).toBeGreaterThan(0);
+        expect(intelligence.historyTopics).toContain('server');
+        expect(['continuation', 'minor_drift', 'new_topic', 'minimal_change']).toContain(intelligence.conversationState);
     });
 
     test('buildSummaryPrompt explains the compact full-summary line format', () => {
@@ -57,12 +113,17 @@ describe('summary prompt formatting', () => {
         expect(prompt).toContain('111: hello there');
         expect(prompt).toContain('333: general kenobi');
         expect(prompt).not.toContain('created_at');
+        expect(prompt).toContain('DominantParticipants:');
+        expect(prompt).toContain('DominantTopics:');
     });
 
     test('buildSummaryPrompt includes previous summary and only newer messages in delta mode', () => {
         const prompt = buildSummaryPrompt({
             mode: 'delta',
             previousSummary: '**Summary:**\nOld stuff happened',
+            summaryHistory: [
+                { content: '**Summary:**\nOld stuff happened' },
+            ],
             messages: [
                 { user_id: '111', content: 'new detail' },
             ],
@@ -74,13 +135,17 @@ describe('summary prompt formatting', () => {
         expect(prompt).not.toContain('**Summary:**');
         expect(prompt).toContain('NewMessagesSinceLastSummary:');
         expect(prompt).toContain('111: new detail');
-        expect(prompt).toContain('Focus on what changed since the last summary');
+        expect(prompt).toContain('HistoricalTopics:');
+        expect(prompt).toMatch(/Focus on what changed since the last summary|Almost nothing meaningful changed/);
     });
 
     test('buildSummaryPrompt handles no-change delta mode explicitly', () => {
         const prompt = buildSummaryPrompt({
             mode: 'delta',
             previousSummary: '**Summary:**\nOld stuff happened',
+            summaryHistory: [
+                { content: '**Summary:**\nOld stuff happened' },
+            ],
             messages: [],
         });
 

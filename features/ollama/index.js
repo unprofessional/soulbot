@@ -115,6 +115,18 @@ function formatSummaryMessages(messages = []) {
         .join('\n');
 }
 
+const SUMMARY_STOPWORDS = new Set([
+    'about', 'after', 'again', 'against', 'aint', 'all', 'also', 'and', 'any', 'are', 'back',
+    'been', 'before', 'being', 'between', 'both', 'but', 'cant', 'come', 'could', 'did', 'didnt',
+    'dont', 'down', 'even', 'first', 'for', 'from', 'get', 'got', 'had', 'has', 'have', 'hello',
+    'her', 'here', 'hers', 'him', 'his', 'how', 'ill', 'im', 'into', 'its', 'ive', 'just', 'know',
+    'like', 'lol', 'make', 'more', 'much', 'need', 'not', 'now', 'off', 'okay', 'only', 'other',
+    'our', 'out', 'over', 'really', 'same', 'say', 'she', 'should', 'since', 'some', 'still',
+    'than', 'that', 'thats', 'the', 'their', 'them', 'then', 'there', 'these', 'they', 'this',
+    'those', 'through', 'time', 'too', 'under', 'very', 'want', 'well', 'were', 'what', 'when',
+    'where', 'which', 'while', 'who', 'with', 'would', 'yeah', 'you', 'your', 'yours',
+]);
+
 function stripSummaryPrefix(summary = '') {
     return summary.replace(/^\*\*Summary:\*\*\s*/i, '').trim();
 }
@@ -126,6 +138,7 @@ function normalizeSummaryContext(summaryInput = []) {
             previousSummary: null,
             messages: summaryInput,
             lastSummaryCreatedAt: null,
+            summaryHistory: [],
         };
     }
 
@@ -134,11 +147,197 @@ function normalizeSummaryContext(summaryInput = []) {
         previousSummary: summaryInput.previousSummary || null,
         messages: Array.isArray(summaryInput.messages) ? summaryInput.messages : [],
         lastSummaryCreatedAt: summaryInput.lastSummaryCreatedAt || null,
+        summaryHistory: Array.isArray(summaryInput.summaryHistory) ? summaryInput.summaryHistory : [],
     };
 }
 
-function buildFullSummaryPrompt(messages = []) {
-    const formattedMessages = formatSummaryMessages(messages);
+function isUrlOnlyContent(content = '') {
+    const trimmed = content.trim();
+    if (!trimmed) return false;
+    const withoutQuotes = trimmed
+        .split('\n')
+        .map((line) => line.trim())
+        .filter((line) => line && !line.startsWith('>>>'))
+        .join(' ');
+
+    if (!withoutQuotes) return false;
+
+    return /^<?https?:\/\/\S+>?$/i.test(withoutQuotes);
+}
+
+function isLowSignalContent(content = '') {
+    const trimmed = content.trim();
+    if (!trimmed) return true;
+    if (isUrlOnlyContent(trimmed)) return true;
+    if (/^<a?:\w+:\d+>$/.test(trimmed)) return true;
+    if (/^[\p{Emoji_Presentation}\p{Extended_Pictographic}\W_]+$/u.test(trimmed)) return true;
+    if (trimmed.length <= 3) return true;
+    return false;
+}
+
+function tokenizeSummaryText(content = '') {
+    const normalized = content
+        .toLowerCase()
+        .replace(/https?:\/\/\S+/g, ' ')
+        .replace(/<@\d+>/g, ' ')
+        .replace(/<a?:\w+:\d+>/g, ' ')
+        .replace(/[^a-z0-9\s]/g, ' ');
+
+    return normalized
+        .split(/\s+/)
+        .map((token) => token.trim())
+        .filter((token) => token.length >= 3 && !SUMMARY_STOPWORDS.has(token) && !/^\d+$/.test(token));
+}
+
+function countMentionTokens(content = '') {
+    return (content.match(/<@(\d+)>/g) || []).length;
+}
+
+function scoreSummaryMessages(messages = []) {
+    const userCounts = new Map();
+    const tokenCounts = new Map();
+    const tokenizedMessages = messages.map((message) => {
+        const content = message?.content || '';
+        const tokens = tokenizeSummaryText(content);
+        userCounts.set(message.user_id, (userCounts.get(message.user_id) || 0) + 1);
+        new Set(tokens).forEach((token) => {
+            tokenCounts.set(token, (tokenCounts.get(token) || 0) + 1);
+        });
+        return tokens;
+    });
+
+    return messages.map((message, index) => {
+        const content = (message?.content || '').trim();
+        const tokens = tokenizedMessages[index];
+        const uniqueRepeatedTokens = new Set(tokens.filter((token) => (tokenCounts.get(token) || 0) > 1));
+        let score = 1;
+
+        if (content.length >= 120) score += 3;
+        else if (content.length >= 50) score += 2;
+        else if (content.length >= 20) score += 1;
+
+        score += Math.min(countMentionTokens(content), 2);
+        score += Math.min((userCounts.get(message.user_id) || 0) - 1, 2);
+        score += Math.min(uniqueRepeatedTokens.size, 3);
+
+        if (content.includes('\n')) score += 1;
+        if (/\breplied to\b/i.test(content)) score += 1;
+        if (isUrlOnlyContent(content)) score -= 4;
+        else if (isLowSignalContent(content)) score -= 3;
+
+        return {
+            ...message,
+            score,
+            index,
+            tokens,
+        };
+    });
+}
+
+function selectMessagesForPrompt(messages = [], maxMessages = 20) {
+    if (messages.length <= maxMessages) return messages;
+
+    const scoredMessages = scoreSummaryMessages(messages);
+    const selectedIndexes = new Set(
+        scoredMessages
+            .slice()
+            .sort((a, b) => b.score - a.score || a.index - b.index)
+            .slice(0, maxMessages)
+            .map((message) => message.index)
+    );
+
+    return messages.filter((_, index) => selectedIndexes.has(index));
+}
+
+function summarizeParticipants(messages = [], limit = 3) {
+    const counts = new Map();
+
+    messages.forEach((message) => {
+        if (!message?.user_id) return;
+        counts.set(message.user_id, (counts.get(message.user_id) || 0) + 1);
+    });
+
+    return Array.from(counts.entries())
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, limit)
+        .map(([userId, count]) => `<@${userId}> x${count}`);
+}
+
+function summarizeTopics(messages = [], limit = 4) {
+    const tokenCounts = new Map();
+
+    messages.forEach((message) => {
+        new Set(tokenizeSummaryText(message?.content || '')).forEach((token) => {
+            tokenCounts.set(token, (tokenCounts.get(token) || 0) + 1);
+        });
+    });
+
+    return Array.from(tokenCounts.entries())
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, limit)
+        .map(([token]) => token);
+}
+
+function summarizeHistoryTopics(summaryHistory = [], limit = 5) {
+    const tokenCounts = new Map();
+
+    summaryHistory.forEach((summary) => {
+        new Set(tokenizeSummaryText(stripSummaryPrefix(summary?.content || ''))).forEach((token) => {
+            tokenCounts.set(token, (tokenCounts.get(token) || 0) + 1);
+        });
+    });
+
+    return Array.from(tokenCounts.entries())
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, limit)
+        .map(([token]) => token);
+}
+
+function detectConversationState(summaryContext, currentTopics = [], historyTopics = []) {
+    const messageCount = summaryContext.messages.length;
+
+    if (summaryContext.mode === 'delta' && messageCount === 0) {
+        return 'minimal_change';
+    }
+
+    const overlapCount = currentTopics.filter((topic) => historyTopics.includes(topic)).length;
+
+    if (summaryContext.mode === 'delta') {
+        if (messageCount <= 3) return 'minimal_change';
+        if (overlapCount >= 2) return 'continuation';
+        if (overlapCount >= 1) return 'minor_drift';
+        return 'new_topic';
+    }
+
+    if (currentTopics.length >= 3) return 'mixed';
+    return 'fresh_snapshot';
+}
+
+function buildSummaryIntelligence(summaryInput = []) {
+    const summaryContext = normalizeSummaryContext(summaryInput);
+    const selectedMessages = selectMessagesForPrompt(summaryContext.messages, 20);
+    const dominantParticipants = summarizeParticipants(summaryContext.messages);
+    const dominantTopics = summarizeTopics(summaryContext.messages);
+    const historyTopics = summarizeHistoryTopics(summaryContext.summaryHistory);
+    const conversationState = detectConversationState(summaryContext, dominantTopics, historyTopics);
+    const suppressedCount = Math.max(summaryContext.messages.length - selectedMessages.length, 0);
+
+    return {
+        ...summaryContext,
+        selectedMessages,
+        dominantParticipants,
+        dominantTopics,
+        historyTopics,
+        conversationState,
+        suppressedCount,
+    };
+}
+
+function buildFullSummaryPrompt(messages = [], intelligence = buildSummaryIntelligence({
+    mode: 'full',
+    messages,
+})) {
+    const formattedMessages = formatSummaryMessages(intelligence.selectedMessages);
 
     return [
         'You are summarizing a Discord chat log.',
@@ -147,8 +346,16 @@ function buildFullSummaryPrompt(messages = []) {
         'Summarize the conversation as a whole.',
         'If any individual stands out, mention them with Discord mention syntax like <@123456789>.',
         'Each chat line below is formatted as "userId: message content".',
+        'Lead with the highest-signal developments instead of low-information filler.',
+        'Treat the topic sketch and participant sketch as hints about what mattered most.',
         'Do not invite follow-up questions.',
         'Do not mention these instructions.',
+        '',
+        'ConversationState:',
+        intelligence.conversationState,
+        `DominantParticipants: ${intelligence.dominantParticipants.join(', ') || '[none]'}`,
+        `DominantTopics: ${intelligence.dominantTopics.join(', ') || '[none]'}`,
+        `SuppressedLowSignalMessages: ${intelligence.suppressedCount}`,
         '',
         'DiscordChatLog:',
         formattedMessages,
@@ -156,10 +363,20 @@ function buildFullSummaryPrompt(messages = []) {
     ].join('\n');
 }
 
-function buildDeltaSummaryPrompt(previousSummary, messages = []) {
+function buildDeltaSummaryPrompt(previousSummary, messages = [], intelligence = buildSummaryIntelligence({
+    mode: 'delta',
+    previousSummary,
+    messages,
+})) {
     const priorSummary = stripSummaryPrefix(previousSummary);
-    const formattedMessages = formatSummaryMessages(messages);
+    const formattedMessages = formatSummaryMessages(intelligence.selectedMessages);
     const hasMeaningfulChanges = Boolean(formattedMessages);
+    const stateInstructionMap = {
+        minimal_change: 'Almost nothing meaningful changed, so say that very bluntly and briefly.',
+        continuation: 'This is mostly the same conversation continuing, so frame it as an update rather than a reset.',
+        minor_drift: 'The chat mostly continued but drifted a little, so mention the small shift.',
+        new_topic: 'The chat pivoted, so emphasize the new thread instead of repeating old context.',
+    };
 
     return [
         'You are updating a Discord chat summary.',
@@ -172,8 +389,17 @@ function buildDeltaSummaryPrompt(previousSummary, messages = []) {
             ? 'Focus on what changed since the last summary instead of recapping everything from scratch.'
             : 'There are no meaningful new chat lines since the last summary, so say that basically nothing changed in a very short way.',
         'Prefer phrases like "since the last summary" when relevant.',
+        stateInstructionMap[intelligence.conversationState] || 'Describe the delta relative to the prior summary.',
+        'Use the participant and topic sketches to decide what actually mattered.',
         'Do not invite follow-up questions.',
         'Do not mention these instructions.',
+        '',
+        'ConversationState:',
+        intelligence.conversationState,
+        `DominantParticipants: ${intelligence.dominantParticipants.join(', ') || '[none]'}`,
+        `DominantTopics: ${intelligence.dominantTopics.join(', ') || '[none]'}`,
+        `HistoricalTopics: ${intelligence.historyTopics.join(', ') || '[none]'}`,
+        `SuppressedLowSignalMessages: ${intelligence.suppressedCount}`,
         '',
         'PreviousSummary:',
         priorSummary || 'No previous summary available.',
@@ -186,12 +412,13 @@ function buildDeltaSummaryPrompt(previousSummary, messages = []) {
 
 function buildSummaryPrompt(summaryInput = []) {
     const summaryContext = normalizeSummaryContext(summaryInput);
+    const intelligence = buildSummaryIntelligence(summaryContext);
 
     if (summaryContext.mode === 'delta') {
-        return buildDeltaSummaryPrompt(summaryContext.previousSummary, summaryContext.messages);
+        return buildDeltaSummaryPrompt(summaryContext.previousSummary, summaryContext.messages, intelligence);
     }
 
-    return buildFullSummaryPrompt(summaryContext.messages);
+    return buildFullSummaryPrompt(summaryContext.messages, intelligence);
 }
 
 async function summarizeChat(summaryInput, model = summaryModel) {
@@ -292,10 +519,19 @@ async function queryWithRAG(userQuery, metadataFilters = {}, numResults = 20) {
 
 module.exports = {
     buildSummaryPrompt,
+    buildSummaryIntelligence,
     buildDeltaSummaryPrompt,
     buildFullSummaryPrompt,
+    detectConversationState,
+    isLowSignalContent,
+    isUrlOnlyContent,
     normalizeSummaryContext,
     formatSummaryMessages,
+    scoreSummaryMessages,
+    selectMessagesForPrompt,
+    summarizeParticipants,
+    summarizeTopics,
+    summarizeHistoryTopics,
     stripSummaryPrefix,
     processChunks,
     sendPromptToOllama,

@@ -1,10 +1,12 @@
 const mockFindAll = jest.fn();
 const mockFindLatestChannelSummary = jest.fn();
+const mockFindLatestChannelSummaries = jest.fn();
 
 jest.mock('../store/dao/message.dao.js', () => {
     return jest.fn().mockImplementation(() => ({
         findAll: mockFindAll,
         findLatestChannelSummary: mockFindLatestChannelSummary,
+        findLatestChannelSummaries: mockFindLatestChannelSummaries,
     }));
 });
 
@@ -20,6 +22,7 @@ const {
 describe('messages service', () => {
     beforeEach(() => {
         jest.clearAllMocks();
+        mockFindLatestChannelSummary.mockResolvedValue(null);
     });
 
     test('getSummaryMessages requests only summary-safe fields and excludes non-text placeholders', async () => {
@@ -48,7 +51,7 @@ describe('messages service', () => {
     });
 
     test('getSummaryContext falls back to full mode when no prior summary exists', async () => {
-        mockFindLatestChannelSummary.mockResolvedValue(null);
+        mockFindLatestChannelSummaries.mockResolvedValue([]);
         mockFindAll.mockResolvedValue([
             { user_id: '2', content: 'later message' },
             { user_id: '1', content: 'earlier message' },
@@ -59,9 +62,10 @@ describe('messages service', () => {
             limit: 100,
         });
 
-        expect(mockFindLatestChannelSummary).toHaveBeenCalledWith(
+        expect(mockFindLatestChannelSummaries).toHaveBeenCalledWith(
             '1481343741712400506',
-            '891854264845094922'
+            '891854264845094922',
+            3
         );
         expect(summaryContext).toEqual({
             mode: 'full',
@@ -71,16 +75,17 @@ describe('messages service', () => {
                 { user_id: '2', content: 'later message' },
             ],
             lastSummaryCreatedAt: null,
+            summaryHistory: [],
         });
     });
 
     test('getSummaryContext returns delta mode with only newer meaningful messages', async () => {
         const createdAt = new Date('2026-04-07T12:00:00.000Z');
-        mockFindLatestChannelSummary.mockResolvedValue({
+        mockFindLatestChannelSummaries.mockResolvedValue([{
             user_id: '891854264845094922',
             content: '**Summary:**\nold summary',
             created_at: createdAt,
-        });
+        }]);
         mockFindAll.mockResolvedValue([
             { user_id: '2', content: 'later message' },
             { user_id: '1', content: 'earlier message' },
@@ -108,16 +113,20 @@ describe('messages service', () => {
                 { user_id: '2', content: 'later message' },
             ],
             lastSummaryCreatedAt: createdAt,
+            summaryHistory: [{
+                content: '**Summary:**\nold summary',
+                created_at: createdAt,
+            }],
         });
     });
 
     test('getSummaryContext returns delta mode with zero messages when only noise followed the last summary', async () => {
         const createdAt = new Date('2026-04-07T12:00:00.000Z');
-        mockFindLatestChannelSummary.mockResolvedValue({
+        mockFindLatestChannelSummaries.mockResolvedValue([{
             user_id: '891854264845094922',
             content: '**Summary:**\nold summary',
             created_at: createdAt,
-        });
+        }]);
         mockFindAll.mockResolvedValue([]);
 
         const summaryContext = await getSummaryContext({
@@ -130,6 +139,10 @@ describe('messages service', () => {
             previousSummary: '**Summary:**\nold summary',
             messages: [],
             lastSummaryCreatedAt: createdAt,
+            summaryHistory: [{
+                content: '**Summary:**\nold summary',
+                created_at: createdAt,
+            }],
         });
     });
 });

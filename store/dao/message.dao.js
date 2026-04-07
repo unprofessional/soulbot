@@ -101,6 +101,28 @@ class MessageDAO {
         }
     }
 
+    async findLatestChannelSummaries(channelId, userId, limit = 3, contentPrefix = '**Summary:**') {
+        const sql = `
+            SELECT user_id, content, created_at
+            FROM message
+            WHERE deleted_at IS NULL
+              AND channel_id = $1
+              AND user_id = $2
+              AND content LIKE $3
+            ORDER BY created_at DESC
+            LIMIT $4
+        `;
+
+        try {
+            console.log('>>>>> MessageDAO > findLatestChannelSummaries > sql:', sql);
+            const result = await pool.query(sql, [channelId, userId, `${contentPrefix}%`, limit]);
+            return result.rows;
+        } catch (err) {
+            console.error('Error fetching latest channel summaries:', err);
+            throw err;
+        }
+    }
+
     async getAllMessagesToArchive() {
         // SQL query to exclude messages with content '[Non-text message]'
         let sql = `

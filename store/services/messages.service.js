@@ -98,7 +98,12 @@ const getSummaryMessages = async (options = {}) => {
 const getSummaryContext = async (options = {}) => {
     try {
         const { channelId, limit = 100 } = options;
-        const latestSummary = await messageDAO.findLatestChannelSummary(channelId, soulbotUserId);
+        const latestSummaries = await messageDAO.findLatestChannelSummaries(channelId, soulbotUserId, 3);
+        const latestSummary = latestSummaries[0] || null;
+        const summaryHistory = latestSummaries.map((summary) => ({
+            content: summary.content,
+            created_at: summary.created_at,
+        }));
 
         if (!latestSummary) {
             const messages = await getSummaryMessages({ channelId, limit });
@@ -107,6 +112,7 @@ const getSummaryContext = async (options = {}) => {
                 previousSummary: null,
                 messages,
                 lastSummaryCreatedAt: null,
+                summaryHistory,
             };
         }
 
@@ -133,6 +139,7 @@ const getSummaryContext = async (options = {}) => {
             previousSummary: latestSummary.content,
             messages: chronologicalMessages,
             lastSummaryCreatedAt: latestSummary.created_at,
+            summaryHistory,
         };
     } catch (err) {
         console.error('Error in getSummaryContext service:', err);
