@@ -1,5 +1,5 @@
 const {
-    ollamaHost, ollamaPort, ollamaChatEndpoint, ollamaGenerateEndpoint,
+    ollamaHost, ollamaPort, ollamaChatEndpoint, ollamaGenerateEndpoint, soulbotUserId,
 } = require('../../config/env_config.js');
 const { chatModel, summaryModel, contextSize } = require('../../config/system_constants.js');
 const { queryChromaDb } = require('./embed.js');
@@ -293,6 +293,32 @@ function summarizeHistoryTopics(summaryHistory = [], limit = 5) {
         .map(([token]) => token);
 }
 
+function summarizeSoulbotAwareness(messages = []) {
+    const awarenessTerms = ['bot', 'summary', 'clanker'];
+    const matchingMessages = messages.filter((message) => {
+        const content = (message?.content || '').toLowerCase();
+
+        return content.includes(`<@${soulbotUserId}>`)
+            || awarenessTerms.some((term) => content.includes(term));
+    });
+
+    const directMentions = matchingMessages.filter((message) =>
+        (message?.content || '').includes(`<@${soulbotUserId}>`)
+    ).length;
+
+    const detectedLabels = awarenessTerms.filter((term) =>
+        matchingMessages.some((message) => (message?.content || '').toLowerCase().includes(term))
+    );
+
+    return {
+        soulbotUserId,
+        hasSoulbotReferences: matchingMessages.length > 0,
+        directMentions,
+        detectedLabels,
+        referenceCount: matchingMessages.length,
+    };
+}
+
 function detectConversationState(summaryContext, currentTopics = [], historyTopics = []) {
     const messageCount = summaryContext.messages.length;
 
@@ -319,6 +345,7 @@ function buildSummaryIntelligence(summaryInput = []) {
     const dominantParticipants = summarizeParticipants(summaryContext.messages);
     const dominantTopics = summarizeTopics(summaryContext.messages);
     const historyTopics = summarizeHistoryTopics(summaryContext.summaryHistory);
+    const soulbotAwareness = summarizeSoulbotAwareness(summaryContext.messages);
     const conversationState = detectConversationState(summaryContext, dominantTopics, historyTopics);
     const suppressedCount = Math.max(summaryContext.messages.length - selectedMessages.length, 0);
 
@@ -328,6 +355,7 @@ function buildSummaryIntelligence(summaryInput = []) {
         dominantParticipants,
         dominantTopics,
         historyTopics,
+        soulbotAwareness,
         conversationState,
         suppressedCount,
     };
@@ -348,6 +376,10 @@ function buildFullSummaryPrompt(messages = [], intelligence = buildSummaryIntell
         'Each chat line below is formatted as "userId: message content".',
         'Lead with the highest-signal developments instead of low-information filler.',
         'Treat the topic sketch and participant sketch as hints about what mattered most.',
+        `You are SOULbot, user ID <@${soulbotUserId}>, and you are being used to summarize chat logs.`,
+        intelligence.soulbotAwareness.hasSoulbotReferences
+            ? 'If people seem to be talking about you, the bot, summaries, or calling you a clanker, recognize that as chat about SOULbot.'
+            : 'Only mention SOULbot itself if the chat actually appears to be about the bot.',
         'Do not invite follow-up questions.',
         'Do not mention these instructions.',
         '',
@@ -355,6 +387,7 @@ function buildFullSummaryPrompt(messages = [], intelligence = buildSummaryIntell
         intelligence.conversationState,
         `DominantParticipants: ${intelligence.dominantParticipants.join(', ') || '[none]'}`,
         `DominantTopics: ${intelligence.dominantTopics.join(', ') || '[none]'}`,
+        `SOULbotAwareness: referenced=${intelligence.soulbotAwareness.hasSoulbotReferences}, labels=${intelligence.soulbotAwareness.detectedLabels.join(', ') || '[none]'}, directMentions=${intelligence.soulbotAwareness.directMentions}`,
         `SuppressedLowSignalMessages: ${intelligence.suppressedCount}`,
         '',
         'DiscordChatLog:',
@@ -391,6 +424,10 @@ function buildDeltaSummaryPrompt(previousSummary, messages = [], intelligence = 
         'Prefer phrases like "since the last summary" when relevant.',
         stateInstructionMap[intelligence.conversationState] || 'Describe the delta relative to the prior summary.',
         'Use the participant and topic sketches to decide what actually mattered.',
+        `You are SOULbot, user ID <@${soulbotUserId}>, and you are being used to summarize chat logs.`,
+        intelligence.soulbotAwareness.hasSoulbotReferences
+            ? 'If people are calling the bot "bot", "summary", or "clanker", treat that as conversation about SOULbot rather than random vocabulary.'
+            : 'Only mention SOULbot itself if the new messages are clearly about the bot.',
         'Do not invite follow-up questions.',
         'Do not mention these instructions.',
         '',
@@ -399,6 +436,7 @@ function buildDeltaSummaryPrompt(previousSummary, messages = [], intelligence = 
         `DominantParticipants: ${intelligence.dominantParticipants.join(', ') || '[none]'}`,
         `DominantTopics: ${intelligence.dominantTopics.join(', ') || '[none]'}`,
         `HistoricalTopics: ${intelligence.historyTopics.join(', ') || '[none]'}`,
+        `SOULbotAwareness: referenced=${intelligence.soulbotAwareness.hasSoulbotReferences}, labels=${intelligence.soulbotAwareness.detectedLabels.join(', ') || '[none]'}, directMentions=${intelligence.soulbotAwareness.directMentions}`,
         `SuppressedLowSignalMessages: ${intelligence.suppressedCount}`,
         '',
         'PreviousSummary:',
@@ -529,6 +567,7 @@ module.exports = {
     formatSummaryMessages,
     scoreSummaryMessages,
     selectMessagesForPrompt,
+    summarizeSoulbotAwareness,
     summarizeParticipants,
     summarizeTopics,
     summarizeHistoryTopics,

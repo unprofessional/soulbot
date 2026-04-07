@@ -8,6 +8,7 @@ const {
     scoreSummaryMessages,
     selectMessagesForPrompt,
     stripSummaryPrefix,
+    summarizeSoulbotAwareness,
 } = require('../features/ollama');
 
 describe('summary prompt formatting', () => {
@@ -100,6 +101,19 @@ describe('summary prompt formatting', () => {
         expect(['continuation', 'minor_drift', 'new_topic', 'minimal_change']).toContain(intelligence.conversationState);
     });
 
+    test('summarizeSoulbotAwareness detects bot, summary, clanker, and direct mentions', () => {
+        const awareness = summarizeSoulbotAwareness([
+            { user_id: '111', content: 'good bot' },
+            { user_id: '222', content: 'this summary is weird' },
+            { user_id: '333', content: 'did we just get dissed by a clanker' },
+            { user_id: '444', content: 'hey <@891854264845094922> wake up' },
+        ]);
+
+        expect(awareness.hasSoulbotReferences).toBe(true);
+        expect(awareness.directMentions).toBe(1);
+        expect(awareness.detectedLabels).toEqual(expect.arrayContaining(['bot', 'summary', 'clanker']));
+    });
+
     test('buildSummaryPrompt explains the compact full-summary line format', () => {
         const prompt = buildSummaryPrompt({
             mode: 'full',
@@ -115,6 +129,7 @@ describe('summary prompt formatting', () => {
         expect(prompt).not.toContain('created_at');
         expect(prompt).toContain('DominantParticipants:');
         expect(prompt).toContain('DominantTopics:');
+        expect(prompt).toContain('You are SOULbot, user ID <@891854264845094922>');
     });
 
     test('buildSummaryPrompt includes previous summary and only newer messages in delta mode', () => {
@@ -125,7 +140,7 @@ describe('summary prompt formatting', () => {
                 { content: '**Summary:**\nOld stuff happened' },
             ],
             messages: [
-                { user_id: '111', content: 'new detail' },
+                { user_id: '111', content: 'new detail about the bot summary clanker' },
             ],
         });
 
@@ -134,8 +149,9 @@ describe('summary prompt formatting', () => {
         expect(prompt).toContain('Old stuff happened');
         expect(prompt).not.toContain('**Summary:**');
         expect(prompt).toContain('NewMessagesSinceLastSummary:');
-        expect(prompt).toContain('111: new detail');
+        expect(prompt).toContain('111: new detail about the bot summary clanker');
         expect(prompt).toContain('HistoricalTopics:');
+        expect(prompt).toContain('SOULbotAwareness: referenced=true');
         expect(prompt).toMatch(/Focus on what changed since the last summary|Almost nothing meaningful changed/);
     });
 
