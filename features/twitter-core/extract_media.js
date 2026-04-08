@@ -113,14 +113,9 @@ async function extractMediaFromTweetUrl(rawInput, log = console.log) {
     }
 
     const media = collectMedia(meta);
-    if (!media.length) {
-        return {
-            ok: false,
-            message: 'No media found on that post.',
-        };
-    }
-
-    const files = await Promise.all(media.map((item, index) => downloadMediaFile(item, index)));
+    const files = media.length
+        ? await Promise.all(media.map((item, index) => downloadMediaFile(item, index)))
+        : [];
 
     return {
         ok: true,
