@@ -60,6 +60,25 @@ function extractCommunityNote(...sources) {
     return null;
 }
 
+function normalizeEmbeddedQuoteTweet(rawQuote) {
+    if (!rawQuote || typeof rawQuote !== 'object') return undefined;
+
+    if (rawQuote.tweetID || rawQuote.user_name) {
+        return normalizeFromVX(rawQuote);
+    }
+
+    if (rawQuote.id || rawQuote.author || rawQuote.text) {
+        return normalizeFromFX({
+            tweet: rawQuote,
+            message: 'OK',
+            code: 200,
+            lang: rawQuote.lang ?? null,
+        });
+    }
+
+    return undefined;
+}
+
 function normalizeFromVX(vx) {
     return {
         tweetID: vx.tweetID,
@@ -73,6 +92,7 @@ function normalizeFromVX(vx) {
         hasMedia: Boolean(vx.media_extended?.length),
         media_extended: vx.media_extended ?? [],
         communityNote: extractCommunityNote(vx),
+        qtMetadata: normalizeEmbeddedQuoteTweet(vx.qrt),
         qrtURL: vx.qrtURL ?? undefined,
     };
 }
@@ -116,10 +136,11 @@ function normalizeFromFX(fx) {
         hasMedia: Boolean(media.length),
         media_extended: media,
         communityNote: extractCommunityNote(fx, t),
+        qtMetadata: normalizeEmbeddedQuoteTweet(t.quote ?? fx.quote),
         qrtURL: t.quote?.url ?? undefined,
         _fx_message: fx.message, // e.g., OK / PRIVATE_TWEET / NOT_FOUND
         _fx_code: fx.code,
     };
 }
 
-module.exports = { normalizeFromVX, normalizeFromFX, extractCommunityNote };
+module.exports = { normalizeFromVX, normalizeFromFX, extractCommunityNote, normalizeEmbeddedQuoteTweet };

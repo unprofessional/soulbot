@@ -207,6 +207,7 @@ async function handleTwitterUrl(message, { guildId }) {
         // Quote-Tweet path (if present)
         if (meta.qrtURL) {
             console.log('[TwitterHandler] QRT detected, fetching QT metadata:', meta.qrtURL);
+            const embeddedQtMeta = meta.qtMetadata;
             const qtMeta = await fetchQTMetadata(meta.qrtURL, (s) => console.log('[TwitterHandler][fetchQTMetadata]', s));
             console.log('[TwitterHandler] fetchQTMetadata qtMeta summary:', {
                 hasError: !!qtMeta?.error,
@@ -214,6 +215,15 @@ async function handleTwitterUrl(message, { guildId }) {
             });
 
             if (qtMeta?.error) {
+                if (embeddedQtMeta) {
+                    console.log('[TwitterHandler] Using embedded QT metadata fallback after QT fetch error.');
+                    meta.qtMetadata = embeddedQtMeta;
+                    console.log('>>>>> core detect > firstUrl:', firstUrl);
+                    console.log('[TwitterHandler] Calling renderTwitterPost...');
+                    await renderTwitterPost(meta, message, firstUrl);
+                    console.log('[TwitterHandler] renderTwitterPost completed.');
+                    return;
+                }
                 const fallback = qtMeta.fallback_link || toFixupx(meta.qrtURL);
                 console.log('[TwitterHandler] qtMeta.error present, replying with fallback if any:', {
                     message: qtMeta.message,
@@ -225,7 +235,11 @@ async function handleTwitterUrl(message, { guildId }) {
                 return;
             }
             await enrichMetadataWithTranslation(qtMeta, (s) => console.log('[TwitterHandler][qtTranslation]', s));
-            meta.qtMetadata = qtMeta;
+            meta.qtMetadata = {
+                ...embeddedQtMeta,
+                ...qtMeta,
+                communityNote: qtMeta.communityNote || embeddedQtMeta?.communityNote || null,
+            };
         }
 
         console.log('>>>>> core detect > firstUrl:', firstUrl);

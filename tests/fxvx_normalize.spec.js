@@ -62,4 +62,31 @@ describe('fxvx community note normalization', () => {
         expect(normalized.media_extended).toHaveLength(1);
         expect(normalized.media_extended[0].type).toBe('video');
     });
+
+    test('normalizeFromVX preserves embedded quote tweet metadata including community note', () => {
+        const normalized = normalizeFromVX({
+            tweetID: '789',
+            text: 'Main tweet text',
+            user_name: 'Main User',
+            user_screen_name: 'mainuser',
+            user_profile_image_url: 'https://example.com/main.jpg',
+            media_extended: [],
+            qrtURL: 'https://twitter.com/i/status/456',
+            qrt: {
+                tweetID: '456',
+                text: 'Quoted tweet text',
+                user_name: 'Quoted User',
+                user_screen_name: 'quoteduser',
+                user_profile_image_url: 'https://example.com/quoted.jpg',
+                media_extended: [],
+                communityNote: 'Quoted post context from inline payload.',
+            },
+        });
+
+        expect(normalized.qrtURL).toBe('https://twitter.com/i/status/456');
+        expect(normalized.qtMetadata).toEqual(expect.objectContaining({
+            tweetID: '456',
+            communityNote: 'Quoted post context from inline payload.',
+        }));
+    });
 });
