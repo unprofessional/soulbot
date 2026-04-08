@@ -18,7 +18,7 @@ const {
  * This function now derives wrap geometry from shared twitter-core/layout/geometry.js
  * so it cannot drift from drawQtBasicElements.
  */
-function calculateQuoteHeight(ctx, qtMetadata) {
+function calculateQuoteHeight(ctx, qtMetadata, { fontChain = 'sans-serif' } = {}) {
     const DEBUG = process.env.DEBUG_QT === '1';
     const TAG = '[qt/calcHeight]';
 
@@ -37,7 +37,7 @@ function calculateQuoteHeight(ctx, qtMetadata) {
         const expanded = Boolean(qtMetadata._expandMediaHint);
         const text = qtMetadata.error ? (qtMetadata.message || '') : (qtMetadata.description || '');
 
-        ctx.font = '24px "Noto Color Emoji"';
+        ctx.font = `24px ${fontChain}`;
 
         const { innerLeft, innerRight } = getQtInnerRect();
         const textX = getQtTextX({ expandQtMedia: expanded, qtHasMedia: hasMedia });
@@ -69,25 +69,15 @@ function calculateQuoteHeight(ctx, qtMetadata) {
             return total;
         }
 
-        if (hasMedia) {
-            const contentBottom = getQtCompactContentBottom({ textHeight: descHeight, qtHasMedia: hasMedia });
-            const footerReserve = getQtCompactFooterReserve({ hasFooter });
-            const total = contentBottom + footerReserve;
-
-            DEBUG && console.debug(
-                `${TAG} [compact/media] contentBottom=${contentBottom} footerReserve=${footerReserve} hasFooter=${hasFooter} => total=${total}`
-            );
-            DEBUG && console.debug(`${TAG} ───────────────────────────────────────────`);
-            return total;
-        }
-
-        const textBlock = HEADER + descHeight + bottomPadding + MARGIN_BOTTOM + (hasFooter ? QT_FOOTER_LINE_H : 0);
+        const contentBottom = getQtCompactContentBottom({ textHeight: descHeight, qtHasMedia: hasMedia });
+        const footerReserve = getQtCompactFooterReserve({ hasFooter });
+        const total = contentBottom + footerReserve;
 
         DEBUG && console.debug(
-            `${TAG} [compact/text-only] textBlock=${textBlock} hasFooter=${hasFooter} => total=${textBlock}`
+            `${TAG} [compact] hasMedia=${hasMedia} contentBottom=${contentBottom} footerReserve=${footerReserve} hasFooter=${hasFooter} => total=${total}`
         );
         DEBUG && console.debug(`${TAG} ───────────────────────────────────────────`);
-        return textBlock;
+        return total;
     } catch (e) {
         console.warn('[qt/calcHeight] ERROR (fallback to 205):', e);
         return 205;
@@ -119,7 +109,7 @@ function measureQtTextNeed(ctx, fontChain, qtMetadata, { expandQtMedia = false }
 
     const textHeight = qtLines.length * LINE_H;
 
-    if (!expandQtMedia && qtHasMedia) {
+    if (!expandQtMedia) {
         return getQtCompactContentBottom({ textHeight, qtHasMedia }) +
             getQtCompactFooterReserve({ hasFooter });
     }
@@ -189,7 +179,7 @@ function computeQtSizing(ctx, {
     }
 
     // 1) Base from calculator (min/media rules)
-    const calcHeight = calculateQuoteHeight(ctx, qtMetadata) - (qtMetadata.error ? 40 : 0);
+    const calcHeight = calculateQuoteHeight(ctx, qtMetadata, { fontChain }) - (qtMetadata.error ? 40 : 0);
     const qtHasAny = Array.isArray(qtMetadata.mediaExtended) && qtMetadata.mediaExtended.length > 0;
 
     let minByMedia = calcHeight;

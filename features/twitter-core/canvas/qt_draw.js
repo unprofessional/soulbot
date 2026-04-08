@@ -72,7 +72,7 @@ function drawQtBasicElements(ctx, fontChain, metadata, pfp, mediaObj, options) {
         const textBottomY = textTopY + textHeight;
 
         // Clamp box height so text + footer always fits
-        const neededForContent = (!expandQtMedia && qtHasMedia)
+        const neededForContent = (!expandQtMedia)
             ? (
                 getQtCompactContentBottom({ textHeight, qtHasMedia }) +
                 getQtCompactFooterReserve({ hasFooter })

@@ -10,6 +10,17 @@ function makeCtx() {
     };
 }
 
+function makeFontSensitiveCtx() {
+    return {
+        font: '',
+        measureText: jest.fn(function (text) {
+            const value = String(text || '');
+            const widthPerChar = this.font.includes('Noto Color Emoji') ? 20 : 10;
+            return { width: value.length * widthPerChar };
+        }),
+    };
+}
+
 describe('computeQtSizing', () => {
     test('uses full-width wrapping when QT image is expanded', () => {
         const qtMetadata = {
@@ -109,5 +120,52 @@ describe('computeQtSizing', () => {
         const height = calculateQuoteHeight(makeCtx(), qtMetadata);
 
         expect(height).toBe(267);
+    });
+
+    test('text-only non-expanded QT no longer uses the oversized expanded-layout bottom padding', () => {
+        const qtMetadata = {
+            description: 'short line',
+            mediaExtended: [],
+            _displayDateFooter: '1:23 PM EDT · Apr 7, 2026',
+        };
+
+        const height = calculateQuoteHeight(makeCtx(), qtMetadata);
+
+        expect(height).toBe(174);
+        expect(height).toBeLessThan(192);
+    });
+
+    test('text-only non-expanded QT without footer only keeps the compact bottom gap', () => {
+        const qtMetadata = {
+            description: 'short line',
+            mediaExtended: [],
+            _displayDateFooter: '',
+        };
+
+        const height = calculateQuoteHeight(makeCtx(), qtMetadata);
+
+        expect(height).toBe(142);
+    });
+
+    test('calculateQuoteHeight uses the same font metrics as measureQtTextNeed', () => {
+        const qtMetadata = {
+            description: 'alpha alpha alpha alpha alpha alpha',
+            mediaExtended: [],
+            _displayDateFooter: '1:23 PM EDT · Apr 7, 2026',
+        };
+        const ctx = makeFontSensitiveCtx();
+
+        const result = computeQtSizing(ctx, {
+            qtMetadata,
+            qtMedia: [],
+            qtFirst: null,
+            hasImgs: false,
+            hasVids: false,
+            fontChain: 'sans-serif',
+            maxQtDescChars: 500,
+        });
+
+        expect(result.calcHeight).toBe(result.textNeed);
+        expect(result.qtBoxHeight).toBe(result.textNeed);
     });
 });
