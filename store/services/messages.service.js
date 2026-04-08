@@ -2,6 +2,7 @@
 
 const MessageDAO = require('../dao/message.dao.js');
 const { soulbotUserId } = require('../../config/env_config.js');
+const { consumePendingRenderOwnership } = require('../../features/twitter-core/render_ownership_registry.js');
 require('dotenv').config();
 
 const messageDAO = new MessageDAO();
@@ -12,6 +13,18 @@ const messageDAO = new MessageDAO();
  */
 const addMessage = async (message) => {
     try {
+        const pendingRenderOwnership = consumePendingRenderOwnership(message.webhookId);
+        const ownershipMeta = pendingRenderOwnership
+            ? {
+                kind: pendingRenderOwnership.kind || 'twitter_render',
+                owningUserId: pendingRenderOwnership.owningUserId,
+                originalMessageId: pendingRenderOwnership.originalMessageId || null,
+                originalChannelId: pendingRenderOwnership.originalChannelId || null,
+                originalLink: pendingRenderOwnership.originalLink || null,
+                threadId: pendingRenderOwnership.threadId || null,
+            }
+            : {};
+
         const structuredMessage = {
             userId: message.author.id,
             guildId: message.guild?.id || null,
@@ -24,6 +37,7 @@ const addMessage = async (message) => {
                 username: message.author.username,
                 channelName: message.channel?.name,
                 guildName: message.guild?.name,
+                ...ownershipMeta,
             },
         };
 
@@ -158,6 +172,15 @@ const findMessagesByLink = async (guildId, messageId, url) => {
     }
 }
 
+const getMessageById = async (messageId) => {
+    try {
+        return await messageDAO.findByMessageId(messageId);
+    } catch (err) {
+        console.error('Error in getMessageById service:', err);
+        throw err;
+    }
+};
+
 const updateMessage = async (messageId, newContent) => {
     try {
         const success = await messageDAO.updateMessage(messageId, newContent);
@@ -194,6 +217,7 @@ module.exports = {
     getSummaryMessages,
     getSummaryContext,
     findMessagesByLink,
+    getMessageById,
     updateMessage,
     deleteMessage,
 };

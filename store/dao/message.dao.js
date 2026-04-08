@@ -222,6 +222,25 @@ class MessageDAO {
         }
     }
 
+    async findByMessageId(messageId) {
+        const sql = `
+            SELECT *
+            FROM message
+            WHERE message_id = $1
+              AND deleted_at IS NULL
+            ORDER BY created_at DESC
+            LIMIT 1
+        `;
+
+        try {
+            const result = await pool.query(sql, [messageId]);
+            return result.rows[0] || null;
+        } catch (err) {
+            console.error('Error finding message by ID:', err);
+            throw err;
+        }
+    }
+
     /**
      * Update message content and set updated_at timestamp by message ID.
      * @param {string} messageId - Discord message ID.
@@ -254,6 +273,7 @@ class MessageDAO {
             UPDATE message
             SET deleted_at = NOW()
             WHERE message_id = $1
+              AND deleted_at IS NULL
         `;
         try {
             await pool.query(sql, [messageId]);

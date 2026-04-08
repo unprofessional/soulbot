@@ -1,12 +1,20 @@
 const mockFindAll = jest.fn();
 const mockFindLatestChannelSummary = jest.fn();
 const mockFindLatestChannelSummaries = jest.fn();
+const mockSave = jest.fn();
+const mockFindByMessageId = jest.fn();
+
+jest.mock('../features/twitter-core/render_ownership_registry.js', () => ({
+    consumePendingRenderOwnership: jest.fn(),
+}));
 
 jest.mock('../store/dao/message.dao.js', () => {
     return jest.fn().mockImplementation(() => ({
         findAll: mockFindAll,
         findLatestChannelSummary: mockFindLatestChannelSummary,
         findLatestChannelSummaries: mockFindLatestChannelSummaries,
+        findByMessageId: mockFindByMessageId,
+        save: mockSave,
     }));
 });
 
@@ -15,14 +23,19 @@ jest.mock('../config/env_config.js', () => ({
 }));
 
 const {
+    addMessage,
+    getMessageById,
     getSummaryContext,
     getSummaryMessages,
 } = require('../store/services/messages.service');
+const { consumePendingRenderOwnership } = require('../features/twitter-core/render_ownership_registry.js');
 
 describe('messages service', () => {
     beforeEach(() => {
         jest.clearAllMocks();
         mockFindLatestChannelSummary.mockResolvedValue(null);
+        mockSave.mockResolvedValue(true);
+        consumePendingRenderOwnership.mockReturnValue(null);
     });
 
     test('getSummaryMessages requests only summary-safe fields and excludes non-text placeholders', async () => {
@@ -144,5 +157,57 @@ describe('messages service', () => {
                 created_at: createdAt,
             }],
         });
+    });
+
+    test('addMessage persists pending tweet render ownership into meta', async () => {
+        consumePendingRenderOwnership.mockReturnValue({
+            kind: 'twitter_render',
+            owningUserId: 'user-1',
+            originalMessageId: 'source-1',
+            originalChannelId: 'channel-0',
+            originalLink: 'https://x.com/example/status/1',
+            threadId: 'thread-1',
+        });
+
+        await addMessage({
+            id: 'message-1',
+            webhookId: 'webhook-1',
+            content: 'rendered tweet',
+            createdTimestamp: Date.now(),
+            author: {
+                id: 'bot-user',
+                username: 'Soulbot Webhook',
+            },
+            guild: {
+                id: 'guild-1',
+                name: 'Guild',
+            },
+            channel: {
+                id: 'channel-1',
+                name: 'general',
+                isThread: jest.fn().mockReturnValue(false),
+            },
+            attachments: new Map(),
+        });
+
+        expect(mockSave).toHaveBeenCalledWith(expect.objectContaining({
+            userId: 'bot-user',
+            messageId: 'message-1',
+            meta: expect.objectContaining({
+                kind: 'twitter_render',
+                owningUserId: 'user-1',
+                originalMessageId: 'source-1',
+                originalChannelId: 'channel-0',
+                originalLink: 'https://x.com/example/status/1',
+                threadId: 'thread-1',
+            }),
+        }));
+    });
+
+    test('getMessageById delegates to the DAO', async () => {
+        mockFindByMessageId.mockResolvedValue({ message_id: 'abc' });
+
+        await expect(getMessageById('abc')).resolves.toEqual({ message_id: 'abc' });
+        expect(mockFindByMessageId).toHaveBeenCalledWith('abc');
     });
 });

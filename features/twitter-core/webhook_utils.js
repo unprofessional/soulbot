@@ -3,6 +3,7 @@
 const { readFile } = require('node:fs/promises');
 const { stripQueryParams } = require('./utils.js');
 const { embedCommunityNote } = require('./canvas_utils.js');
+const { registerPendingRenderOwnership } = require('./render_ownership_registry.js');
 
 function normalizeCommunityNotes(communityNotes) {
     if (!communityNotes) return {};
@@ -146,6 +147,15 @@ const sendWebhookProxyMsg = async (message, content, files = [], communityNotes,
     const { displayName, avatarURL } = resolveImpersonationIdentity(message);
 
     const { webhook, threadId } = await webhookBuilder(parentChannel, message, displayName, avatarURL);
+
+    registerPendingRenderOwnership(webhook.id, {
+        owningUserId: message.author.id,
+        originalMessageId: message.id,
+        originalChannelId: message.channel?.id || null,
+        originalLink: originalLink || null,
+        threadId: threadId || null,
+        kind: 'twitter_render',
+    });
 
     try {
         const modifiedContent = trimQueryParamsFromTwitXUrl(message.content || content || '');
