@@ -59,7 +59,7 @@ describe('misc_draw translation marker styling', () => {
             'source line 1',
             'source line 2',
             'source line 3...',
-            '[Translated from...',
+            '[Translated fr...',
         ]);
     });
 

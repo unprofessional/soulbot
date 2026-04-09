@@ -2,7 +2,12 @@
 
 const { measureGalleryHeight } = require('../image_gallery_rendering.js');
 const { condenseTranslatedDisplayLines, getWrappedText, trimRenderedLinesToMaxChars } = require('../../twitter-core/canvas_utils.js');
-const { getMainTextX, getMainWrapWidth, MAIN } = require('../../twitter-core/layout/geometry.js');
+const {
+    getMainBaseY,
+    getMainLineHeight,
+    getMainTextX,
+    getMainWrapWidth,
+} = require('../../twitter-core/layout/geometry.js');
 const {
     MAIN_FONT,
     GAP_TEXT_TO_MEDIA,
@@ -11,6 +16,18 @@ const {
     FOOTER_FONT_SIZE,
     MAX_DESC_CHARS,
 } = require('./constants.js');
+
+function getMainRenderMode({ metadata, hasImgs, hasVids, qtMetadata }) {
+    const descLength = String(metadata?.description || '').length;
+    const isPureTextMainPost = !hasImgs && !hasVids;
+    const hasQuotedTweet = Boolean(qtMetadata);
+
+    if (isPureTextMainPost && !hasQuotedTweet && descLength > MAX_DESC_CHARS) {
+        return 'desktop';
+    }
+
+    return 'compact';
+}
 
 function computeWillDrawGallery(images) {
     const first = images?.[0];
@@ -39,8 +56,10 @@ function measureMainLayout(ctx, {
     hasImgs,
     hasVids,
     maxWidth,
+    layoutMode = 'compact',
     mediaMaxHeight,
     debugFonts = false,
+    maxDescChars = MAX_DESC_CHARS,
 }) {
     /**
      * 🔥 CRITICAL: Ensure measurement uses SAME font as rendering
@@ -51,8 +70,9 @@ function measureMainLayout(ctx, {
         console.log(`[measure-debug] Using MAIN_FONT: ${MAIN_FONT}`);
     }
 
-    const descX = getMainTextX({ hasImgs, hasVids });
-    const mainWrapWidth = getMainWrapWidth({ canvasW: maxWidth, hasImgs, hasVids });
+    const descX = getMainTextX({ hasImgs, hasVids, layoutMode });
+    const mainWrapWidth = getMainWrapWidth({ canvasW: maxWidth, hasImgs, hasVids, layoutMode });
+    const lineHeight = getMainLineHeight({ layoutMode });
 
     const rawDesc = metadata.description || '';
     const hasVisibleDesc = rawDesc.trim().length > 0;
@@ -69,7 +89,7 @@ function measureMainLayout(ctx, {
         : [];
     const descLines = trimRenderedLinesToMaxChars(
         condenseTranslatedDisplayLines(descLinesRaw),
-        MAX_DESC_CHARS
+        maxDescChars
     );
 
     /**
@@ -81,9 +101,9 @@ function measureMainLayout(ctx, {
         }
     }
 
-    const baseY = MAIN.baseY;
+    const baseY = getMainBaseY({ layoutMode });
     const reservedLineCount = descLines.length > 0 ? descLines.length : (hasImgs ? 1 : 0);
-    const textHeight = reservedLineCount * MAIN.lineH;
+    const textHeight = reservedLineCount * lineHeight;
     const descBottomY = baseY + textHeight;
 
     const { willDrawGallery, ext } = computeWillDrawGallery(images);
@@ -110,6 +130,7 @@ function measureMainLayout(ctx, {
     if (debugFonts) {
         console.log('[layout-debug]', {
             lines: descLines.length,
+            lineHeight,
             textHeight,
             descBottomY,
             mediaY,
@@ -124,6 +145,8 @@ function measureMainLayout(ctx, {
         // text
         descX,
         mainWrapWidth,
+        lineHeight,
+        layoutMode,
         descLines,
         baseY,
         textHeight,
@@ -141,4 +164,7 @@ function measureMainLayout(ctx, {
     };
 }
 
-module.exports = { measureMainLayout };
+module.exports = {
+    measureMainLayout,
+    getMainRenderMode,
+};

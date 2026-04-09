@@ -2,7 +2,7 @@
 // features/twitter-core/canvas/basic_draw.js
 
 const { formatTwitterFooter } = require('../utils');
-const { getMainTextX, MAIN } = require('../layout/geometry');
+const { getMainLineHeight, getMainTextX } = require('../layout/geometry');
 const { drawDescriptionLines } = require('./misc_draw');
 
 const {
@@ -52,12 +52,13 @@ function drawBasicElements(ctx, fontChain, metadata, favicon, pfp, descLines, op
         canvasHeightOffset = 0,
         hasImgs = false,
         hasVids = false,
+        layoutMode = 'compact',
         footerY,
         debugFonts = false,
     } = options;
 
     if (favicon) {
-        try { ctx.drawImage(favicon, 550, 20, 32, 32); } catch {}
+        try { ctx.drawImage(favicon, ctx.canvas.width - 50, 20, 32, 32); } catch {}
     }
 
     ctx.textDrawingMode = 'glyph';
@@ -75,8 +76,9 @@ function drawBasicElements(ctx, fontChain, metadata, favicon, pfp, descLines, op
     // Description (uses SAME font as measurement)
     ctx.fillStyle = 'white';
     ctx.font = MAIN_FONT;
-    const descX = getMainTextX({ hasImgs, hasVids });
-    drawDescriptionLines(ctx, descLines, descX, yOffset, { lineHeight: MAIN.lineH });
+    const descX = getMainTextX({ hasImgs, hasVids, layoutMode });
+    const lineHeight = getMainLineHeight({ layoutMode });
+    drawDescriptionLines(ctx, descLines, descX, yOffset, { lineHeight });
 
     // Footer
     let footerStr = metadata._displayDateFooter || formatTwitterFooter(metadata, { label: 'canvas.basic/footer' });
@@ -115,6 +117,7 @@ function drawDesktopLayout(ctx, fontChain, metadata, favicon, pfp, descLines, op
         canvasHeightOffset = 0,
         hasImgs = false,
         hasVids = false,
+        lineHeight = getMainLineHeight({ layoutMode: 'desktop' }),
         footerY,
         debugFonts = false,
     } = options;
@@ -147,11 +150,11 @@ function drawDesktopLayout(ctx, fontChain, metadata, favicon, pfp, descLines, op
     ctx.fillText(`@${String(metadata.authorNick || '')}`, padding, avatarY + avatarRadius * 2 + 55);
 
     const textX = hasMedia ? (padding + leftColumnWidth) : padding;
-    const textY = yOffset + 100;
+    const textY = yOffset;
 
     ctx.fillStyle = 'white';
     ctx.font = MAIN_FONT;
-    drawDescriptionLines(ctx, descLines, textX, textY, { lineHeight: MAIN.lineH });
+    drawDescriptionLines(ctx, descLines, textX, textY, { lineHeight });
 
     let footerStr = metadata._displayDateFooter || formatTwitterFooter(metadata, { label: 'canvas.basic/footer' });
     if (footerStr && metadata._replyDelta) footerStr += ` · ${metadata._replyDelta}`;
@@ -167,7 +170,7 @@ function drawDesktopLayout(ctx, fontChain, metadata, favicon, pfp, descLines, op
     }
 
     if (favicon) {
-        try { ctx.drawImage(favicon, 550, 20, 32, 32); } catch {}
+        try { ctx.drawImage(favicon, ctx.canvas.width - 50, 20, 32, 32); } catch {}
     }
 
     if (debugFonts) {

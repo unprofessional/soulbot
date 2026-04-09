@@ -2,12 +2,19 @@
 
 const MAIN = {
     fontPx: 24,
-    lineH: 30,
     baseY: 110,
     rightPad: 20,
     // descX matches old behavior (videos-only shifts right)
     descXVideosOnly: 80,
     descXDefault: 30,
+};
+
+const MAIN_DESKTOP = {
+    fontPx: 24,
+    baseY: 110,
+    rightPad: 40,
+    descXNoMedia: 30,
+    descXWithMedia: 180,
 };
 
 const FOOTER = {
@@ -33,13 +40,27 @@ const QT = {
     textXWithMedia: 230,
 };
 
-function getMainTextX({ hasImgs, hasVids }) {
+function getMainLineHeight({ layoutMode = 'compact' } = {}) {
+    const fontPx = layoutMode === 'desktop' ? MAIN_DESKTOP.fontPx : MAIN.fontPx;
+    const ratio = layoutMode === 'desktop' ? (4 / 3) : 1.25;
+    return Math.round(fontPx * ratio);
+}
+
+function getMainTextX({ hasImgs, hasVids, layoutMode = 'compact' }) {
+    if (layoutMode === 'desktop') {
+        return (hasImgs || hasVids) ? MAIN_DESKTOP.descXWithMedia : MAIN_DESKTOP.descXNoMedia;
+    }
     return (!hasImgs && hasVids) ? MAIN.descXVideosOnly : MAIN.descXDefault;
 }
 
-function getMainWrapWidth({ canvasW, hasImgs, hasVids }) {
-    const x = getMainTextX({ hasImgs, hasVids });
-    return Math.max(1, canvasW - x - MAIN.rightPad);
+function getMainBaseY({ layoutMode = 'compact' } = {}) {
+    return layoutMode === 'desktop' ? MAIN_DESKTOP.baseY : MAIN.baseY;
+}
+
+function getMainWrapWidth({ canvasW, hasImgs, hasVids, layoutMode = 'compact' }) {
+    const x = getMainTextX({ hasImgs, hasVids, layoutMode });
+    const rightPad = layoutMode === 'desktop' ? MAIN_DESKTOP.rightPad : MAIN.rightPad;
+    return Math.max(1, canvasW - x - rightPad);
 }
 
 function getQtInnerRect() {
@@ -74,8 +95,11 @@ function getQtCompactFooterReserve({ hasFooter }) {
 
 module.exports = {
     MAIN,
+    MAIN_DESKTOP,
     FOOTER,
     QT,
+    getMainBaseY,
+    getMainLineHeight,
     getMainTextX,
     getMainWrapWidth,
     getQtInnerRect,

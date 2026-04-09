@@ -5,15 +5,16 @@ const { createCanvas } = require('canvas');
 const { renderImageGallery } = require('./image_gallery_rendering.js');
 const {
     drawBasicElements,
-    drawDesktopLayout,
     drawQtBasicElements,
     drawQtDesktopLayout,
 } = require('../twitter-core/canvas_utils.js');
 const {
     MAX_WIDTH,
+    DESKTOP_MAX_WIDTH,
     INITIAL_HEIGHT,
     DEFAULT_BOTTOM_PAD_NO_QT,
     DEFAULT_BOTTOM_PAD_WITH_QT,
+    DESKTOP_MAX_DESC_CHARS,
     MAX_QT_DESC_CHARS,
     getMaxHeight,
     FOOTER_LINE_H,
@@ -28,7 +29,7 @@ const {
     normalizeQtMetadata,
     formatReplyDelta,
 } = require('./canvas/metadata_normalize.js');
-const { measureMainLayout } = require('./canvas/main_layout.js');
+const { measureMainLayout, getMainRenderMode } = require('./canvas/main_layout.js');
 const { computeQtSizing } = require('./canvas/qt_layout.js');
 const { scaleDownToFitAspectRatio } = require('./scale_down.js');
 
@@ -116,6 +117,14 @@ async function createTwitterCanvas(metadataJson, isImage) {
     const hasImgs = numImgs > 0;
     const hasVids = numVids > 0;
     const onlyVids = hasVids && !hasImgs;
+    const mainRenderMode = getMainRenderMode({
+        metadata,
+        hasImgs,
+        hasVids,
+        qtMetadata,
+    });
+    const canvasWidth = mainRenderMode === 'desktop' ? DESKTOP_MAX_WIDTH : MAX_WIDTH;
+    const maxMainDescChars = mainRenderMode === 'desktop' ? DESKTOP_MAX_DESC_CHARS : undefined;
 
     const mediaMaxHeight = getMaxHeight(numImgs);
     let heightShim = 0;
@@ -141,14 +150,17 @@ async function createTwitterCanvas(metadataJson, isImage) {
         images,
         hasImgs,
         hasVids,
-        maxWidth: MAX_WIDTH,
+        maxWidth: canvasWidth,
+        layoutMode: mainRenderMode,
         mediaMaxHeight,
         debugFonts,
+        maxDescChars: maxMainDescChars,
     });
 
     const {
         descX,
         mainWrapWidth,
+        layoutMode,
         descLines,
         baseY,
         textHeight,
@@ -181,6 +193,8 @@ async function createTwitterCanvas(metadataJson, isImage) {
         descHeight,
         fontChain,
         debugFonts,
+        mainRenderMode,
+        canvasWidth,
     });
 
     debugRect(
@@ -219,6 +233,8 @@ async function createTwitterCanvas(metadataJson, isImage) {
         descLines: descLines.length,
         descHeight,
         baseY,
+        mainRenderMode,
+        canvasWidth,
     });
 
     let qtBoxHeight = 0;
@@ -265,12 +281,13 @@ async function createTwitterCanvas(metadataJson, isImage) {
         ? (qtStartY + qtBoxHeight + extraBottomPad)
         : (descHeight + extraBottomPad);
 
+    canvas.width = canvasWidth;
     canvas.height = totalHeight;
 
     // Canvas resize resets context state; reapply the essentials.
     ctx.fillStyle = '#000';
     ctx.textDrawingMode = 'glyph';
-    ctx.fillRect(0, 0, MAX_WIDTH, totalHeight);
+    ctx.fillRect(0, 0, canvasWidth, totalHeight);
 
     if (process.env.DEBUG_CANVAS_BOXES === '1') {
         ctx.save();
@@ -278,12 +295,12 @@ async function createTwitterCanvas(metadataJson, isImage) {
         ctx.lineWidth = 1;
         ctx.beginPath();
         ctx.moveTo(0, canvas.height - 0.5);
-        ctx.lineTo(MAX_WIDTH, canvas.height - 0.5);
+        ctx.lineTo(canvasWidth, canvas.height - 0.5);
         ctx.stroke();
         ctx.restore();
     }
 
-    log('canvas', { maxWidth: MAX_WIDTH, totalHeight });
+    log('canvas', { canvasWidth, totalHeight, mainRenderMode });
 
     const [favicon, pfp] = await Promise.all([
         safeLoadImage('https://abs.twimg.com/favicons/twitter.3.ico'),
@@ -295,27 +312,15 @@ async function createTwitterCanvas(metadataJson, isImage) {
         pfpLoaded: Boolean(pfp),
     });
 
-    const useDesktopLayout = false;
-
-    if (useDesktopLayout) {
-        drawDesktopLayout(ctx, fontChain, metadata, favicon, pfp, descLines, {
-            hasImgs,
-            hasVids,
-            yOffset: baseY,
-            canvasHeightOffset: descHeight,
-            footerY: footerBaselineY,
-            debugFonts,
-        });
-    } else {
-        drawBasicElements(ctx, fontChain, metadata, favicon, pfp, descLines, {
-            hasImgs,
-            hasVids,
-            yOffset: baseY,
-            canvasHeightOffset: descHeight,
-            footerY: footerBaselineY,
-            debugFonts,
-        });
-    }
+    drawBasicElements(ctx, fontChain, metadata, favicon, pfp, descLines, {
+        hasImgs,
+        hasVids,
+        layoutMode,
+        yOffset: baseY,
+        canvasHeightOffset: descHeight,
+        footerY: footerBaselineY,
+        debugFonts,
+    });
 
     if (qtMetadata) {
         const qtPfp = await safeLoadImage(qtMetadata.pfpUrl);

@@ -19,6 +19,15 @@ function withTrailingEllipsis(text) {
     return `${line}...`;
 }
 
+function truncateToFitWithEllipsis(text, maxChars) {
+    const line = String(text || '').trimEnd();
+    if (maxChars <= 0) return '';
+    if (line.length <= maxChars) return line;
+    if (maxChars <= 3) return '.'.repeat(maxChars);
+
+    return withTrailingEllipsis(line.slice(0, Math.max(0, maxChars - 3)));
+}
+
 function condenseTranslatedDisplayLines(lines, { maxSourceLines = 3 } = {}) {
     if (!Array.isArray(lines) || lines.length === 0) return [];
 
@@ -63,7 +72,7 @@ function trimRenderedLinesToMaxChars(lines, maxChars) {
             continue;
         }
 
-        out.push(withTrailingEllipsis(line.slice(0, Math.max(0, remaining))));
+        out.push(truncateToFitWithEllipsis(line, remaining));
         used = maxChars;
         break;
     }
