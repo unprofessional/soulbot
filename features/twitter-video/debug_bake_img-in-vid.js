@@ -229,6 +229,14 @@ function bakeImageAsFilterIntoVideoDEBUG(
                 if (stderrTail.length > 200) stderrTail.shift();
             };
 
+            let watchdog;
+            const cleanupWatchdog = () => {
+                if (watchdog) {
+                    clearInterval(watchdog);
+                    watchdog = null;
+                }
+            };
+
             const cmd = ffmpeg()
                 .input(canvasInputPath)
                 .inputOptions(['-loop', '1', '-framerate', fpsStr])
@@ -266,6 +274,7 @@ function bakeImageAsFilterIntoVideoDEBUG(
                 })
                 .on('stderr', line => { if (VERBOSE) console.log('[ffmpeg][stderr]', String(line).trim()); keepTail(line); })
                 .on('end', async () => {
+                    cleanupWatchdog();
                     if (onProgress) {
                         Promise.resolve(onProgress({
                             phase: 'encoding',
@@ -287,6 +296,7 @@ function bakeImageAsFilterIntoVideoDEBUG(
                     resolve(videoOutputPath);
                 })
                 .on('error', (e, stdout, stderr) => {
+                    cleanupWatchdog();
                     console.error('[ffmpeg] error:', e?.message || e);
                     if (stdout) console.error('[ffmpeg] stdout(sample):', String(stdout).slice(-1500));
                     if (stderr) console.error('[ffmpeg] stderr(sample):', String(stderr).slice(-3000));
@@ -301,7 +311,7 @@ function bakeImageAsFilterIntoVideoDEBUG(
             }
 
             // Watchdog
-            const watchdog = setInterval(() => {
+            watchdog = setInterval(() => {
                 const since = Date.now() - lastProgTs;
                 if (since > NO_PROGRESS_TIMEOUT_MS) {
                     console.error(`[watchdog] no progress for ${since}ms (> ${NO_PROGRESS_TIMEOUT_MS}). lastTimemark=${lastTimemark || 'n/a'}`);
@@ -315,13 +325,17 @@ function bakeImageAsFilterIntoVideoDEBUG(
                     } catch (e) {
                         console.error('[watchdog] kill error:', e?.message || e);
                     } finally {
-                        clearInterval(watchdog);
+                        cleanupWatchdog();
                     }
                 }
             }, Math.min(NO_PROGRESS_TIMEOUT_MS, 10000));
+            watchdog.unref?.();
 
             cmd.run();
-        })().catch(reject);
+        })().catch(err => {
+            cleanupWatchdog();
+            reject(err);
+        });
     });
 }
 

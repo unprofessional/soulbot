@@ -180,7 +180,6 @@ function computeQtSizing(ctx, {
 
     // 1) Base from calculator (min/media rules)
     const calcHeight = calculateQuoteHeight(ctx, qtMetadata, { fontChain }) - (qtMetadata.error ? 40 : 0);
-    const qtHasAny = Array.isArray(qtMetadata.mediaExtended) && qtMetadata.mediaExtended.length > 0;
 
     let minByMedia = calcHeight;
 
