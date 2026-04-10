@@ -2,16 +2,20 @@
 
 const { createCanvas, loadImage } = require('canvas');
 const { threadBubbleWrapText } = require('./canvas_utils');
-const { TEXT_FONT_FAMILY } = require('../twitter-post/canvas/constants');
+const { getMainLineHeight } = require('./layout/geometry');
+const {
+    DESKTOP_MAX_WIDTH,
+    MAIN_FONT,
+    TEXT_FONT_FAMILY,
+} = require('../twitter-post/canvas/constants');
 
 // Layout constants
-const MAX_WIDTH = 1080;
+const MAX_WIDTH = DESKTOP_MAX_WIDTH;
 const PADDING_X = 40;
 const PADDING_Y = 60;
 const AVATAR_SIZE = 48;
 const MIN_BUBBLE_WIDTH = 300;
-const LINE_HEIGHT = 32;
-const FONT_SIZE = 20;
+const LINE_HEIGHT = getMainLineHeight({ layoutMode: 'desktop' });
 const FONT_FAMILY = TEXT_FONT_FAMILY;
 const INNER_BUBBLE_PADDING = 24;
 const THUMB_WIDTH = 96;
@@ -25,6 +29,7 @@ const MUTED_TEXT_COLOR = '#888';
 const TIMESTAMP_TEXT_COLOR = '#aaa';
 const BUBBLE_FILL_COLOR = '#383838';
 const DIVIDER_COLOR = '#444';
+const BODY_FONT = MAIN_FONT;
 
 function formatTimePassed(msDelta) {
     const seconds = Math.floor(msDelta / 1000);
@@ -67,7 +72,7 @@ function drawRoundedRect(ctx, x, y, width, height, radius = 10, fill = true) {
 
 function renderTruncationNotice(ctx, y, width) {
     const text = 'Earlier replies not shown';
-    ctx.font = `20px ${FONT_FAMILY}`;
+    ctx.font = BODY_FONT;
     const textWidth = ctx.measureText(text).width;
     const padding = 24;
     const bw = textWidth + padding;
@@ -85,7 +90,7 @@ function renderTruncationNotice(ctx, y, width) {
     return y + bh + 22;
 }
 
-async function renderPost(ctx, post, y, isOriginating = false) {
+async function renderPost(ctx, post, y) {
     const { user_name, user_screen_name, user_profile_image_url, date_epoch } = post;
 
     const avatarX = PADDING_X;
@@ -148,7 +153,7 @@ async function renderPost(ctx, post, y, isOriginating = false) {
         ctx.fillStyle = BUBBLE_FILL_COLOR;
         drawRoundedRect(ctx, bubbleX, y, bw, post._bubbleHeight, 12);
 
-        ctx.font = `20px ${FONT_FAMILY}`;
+        ctx.font = BODY_FONT;
         ctx.fillStyle = PRIMARY_TEXT_COLOR;
         lines.forEach((line, i) => {
             ctx.fillText(line, bubbleX + 12, y + 32 + i * LINE_HEIGHT);
@@ -199,18 +204,13 @@ async function renderThreadSnapshotCanvas({ posts, isTruncated }) {
     const tmpCtx = tmpCanvas.getContext('2d');
 
     let totalHeight = PADDING_Y;
-    let maxContentWidth = 0;
 
     if (isTruncated) {
-        tmpCtx.font = `20px ${FONT_FAMILY}`;
-        const textWidth = tmpCtx.measureText('Earlier replies not shown').width;
-        maxContentWidth = Math.max(maxContentWidth, textWidth + 24);
         totalHeight += 60;
     }
 
     for (const post of posts) {
-        const isOriginating = post.conversationID != null || post.replyingToID == null;
-        tmpCtx.font = isOriginating ? `20px ${FONT_FAMILY}` : `${FONT_SIZE}px ${FONT_FAMILY}`;
+        tmpCtx.font = BODY_FONT;
 
         const maxTextWidth = MAX_WIDTH
             - PADDING_X - AVATAR_SIZE - 10 - PADDING_X
@@ -219,27 +219,18 @@ async function renderThreadSnapshotCanvas({ posts, isTruncated }) {
 
         const wrapped = threadBubbleWrapText(tmpCtx, post.text, maxTextWidth, 8);
         const maxLineWidth = Math.max(...wrapped.map(l => tmpCtx.measureText(l).width));
-        const lineHeight = isOriginating ? 32 : LINE_HEIGHT;
-        const baseHeight = wrapped.length * lineHeight + 24;
+        const baseHeight = wrapped.length * LINE_HEIGHT + 24;
 
         post._wrappedLines = wrapped;
         post._bubbleWidth = Math.max(maxLineWidth + INNER_BUBBLE_PADDING, MIN_BUBBLE_WIDTH);
         post._bubbleHeight = Math.max(baseHeight, post._mediaThumbnailUrl ? THUMB_HEIGHT : 0);
-
-        maxContentWidth = Math.max(
-            maxContentWidth,
-            post._bubbleWidth + (post._mediaThumbnailUrl ? (THUMB_WIDTH + THUMB_MARGIN_RIGHT) : 0)
-        );
 
         totalHeight += AVATAR_SIZE - 20 + post._bubbleHeight + 30 + 20;
     }
 
     totalHeight += PADDING_Y;
 
-    const effectiveWidth = Math.min(
-        MAX_WIDTH,
-        PADDING_X + AVATAR_SIZE + 10 + maxContentWidth + PADDING_X
-    );
+    const effectiveWidth = MAX_WIDTH;
 
     const canvas = createCanvas(effectiveWidth, totalHeight);
     const ctx = canvas.getContext('2d');
@@ -260,8 +251,7 @@ async function renderThreadSnapshotCanvas({ posts, isTruncated }) {
     });
 
     for (const post of posts) {
-        const isOriginating = post.conversationID != null || post.replyingToID == null;
-        const result = await renderPost(ctx, post, y, isOriginating);
+        const result = await renderPost(ctx, post, y);
         y = result.y;
         postAnchors.push(result.anchor);
     }

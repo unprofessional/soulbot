@@ -1,12 +1,18 @@
-const { TEXT_FONT_FAMILY } = require('../features/twitter-post/canvas/constants');
+const {
+    DESKTOP_MAX_WIDTH,
+    MAIN_FONT,
+    TEXT_FONT_FAMILY,
+} = require('../features/twitter-post/canvas/constants');
 
 const LEGACY_THREAD_FONT_FAMILY = '"Noto Color Emoji", "Noto Sans CJK", "Noto Sans Math"';
 
 const contexts = [];
 const fontAssignments = [];
+const canvasCreations = [];
 
 jest.mock('canvas', () => ({
     createCanvas: jest.fn((width, height) => {
+        canvasCreations.push({ width, height });
         let currentFont = '';
         const ctx = {
             fillStyle: '#000',
@@ -56,9 +62,10 @@ describe('thread snapshot canvas fonts', () => {
     beforeEach(() => {
         contexts.length = 0;
         fontAssignments.length = 0;
+        canvasCreations.length = 0;
     });
 
-    test('uses the shared twitter font family instead of the legacy hardcoded stack', async () => {
+    test('uses the shared desktop width and font metrics instead of the legacy thread styling', async () => {
         await renderThreadSnapshotCanvas({
             isTruncated: true,
             posts: [{
@@ -71,6 +78,8 @@ describe('thread snapshot canvas fonts', () => {
             }],
         });
 
+        expect(canvasCreations.at(-1)?.width).toBe(DESKTOP_MAX_WIDTH);
+        expect(fontAssignments).toContain(MAIN_FONT);
         expect(fontAssignments.some(font => font.includes(TEXT_FONT_FAMILY))).toBe(true);
         expect(fontAssignments.some(font => font.includes(LEGACY_THREAD_FONT_FAMILY))).toBe(false);
     });
