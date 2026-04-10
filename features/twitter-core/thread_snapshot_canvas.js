@@ -2,6 +2,7 @@
 
 const { createCanvas, loadImage } = require('canvas');
 const { threadBubbleWrapText } = require('./canvas_utils');
+const { TEXT_FONT_FAMILY } = require('../twitter-post/canvas/constants');
 
 // Layout constants
 const MAX_WIDTH = 1080;
@@ -11,7 +12,7 @@ const AVATAR_SIZE = 48;
 const MIN_BUBBLE_WIDTH = 300;
 const LINE_HEIGHT = 32;
 const FONT_SIZE = 20;
-const FONT_FAMILY = '"Noto Color Emoji", "Noto Sans CJK", "Noto Sans Math"';
+const FONT_FAMILY = TEXT_FONT_FAMILY;
 const INNER_BUBBLE_PADDING = 24;
 const THUMB_WIDTH = 96;
 const THUMB_HEIGHT = 96;
