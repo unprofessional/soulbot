@@ -22,6 +22,7 @@ const INNER_BUBBLE_PADDING = 24;
 const THUMB_WIDTH = 175;
 const THUMB_HEIGHT = 175;
 const THUMB_MARGIN_RIGHT = 12;
+const MAX_THREAD_LINES = 16;
 const BUBBLE_TEXT_INSET = INNER_BUBBLE_PADDING / 2;
 const THREAD_RIGHT_PAD = MAIN_DESKTOP.rightPad;
 
@@ -227,7 +228,7 @@ async function renderThreadSnapshotCanvas({ posts, isTruncated }) {
             MAX_WIDTH - bubbleX - THREAD_RIGHT_PAD - INNER_BUBBLE_PADDING
         );
 
-        const wrapped = threadBubbleWrapText(tmpCtx, post.text, maxTextWidth, 8);
+        const wrapped = threadBubbleWrapText(tmpCtx, post.text, maxTextWidth, MAX_THREAD_LINES);
         const maxLineWidth = Math.max(...wrapped.map(l => tmpCtx.measureText(l).width));
         const baseHeight = wrapped.length * LINE_HEIGHT + 24;
 

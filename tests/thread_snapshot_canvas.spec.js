@@ -115,4 +115,24 @@ describe('thread snapshot canvas fonts', () => {
 
         expect(cropDrawCall).toBeDefined();
     });
+
+    test('allows up to 16 wrapped lines for long thread posts and grows the canvas height', async () => {
+        const posts = [{
+            user_name: 'Example User',
+            user_screen_name: 'example',
+            user_profile_image_url: 'https://example.com/avatar.png',
+            text: 'alpha beta gamma delta epsilon zeta eta theta iota kappa lambda mu '.repeat(40),
+            date_epoch: 1710000000,
+            conversationID: '123',
+        }];
+
+        await renderThreadSnapshotCanvas({
+            isTruncated: false,
+            posts,
+        });
+
+        expect(posts[0]._wrappedLines).toHaveLength(16);
+        expect(posts[0]._wrappedLines.at(-1).endsWith('…')).toBe(true);
+        expect(canvasCreations.at(-1)?.height).toBeGreaterThan(600);
+    });
 });
