@@ -18,6 +18,14 @@ const THUMB_WIDTH = 96;
 const THUMB_HEIGHT = 96;
 const THUMB_MARGIN_RIGHT = 12;
 
+const BACKGROUND_COLOR = '#000';
+const PRIMARY_TEXT_COLOR = '#fff';
+const SECONDARY_TEXT_COLOR = 'gray';
+const MUTED_TEXT_COLOR = '#888';
+const TIMESTAMP_TEXT_COLOR = '#aaa';
+const BUBBLE_FILL_COLOR = '#383838';
+const DIVIDER_COLOR = '#444';
+
 function formatTimePassed(msDelta) {
     const seconds = Math.floor(msDelta / 1000);
     if (seconds < 60) return `${seconds} seconds later`;
@@ -66,12 +74,12 @@ function renderTruncationNotice(ctx, y, width) {
     const bh = 38;
     const bx = (width - bw) / 2;
 
-    ctx.fillStyle = '#000';
-    ctx.strokeStyle = '#444';
+    ctx.fillStyle = BACKGROUND_COLOR;
+    ctx.strokeStyle = DIVIDER_COLOR;
     ctx.lineWidth = 1.5;
     drawRoundedRect(ctx, bx, y, bw, bh, 12, false);
 
-    ctx.fillStyle = '#888';
+    ctx.fillStyle = MUTED_TEXT_COLOR;
     ctx.fillText(text, bx + padding / 2, y + 25);
 
     return y + bh + 22;
@@ -92,7 +100,7 @@ async function renderPost(ctx, post, y, isOriginating = false) {
         ctx.drawImage(avatarImg, avatarX, avatarY, AVATAR_SIZE, AVATAR_SIZE);
         ctx.restore();
     } catch {
-        ctx.fillStyle = '#444';
+        ctx.fillStyle = DIVIDER_COLOR;
         ctx.beginPath();
         ctx.arc(avatarX + AVATAR_SIZE / 2, avatarY + AVATAR_SIZE / 2, AVATAR_SIZE / 2, 0, Math.PI * 2);
         ctx.fill();
@@ -101,12 +109,12 @@ async function renderPost(ctx, post, y, isOriginating = false) {
     const nameX = avatarX + AVATAR_SIZE + 10;
     const nameY = avatarY + 18;
     ctx.font = `bold 16px ${FONT_FAMILY}`;
-    ctx.fillStyle = '#ffffff';
+    ctx.fillStyle = PRIMARY_TEXT_COLOR;
     ctx.fillText(user_name, nameX, nameY);
 
     const nameWidth = ctx.measureText(user_name).width;
     ctx.font = `16px ${FONT_FAMILY}`;
-    ctx.fillStyle = '#bbbbbb';
+    ctx.fillStyle = SECONDARY_TEXT_COLOR;
     ctx.fillText(` @${user_screen_name}`, nameX + nameWidth, nameY);
 
     y += AVATAR_SIZE - 20;
@@ -137,11 +145,11 @@ async function renderPost(ctx, post, y, isOriginating = false) {
     if (hasText) {
         const { _wrappedLines: lines, _bubbleWidth: bw } = post;
 
-        ctx.fillStyle = isOriginating ? '#495b8a' : '#383838';
+        ctx.fillStyle = BUBBLE_FILL_COLOR;
         drawRoundedRect(ctx, bubbleX, y, bw, post._bubbleHeight, 12);
 
         ctx.font = `20px ${FONT_FAMILY}`;
-        ctx.fillStyle = '#e4e4e4ff';
+        ctx.fillStyle = PRIMARY_TEXT_COLOR;
         lines.forEach((line, i) => {
             ctx.fillText(line, bubbleX + 12, y + 32 + i * LINE_HEIGHT);
         });
@@ -152,7 +160,7 @@ async function renderPost(ctx, post, y, isOriginating = false) {
         const timestampY = y + contentHeight + 20;
 
         ctx.font = `12px ${FONT_FAMILY}`;
-        ctx.fillStyle = '#aaaaaa';
+        ctx.fillStyle = TIMESTAMP_TEXT_COLOR;
         ctx.fillText(
             formatAbsoluteTimestamp(date_epoch * 1000, post.reply_to_epoch ? post.reply_to_epoch * 1000 : null),
             bubbleX,
@@ -166,7 +174,7 @@ async function renderPost(ctx, post, y, isOriginating = false) {
     }
     else if (thumbnailDrawn) {
         ctx.font = `12px ${FONT_FAMILY}`;
-        ctx.fillStyle = '#aaaaaa';
+        ctx.fillStyle = TIMESTAMP_TEXT_COLOR;
         ctx.fillText(
             formatAbsoluteTimestamp(date_epoch * 1000, post.reply_to_epoch ? post.reply_to_epoch * 1000 : null),
             nameX,
@@ -236,7 +244,7 @@ async function renderThreadSnapshotCanvas({ posts, isTruncated }) {
     const canvas = createCanvas(effectiveWidth, totalHeight);
     const ctx = canvas.getContext('2d');
 
-    ctx.fillStyle = '#0C162E';
+    ctx.fillStyle = BACKGROUND_COLOR;
     ctx.fillRect(0, 0, effectiveWidth, totalHeight);
     ctx.textDrawingMode = 'glyph';
 
@@ -258,7 +266,7 @@ async function renderThreadSnapshotCanvas({ posts, isTruncated }) {
         postAnchors.push(result.anchor);
     }
 
-    ctx.strokeStyle = '#2C3045';
+    ctx.strokeStyle = DIVIDER_COLOR;
     ctx.lineWidth = 2;
 
     for (let i = 1; i < postAnchors.length; i++) {
