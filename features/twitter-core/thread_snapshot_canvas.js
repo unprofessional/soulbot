@@ -23,7 +23,6 @@ const THUMB_WIDTH = 175;
 const THUMB_HEIGHT = 175;
 const THUMB_MARGIN_RIGHT = 12;
 const BUBBLE_TEXT_INSET = INNER_BUBBLE_PADDING / 2;
-const THREAD_CONTENT_X = MAIN_DESKTOP.descXWithMedia;
 const THREAD_RIGHT_PAD = MAIN_DESKTOP.rightPad;
 
 const BACKGROUND_COLOR = '#000';
@@ -130,7 +129,7 @@ async function renderPost(ctx, post, y) {
 
     const hasText = post._wrappedLines && post._wrappedLines.some(line => line.trim() !== '');
     let thumbnailDrawn = false;
-    const contentX = THREAD_CONTENT_X;
+    const contentX = nameX;
     let bubbleX = contentX;
 
     // Media thumbnail first, to the left of the bubble
@@ -218,9 +217,10 @@ async function renderThreadSnapshotCanvas({ posts, isTruncated }) {
 
     for (const post of posts) {
         tmpCtx.font = BODY_FONT;
+        const contentX = PADDING_X + AVATAR_SIZE + 10;
         const bubbleX = post._mediaThumbnailUrl
-            ? (THREAD_CONTENT_X + THUMB_WIDTH + THUMB_MARGIN_RIGHT)
-            : THREAD_CONTENT_X;
+            ? (contentX + THUMB_WIDTH + THUMB_MARGIN_RIGHT)
+            : contentX;
 
         const maxTextWidth = Math.max(
             1,
