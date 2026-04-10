@@ -2,6 +2,7 @@
 
 const { createCanvas, loadImage } = require('canvas');
 const { threadBubbleWrapText } = require('./canvas_utils');
+const { cropSingleImage } = require('../twitter-post/crop_single_image');
 const { MAIN_DESKTOP, getMainLineHeight } = require('./layout/geometry');
 const {
     DESKTOP_MAX_WIDTH,
@@ -18,8 +19,8 @@ const MIN_BUBBLE_WIDTH = 300;
 const LINE_HEIGHT = getMainLineHeight({ layoutMode: 'desktop' });
 const FONT_FAMILY = TEXT_FONT_FAMILY;
 const INNER_BUBBLE_PADDING = 24;
-const THUMB_WIDTH = 96;
-const THUMB_HEIGHT = 96;
+const THUMB_WIDTH = 175;
+const THUMB_HEIGHT = 175;
 const THUMB_MARGIN_RIGHT = 12;
 const BUBBLE_TEXT_INSET = INNER_BUBBLE_PADDING / 2;
 const THREAD_CONTENT_X = MAIN_DESKTOP.descXWithMedia;
@@ -138,7 +139,9 @@ async function renderPost(ctx, post, y) {
             const img = await loadImage(post._mediaThumbnailUrl);
             const thumbX = contentX;
             const thumbY = y;
-            ctx.drawImage(img, thumbX, thumbY, THUMB_WIDTH, THUMB_HEIGHT);
+            cropSingleImage(ctx, img, THUMB_WIDTH, THUMB_HEIGHT, thumbX, thumbY, {
+                tag: 'thread_snapshot/thumb',
+            });
             thumbnailDrawn = true;
 
             if (hasText) {

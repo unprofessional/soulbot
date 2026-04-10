@@ -54,7 +54,12 @@ jest.mock('canvas', () => ({
             toBuffer: jest.fn(() => Buffer.from('png')),
         };
     }),
-    loadImage: jest.fn(async () => ({})),
+    loadImage: jest.fn(async url => {
+        if (String(url).includes('media')) {
+            return { width: 400, height: 200 };
+        }
+        return { width: 100, height: 100 };
+    }),
 }));
 
 const { renderThreadSnapshotCanvas } = require('../features/twitter-core/thread_snapshot_canvas');
@@ -89,5 +94,27 @@ describe('thread snapshot canvas fonts', () => {
             text.includes('Thread snapshot text') && x === MAIN_DESKTOP.descXWithMedia + 12
         );
         expect(bodyTextCall).toBeDefined();
+    });
+
+    test('center-crops media thumbnails into the larger desktop square instead of stretching them', async () => {
+        await renderThreadSnapshotCanvas({
+            isTruncated: false,
+            posts: [{
+                user_name: 'Example User',
+                user_screen_name: 'example',
+                user_profile_image_url: 'https://example.com/avatar.png',
+                _mediaThumbnailUrl: 'https://example.com/media-thumb.jpg',
+                text: 'Thread snapshot text with media',
+                date_epoch: 1710000000,
+                conversationID: '123',
+            }],
+        });
+
+        const finalCtx = contexts.at(-1);
+        const cropDrawCall = finalCtx.drawImage.mock.calls.find(call =>
+            call.length === 9 && call[5] === MAIN_DESKTOP.descXWithMedia && call[7] === 175 && call[8] === 175
+        );
+
+        expect(cropDrawCall).toBeDefined();
     });
 });
