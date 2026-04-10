@@ -2,7 +2,7 @@
 
 const { createCanvas, loadImage } = require('canvas');
 const { threadBubbleWrapText } = require('./canvas_utils');
-const { getMainLineHeight } = require('./layout/geometry');
+const { MAIN_DESKTOP, getMainLineHeight } = require('./layout/geometry');
 const {
     DESKTOP_MAX_WIDTH,
     MAIN_FONT,
@@ -21,6 +21,9 @@ const INNER_BUBBLE_PADDING = 24;
 const THUMB_WIDTH = 96;
 const THUMB_HEIGHT = 96;
 const THUMB_MARGIN_RIGHT = 12;
+const BUBBLE_TEXT_INSET = INNER_BUBBLE_PADDING / 2;
+const THREAD_CONTENT_X = MAIN_DESKTOP.descXWithMedia;
+const THREAD_RIGHT_PAD = MAIN_DESKTOP.rightPad;
 
 const BACKGROUND_COLOR = '#000';
 const PRIMARY_TEXT_COLOR = '#fff';
@@ -126,13 +129,14 @@ async function renderPost(ctx, post, y) {
 
     const hasText = post._wrappedLines && post._wrappedLines.some(line => line.trim() !== '');
     let thumbnailDrawn = false;
-    let bubbleX = nameX;
+    const contentX = THREAD_CONTENT_X;
+    let bubbleX = contentX;
 
     // Media thumbnail first, to the left of the bubble
     if (post._mediaThumbnailUrl) {
         try {
             const img = await loadImage(post._mediaThumbnailUrl);
-            const thumbX = nameX;
+            const thumbX = contentX;
             const thumbY = y;
             ctx.drawImage(img, thumbX, thumbY, THUMB_WIDTH, THUMB_HEIGHT);
             thumbnailDrawn = true;
@@ -156,7 +160,7 @@ async function renderPost(ctx, post, y) {
         ctx.font = BODY_FONT;
         ctx.fillStyle = PRIMARY_TEXT_COLOR;
         lines.forEach((line, i) => {
-            ctx.fillText(line, bubbleX + 12, y + 32 + i * LINE_HEIGHT);
+            ctx.fillText(line, bubbleX + BUBBLE_TEXT_INSET, y + 32 + i * LINE_HEIGHT);
         });
 
         const lineHeight = LINE_HEIGHT;
@@ -182,18 +186,18 @@ async function renderPost(ctx, post, y) {
         ctx.fillStyle = TIMESTAMP_TEXT_COLOR;
         ctx.fillText(
             formatAbsoluteTimestamp(date_epoch * 1000, post.reply_to_epoch ? post.reply_to_epoch * 1000 : null),
-            nameX,
+            contentX,
             timestampY
         );
 
         return {
             y: timestampY + 30,
-            anchor: { avatarX, avatarY, bubbleX: nameX, bubbleY: y }
+            anchor: { avatarX, avatarY, bubbleX: contentX, bubbleY: y }
         };
     } else {
         return {
             y: y + 30,
-            anchor: { avatarX, avatarY, bubbleX: nameX, bubbleY: y }
+            anchor: { avatarX, avatarY, bubbleX: contentX, bubbleY: y }
         };
     }
 }
@@ -211,11 +215,14 @@ async function renderThreadSnapshotCanvas({ posts, isTruncated }) {
 
     for (const post of posts) {
         tmpCtx.font = BODY_FONT;
+        const bubbleX = post._mediaThumbnailUrl
+            ? (THREAD_CONTENT_X + THUMB_WIDTH + THUMB_MARGIN_RIGHT)
+            : THREAD_CONTENT_X;
 
-        const maxTextWidth = MAX_WIDTH
-            - PADDING_X - AVATAR_SIZE - 10 - PADDING_X
-            - INNER_BUBBLE_PADDING
-            - (post._mediaThumbnailUrl ? (THUMB_WIDTH + THUMB_MARGIN_RIGHT) : 0);
+        const maxTextWidth = Math.max(
+            1,
+            MAX_WIDTH - bubbleX - THREAD_RIGHT_PAD - INNER_BUBBLE_PADDING
+        );
 
         const wrapped = threadBubbleWrapText(tmpCtx, post.text, maxTextWidth, 8);
         const maxLineWidth = Math.max(...wrapped.map(l => tmpCtx.measureText(l).width));

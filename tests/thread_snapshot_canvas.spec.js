@@ -3,6 +3,7 @@ const {
     MAIN_FONT,
     TEXT_FONT_FAMILY,
 } = require('../features/twitter-post/canvas/constants');
+const { MAIN_DESKTOP } = require('../features/twitter-core/layout/geometry');
 
 const LEGACY_THREAD_FONT_FAMILY = '"Noto Color Emoji", "Noto Sans CJK", "Noto Sans Math"';
 
@@ -82,5 +83,11 @@ describe('thread snapshot canvas fonts', () => {
         expect(fontAssignments).toContain(MAIN_FONT);
         expect(fontAssignments.some(font => font.includes(TEXT_FONT_FAMILY))).toBe(true);
         expect(fontAssignments.some(font => font.includes(LEGACY_THREAD_FONT_FAMILY))).toBe(false);
+
+        const finalCtx = contexts.at(-1);
+        const bodyTextCall = finalCtx.fillText.mock.calls.find(([text, x]) =>
+            text.includes('Thread snapshot text') && x === MAIN_DESKTOP.descXWithMedia + 12
+        );
+        expect(bodyTextCall).toBeDefined();
     });
 });
