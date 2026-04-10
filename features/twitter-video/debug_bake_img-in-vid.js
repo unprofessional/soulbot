@@ -115,6 +115,8 @@ function bakeImageAsFilterIntoVideoDEBUG(
     , options = {}
 ) {
     return new Promise((resolve, reject) => {
+        let cleanupWatchdog = () => {};
+
         (async () => {
             const onProgress = typeof options?.onProgress === 'function' ? options.onProgress : null;
             if (!existsSync(videoInputPath)) throw new Error(`Missing video input: ${videoInputPath}`);
@@ -169,7 +171,7 @@ function bakeImageAsFilterIntoVideoDEBUG(
             const aStart = hasAudio ? (Number(a.start_time) || 0) : 0;
             const delta  = vStart - aStart;
 
-            const { fpsNum, fpsStr, vSeconds: trueVDur } = pickFpsAndDur(fmt, v);
+            const { fpsStr, vSeconds: trueVDur } = pickFpsAndDur(fmt, v);
 
             const vfCanvas = `[0:v]scale=${adjustedCanvasWidth + widthPadding}:${adjustedCanvasHeight},fps=${fpsStr},format=rgba[bg]`;
             const vfVideo  = `[1:v]scale=${scaledDownObjectWidth}:${scaledDownObjectHeight},format=yuv420p[vid]`;
@@ -230,7 +232,7 @@ function bakeImageAsFilterIntoVideoDEBUG(
             };
 
             let watchdog;
-            const cleanupWatchdog = () => {
+            cleanupWatchdog = () => {
                 if (watchdog) {
                     clearInterval(watchdog);
                     watchdog = null;

@@ -16,7 +16,8 @@
   "scripts": {
     "start": "node index.js",
     "test": "npx jest --testPathIgnorePatterns=node_modules/* --verbose=true --coverage=false",
-    "lint": "npx eslint --fix ."
+    "lint": "npx eslint --fix .",
+    "prepare": "husky"
   },
   "author": "unprofessionalmadman@gmail.com",
   "dependencies": {
@@ -36,6 +37,7 @@
   "devDependencies": {
     "eslint": "^8.56.0",
     "eslint-plugin-simple-import-sort": "^12.1.1",
+    "husky": "^9.1.7",
     "jest": "^29.7.0"
   }
 }

@@ -31,7 +31,7 @@ function summarizeUpstreamFailure({ status, text = '', ct = '', source }) {
     };
 }
 
-function buildError({ status, text, error, source, ct }) {
+function buildError({ status, text, source, ct }) {
     // Never leak big HTML blobs to users; keep it summarized.
     const summary = summarizeUpstreamFailure({ status, text, ct, source });
     return summary;
