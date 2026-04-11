@@ -131,7 +131,14 @@ function buildSimulatedReplyText(message, modifiedContent, replyMeta) {
  * Sends a message through a webhook with optional files and embeds,
  * impersonating the original user. Deletes the original message and webhook afterward.
  */
-const sendWebhookProxyMsg = async (message, content, files = [], communityNotes, originalLink) => {
+const sendWebhookProxyMessageInternal = async (
+    message,
+    content,
+    files = [],
+    communityNotes,
+    originalLink,
+    { preferProvidedContent = false } = {}
+) => {
     const parentChannel = message.channel.isThread() ? message.channel.parent : message.channel;
     const webhooks = await parentChannel.fetchWebhooks();
 
@@ -154,11 +161,14 @@ const sendWebhookProxyMsg = async (message, content, files = [], communityNotes,
         originalChannelId: message.channel?.id || null,
         originalLink: originalLink || null,
         threadId: threadId || null,
-        kind: 'twitter_render',
+        kind: preferProvidedContent ? 'message_replacement' : 'twitter_render',
     });
 
     try {
-        const modifiedContent = trimQueryParamsFromTwitXUrl(message.content || content || '');
+        const rawContent = preferProvidedContent
+            ? (content || message.content || '')
+            : (message.content || content || '');
+        const modifiedContent = trimQueryParamsFromTwitXUrl(rawContent);
 
         // If this was a reply, simulate it with a header + quote
         const replyMeta = await getReplyMeta(message);
@@ -188,6 +198,28 @@ const sendWebhookProxyMsg = async (message, content, files = [], communityNotes,
 
     await message.delete().catch(err => console.warn(`Failed to delete source message: ${err}`));
     await webhook.delete().catch(err => console.warn(`Failed to delete webhook: ${err}`));
+};
+
+const sendWebhookProxyMsg = async (message, content, files = [], communityNotes, originalLink) => {
+    return sendWebhookProxyMessageInternal(
+        message,
+        content,
+        files,
+        communityNotes,
+        originalLink,
+        { preferProvidedContent: false }
+    );
+};
+
+const sendWebhookReplacementMsg = async (message, content, files = []) => {
+    return sendWebhookProxyMessageInternal(
+        message,
+        content,
+        files,
+        undefined,
+        undefined,
+        { preferProvidedContent: true }
+    );
 };
 
 /**
@@ -261,6 +293,7 @@ const sendInteractionWebhookProxy = async (interaction, content) => {
 
 module.exports = {
     buildCommunityNoteEmbeds,
+    sendWebhookReplacementMsg,
     sendWebhookProxyMsg,
     sendVideoReply,
     sendInteractionWebhookProxy,

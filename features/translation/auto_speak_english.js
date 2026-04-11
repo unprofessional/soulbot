@@ -1,4 +1,5 @@
 const PromiseQueue = require('../../lib/promise_queue');
+const { sendWebhookReplacementMsg } = require('../twitter-core/webhook_utils.js');
 const {
     improveEnglishText,
     normalizeWhitespace,
@@ -80,12 +81,7 @@ async function handleSpeakEnglishRole(message) {
         if (normalizeWhitespace(improvedText) === sourceText) return;
 
         markCooldown(message.author.id);
-        await message.reply({
-            content: `Proper English:\n${improvedText}`,
-            allowedMentions: {
-                repliedUser: false,
-            },
-        });
+        await sendWebhookReplacementMsg(message, improvedText);
     } catch (err) {
         console.error('>>> handleSpeakEnglishRole error:', err);
     }

@@ -1,3 +1,7 @@
+jest.mock('../features/twitter-core/webhook_utils.js', () => ({
+    sendWebhookReplacementMsg: jest.fn(),
+}));
+
 jest.mock('../features/twitter-core/translation_service.js', () => ({
     improveEnglishText: jest.fn(),
     normalizeWhitespace: jest.requireActual('../features/twitter-core/translation_service.js').normalizeWhitespace,
@@ -13,6 +17,7 @@ const {
     stripDisqualifyingContent,
     shouldProcessMessage,
 } = require('../features/translation/auto_speak_english.js');
+const { sendWebhookReplacementMsg } = require('../features/twitter-core/webhook_utils.js');
 const { improveEnglishText } = require('../features/twitter-core/translation_service.js');
 
 describe('auto speak-english role handler', () => {
@@ -60,7 +65,6 @@ describe('auto speak-english role handler', () => {
     test('replies with improved English for users with the speak-english role', async () => {
         improveEnglishText.mockResolvedValue('I am going to the store later.');
 
-        const reply = jest.fn().mockResolvedValue(undefined);
         const message = {
             author: { bot: false, id: '123' },
             guild: { members: { fetch: jest.fn() } },
@@ -73,7 +77,6 @@ describe('auto speak-english role handler', () => {
                 },
             },
             content: 'im goin to stor later',
-            reply,
         };
 
         await handleSpeakEnglishRole(message);
@@ -81,16 +84,15 @@ describe('auto speak-english role handler', () => {
         expect(improveEnglishText).toHaveBeenCalledWith(expect.objectContaining({
             text: 'im goin to stor later',
         }));
-        expect(reply).toHaveBeenCalledWith({
-            content: 'Proper English:\nI am going to the store later.',
-            allowedMentions: { repliedUser: false },
-        });
+        expect(sendWebhookReplacementMsg).toHaveBeenCalledWith(
+            message,
+            'I am going to the store later.'
+        );
     });
 
     test('does not reply when the improved English matches the original text', async () => {
         improveEnglishText.mockResolvedValue('hello there');
 
-        const reply = jest.fn().mockResolvedValue(undefined);
         const message = {
             author: { bot: false, id: '123' },
             guild: { members: { fetch: jest.fn() } },
@@ -103,12 +105,11 @@ describe('auto speak-english role handler', () => {
                 },
             },
             content: 'hello there',
-            reply,
         };
 
         await handleSpeakEnglishRole(message);
 
-        expect(reply).not.toHaveBeenCalled();
+        expect(sendWebhookReplacementMsg).not.toHaveBeenCalled();
     });
 
     test('rate limits replies to once every five seconds per user', async () => {
@@ -117,7 +118,6 @@ describe('auto speak-english role handler', () => {
 
         improveEnglishText.mockResolvedValue('I am going to the store later.');
 
-        const reply = jest.fn().mockResolvedValue(undefined);
         const message = {
             author: { bot: false, id: '123' },
             guild: { members: { fetch: jest.fn() } },
@@ -127,22 +127,21 @@ describe('auto speak-english role handler', () => {
                 },
             },
             content: 'im goin to stor later',
-            reply,
         };
 
         await handleSpeakEnglishRole(message);
-        expect(reply).toHaveBeenCalledTimes(1);
+        expect(sendWebhookReplacementMsg).toHaveBeenCalledTimes(1);
         expect(isOnCooldown('123')).toBe(true);
 
         await handleSpeakEnglishRole(message);
-        expect(reply).toHaveBeenCalledTimes(1);
+        expect(sendWebhookReplacementMsg).toHaveBeenCalledTimes(1);
 
         jest.setSystemTime(new Date('2026-04-06T12:00:06Z'));
         expect(isOnCooldown('123')).toBe(false);
 
         improveEnglishText.mockResolvedValue('I am going to the store later again.');
         await handleSpeakEnglishRole(message);
-        expect(reply).toHaveBeenCalledTimes(2);
+        expect(sendWebhookReplacementMsg).toHaveBeenCalledTimes(2);
 
         markCooldown('manual-user');
         expect(isOnCooldown('manual-user')).toBe(true);
