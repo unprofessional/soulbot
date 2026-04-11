@@ -10,6 +10,7 @@ const {
     scoreSummaryMessages,
     selectMessagesForPrompt,
     stripSummaryPrefix,
+    summarizeRecentSummaryPhrases,
     summarizeSoulbotAwareness,
 } = require('../features/ollama');
 
@@ -116,6 +117,18 @@ describe('summary prompt formatting', () => {
         expect(awareness.detectedLabels).toEqual(expect.arrayContaining(['bot', 'summary', 'clanker']));
     });
 
+    test('summarizeRecentSummaryPhrases captures recent opener and closer wording', () => {
+        const phrases = summarizeRecentSummaryPhrases([
+            { content: '**Summary:**\nThe chat pivoted again. It is garbage as usual.' },
+            { content: '**Summary:**\nSame old nonsense. Still a mess in here.' },
+        ]);
+
+        expect(phrases[0]).toEqual(expect.objectContaining({
+            opener: 'The chat pivoted again',
+        }));
+        expect(phrases[0].closer).toContain('garbage as usual');
+    });
+
     test('buildSummaryPrompt explains the compact full-summary line format', () => {
         const prompt = buildSummaryPrompt({
             mode: 'full',
@@ -132,6 +145,7 @@ describe('summary prompt formatting', () => {
         expect(prompt).toContain('DominantParticipants:');
         expect(prompt).toContain('DominantTopics:');
         expect(prompt).toContain('You are SOULbot, user ID <@891854264845094922>');
+        expect(prompt).toContain('avoid repeating the exact same setup or conclusion phrases');
     });
 
     test('buildSummaryPrompt includes previous summary and only newer messages in delta mode', () => {
@@ -140,6 +154,7 @@ describe('summary prompt formatting', () => {
             previousSummary: '**Summary:**\nOld stuff happened',
             summaryHistory: [
                 { content: '**Summary:**\nOld stuff happened' },
+                { content: '**Summary:**\nThe chat pivoted again. It is garbage as usual.' },
             ],
             messages: [
                 { user_id: '111', content: 'new detail about the bot summary clanker' },
@@ -153,6 +168,8 @@ describe('summary prompt formatting', () => {
         expect(prompt).toContain('NewMessagesSinceLastSummary:');
         expect(prompt).toContain('111: new detail about the bot summary clanker');
         expect(prompt).toContain('HistoricalTopics:');
+        expect(prompt).toContain('RecentSummaryOpeners:');
+        expect(prompt).toContain('RecentSummaryClosers:');
         expect(prompt).toContain('SOULbotAwareness: referenced=true');
         expect(prompt).toMatch(/Focus on what changed since the last summary|Almost nothing meaningful changed/);
     });

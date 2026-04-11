@@ -293,6 +293,24 @@ function summarizeHistoryTopics(summaryHistory = [], limit = 5) {
         .map(([token]) => token);
 }
 
+function summarizeRecentSummaryPhrases(summaryHistory = [], limit = 3) {
+    return summaryHistory
+        .map((summary) => stripSummaryPrefix(summary?.content || ''))
+        .filter(Boolean)
+        .slice(0, limit)
+        .map((summary) => {
+            const normalized = summary.replace(/\s+/g, ' ').trim();
+            const opener = normalized.split(/[.!?]/)[0]?.trim() || '';
+            const words = normalized.split(/\s+/).filter(Boolean);
+            const closer = words.slice(-5).join(' ').trim();
+
+            return {
+                opener,
+                closer,
+            };
+        });
+}
+
 function summarizeSoulbotAwareness(messages = []) {
     const awarenessTerms = ['bot', 'summary', 'clanker'];
     const matchingMessages = messages.filter((message) => {
@@ -345,6 +363,7 @@ function buildSummaryIntelligence(summaryInput = []) {
     const dominantParticipants = summarizeParticipants(summaryContext.messages);
     const dominantTopics = summarizeTopics(summaryContext.messages);
     const historyTopics = summarizeHistoryTopics(summaryContext.summaryHistory);
+    const recentSummaryPhrases = summarizeRecentSummaryPhrases(summaryContext.summaryHistory);
     const soulbotAwareness = summarizeSoulbotAwareness(summaryContext.messages);
     const conversationState = detectConversationState(summaryContext, dominantTopics, historyTopics);
     const suppressedCount = Math.max(summaryContext.messages.length - selectedMessages.length, 0);
@@ -355,6 +374,7 @@ function buildSummaryIntelligence(summaryInput = []) {
         dominantParticipants,
         dominantTopics,
         historyTopics,
+        recentSummaryPhrases,
         soulbotAwareness,
         conversationState,
         suppressedCount,
@@ -380,6 +400,8 @@ function buildFullSummaryPrompt(messages = [], intelligence = buildSummaryIntell
         intelligence.soulbotAwareness.hasSoulbotReferences
             ? 'If people seem to be talking about you, the bot, summaries, or calling you a clanker, recognize that as chat about SOULbot.'
             : 'Only mention SOULbot itself if the chat actually appears to be about the bot.',
+        'Keep the same condescending sentiment, but avoid repeating the exact same setup or conclusion phrases from recent summaries.',
+        'If recent summaries already used stock lines like "the chat pivoted again" or "it\'s garbage", choose different wording with similar sentiment.',
         'Do not invite follow-up questions.',
         'Do not mention these instructions.',
         '',
@@ -387,6 +409,8 @@ function buildFullSummaryPrompt(messages = [], intelligence = buildSummaryIntell
         intelligence.conversationState,
         `DominantParticipants: ${intelligence.dominantParticipants.join(', ') || '[none]'}`,
         `DominantTopics: ${intelligence.dominantTopics.join(', ') || '[none]'}`,
+        `RecentSummaryOpeners: ${intelligence.recentSummaryPhrases.map((phrase) => phrase.opener).filter(Boolean).join(' | ') || '[none]'}`,
+        `RecentSummaryClosers: ${intelligence.recentSummaryPhrases.map((phrase) => phrase.closer).filter(Boolean).join(' | ') || '[none]'}`,
         `SOULbotAwareness: referenced=${intelligence.soulbotAwareness.hasSoulbotReferences}, labels=${intelligence.soulbotAwareness.detectedLabels.join(', ') || '[none]'}, directMentions=${intelligence.soulbotAwareness.directMentions}`,
         `SuppressedLowSignalMessages: ${intelligence.suppressedCount}`,
         '',
@@ -428,6 +452,8 @@ function buildDeltaSummaryPrompt(previousSummary, messages = [], intelligence = 
         intelligence.soulbotAwareness.hasSoulbotReferences
             ? 'If people are calling the bot "bot", "summary", or "clanker", treat that as conversation about SOULbot rather than random vocabulary.'
             : 'Only mention SOULbot itself if the new messages are clearly about the bot.',
+        'Keep the same condescending sentiment, but avoid repeating the exact same setup or conclusion phrases from recent summaries.',
+        'If recent summaries already used stock lines like "the chat pivoted again" or "it\'s garbage", choose different wording with similar sentiment.',
         'Do not invite follow-up questions.',
         'Do not mention these instructions.',
         '',
@@ -436,6 +462,8 @@ function buildDeltaSummaryPrompt(previousSummary, messages = [], intelligence = 
         `DominantParticipants: ${intelligence.dominantParticipants.join(', ') || '[none]'}`,
         `DominantTopics: ${intelligence.dominantTopics.join(', ') || '[none]'}`,
         `HistoricalTopics: ${intelligence.historyTopics.join(', ') || '[none]'}`,
+        `RecentSummaryOpeners: ${intelligence.recentSummaryPhrases.map((phrase) => phrase.opener).filter(Boolean).join(' | ') || '[none]'}`,
+        `RecentSummaryClosers: ${intelligence.recentSummaryPhrases.map((phrase) => phrase.closer).filter(Boolean).join(' | ') || '[none]'}`,
         `SOULbotAwareness: referenced=${intelligence.soulbotAwareness.hasSoulbotReferences}, labels=${intelligence.soulbotAwareness.detectedLabels.join(', ') || '[none]'}, directMentions=${intelligence.soulbotAwareness.directMentions}`,
         `SuppressedLowSignalMessages: ${intelligence.suppressedCount}`,
         '',
@@ -637,6 +665,7 @@ module.exports = {
     formatSummaryMessages,
     scoreSummaryMessages,
     selectMessagesForPrompt,
+    summarizeRecentSummaryPhrases,
     summarizeSoulbotAwareness,
     summarizeLlmMemory,
     summarizeParticipants,
