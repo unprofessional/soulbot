@@ -1,7 +1,10 @@
 // message_listeners/core.js
 
 const { Events } = require('discord.js');
-const { enforceGoldyRole } = require('../features/role-enforcement/role-enforcement.js');
+const {
+    enforceGoldyRole,
+    enforceOwnerProxyRole,
+} = require('../features/role-enforcement/role-enforcement.js');
 const { handleSpeakEnglishRole } = require('../features/translation/auto_speak_english.js');
 const { logMessage } = require('../logger/logger.js');
 const { handleTwitterUrl } = require('../features/twitter-core/twitter_handler.js');
@@ -21,6 +24,9 @@ async function initializeListeners(client) {
         const isUser = !isSelf(message) && !isABot(message);
 
         if (isUser) {
+            const consumedByOwnerProxy = await enforceOwnerProxyRole(message);
+            if (consumedByOwnerProxy) return;
+
             await enforceGoldyRole(message);
             await handleSpeakEnglishRole(message);
 

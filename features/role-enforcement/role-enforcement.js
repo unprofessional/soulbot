@@ -2,6 +2,8 @@
 
 const { sendWebhookProxyMsg } = require('../twitter-core/webhook_utils');
 
+const OWNER_PROXY_ROLE_NAME = 'owner-proxy';
+
 // Goldy prefix & suffix phrases
 const prefixes = [
     'wants you to know',
@@ -24,6 +26,13 @@ const catchPhrases = [
 
 const getRandomPrefixes = () => prefixes[Math.floor(Math.random() * prefixes.length)];
 const getRandomCatchPhrase = () => catchPhrases[Math.floor(Math.random() * catchPhrases.length)];
+
+function getRoleNames(member) {
+    const roles = member?.roles?.cache;
+    if (!roles) return [];
+
+    return Array.from(roles.values()).map(role => String(role?.name || '').toLowerCase());
+}
 
 /**
  * Enforces the "Goldy" role transformation by deleting and re-sending the message
@@ -49,4 +58,34 @@ const enforceGoldyRole = async (message) => {
     }
 };
 
-module.exports = { enforceGoldyRole };
+/**
+ * If the owner carries the owner-proxy role, replace their original message with
+ * a webhook impersonation of that same content.
+ */
+const enforceOwnerProxyRole = async (message, ownerUserId = process.env.BOT_OWNER_ID || '818606180095885332') => {
+    if (!message.guild || message.author.bot) return false;
+    if (message.author.id !== ownerUserId) return false;
+
+    const content = String(message.content || '').trim();
+    if (!content) return false;
+
+    try {
+        const member = message.member || await message.guild.members.fetch(message.author.id);
+        const roleNames = getRoleNames(member);
+        const hasOwnerProxyRole = roleNames.includes(OWNER_PROXY_ROLE_NAME);
+
+        if (!hasOwnerProxyRole) return false;
+
+        await sendWebhookProxyMsg(message, content);
+        return true;
+    } catch (err) {
+        console.error('>>> enforceOwnerProxyRole error:', err);
+        return false;
+    }
+};
+
+module.exports = {
+    enforceGoldyRole,
+    enforceOwnerProxyRole,
+    getRoleNames,
+};
