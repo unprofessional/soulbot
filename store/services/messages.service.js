@@ -109,6 +109,14 @@ const getSummaryMessages = async (options = {}) => {
     }
 };
 
+const getLlmChannelContext = async (options = {}) => {
+    const { limit = 50, ...rest } = options;
+    return getSummaryMessages({
+        ...rest,
+        limit,
+    });
+};
+
 const getSummaryContext = async (options = {}) => {
     try {
         const { channelId, limit = 100 } = options;
@@ -214,6 +222,7 @@ const deleteMessage = async (messageId) => {
 module.exports = {
     addMessage,
     getMessages,
+    getLlmChannelContext,
     getSummaryMessages,
     getSummaryContext,
     findMessagesByLink,

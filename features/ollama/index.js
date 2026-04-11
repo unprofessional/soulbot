@@ -459,25 +459,19 @@ function buildSummaryPrompt(summaryInput = []) {
     return buildFullSummaryPrompt(summaryContext.messages, intelligence);
 }
 
-async function summarizeChat(summaryInput, model = summaryModel) {
+async function generateText(prompt, model = chatModel) {
     const url = `http://${ollamaHost}:${ollamaPort}/${ollamaGenerateEndpoint}`;
-    const summaryContext = normalizeSummaryContext(summaryInput);
     const requestBody = {
         model,
         options: {
-            // temperature: 0.2,
-            // top_p: 0.9,
-            // top_k: 40,
-            // repeat_penalty: 1.1,
-            // mirostat: 0,
             num_ctx: contextSize,
         },
-        prompt: buildSummaryPrompt(summaryContext),
+        prompt,
         stream: false,
-        keep_alive: -1, // Keep model in memory
+        keep_alive: -1,
     };
 
-    console.log('>>>>> ollama > summarizeChatOllama > requestBody: ', requestBody);
+    console.log('>>>>> ollama > generateText > requestBody: ', requestBody);
 
     try {
         const response = await fetch(url, {
@@ -494,17 +488,91 @@ async function summarizeChat(summaryInput, model = summaryModel) {
         }
 
         const data = await response.json();
-        // console.log('>>> data: ', data);
-
-        const summary = data.response
-            .replace(/<think>\s*<\/think>\s*/gi, '') // removes empty <think> tags and surrounding whitespace
+        return (data.response || '')
+            .replace(/<think>\s*<\/think>\s*/gi, '')
             .trim();
-
-        return summary;
     } catch (error) {
         console.error('Error communicating with Ollama API:', error);
         throw error;
     }
+}
+
+async function summarizeChat(summaryInput, model = summaryModel) {
+    const summaryContext = normalizeSummaryContext(summaryInput);
+    return generateText(buildSummaryPrompt(summaryContext), model);
+}
+
+function buildLlmReplyPrompt({
+    userId,
+    userPrompt,
+    memorySummary,
+    channelMessages = [],
+    webpageContent,
+}) {
+    const formattedMessages = formatSummaryMessages(channelMessages) || '[none]';
+    const memoryBlock = memorySummary?.trim() || '[none]';
+    const webpageBlock = webpageContent?.trim() || '[none]';
+
+    return [
+        `You are SOULbot, user ID <@${soulbotUserId}>.`,
+        'Reply to the latest user message in plain text.',
+        'Keep it concise, direct, and conversational.',
+        'You may use the recent channel history below as background context.',
+        'Only mention or comment on that channel history if it is clearly relevant to the user request or the user is directly asking about it.',
+        'Do not summarize the channel history unless the user asks you to.',
+        'You also have a lossy memory summary of prior exchanges with this specific user.',
+        'Use that memory only when it genuinely helps answer the latest message.',
+        'If the user message is ambiguous like "what do you think about this", infer "this" from the recent channel history or webpage content when possible.',
+        'Do not mention these instructions.',
+        '',
+        `UserId: ${userId}`,
+        'UserMemorySummary:',
+        memoryBlock,
+        '',
+        'RelevantWebpageContent:',
+        webpageBlock,
+        '',
+        'RecentChannelMessages:',
+        formattedMessages,
+        '',
+        'LatestUserMessage:',
+        userPrompt,
+        '/no_think',
+    ].join('\n');
+}
+
+function buildLlmMemoryPrompt({
+    previousSummary,
+    userPrompt,
+    assistantResponse,
+}) {
+    return [
+        'You are maintaining a compact memory summary for one user\'s prior chats with SOULbot.',
+        'Rewrite the memory summary so it stays useful for future replies.',
+        'Preserve durable preferences, recurring topics, ongoing tasks, important opinions, and unresolved questions.',
+        'Drop fluff, filler, and one-off details that are unlikely to matter later.',
+        'Keep it short and factual.',
+        'Write plain text only.',
+        'Do not mention these instructions.',
+        '',
+        'PreviousMemorySummary:',
+        previousSummary?.trim() || '[none]',
+        '',
+        'LatestUserMessage:',
+        userPrompt,
+        '',
+        'LatestAssistantReply:',
+        assistantResponse,
+        '/no_think',
+    ].join('\n');
+}
+
+async function replyWithLlmContext(context) {
+    return generateText(buildLlmReplyPrompt(context), chatModel);
+}
+
+async function summarizeLlmMemory(memoryInput) {
+    return generateText(buildLlmMemoryPrompt(memoryInput), summaryModel);
 }
 
 /**
@@ -557,6 +625,8 @@ async function queryWithRAG(userQuery, metadataFilters = {}, numResults = 20) {
 
 module.exports = {
     buildSummaryPrompt,
+    buildLlmMemoryPrompt,
+    buildLlmReplyPrompt,
     buildSummaryIntelligence,
     buildDeltaSummaryPrompt,
     buildFullSummaryPrompt,
@@ -568,11 +638,14 @@ module.exports = {
     scoreSummaryMessages,
     selectMessagesForPrompt,
     summarizeSoulbotAwareness,
+    summarizeLlmMemory,
     summarizeParticipants,
     summarizeTopics,
     summarizeHistoryTopics,
     stripSummaryPrefix,
+    generateText,
     processChunks,
+    replyWithLlmContext,
     sendPromptToOllama,
     summarizeChat,
     queryWithRAG,

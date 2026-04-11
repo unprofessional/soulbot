@@ -24,6 +24,7 @@ jest.mock('../config/env_config.js', () => ({
 
 const {
     addMessage,
+    getLlmChannelContext,
     getMessageById,
     getSummaryContext,
     getSummaryMessages,
@@ -52,6 +53,30 @@ describe('messages service', () => {
         expect(mockFindAll).toHaveBeenCalledWith({
             channelId: '1481343741712400506',
             limit: 100,
+            fields: ['user_id', 'content'],
+            excludeUserId: '891854264845094922',
+            excludeContent: '[Non-text message]',
+            excludeContentPrefixes: ['**Summary:**'],
+        });
+        expect(messages).toEqual([
+            { user_id: '1', content: 'earlier message' },
+            { user_id: '2', content: 'later message' },
+        ]);
+    });
+
+    test('getLlmChannelContext defaults to the latest 50 summary-safe channel messages', async () => {
+        mockFindAll.mockResolvedValue([
+            { user_id: '2', content: 'later message' },
+            { user_id: '1', content: 'earlier message' },
+        ]);
+
+        const messages = await getLlmChannelContext({
+            channelId: '1481343741712400506',
+        });
+
+        expect(mockFindAll).toHaveBeenCalledWith({
+            channelId: '1481343741712400506',
+            limit: 50,
             fields: ['user_id', 'content'],
             excludeUserId: '891854264845094922',
             excludeContent: '[Non-text message]',

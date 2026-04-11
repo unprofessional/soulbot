@@ -1,4 +1,6 @@
 const {
+    buildLlmMemoryPrompt,
+    buildLlmReplyPrompt,
     buildSummaryPrompt,
     buildSummaryIntelligence,
     formatSummaryMessages,
@@ -167,5 +169,40 @@ describe('summary prompt formatting', () => {
 
         expect(prompt).toContain('[none]');
         expect(prompt).toContain('There are no meaningful new chat lines since the last summary');
+    });
+
+    test('buildLlmReplyPrompt treats channel history and memory as optional context', () => {
+        const prompt = buildLlmReplyPrompt({
+            userId: '111',
+            userPrompt: 'what do you think about this',
+            memorySummary: 'User likes blunt answers and is debugging Discord commands.',
+            channelMessages: [
+                { user_id: '222', content: 'the deploy broke after the slash command rename' },
+                { user_id: '333', content: 'we should inspect the command registration flow' },
+            ],
+            webpageContent: null,
+        });
+
+        expect(prompt).toContain('Only mention or comment on that channel history if it is clearly relevant');
+        expect(prompt).toContain('UserMemorySummary:');
+        expect(prompt).toContain('RecentChannelMessages:');
+        expect(prompt).toContain('222: the deploy broke after the slash command rename');
+        expect(prompt).toContain('LatestUserMessage:');
+        expect(prompt).toContain('what do you think about this');
+    });
+
+    test('buildLlmMemoryPrompt rewrites a compact rolling user memory', () => {
+        const prompt = buildLlmMemoryPrompt({
+            previousSummary: 'User prefers concise answers and was debugging slash commands.',
+            userPrompt: 'can you rename /llama to /llm',
+            assistantResponse: 'I renamed the command and updated the context flow.',
+        });
+
+        expect(prompt).toContain('You are maintaining a compact memory summary');
+        expect(prompt).toContain('PreviousMemorySummary:');
+        expect(prompt).toContain('User prefers concise answers');
+        expect(prompt).toContain('LatestUserMessage:');
+        expect(prompt).toContain('LatestAssistantReply:');
+        expect(prompt).toContain('/no_think');
     });
 });

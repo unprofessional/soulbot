@@ -46,6 +46,16 @@ CREATE TABLE IF NOT EXISTS ollama_member_whitelist (
     created_at TIMESTAMP DEFAULT NOW()
 );
 
+CREATE TABLE IF NOT EXISTS llm_memory (
+    id SERIAL PRIMARY KEY,
+    member_id VARCHAR(50) NOT NULL,
+    channel_id VARCHAR(50) NOT NULL,
+    summary TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW(),
+    UNIQUE (member_id, channel_id)
+);
+
 CREATE TABLE IF NOT EXISTS message (
     id SERIAL PRIMARY KEY,
     user_id VARCHAR(50), -- user/member/account owner of message
@@ -64,6 +74,7 @@ CREATE INDEX IF NOT EXISTS idx_channel_channel_id ON channel (channel_id);
 CREATE INDEX IF NOT EXISTS idx_member_member_id ON member (member_id);
 CREATE INDEX IF NOT EXISTS idx_feature_type ON feature (type);
 CREATE INDEX IF NOT EXISTS idx_ollama_member_whitelist_member_id ON ollama_member_whitelist (member_id);
+CREATE INDEX IF NOT EXISTS idx_llm_memory_member_channel ON llm_memory (member_id, channel_id);
 CREATE INDEX IF NOT EXISTS idx_message_user_id ON message (user_id);
 CREATE INDEX IF NOT EXISTS idx_message_guild_id ON message (guild_id);
 CREATE INDEX IF NOT EXISTS idx_message_content_trgm ON message USING GIN (content gin_trgm_ops);
