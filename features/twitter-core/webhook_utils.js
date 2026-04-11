@@ -209,9 +209,60 @@ const sendVideoReply = async (message, successFilePath, originalLink, communityN
     );
 };
 
+/**
+ * Sends arbitrary slash-command content through a short-lived webhook using the
+ * invoking member's current server identity when available.
+ */
+const sendInteractionWebhookProxy = async (interaction, content) => {
+    const channel = interaction.channel;
+    if (!channel) {
+        throw new Error('Interaction channel unavailable.');
+    }
+
+    const parentChannel = channel.isThread() ? channel.parent : channel;
+    if (!parentChannel) {
+        throw new Error('Unable to resolve parent channel for webhook send.');
+    }
+
+    const member = interaction.guild
+        ? await interaction.guild.members.fetch(interaction.user.id).catch(() => null)
+        : null;
+
+    const displayName =
+        member?.nickname ||
+        interaction.user.globalName ||
+        interaction.user.username;
+
+    const avatarURL = member?.displayAvatarURL
+        ? member.displayAvatarURL({ dynamic: true })
+        : interaction.user.displayAvatarURL({ dynamic: true });
+
+    const webhook = await parentChannel.createWebhook({
+        name: displayName,
+        avatar: avatarURL,
+    });
+
+    try {
+        const payload = {
+            content,
+            username: displayName,
+            avatarURL,
+        };
+
+        if (channel.isThread()) {
+            payload.threadId = channel.id;
+        }
+
+        await webhook.send(payload);
+    } finally {
+        await webhook.delete().catch(err => console.warn(`Failed to delete webhook: ${err}`));
+    }
+};
+
 module.exports = {
     buildCommunityNoteEmbeds,
     sendWebhookProxyMsg,
     sendVideoReply,
+    sendInteractionWebhookProxy,
     webhookBuilder, // optional: only export if reused directly elsewhere
 };
