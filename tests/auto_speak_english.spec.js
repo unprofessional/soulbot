@@ -1,5 +1,5 @@
 jest.mock('../features/twitter-core/webhook_utils.js', () => ({
-    sendWebhookReplacementMsg: jest.fn(),
+    sendWebhookReplacementBatch: jest.fn(),
 }));
 
 jest.mock('../features/twitter-core/translation_service.js', () => ({
@@ -8,23 +8,29 @@ jest.mock('../features/twitter-core/translation_service.js', () => ({
 }));
 
 const {
-    clearCooldowns,
+    buildBucketId,
+    clearPendingBuffers,
+    flushPendingBucket,
+    getPendingBucket,
     handleSpeakEnglishRole,
     hasQualifyingText,
     hasSpeakEnglishRole,
-    isOnCooldown,
-    markCooldown,
     stripDisqualifyingContent,
     shouldProcessMessage,
 } = require('../features/translation/auto_speak_english.js');
-const { sendWebhookReplacementMsg } = require('../features/twitter-core/webhook_utils.js');
+const { sendWebhookReplacementBatch } = require('../features/twitter-core/webhook_utils.js');
 const { improveEnglishText } = require('../features/twitter-core/translation_service.js');
 
 describe('auto speak-english role handler', () => {
     beforeEach(() => {
         jest.clearAllMocks();
         jest.useRealTimers();
-        clearCooldowns();
+        clearPendingBuffers();
+    });
+
+    afterEach(() => {
+        clearPendingBuffers();
+        jest.useRealTimers();
     });
 
     test('detects the speak-english role by name', () => {
@@ -81,11 +87,18 @@ describe('auto speak-english role handler', () => {
 
         await handleSpeakEnglishRole(message);
 
+        const bucketId = buildBucketId(message);
+        expect(getPendingBucket(message)).toEqual(expect.objectContaining({
+            messages: [message],
+        }));
+
+        await flushPendingBucket(bucketId);
+
         expect(improveEnglishText).toHaveBeenCalledWith(expect.objectContaining({
             text: 'im goin to stor later',
         }));
-        expect(sendWebhookReplacementMsg).toHaveBeenCalledWith(
-            message,
+        expect(sendWebhookReplacementBatch).toHaveBeenCalledWith(
+            [message],
             'I am going to the store later.'
         );
     });
@@ -108,42 +121,81 @@ describe('auto speak-english role handler', () => {
         };
 
         await handleSpeakEnglishRole(message);
+        await flushPendingBucket(buildBucketId(message));
 
-        expect(sendWebhookReplacementMsg).not.toHaveBeenCalled();
+        expect(sendWebhookReplacementBatch).not.toHaveBeenCalled();
     });
 
-    test('rate limits replies to once every five seconds per user', async () => {
+    test('buffers multiple messages inside the five second window and sends one combined replacement', async () => {
         jest.useFakeTimers();
         jest.setSystemTime(new Date('2026-04-06T12:00:00Z'));
 
-        improveEnglishText.mockResolvedValue('I am going to the store later.');
+        improveEnglishText.mockResolvedValue('I am going to the store later.\nAlso, I forgot the milk.');
 
-        const message = {
+        const makeMessage = (id, content) => ({
             author: { bot: false, id: '123' },
+            client: { user: { id: 'bot-1' } },
             guild: { members: { fetch: jest.fn() } },
+            guildId: 'guild-1',
+            channelId: 'channel-1',
             member: {
                 roles: {
                     cache: new Map([['1', { name: 'speak-english' }]]),
                 },
             },
-            content: 'im goin to stor later',
+            channel: {
+                isThread: () => false,
+                fetchWebhooks: jest.fn(),
+            },
+            id,
+            content,
+            delete: jest.fn().mockResolvedValue(undefined),
+        });
+
+        const messageOne = makeMessage('m1', 'im goin to stor later');
+        const messageTwo = makeMessage('m2', 'also forgot milk');
+
+        await handleSpeakEnglishRole(messageOne);
+        await handleSpeakEnglishRole(messageTwo);
+
+        const bucket = getPendingBucket(messageOne);
+        expect(bucket.messages).toEqual([messageOne, messageTwo]);
+
+        await jest.advanceTimersByTimeAsync(5000);
+
+        expect(improveEnglishText).toHaveBeenCalledWith(expect.objectContaining({
+            text: 'im goin to stor later\nalso forgot milk',
+        }));
+        expect(sendWebhookReplacementBatch).toHaveBeenCalledWith(
+            [messageOne, messageTwo],
+            'I am going to the store later.\nAlso, I forgot the milk.'
+        );
+        expect(getPendingBucket(messageOne)).toBeNull();
+    });
+
+    test('keeps buffers isolated per user per channel', async () => {
+        const messageA = {
+            author: { bot: false, id: '123' },
+            guild: { members: { fetch: jest.fn() } },
+            guildId: 'guild-1',
+            channelId: 'channel-1',
+            member: { roles: { cache: new Map([['1', { name: 'speak-english' }]]) } },
+            content: 'helo',
+        };
+        const messageB = {
+            author: { bot: false, id: '123' },
+            guild: { members: { fetch: jest.fn() } },
+            guildId: 'guild-1',
+            channelId: 'channel-2',
+            member: { roles: { cache: new Map([['1', { name: 'speak-english' }]]) } },
+            content: 'wrld',
         };
 
-        await handleSpeakEnglishRole(message);
-        expect(sendWebhookReplacementMsg).toHaveBeenCalledTimes(1);
-        expect(isOnCooldown('123')).toBe(true);
+        await handleSpeakEnglishRole(messageA);
+        await handleSpeakEnglishRole(messageB);
 
-        await handleSpeakEnglishRole(message);
-        expect(sendWebhookReplacementMsg).toHaveBeenCalledTimes(1);
-
-        jest.setSystemTime(new Date('2026-04-06T12:00:06Z'));
-        expect(isOnCooldown('123')).toBe(false);
-
-        improveEnglishText.mockResolvedValue('I am going to the store later again.');
-        await handleSpeakEnglishRole(message);
-        expect(sendWebhookReplacementMsg).toHaveBeenCalledTimes(2);
-
-        markCooldown('manual-user');
-        expect(isOnCooldown('manual-user')).toBe(true);
+        expect(getPendingBucket(messageA)).toBeTruthy();
+        expect(getPendingBucket(messageB)).toBeTruthy();
+        expect(buildBucketId(messageA)).not.toBe(buildBucketId(messageB));
     });
 });

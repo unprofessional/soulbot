@@ -222,6 +222,56 @@ const sendWebhookReplacementMsg = async (message, content, files = []) => {
     );
 };
 
+const sendWebhookReplacementBatch = async (messages, content, files = []) => {
+    const list = Array.isArray(messages) ? messages.filter(Boolean) : [];
+    if (list.length === 0) {
+        throw new Error('sendWebhookReplacementBatch requires at least one message.');
+    }
+
+    const anchorMessage = list[0];
+    const parentChannel = anchorMessage.channel.isThread() ? anchorMessage.channel.parent : anchorMessage.channel;
+    const webhooks = await parentChannel.fetchWebhooks();
+
+    const botWebhooks = webhooks.filter(wh => wh.owner?.id === anchorMessage.client.user.id);
+    for (const webhook of botWebhooks.values()) {
+        await webhook.delete().catch(err => console.warn(`Failed to delete webhook: ${err}`));
+    }
+
+    const { displayName, avatarURL } = resolveImpersonationIdentity(anchorMessage);
+    const { webhook, threadId } = await webhookBuilder(parentChannel, anchorMessage, displayName, avatarURL);
+
+    registerPendingRenderOwnership(webhook.id, {
+        owningUserId: anchorMessage.author.id,
+        originalMessageId: anchorMessage.id,
+        originalChannelId: anchorMessage.channel?.id || null,
+        originalLink: null,
+        threadId: threadId || null,
+        kind: 'message_replacement_batch',
+    });
+
+    try {
+        const modifiedContent = trimQueryParamsFromTwitXUrl(content || '');
+        await webhook.send({
+            content: modifiedContent,
+            ...(threadId && { threadId }),
+            username: displayName,
+            avatarURL,
+            files,
+            allowedMentions: { parse: [] },
+        });
+    } catch (error) {
+        console.error('>>> sendWebhookReplacementBatch error:', error);
+        await webhook.delete().catch(err => console.warn(`Failed to delete webhook after send error: ${err}`));
+        throw error;
+    }
+
+    for (const message of list) {
+        await message.delete().catch(err => console.warn(`Failed to delete source message: ${err}`));
+    }
+
+    await webhook.delete().catch(err => console.warn(`Failed to delete webhook: ${err}`));
+};
+
 /**
  * Sends a video as a file attachment via webhook proxy, or falls back on failure.
  * (kept here for convenience since other modules import it from webhook_utils)
@@ -293,6 +343,7 @@ const sendInteractionWebhookProxy = async (interaction, content) => {
 
 module.exports = {
     buildCommunityNoteEmbeds,
+    sendWebhookReplacementBatch,
     sendWebhookReplacementMsg,
     sendWebhookProxyMsg,
     sendVideoReply,
