@@ -46,16 +46,26 @@ describe('auto speak-english role handler', () => {
         })).toBe(true);
     });
 
-    test('ignores empty or too-short messages', () => {
+    test('ignores empty messages but allows short non-empty messages', () => {
         expect(shouldProcessMessage({
             author: { bot: false },
             guild: {},
-            content: 'hi',
+            content: '',
         })).toBe(false);
         expect(shouldProcessMessage({
             author: { bot: false },
             guild: {},
             content: 'this is fine',
+        })).toBe(true);
+        expect(shouldProcessMessage({
+            author: { bot: false },
+            guild: {},
+            content: 'Huh',
+        })).toBe(true);
+        expect(shouldProcessMessage({
+            author: { bot: false },
+            guild: {},
+            content: '???',
         })).toBe(true);
     });
 

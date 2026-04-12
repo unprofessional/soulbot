@@ -29,7 +29,6 @@ function shouldProcessMessage(message) {
 
     const content = normalizeWhitespace(message.content || '');
     if (!content) return false;
-    if (content.length < 4) return false;
     if (!hasQualifyingText(content)) return false;
 
     return true;
@@ -46,7 +45,7 @@ function stripDisqualifyingContent(text) {
 function hasQualifyingText(text) {
     const stripped = stripDisqualifyingContent(text);
     if (!stripped) return false;
-    return stripped.length >= 4;
+    return stripped.length > 0;
 }
 
 function buildBucketId(message) {
