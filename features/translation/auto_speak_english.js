@@ -105,6 +105,7 @@ function enqueueSpeakEnglishMessage(message) {
             console.error('>>> enqueueSpeakEnglishMessage flush error:', err);
         });
     }, BUFFER_WINDOW_MS);
+    timer.unref?.();
 
     pendingByBucketId.set(bucketId, {
         timer,
