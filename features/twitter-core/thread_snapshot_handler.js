@@ -3,6 +3,7 @@
 const { fetchTweetById } = require('./thread_snapshot_utils');
 const { renderThreadSnapshotCanvas } = require('./thread_snapshot_canvas');
 const { extractTweetIdFromUrl } = require('./twitter_post_utils');
+const { buildDisplayText, translateMetadataBatchToEnglish } = require('./translation_service.js');
 
 const MAX_THREAD_LENGTH = 6;
 
@@ -34,6 +35,8 @@ async function handleThreadSnapshot(tweetUrl) {
 
     const isTruncated = !!current.replyingToID;
 
+    await translateMetadataBatchToEnglish(thread, (s) => console.log('[ThreadSnapshot][translation]', s));
+
     // === Build plain text fallback ===
     let fallbackText = isTruncated
         ? `🧵 (${thread.length} posts) — *Earlier posts not shown*\n\n`
@@ -41,7 +44,7 @@ async function handleThreadSnapshot(tweetUrl) {
 
     fallbackText += thread.map(post => {
         const user = `@${post.user_screen_name}`;
-        const text = post.text?.trim().replace(/\s+/g, ' ') || '[no content]';
+        const text = buildDisplayText(post).trim().replace(/\s+/g, ' ') || '[no content]';
         return `**${user}**: ${text}`;
     }).join('\n\n');
 

@@ -129,6 +129,33 @@ describe('translation_service', () => {
         }));
     });
 
+    test('translateMetadataBatchToEnglish applies one batched translation response across multiple posts', async () => {
+        const { translateMetadataBatchToEnglish } = loadServiceWithEnv({
+            OLLAMA_TRANSLATION_MODEL: 'translategemma:12b',
+        });
+
+        global.fetch = jest.fn().mockResolvedValue({
+            ok: true,
+            json: async () => ({
+                response: JSON.stringify([
+                    { id: '1', translation: 'Hello world' },
+                    { id: '2', translation: 'Good morning' },
+                ]),
+            }),
+        });
+
+        const posts = [
+            { tweetID: '1', lang: 'pt', text: 'ola mundo' },
+            { tweetID: '2', lang: 'es', text: 'buenos dias' },
+        ];
+
+        await translateMetadataBatchToEnglish(posts, jest.fn());
+
+        expect(global.fetch).toHaveBeenCalledTimes(1);
+        expect(posts[0].translatedText).toBe('Hello world');
+        expect(posts[1].translatedText).toBe('Good morning');
+    });
+
     test('enrichMetadataWithTranslation stores translated text on metadata', async () => {
         const { enrichMetadataWithTranslation } = loadServiceWithEnv({
             OLLAMA_TRANSLATION_MODEL: 'translategemma:12b',

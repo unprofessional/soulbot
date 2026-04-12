@@ -9,6 +9,7 @@ const {
     MAIN_FONT,
     TEXT_FONT_FAMILY,
 } = require('../twitter-post/canvas/constants');
+const { buildDisplayText } = require('./translation_service.js');
 
 // Layout constants
 const MAX_WIDTH = DESKTOP_MAX_WIDTH;
@@ -218,6 +219,7 @@ async function renderThreadSnapshotCanvas({ posts, isTruncated }) {
 
     for (const post of posts) {
         tmpCtx.font = BODY_FONT;
+        const displayText = buildDisplayText(post);
         const contentX = PADDING_X + AVATAR_SIZE + 10;
         const bubbleX = post._mediaThumbnailUrl
             ? (contentX + THUMB_WIDTH + THUMB_MARGIN_RIGHT)
@@ -228,10 +230,11 @@ async function renderThreadSnapshotCanvas({ posts, isTruncated }) {
             MAX_WIDTH - bubbleX - THREAD_RIGHT_PAD - INNER_BUBBLE_PADDING
         );
 
-        const wrapped = threadBubbleWrapText(tmpCtx, post.text, maxTextWidth, MAX_THREAD_LINES);
+        const wrapped = threadBubbleWrapText(tmpCtx, displayText, maxTextWidth, MAX_THREAD_LINES);
         const maxLineWidth = Math.max(...wrapped.map(l => tmpCtx.measureText(l).width));
         const baseHeight = wrapped.length * LINE_HEIGHT + 24;
 
+        post._displayText = displayText;
         post._wrappedLines = wrapped;
         post._bubbleWidth = Math.max(maxLineWidth + INNER_BUBBLE_PADDING, MIN_BUBBLE_WIDTH);
         post._bubbleHeight = Math.max(baseHeight, post._mediaThumbnailUrl ? THUMB_HEIGHT : 0);

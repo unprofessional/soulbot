@@ -5,6 +5,10 @@ const {
 } = require('../features/twitter-post/canvas/constants');
 const LEGACY_THREAD_FONT_FAMILY = '"Noto Color Emoji", "Noto Sans CJK", "Noto Sans Math"';
 
+jest.mock('../features/twitter-core/translation_service.js', () => ({
+    buildDisplayText: jest.fn(post => post._displayText || post.text || ''),
+}));
+
 const contexts = [];
 const fontAssignments = [];
 const canvasCreations = [];
@@ -134,5 +138,26 @@ describe('thread snapshot canvas fonts', () => {
         expect(posts[0]._wrappedLines).toHaveLength(16);
         expect(posts[0]._wrappedLines.at(-1).endsWith('…')).toBe(true);
         expect(canvasCreations.at(-1)?.height).toBeGreaterThan(600);
+    });
+
+    test('uses translated display text when present', async () => {
+        await renderThreadSnapshotCanvas({
+            isTruncated: false,
+            posts: [{
+                user_name: 'Example User',
+                user_screen_name: 'example',
+                user_profile_image_url: 'https://example.com/avatar.png',
+                text: 'ola',
+                _displayText: 'ola\n\n[Translated from Portuguese]\nhello',
+                date_epoch: 1710000000,
+                conversationID: '123',
+            }],
+        });
+
+        const finalCtx = contexts.at(-1);
+        const markerCall = finalCtx.fillText.mock.calls.find(([text]) =>
+            String(text).includes('[Translated from Portuguese]')
+        );
+        expect(markerCall).toBeDefined();
     });
 });
