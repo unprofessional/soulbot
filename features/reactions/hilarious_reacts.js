@@ -1,4 +1,5 @@
 const { getAllMemberRecords, getMemberRecord, upsertMemberRecord } = require('../../store/members.js');
+const { getMessageById } = require('../../store/services/messages.service.js');
 
 const HILARIOUS_EMOJI_NAME = 'hilarious';
 const HILARIOUS_METRIC_KEY = 'hilariousReacts';
@@ -138,16 +139,38 @@ async function fetchPartialReactionContext(reaction) {
     };
 }
 
+async function resolveReactionRecipient(message) {
+    const storedMessage = await getMessageById(message.id).catch((error) => {
+        console.error('Error resolving reaction recipient from stored message:', error);
+        return null;
+    });
+
+    const owningUserId = storedMessage?.meta?.owningUserId;
+    if (owningUserId) {
+        const ownerUser = await message.client?.users?.fetch?.(owningUserId).catch(() => null);
+        return {
+            id: owningUserId,
+            username: ownerUser?.username || storedMessage.meta?.username || owningUserId,
+            globalName: ownerUser?.globalName || null,
+        };
+    }
+
+    return message.author || null;
+}
+
 async function handleHilariousReactionAdd(reaction, user) {
     if (user?.bot) return null;
 
     const { reaction: fullReaction, message } = await fetchPartialReactionContext(reaction);
     if (!isHilariousReaction(fullReaction)) return null;
-    if (!message?.guildId || !message?.author || message.author.bot) return null;
+    if (!message?.guildId || !message?.author) return null;
+
+    const recipientUser = await resolveReactionRecipient(message);
+    if (!recipientUser?.id) return null;
 
     const result = await recordHilariousReaction({
         guildId: message.guildId,
-        recipientUser: message.author,
+        recipientUser,
         reactorId: user.id,
         messageId: message.id,
     });
@@ -169,4 +192,5 @@ module.exports = {
     getHilariousLeaderboard,
     isMilestone,
     recordHilariousReaction,
+    resolveReactionRecipient,
 };

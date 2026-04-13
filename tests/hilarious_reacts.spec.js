@@ -1,11 +1,17 @@
 const mockGetAllMemberRecords = jest.fn();
 const mockGetMemberRecord = jest.fn();
 const mockUpsertMemberRecord = jest.fn();
+const mockGetMessageById = jest.fn();
+const mockFetchUser = jest.fn();
 
 jest.mock('../store/members.js', () => ({
     getAllMemberRecords: mockGetAllMemberRecords,
     getMemberRecord: mockGetMemberRecord,
     upsertMemberRecord: mockUpsertMemberRecord,
+}));
+
+jest.mock('../store/services/messages.service.js', () => ({
+    getMessageById: mockGetMessageById,
 }));
 
 const {
@@ -20,6 +26,8 @@ describe('hilarious reacts', () => {
         mockGetAllMemberRecords.mockResolvedValue([]);
         mockGetMemberRecord.mockResolvedValue(null);
         mockUpsertMemberRecord.mockResolvedValue(null);
+        mockGetMessageById.mockResolvedValue(null);
+        mockFetchUser.mockResolvedValue(null);
     });
 
     test('records a first hilarious reaction and announces a milestone at 25', async () => {
@@ -208,6 +216,11 @@ describe('hilarious reacts', () => {
                         bot: false,
                     },
                     channel: { send },
+                    client: {
+                        users: {
+                            fetch: mockFetchUser,
+                        },
+                    },
                     guild: null,
                 },
             },
@@ -224,5 +237,78 @@ describe('hilarious reacts', () => {
             displayName: 'Author',
         });
         expect(send).toHaveBeenCalledWith('Author has received 25 <:hilarious:12345> reacts!');
+    });
+
+    test('attributes hilarious reacts on webhook-owned messages to the owning user', async () => {
+        mockGetMemberRecord.mockResolvedValue({
+            memberId: 'owner-1',
+            prefix: null,
+            meta: {
+                guildMetrics: {
+                    'guild-1': {
+                        hilariousReacts: {
+                            receivedCount: 24,
+                            reactedBy: {},
+                            milestonesAnnounced: [],
+                        },
+                    },
+                },
+            },
+        });
+        mockGetMessageById.mockResolvedValue({
+            message_id: 'message-1',
+            meta: {
+                kind: 'twitter_render',
+                owningUserId: 'owner-1',
+                username: 'impersonated name',
+            },
+        });
+        mockFetchUser.mockResolvedValue({
+            id: 'owner-1',
+            username: 'OwnerUser',
+            globalName: 'Owner Display',
+        });
+
+        const send = jest.fn().mockResolvedValue(undefined);
+        const result = await handleHilariousReactionAdd(
+            {
+                emoji: {
+                    name: 'hilarious',
+                    toString: jest.fn().mockReturnValue('<:hilarious:12345>'),
+                },
+                message: {
+                    id: 'message-1',
+                    guildId: 'guild-1',
+                    author: {
+                        id: 'bot-author',
+                        username: 'SOUL',
+                        bot: true,
+                    },
+                    channel: { send },
+                    client: {
+                        users: {
+                            fetch: mockFetchUser,
+                        },
+                    },
+                    guild: null,
+                },
+            },
+            {
+                id: 'reactor-1',
+                bot: false,
+            }
+        );
+
+        expect(mockGetMessageById).toHaveBeenCalledWith('message-1');
+        expect(mockUpsertMemberRecord).toHaveBeenCalledWith(expect.objectContaining({
+            memberId: 'owner-1',
+        }));
+        expect(result).toEqual({
+            counted: true,
+            total: 25,
+            milestoneReached: true,
+            displayName: 'Owner Display',
+        });
+        expect(send).toHaveBeenCalledWith('Owner Display has received 25 <:hilarious:12345> reacts!');
     });
 });
