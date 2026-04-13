@@ -105,7 +105,28 @@ const getMemberRecord = async (memberId) => {
     return {
         memberId: member.member_id,
         prefix: member.prefix,
+        meta: member.meta || {},
     };
+};
+
+const upsertMemberRecord = async ({ memberId, prefix = null, meta = {} }) => {
+    const member = await memberDAO.upsert({ memberId, prefix, meta });
+    if (!member) return null;
+
+    return {
+        memberId: member.member_id,
+        prefix: member.prefix,
+        meta: member.meta || {},
+    };
+};
+
+const getAllMemberRecords = async () => {
+    const members = await memberDAO.findAll();
+    return members.map((member) => ({
+        memberId: member.member_id,
+        prefix: member.prefix,
+        meta: member.meta || {},
+    }));
 };
 
 /**
@@ -131,5 +152,7 @@ module.exports = {
     removeMember,
     memberIsControlled,
     getMemberRecord,
+    upsertMemberRecord,
+    getAllMemberRecords,
     nickNameIsAlreadySet,
 };

@@ -8,6 +8,7 @@ const {
 const { handleSpeakEnglishRole } = require('../features/translation/auto_speak_english.js');
 const { logMessage } = require('../logger/logger.js');
 const { handleTwitterUrl } = require('../features/twitter-core/twitter_handler.js');
+const { handleHilariousReactionAdd } = require('../features/reactions/hilarious_reacts.js');
 const { updateMessage, deleteMessage } = require('../store/services/messages.service.js');
 const { getFeature } = require('../store/features.js');
 const { soulbotUserId } = require('../config/env_config.js');
@@ -50,6 +51,14 @@ async function initializeListeners(client) {
         if (!deletedMessage.partial) {
             console.log(`🗑️ Message deleted: ${deletedMessage.id}`);
             await deleteMessage(deletedMessage.id);
+        }
+    });
+
+    client.on(Events.MessageReactionAdd, async (reaction, user) => {
+        try {
+            await handleHilariousReactionAdd(reaction, user);
+        } catch (error) {
+            console.error('❗ Error handling hilarious reaction add:', error);
         }
     });
 

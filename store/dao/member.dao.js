@@ -3,7 +3,7 @@ const { pool } = require('../db/pool.js');
 class MemberDAO {
     async findAll() {
         const sql = `
-            SELECT member_id, prefix
+            SELECT member_id, prefix, meta
             FROM member
             ORDER BY created_at ASC
         `;
@@ -13,7 +13,7 @@ class MemberDAO {
 
     async findByMemberId(memberId) {
         const sql = `
-            SELECT member_id, prefix
+            SELECT member_id, prefix, meta
             FROM member
             WHERE member_id = $1
             LIMIT 1
@@ -22,14 +22,32 @@ class MemberDAO {
         return result.rows[0] || null;
     }
 
-    async save({ memberId, prefix }) {
+    async save({ memberId, prefix = null, meta = {} }) {
         const sql = `
-            INSERT INTO member (member_id, prefix)
-            VALUES ($1, $2)
+            INSERT INTO member (member_id, prefix, meta)
+            VALUES ($1, $2, $3)
             ON CONFLICT (member_id) DO NOTHING
         `;
-        const result = await pool.query(sql, [memberId, prefix]);
+        const result = await pool.query(sql, [memberId, prefix, meta]);
         return result.rowCount > 0;
+    }
+
+    async upsert({ memberId, prefix = null, meta = {} }) {
+        const sql = `
+            INSERT INTO member (member_id, prefix, meta)
+            VALUES ($1, $2, $3)
+            ON CONFLICT (member_id)
+            DO UPDATE SET
+                prefix = CASE
+                    WHEN member.prefix IS NULL THEN EXCLUDED.prefix
+                    ELSE member.prefix
+                END,
+                meta = EXCLUDED.meta
+            RETURNING member_id, prefix, meta
+        `;
+
+        const result = await pool.query(sql, [memberId, prefix, meta]);
+        return result.rows[0] || null;
     }
 
     async delete(memberId) {
