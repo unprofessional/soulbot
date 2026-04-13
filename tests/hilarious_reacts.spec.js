@@ -195,7 +195,10 @@ describe('hilarious reacts', () => {
         const send = jest.fn().mockResolvedValue(undefined);
         const result = await handleHilariousReactionAdd(
             {
-                emoji: { name: 'hilarious' },
+                emoji: {
+                    name: 'hilarious',
+                    toString: jest.fn().mockReturnValue('<:hilarious:12345>'),
+                },
                 message: {
                     id: 'message-1',
                     guildId: 'guild-1',
@@ -205,6 +208,7 @@ describe('hilarious reacts', () => {
                         bot: false,
                     },
                     channel: { send },
+                    guild: null,
                 },
             },
             {
@@ -219,6 +223,6 @@ describe('hilarious reacts', () => {
             milestoneReached: true,
             displayName: 'Author',
         });
-        expect(send).toHaveBeenCalledWith('Author has received 25 :hilarious: reacts!');
+        expect(send).toHaveBeenCalledWith('Author has received 25 <:hilarious:12345> reacts!');
     });
 });

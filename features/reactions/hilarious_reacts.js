@@ -11,6 +11,11 @@ function isMilestone(total) {
     return total === 25 || total === 50 || (total >= 100 && total % 100 === 0);
 }
 
+function getHilariousEmojiDisplay(guild) {
+    const emoji = guild?.emojis?.cache?.find((entry) => entry.name === HILARIOUS_EMOJI_NAME);
+    return emoji?.toString?.() || `:${HILARIOUS_EMOJI_NAME}:`;
+}
+
 function cloneMetric(metric = {}) {
     return {
         receivedCount: Number(metric.receivedCount) || 0,
@@ -148,8 +153,9 @@ async function handleHilariousReactionAdd(reaction, user) {
     });
 
     if (result?.milestoneReached && typeof message.channel?.send === 'function') {
+        const emojiDisplay = fullReaction?.emoji?.toString?.() || getHilariousEmojiDisplay(message.guild);
         await message.channel.send(
-            `${result.displayName} has received ${result.total} :${HILARIOUS_EMOJI_NAME}: reacts!`
+            `${result.displayName} has received ${result.total} ${emojiDisplay} reacts!`
         );
     }
 
@@ -159,6 +165,7 @@ async function handleHilariousReactionAdd(reaction, user) {
 module.exports = {
     HILARIOUS_EMOJI_NAME,
     handleHilariousReactionAdd,
+    getHilariousEmojiDisplay,
     getHilariousLeaderboard,
     isMilestone,
     recordHilariousReaction,

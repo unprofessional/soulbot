@@ -9,6 +9,7 @@ jest.mock('discord.js', () => ({
 }));
 
 jest.mock('../features/reactions/hilarious_reacts.js', () => ({
+    getHilariousEmojiDisplay: jest.fn(() => '<:hilarious:12345>'),
     getHilariousLeaderboard: mockGetHilariousLeaderboard,
 }));
 
@@ -17,6 +18,7 @@ const command = require('../commands/utility/react-leaderboard.js');
 function buildInteraction() {
     return {
         guildId: 'guild-1',
+        guild: {},
         deferReply: jest.fn().mockResolvedValue(undefined),
         editReply: jest.fn().mockResolvedValue(undefined),
     };
@@ -36,7 +38,7 @@ describe('/react-leaderboard', () => {
         expect(interaction.deferReply).toHaveBeenCalled();
         expect(mockGetHilariousLeaderboard).toHaveBeenCalledWith('guild-1', 10);
         expect(interaction.editReply).toHaveBeenCalledWith(
-            'No one has received any :hilarious: reacts yet.'
+            'No one has received any <:hilarious:12345> reacts yet.'
         );
     });
 
@@ -50,7 +52,7 @@ describe('/react-leaderboard', () => {
         await command.execute(interaction);
 
         expect(interaction.editReply).toHaveBeenCalledWith(
-            'Top :hilarious: leaderboard\n1. <@user-1> - 50\n2. <@user-2> - 25'
+            'Top <:hilarious:12345> leaderboard\n1. <@user-1> - 50\n2. <@user-2> - 25'
         );
     });
 });

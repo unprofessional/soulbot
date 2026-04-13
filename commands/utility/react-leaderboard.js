@@ -1,5 +1,8 @@
 const { SlashCommandBuilder } = require('discord.js');
-const { getHilariousLeaderboard } = require('../../features/reactions/hilarious_reacts.js');
+const {
+    getHilariousEmojiDisplay,
+    getHilariousLeaderboard,
+} = require('../../features/reactions/hilarious_reacts.js');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -11,8 +14,9 @@ module.exports = {
         await interaction.deferReply();
 
         const leaderboard = await getHilariousLeaderboard(interaction.guildId, 10);
+        const emojiDisplay = getHilariousEmojiDisplay(interaction.guild);
         if (leaderboard.length === 0) {
-            return interaction.editReply('No one has received any :hilarious: reacts yet.');
+            return interaction.editReply(`No one has received any ${emojiDisplay} reacts yet.`);
         }
 
         const lines = leaderboard.map((entry, index) => (
@@ -20,7 +24,7 @@ module.exports = {
         ));
 
         return interaction.editReply(
-            `Top :hilarious: leaderboard\n${lines.join('\n')}`
+            `Top ${emojiDisplay} leaderboard\n${lines.join('\n')}`
         );
     },
 };
