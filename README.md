@@ -11,6 +11,10 @@ makes use of Kubernetes, a Persistent Volume, and a Persistent Volume Claim
   - `kubectl create secret generic discord-bot-secret --from-literal=DISCORD_BOT_TOKEN=xxxxx`
 - tweet translation runs server-side through Ollama/Kokoro using `translategemma:12b`
 - set `OLLAMA_TRANSLATION_MODEL` if you want to override the default model
+- the bot now exposes health endpoints on `HEALTH_PORT` (default `8080`): `/livez`, `/readyz`, and `/drain`
+- during shutdown the pod marks itself unready, pauses new queued work, waits for active work to finish, then disconnects Discord and closes Postgres
+- a Postgres advisory lock now serializes Discord leadership across pods so a new pod waits for the old one to stand down before it logs in
+- set `REGISTER_GLOBAL_COMMANDS=true` only for the one-off rollout or admin job that should publish slash command definitions
 
 ## If using Minikube
 ### Start

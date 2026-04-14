@@ -7,21 +7,39 @@ spec:
   selector:
     matchLabels:
       app: soulbot
+  strategy:
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+    type: RollingUpdate
   template:
     metadata:
       labels:
         app: soulbot
     spec:
+      terminationGracePeriodSeconds: 35
       containers:
       - name: soulbot
         image: unprofessional/soulbot:rc-0.0.1
         imagePullPolicy: Never
         ports:
-        - containerPort: 80  # HTTP
+        - containerPort: 8080
         # - containerPort: 443 # HTTPS
         # only uncomment above if using soulbot-ingress.yaml service as a
         # Kubernetes ingress controller
         env:
+        - name: HEALTH_PORT
+          value: "8080"
+        - name: DRAIN_DELAY_MS
+          value: "10000"
+        - name: SHUTDOWN_TIMEOUT_MS
+          value: "25000"
+        - name: REGISTER_GLOBAL_COMMANDS
+          value: "false"
+        - name: LEADER_LOCK_ID
+          value: "424242"
+        - name: LEADER_LOCK_RETRY_MS
+          value: "2000"
         - name: DISCORD_BOT_TOKEN
           valueFrom:
             secretKeyRef:
@@ -65,6 +83,32 @@ spec:
               key: PG_DB
         - name: OLLAMA_TRANSLATION_MODEL
           value: "translategemma:12b"
+        readinessProbe:
+          httpGet:
+            path: /readyz
+            port: 8080
+          periodSeconds: 3
+          timeoutSeconds: 1
+          failureThreshold: 1
+        livenessProbe:
+          httpGet:
+            path: /livez
+            port: 8080
+          periodSeconds: 10
+          timeoutSeconds: 1
+          failureThreshold: 3
+        startupProbe:
+          httpGet:
+            path: /readyz
+            port: 8080
+          periodSeconds: 5
+          timeoutSeconds: 1
+          failureThreshold: 12
+        lifecycle:
+          preStop:
+            httpGet:
+              path: /drain
+              port: 8080
         # TODO: Kokoro Config
         volumeMounts:
         - name: temp-data-volume

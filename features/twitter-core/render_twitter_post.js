@@ -11,6 +11,7 @@ const {
 const { createVideoProgressMessage } = require('./progress_message.js');
 const { handleVideoPost } = require('./twitter_video_handler.js');
 const { handleImagePost } = require('./twitter_image_handler.js');
+const { runTrackedMediaJob } = require('../../app/media_work_registry.js');
 
 const { collectMedia, formatTwitterDate } = require('./utils.js');
 
@@ -66,29 +67,39 @@ const renderTwitterPost = async (metadataJson, message, originalLink) => {
 
     const processingRunId = createProcessingRunId();
 
-    if (isVideo && videoUrl) {
-        const progressMessage = await createVideoProgressMessage(message);
-        const pathInfo = buildPathsAndStuff(processingDir, videoUrl, processingRunId);
+    return runTrackedMediaJob(
+        {
+            kind: isVideo && videoUrl ? 'twitter-video' : 'twitter-canvas',
+            label: originalLink,
+        },
+        async (job) => {
+            if (isVideo && videoUrl) {
+                const progressMessage = await createVideoProgressMessage(message);
+                const pathInfo = buildPathsAndStuff(processingDir, videoUrl, processingRunId);
 
-        return await handleVideoPost({
-            metadataJson,
-            message,
-            originalLink,
-            videoUrl,
-            processingDir,
-            processingRunId,
-            pathInfo,
-            MAX_CONCURRENT_REQUESTS,
-            progressMessage,
-        });
-    } else {
-        return await handleImagePost({
-            metadataJson,
-            message,
-            originalLink,
-            processingRunId,
-        });
-    }
+                return handleVideoPost({
+                    metadataJson,
+                    message,
+                    originalLink,
+                    videoUrl,
+                    processingDir,
+                    processingRunId,
+                    pathInfo,
+                    MAX_CONCURRENT_REQUESTS,
+                    progressMessage,
+                    mediaJob: job,
+                });
+            }
+
+            return handleImagePost({
+                metadataJson,
+                message,
+                originalLink,
+                processingRunId,
+                mediaJob: job,
+            });
+        }
+    );
 };
 
 module.exports = { renderTwitterPost };

@@ -3,6 +3,7 @@
 const { SlashCommandBuilder } = require('discord.js');
 const PromiseQueue = require('../../lib/promise_queue');
 const { handleThreadSnapshot } = require('../../features/twitter-core/thread_snapshot_handler');
+const { MediaDrainError } = require('../../app/media_work_registry.js');
 
 const queue = new PromiseQueue(1, 60000); // 1 concurrent, 60s timeout
 const queueLimit = 3;
@@ -46,6 +47,12 @@ module.exports = {
                 });
             }
         } catch (error) {
+            if (error instanceof MediaDrainError || error?.name === 'MediaDrainError') {
+                return await interaction.editReply({
+                    content: 'The thread renderer is temporarily unavailable because the bot is restarting. Please try again shortly.',
+                });
+            }
+
             if (error.name === 'TimeoutError') {
                 return await interaction.editReply({
                     content: `The thread renderer timed out. Please try again later.`,

@@ -249,6 +249,10 @@ function bakeImageAsFilterIntoVideoDEBUG(
                 .on('start', (commandLine) => {
                     console.log('[ffmpeg] start cmd:', commandLine);
                     console.log('[ffmpeg] outputOptions:', baseOutputOpts.join(' '));
+                    const proc = cmd.ffmpegProc;
+                    if (proc && typeof options?.onSpawn === 'function') {
+                        options.onSpawn(proc);
+                    }
                 })
                 .on('codecData', d => console.log('[ffmpeg][codecData]', d))
                 .on('progress', p => {

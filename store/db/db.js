@@ -23,7 +23,13 @@ const initializeDB = async () => {
     }
 };
 
+const closeDB = async () => {
+    await pool.end();
+    console.log('PG Database pool closed.');
+};
+
 module.exports = {
+    closeDB,
     testPgConnection,
     initializeDB,
 };

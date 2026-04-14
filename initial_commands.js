@@ -4,6 +4,8 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { Collection, REST, Routes, Events } = require('discord.js');
 require('dotenv').config();
+const { shouldAcceptWork } = require('./app/lifecycle.js');
+const { registerGlobalCommands } = require('./config/env_config.js');
 
 const { DISCORD_CLIENT_ID, DISCORD_BOT_TOKEN } = process.env;
 
@@ -49,20 +51,38 @@ const initializeCommands = async (client) => {
     }
 
     // === Register global application commands ===
-    try {
-        console.log('🔄 Registering global application (/) commands...');
-        await rest.put(Routes.applicationCommands(DISCORD_CLIENT_ID), {
-            body: commandsForAPI,
-        });
-        console.log(`✅ Successfully registered ${commandsForAPI.length} global commands:`);
-        console.table(commandsForAPI.map(c => ({ name: c.name, description: c.description })));
-    } catch (err) {
-        console.error('❌ Error registering application commands:', err);
+    if (registerGlobalCommands) {
+        try {
+            console.log('🔄 Registering global application (/) commands...');
+            await rest.put(Routes.applicationCommands(DISCORD_CLIENT_ID), {
+                body: commandsForAPI,
+            });
+            console.log(`✅ Successfully registered ${commandsForAPI.length} global commands:`);
+            console.table(commandsForAPI.map(c => ({ name: c.name, description: c.description })));
+        } catch (err) {
+            console.error('❌ Error registering application commands:', err);
+        }
+    } else {
+        console.log('⏭️ Skipping global application command registration.');
     }
 
     // === Interaction Handlers ===
     client.on(Events.InteractionCreate, async interaction => {
         try {
+            if (!shouldAcceptWork()) {
+                const replyPayload = {
+                    content: 'The bot is restarting and is temporarily not accepting new work. Please try again shortly.',
+                    ephemeral: true,
+                };
+
+                if (interaction.replied || interaction.deferred) {
+                    await interaction.followUp(replyPayload);
+                } else {
+                    await interaction.reply(replyPayload);
+                }
+                return;
+            }
+
             if (interaction.isChatInputCommand()) {
                 const command = client.commands.get(interaction.commandName);
                 if (!command) {

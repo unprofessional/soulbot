@@ -32,6 +32,7 @@ async function handleVideoPost({
     pathInfo,
     MAX_CONCURRENT_REQUESTS,
     progressMessage,
+    mediaJob,
 }) {
     const communityNotes = {
         main: metadataJson.communityNote,
@@ -128,6 +129,9 @@ async function handleVideoPost({
             {
                 onProgress: async (progress) => {
                     await progressMessage?.updateVideoEncodeProgress?.(progress);
+                },
+                onSpawn: (proc) => {
+                    mediaJob?.attachProcess(proc, { label: 'ffmpeg encode' });
                 },
             },
         );

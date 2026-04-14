@@ -4,6 +4,12 @@ require('dotenv').config();
 const token = process.env.DISCORD_BOT_TOKEN;
 const runMode = process.env.RUN_MODE || 'development';
 const soulbotUserId = process.env.SOULBOT_USER_ID || '891854264845094922';
+const healthPort = Number(process.env.HEALTH_PORT || '8080');
+const shutdownTimeoutMs = Number(process.env.SHUTDOWN_TIMEOUT_MS || '25000');
+const drainDelayMs = Number(process.env.DRAIN_DELAY_MS || '10000');
+const registerGlobalCommands = process.env.REGISTER_GLOBAL_COMMANDS === 'true';
+const leaderLockId = Number(process.env.LEADER_LOCK_ID || '424242');
+const leaderLockRetryMs = Number(process.env.LEADER_LOCK_RETRY_MS || '2000');
 
 // ollama
 const ollamaHost = process.env.OLLAMA_HOST || '192.168.7.73';
@@ -33,7 +39,7 @@ const kokoroUrl = process.env.KOKORO_URL || 'http://kokoro-http-service:8081';
 const ollamaTranslationModel = process.env.OLLAMA_TRANSLATION_MODEL || 'translategemma:12b';
 
 module.exports = {
-    token, runMode, soulbotUserId,
+    token, runMode, soulbotUserId, healthPort, shutdownTimeoutMs, drainDelayMs, registerGlobalCommands, leaderLockId, leaderLockRetryMs,
     ollamaHost, ollamaPort, ollamaChatEndpoint, ollamaGenerateEndpoint, ollamaEmbeddingEndpoint, ollamaModel, ollamaEmbedModel,
     pgHost, pgPort, pgUser, pgPass, pgDb,
     chromaHost, chromaPort, chromaUpsertEndpoint,

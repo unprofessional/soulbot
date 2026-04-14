@@ -5,10 +5,27 @@ const { initializeListeners } = require('./message_listeners/core.js');
 const { initializeCommands } = require('./initial_commands.js');
 const { initializeGuildMemberUpdate } = require('./events/guild_member_update.js');
 const { initializeGuildMemberRemove } = require('./events/guild_member_remove.js');
-const { testPgConnection, initializeDB } = require('./store/db/db.js');
+const { closeDB, testPgConnection, initializeDB } = require('./store/db/db.js');
 const { testChromaConnection } = require('./features/ollama/embed.js');
 const { registerFonts } = require('./features/twitter-post/canvas/fonts.js');
 const { initializeGuildMemberAdd } = require('./events/guild_member_add.js');
+const { createHealthServer } = require('./app/health_server.js');
+const {
+    isDraining,
+    markReady,
+    registerCleanup,
+    shutdown,
+} = require('./app/lifecycle.js');
+const PromiseQueue = require('./lib/promise_queue.js');
+const { onIdle: onMediaWorkIdle } = require('./app/media_work_registry.js');
+const {
+    drainDelayMs,
+    healthPort,
+    leaderLockId,
+    leaderLockRetryMs,
+    shutdownTimeoutMs,
+} = require('./config/env_config.js');
+const { createLeaderLock } = require('./store/db/leader_lock.js');
 
 require('dotenv').config();
 
@@ -36,11 +53,51 @@ const initializeApp = async () => {
         process.exit(1);
     }
 
+    const healthServer = createHealthServer({
+        port: healthPort,
+        drainDelayMs,
+    });
+    const leaderLock = createLeaderLock({
+        lockId: leaderLockId,
+        retryDelayMs: leaderLockRetryMs,
+    });
+
+    await healthServer.start();
+
+    registerCleanup('pause async queues', async () => {
+        PromiseQueue.pauseAll();
+        await PromiseQueue.onIdleAll();
+    });
+
+    registerCleanup('wait for twitter/media work', async () => {
+        await onMediaWorkIdle();
+    });
+
+    registerCleanup('close health server', async () => {
+        await healthServer.stop();
+    });
+
+    registerCleanup('disconnect Discord client', async () => {
+        if (client.isReady()) {
+            await client.destroy();
+            console.log('----- Events: Discord client destroyed');
+        }
+    });
+
+    registerCleanup('close Postgres pool', async () => {
+        await closeDB();
+    });
+
+    registerCleanup('release leader lock', async () => {
+        await leaderLock.close();
+    });
+
     /**
      * Client lifecycle
      */
     client.on(Events.ClientReady, () => {
         console.log(`----- Events: Logged in as ${client.user.tag}`);
+        markReady();
     });
     client.on(Events.Error, (error) => {
         console.error('----- Events: Error:', error);
@@ -120,11 +177,41 @@ const initializeApp = async () => {
         // intentionally non-fatal
     }
 
+    await leaderLock.acquire({
+        shouldStop: () => isDraining(),
+    });
+
     /**
      * Login last — nothing should create canvases before this point
      */
     await client.login(token);
 };
+
+async function handleShutdown(signal) {
+    const timeout = setTimeout(() => {
+        console.error(`[Lifecycle] Forced shutdown after ${shutdownTimeoutMs}ms`);
+        process.exit(1);
+    }, shutdownTimeoutMs);
+    timeout.unref?.();
+
+    try {
+        const exitCode = await shutdown({ signal, exitCode: 0 });
+        clearTimeout(timeout);
+        process.exit(exitCode);
+    } catch (error) {
+        clearTimeout(timeout);
+        console.error('[Lifecycle] Shutdown failed:', error);
+        process.exit(1);
+    }
+}
+
+process.on('SIGTERM', () => {
+    void handleShutdown('SIGTERM');
+});
+
+process.on('SIGINT', () => {
+    void handleShutdown('SIGINT');
+});
 
 initializeApp().catch((error) => {
     console.error('Error during initialization:', error);

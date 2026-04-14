@@ -9,8 +9,13 @@ async function handleImagePost({
     message,
     originalLink,
     processingRunId,
+    mediaJob,
 }) {
     console.log('>>>>> handleImagePost > Not a video');
+
+    if (!mediaJob) {
+        console.warn('>>> handleImagePost > no mediaJob tracker supplied');
+    }
 
     const buffer = await createTwitterCanvas(metadataJson);
     await message.suppressEmbeds(true);

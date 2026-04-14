@@ -7,6 +7,7 @@ const { renderTwitterPost } = require('./render_twitter_post.js');
 const { stripQueryParams } = require('./utils.js');
 const { enrichMetadataWithTranslation } = require('./translation_service.js');
 const { findMessagesByLink } = require('../../store/services/messages.service.js');
+const { MediaDrainError } = require('../../app/media_work_registry.js');
 
 // Domains we consider "known" (for optional logging)
 const KNOWN_X_DOMAINS = ['twitter.com', 'x.com', 'fixupx.com', 'vxtwitter.com', 'fxtwitter.com'];
@@ -244,8 +245,21 @@ async function handleTwitterUrl(message, { guildId }) {
 
         console.log('>>>>> core detect > firstUrl:', firstUrl);
         console.log('[TwitterHandler] Calling renderTwitterPost...');
-        await renderTwitterPost(meta, message, firstUrl);
-        console.log('[TwitterHandler] renderTwitterPost completed.');
+        try {
+            await renderTwitterPost(meta, message, firstUrl);
+            console.log('[TwitterHandler] renderTwitterPost completed.');
+        } catch (error) {
+            if (error instanceof MediaDrainError || error?.name === 'MediaDrainError') {
+                console.log('[TwitterHandler] Media work rejected because the bot is draining.');
+                await message.reply({
+                    content: 'Twitter rendering is temporarily unavailable because the bot is restarting. Please try again shortly.',
+                    allowedMentions: { repliedUser: false },
+                });
+                return;
+            }
+
+            throw error;
+        }
 
     } catch (err) {
         console.error('[TwitterHandler] metadata fetch failed:', err);

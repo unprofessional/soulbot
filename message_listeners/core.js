@@ -12,6 +12,7 @@ const { handleHilariousReactionAdd } = require('../features/reactions/hilarious_
 const { updateMessage, deleteMessage } = require('../store/services/messages.service.js');
 const { getFeature } = require('../store/features.js');
 const { soulbotUserId } = require('../config/env_config.js');
+const { shouldAcceptWork } = require('../app/lifecycle.js');
 
 // Identity checks
 const isABot = message => message.author.bot;
@@ -19,6 +20,10 @@ const isSelf = message => message.author.id === soulbotUserId;
 
 async function initializeListeners(client) {
     client.on(Events.MessageCreate, async (message) => {
+        if (!shouldAcceptWork()) {
+            return;
+        }
+
         const guildId = message.guildId;
         await logMessage(message);
 
@@ -40,6 +45,10 @@ async function initializeListeners(client) {
 
     // Message update listener
     client.on(Events.MessageUpdate, async (oldMessage, newMessage) => {
+        if (!shouldAcceptWork()) {
+            return;
+        }
+
         if (!newMessage.partial && newMessage.content !== oldMessage.content) {
             console.log(`✏️ Message edited: ${newMessage.id}`);
             await updateMessage(newMessage.id, newMessage.content);
@@ -48,6 +57,10 @@ async function initializeListeners(client) {
 
     // Message delete listener
     client.on(Events.MessageDelete, async (deletedMessage) => {
+        if (!shouldAcceptWork()) {
+            return;
+        }
+
         if (!deletedMessage.partial) {
             console.log(`🗑️ Message deleted: ${deletedMessage.id}`);
             await deleteMessage(deletedMessage.id);
@@ -55,6 +68,10 @@ async function initializeListeners(client) {
     });
 
     client.on(Events.MessageReactionAdd, async (reaction, user) => {
+        if (!shouldAcceptWork()) {
+            return;
+        }
+
         try {
             await handleHilariousReactionAdd(reaction, user);
         } catch (error) {
