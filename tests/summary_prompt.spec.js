@@ -6,7 +6,10 @@ const {
     formatSummaryMessages,
     isLowSignalContent,
     isUrlOnlyContent,
+    isGemma4Model,
+    isQwenModel,
     normalizeSummaryContext,
+    sanitizeThinkingOutput,
     scoreSummaryMessages,
     selectMessagesForPrompt,
     stripSummaryPrefix,
@@ -148,6 +151,18 @@ describe('summary prompt formatting', () => {
         expect(prompt).toContain('avoid repeating the exact same setup or conclusion phrases');
     });
 
+    test('buildSummaryPrompt adds /no_think for Qwen but not Gemma 4', () => {
+        const summaryInput = {
+            mode: 'full',
+            messages: [
+                { user_id: '111', content: 'hello there' },
+            ],
+        };
+
+        expect(buildSummaryPrompt(summaryInput, 'qwen3:14b')).toContain('/no_think');
+        expect(buildSummaryPrompt(summaryInput, 'supergemma4-26b-fixed:latest')).not.toContain('/no_think');
+    });
+
     test('buildSummaryPrompt includes previous summary and only newer messages in delta mode', () => {
         const prompt = buildSummaryPrompt({
             mode: 'delta',
@@ -213,7 +228,7 @@ describe('summary prompt formatting', () => {
             previousSummary: 'User prefers concise answers and was debugging slash commands.',
             userPrompt: 'can you rename /llama to /llm',
             assistantResponse: 'I renamed the command and updated the context flow.',
-        });
+        }, 'qwen3:14b');
 
         expect(prompt).toContain('You are maintaining a compact memory summary');
         expect(prompt).toContain('PreviousMemorySummary:');
@@ -221,5 +236,39 @@ describe('summary prompt formatting', () => {
         expect(prompt).toContain('LatestUserMessage:');
         expect(prompt).toContain('LatestAssistantReply:');
         expect(prompt).toContain('/no_think');
+    });
+
+    test('buildLlm prompts omit /no_think for Gemma 4', () => {
+        const replyPrompt = buildLlmReplyPrompt({
+            userId: '111',
+            userPrompt: 'what do you think about this',
+            memorySummary: 'User likes concise answers.',
+            channelMessages: [],
+            webpageContent: null,
+        }, 'supergemma4-26b-fixed:latest');
+
+        const memoryPrompt = buildLlmMemoryPrompt({
+            previousSummary: 'User likes concise answers.',
+            userPrompt: 'can you rename /llama to /llm',
+            assistantResponse: 'I renamed the command.',
+        }, 'supergemma4-26b-fixed:latest');
+
+        expect(replyPrompt).not.toContain('/no_think');
+        expect(memoryPrompt).not.toContain('/no_think');
+    });
+
+    test('model helpers detect Qwen and Gemma 4 families', () => {
+        expect(isQwenModel('qwen3:14b')).toBe(true);
+        expect(isQwenModel('supergemma4-26b-fixed:latest')).toBe(false);
+        expect(isGemma4Model('supergemma4-26b-fixed:latest')).toBe(true);
+        expect(isGemma4Model('gemma-4-31b-it')).toBe(true);
+        expect(isGemma4Model('qwen3:14b')).toBe(false);
+    });
+
+    test('sanitizeThinkingOutput removes Gemma 4 empty thought wrappers and empty think tags', () => {
+        expect(sanitizeThinkingOutput('<|channel|>thought\n<channel|>final answer', 'supergemma4-26b-fixed:latest'))
+            .toBe('final answer');
+        expect(sanitizeThinkingOutput('<think></think>final answer', 'qwen3:14b'))
+            .toBe('final answer');
     });
 });

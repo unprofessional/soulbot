@@ -82,6 +82,10 @@ Categorize the image now and follow the JSON schema strictly.
         keep_alive: -1, // Keep model in memory
     };
 
+    if (isGemma4Model(chatModel)) {
+        requestBody.think = false;
+    }
+
     console.log('>>>>> ollama > sendPromptToOllama > requestBody: ', requestBody);
 
     try {
@@ -129,6 +133,39 @@ const SUMMARY_STOPWORDS = new Set([
 
 function stripSummaryPrefix(summary = '') {
     return summary.replace(/^\*\*Summary:\*\*\s*/i, '').trim();
+}
+
+function normalizeModelName(model = '') {
+    return String(model || '').trim().toLowerCase();
+}
+
+function isQwenModel(model = '') {
+    return normalizeModelName(model).includes('qwen');
+}
+
+function isGemma4Model(model = '') {
+    const normalizedModel = normalizeModelName(model);
+    return normalizedModel.includes('gemma4') || normalizedModel.includes('gemma-4');
+}
+
+function maybeAddNoThinkDirective(lines, model = '') {
+    if (isQwenModel(model)) {
+        return [...lines, '/no_think'];
+    }
+
+    return lines;
+}
+
+function sanitizeThinkingOutput(responseText = '', model = '') {
+    let sanitized = String(responseText || '');
+
+    if (isGemma4Model(model)) {
+        sanitized = sanitized.replace(/<\|channel\|>thought\s*<channel\|>\s*/gi, '');
+    }
+
+    return sanitized
+        .replace(/<think>\s*<\/think>\s*/gi, '')
+        .trim();
 }
 
 function normalizeSummaryContext(summaryInput = []) {
@@ -384,10 +421,10 @@ function buildSummaryIntelligence(summaryInput = []) {
 function buildFullSummaryPrompt(messages = [], intelligence = buildSummaryIntelligence({
     mode: 'full',
     messages,
-})) {
+}), model = summaryModel) {
     const formattedMessages = formatSummaryMessages(intelligence.selectedMessages);
 
-    return [
+    return maybeAddNoThinkDirective([
         'You are summarizing a Discord chat log.',
         'Be condescending and bitchy.',
         'Keep it brief and salient.',
@@ -416,15 +453,14 @@ function buildFullSummaryPrompt(messages = [], intelligence = buildSummaryIntell
         '',
         'DiscordChatLog:',
         formattedMessages,
-        '/no_think',
-    ].join('\n');
+    ], model).join('\n');
 }
 
 function buildDeltaSummaryPrompt(previousSummary, messages = [], intelligence = buildSummaryIntelligence({
     mode: 'delta',
     previousSummary,
     messages,
-})) {
+}), model = summaryModel) {
     const priorSummary = stripSummaryPrefix(previousSummary);
     const formattedMessages = formatSummaryMessages(intelligence.selectedMessages);
     const hasMeaningfulChanges = Boolean(formattedMessages);
@@ -435,7 +471,7 @@ function buildDeltaSummaryPrompt(previousSummary, messages = [], intelligence = 
         new_topic: 'The chat pivoted, so emphasize the new thread instead of repeating old context.',
     };
 
-    return [
+    return maybeAddNoThinkDirective([
         'You are updating a Discord chat summary.',
         'Be condescending and bitchy.',
         'Keep it brief and salient.',
@@ -472,19 +508,18 @@ function buildDeltaSummaryPrompt(previousSummary, messages = [], intelligence = 
         '',
         'NewMessagesSinceLastSummary:',
         formattedMessages || '[none]',
-        '/no_think',
-    ].join('\n');
+    ], model).join('\n');
 }
 
-function buildSummaryPrompt(summaryInput = []) {
+function buildSummaryPrompt(summaryInput = [], model = summaryModel) {
     const summaryContext = normalizeSummaryContext(summaryInput);
     const intelligence = buildSummaryIntelligence(summaryContext);
 
     if (summaryContext.mode === 'delta') {
-        return buildDeltaSummaryPrompt(summaryContext.previousSummary, summaryContext.messages, intelligence);
+        return buildDeltaSummaryPrompt(summaryContext.previousSummary, summaryContext.messages, intelligence, model);
     }
 
-    return buildFullSummaryPrompt(summaryContext.messages, intelligence);
+    return buildFullSummaryPrompt(summaryContext.messages, intelligence, model);
 }
 
 async function generateText(prompt, model = chatModel) {
@@ -498,6 +533,10 @@ async function generateText(prompt, model = chatModel) {
         stream: false,
         keep_alive: -1,
     };
+
+    if (isGemma4Model(model)) {
+        requestBody.think = false;
+    }
 
     console.log('>>>>> ollama > generateText > requestBody: ', requestBody);
 
@@ -516,9 +555,7 @@ async function generateText(prompt, model = chatModel) {
         }
 
         const data = await response.json();
-        return (data.response || '')
-            .replace(/<think>\s*<\/think>\s*/gi, '')
-            .trim();
+        return sanitizeThinkingOutput(data.response, model);
     } catch (error) {
         console.error('Error communicating with Ollama API:', error);
         throw error;
@@ -527,7 +564,7 @@ async function generateText(prompt, model = chatModel) {
 
 async function summarizeChat(summaryInput, model = summaryModel) {
     const summaryContext = normalizeSummaryContext(summaryInput);
-    return generateText(buildSummaryPrompt(summaryContext), model);
+    return generateText(buildSummaryPrompt(summaryContext, model), model);
 }
 
 function buildLlmReplyPrompt({
@@ -536,12 +573,12 @@ function buildLlmReplyPrompt({
     memorySummary,
     channelMessages = [],
     webpageContent,
-}) {
+}, model = chatModel) {
     const formattedMessages = formatSummaryMessages(channelMessages) || '[none]';
     const memoryBlock = memorySummary?.trim() || '[none]';
     const webpageBlock = webpageContent?.trim() || '[none]';
 
-    return [
+    return maybeAddNoThinkDirective([
         `You are SOULbot, user ID <@${soulbotUserId}>.`,
         'Reply to the latest user message in plain text.',
         'Keep it concise, direct, and conversational.',
@@ -565,16 +602,15 @@ function buildLlmReplyPrompt({
         '',
         'LatestUserMessage:',
         userPrompt,
-        '/no_think',
-    ].join('\n');
+    ], model).join('\n');
 }
 
 function buildLlmMemoryPrompt({
     previousSummary,
     userPrompt,
     assistantResponse,
-}) {
-    return [
+}, model = summaryModel) {
+    return maybeAddNoThinkDirective([
         'You are maintaining a compact memory summary for one user\'s prior chats with SOULbot.',
         'Rewrite the memory summary so it stays useful for future replies.',
         'Preserve durable preferences, recurring topics, ongoing tasks, important opinions, and unresolved questions.',
@@ -591,16 +627,15 @@ function buildLlmMemoryPrompt({
         '',
         'LatestAssistantReply:',
         assistantResponse,
-        '/no_think',
-    ].join('\n');
+    ], model).join('\n');
 }
 
 async function replyWithLlmContext(context) {
-    return generateText(buildLlmReplyPrompt(context), chatModel);
+    return generateText(buildLlmReplyPrompt(context, chatModel), chatModel);
 }
 
 async function summarizeLlmMemory(memoryInput) {
-    return generateText(buildLlmMemoryPrompt(memoryInput), summaryModel);
+    return generateText(buildLlmMemoryPrompt(memoryInput, summaryModel), summaryModel);
 }
 
 /**
@@ -672,6 +707,9 @@ module.exports = {
     summarizeTopics,
     summarizeHistoryTopics,
     stripSummaryPrefix,
+    isGemma4Model,
+    isQwenModel,
+    sanitizeThinkingOutput,
     generateText,
     processChunks,
     replyWithLlmContext,
