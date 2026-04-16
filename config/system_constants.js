@@ -1,6 +1,6 @@
 module.exports = {
-    chatModel: 'qwen3:14b',
-    summaryModel: 'qwen3:14b',
+    chatModel: 'supergemma4-26b-fixed:latest',
+    summaryModel: 'supergemma4-26b-fixed:latest',
     contextSize: 40960,
 };
 
