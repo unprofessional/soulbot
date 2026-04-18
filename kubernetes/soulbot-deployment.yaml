@@ -35,7 +35,7 @@ spec:
         - name: SHUTDOWN_TIMEOUT_MS
           value: "25000"
         - name: REGISTER_GLOBAL_COMMANDS
-          value: "false"
+          value: "true"
         - name: LEADER_LOCK_ID
           value: "424242"
         - name: LEADER_LOCK_RETRY_MS
