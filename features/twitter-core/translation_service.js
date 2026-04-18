@@ -12,6 +12,38 @@ const translationCache = new Map();
 const languageDisplayNames = typeof Intl !== 'undefined' && typeof Intl.DisplayNames === 'function'
     ? new Intl.DisplayNames(['en'], { type: 'language' })
     : null;
+const TWITTER_SPECIAL_LANGUAGE_CODES = new Map(Object.entries({
+    qam: {
+        displayName: 'mentions only',
+        promptDescription: 'mentions only',
+        isTranslatable: true,
+    },
+    qct: {
+        displayName: 'cashtags only',
+        promptDescription: 'cashtags only',
+        isTranslatable: true,
+    },
+    qht: {
+        displayName: 'hashtags only',
+        promptDescription: 'hashtags only',
+        isTranslatable: true,
+    },
+    qme: {
+        displayName: 'media links',
+        promptDescription: 'media links',
+        isTranslatable: true,
+    },
+    qst: {
+        displayName: 'very short text',
+        promptDescription: 'very short text',
+        isTranslatable: true,
+    },
+    zxx: {
+        displayName: 'no linguistic content',
+        promptDescription: 'no linguistic content',
+        isTranslatable: false,
+    },
+}));
 const LANGUAGE_NAME_TO_CODE = new Map(Object.entries({
     afrikaans: 'af',
     albanian: 'sq',
@@ -120,7 +152,14 @@ function isEnglishLanguage(lang) {
     return typeof lang === 'string' && ENGLISH_LANGUAGE_RE.test(lang.trim());
 }
 
+function getTwitterSpecialLanguage(code) {
+    const normalized = String(code || '').trim().toLowerCase().replace(/_/g, '-');
+    return TWITTER_SPECIAL_LANGUAGE_CODES.get(normalized.split('-')[0]) || null;
+}
+
 function isNonTranslatableLanguage(lang) {
+    const special = getTwitterSpecialLanguage(lang);
+    if (special) return !special.isTranslatable;
     return typeof lang === 'string' && NON_TRANSLATABLE_LANGUAGE_RE.test(lang.trim());
 }
 
@@ -204,6 +243,9 @@ function getLanguageName(code) {
     const normalized = String(code || '').trim();
     if (!normalized) return 'Unknown';
 
+    const special = getTwitterSpecialLanguage(normalized);
+    if (special?.displayName) return special.displayName;
+
     const candidates = [
         normalized,
         normalized.replace(/_/g, '-'),
@@ -225,6 +267,18 @@ function buildTranslateGemmaPrompt({ text, sourceLanguage, targetLanguage = 'en'
     const targetCode = String(targetLanguage || 'en').trim() || 'en';
     const sourceName = getLanguageName(sourceCode);
     const targetName = getLanguageName(targetCode);
+    const special = getTwitterSpecialLanguage(sourceCode);
+
+    if (special?.isTranslatable) {
+        return [
+            `You are a professional translator working from X/Twitter posts into ${targetName} (${targetCode}).`,
+            `The source post is labeled ${sourceName} (${sourceCode}), which is a Twitter-specific content classification rather than a real language code.`,
+            `Infer the actual source language from the text itself and produce only the ${targetName} translation, without any additional explanations or commentary.`,
+            '',
+            '',
+            text,
+        ].join('\n');
+    }
 
     return [
         `You are a professional ${sourceName} (${sourceCode}) to ${targetName} (${targetCode}) translator. Your goal is to accurately convey the meaning and nuances of the original ${sourceName} text while adhering to ${targetName} grammar, vocabulary, and cultural sensitivities.`,
@@ -243,6 +297,9 @@ function buildBatchTranslateGemmaPrompt(items, { targetLanguage = 'en' } = {}) {
         id: String(item.id),
         source_language: String(item.sourceLanguage || 'auto'),
         source_language_name: getLanguageName(item.sourceLanguage || 'auto'),
+        source_language_note: getTwitterSpecialLanguage(item.sourceLanguage)?.isTranslatable
+            ? 'Twitter-specific classification, not a real language code. Infer the actual language from the text.'
+            : undefined,
         text: item.text,
     }));
 

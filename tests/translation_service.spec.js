@@ -47,6 +47,20 @@ describe('translation_service', () => {
         expect(prompt).toContain('\n\n\nGuten Morgen, wie geht es Ihnen?');
     });
 
+    test('buildTranslateGemmaPrompt treats Twitter synthetic lang codes as content classifications', () => {
+        const { buildTranslateGemmaPrompt } = loadServiceWithEnv();
+
+        const prompt = buildTranslateGemmaPrompt({
+            text: 'N',
+            sourceLanguage: 'qst',
+            targetLanguage: 'en',
+        });
+
+        expect(prompt).toContain('working from X/Twitter posts into English (en)');
+        expect(prompt).toContain('very short text (qst), which is a Twitter-specific content classification rather than a real language code');
+        expect(prompt).toContain('Infer the actual source language from the text itself');
+    });
+
     test('resolveLanguageCode supports language names and explicit codes', () => {
         const { resolveLanguageCode } = loadServiceWithEnv();
 
@@ -71,6 +85,22 @@ describe('translation_service', () => {
         expect(rendered).toContain('Charlie Sheen farmou muita aura nesse comercial');
         expect(rendered).toContain('[Translated from Portuguese]');
         expect(rendered).toContain('Charlie Sheen farmed a lot of aura in this commercial.');
+    });
+
+    test('buildDisplayText uses friendly names for Twitter synthetic lang codes', () => {
+        const { buildDisplayText } = loadServiceWithEnv();
+
+        const rendered = buildDisplayText({
+            text: 'N',
+            lang: 'qst',
+            translation: {
+                sourceLanguage: 'qst',
+                text: 'N.',
+            },
+        });
+
+        expect(rendered).toContain('[Translated from very short text]');
+        expect(rendered).toContain('N.');
     });
 
     test('buildDisplayText returns empty string when the source text is effectively empty', () => {
@@ -154,6 +184,30 @@ describe('translation_service', () => {
         expect(global.fetch).toHaveBeenCalledTimes(1);
         expect(posts[0].translatedText).toBe('Hello world');
         expect(posts[1].translatedText).toBe('Good morning');
+    });
+
+    test('translateMetadataBatchToEnglish annotates Twitter synthetic lang codes in batch prompts', async () => {
+        const { translateMetadataBatchToEnglish } = loadServiceWithEnv({
+            OLLAMA_TRANSLATION_MODEL: 'translategemma:12b',
+        });
+
+        global.fetch = jest.fn().mockResolvedValue({
+            ok: true,
+            json: async () => ({
+                response: JSON.stringify([
+                    { id: '1', translation: 'N.' },
+                ]),
+            }),
+        });
+
+        const posts = [
+            { tweetID: '1', lang: 'qst', text: 'N' },
+        ];
+
+        await translateMetadataBatchToEnglish(posts, jest.fn());
+
+        expect(global.fetch).toHaveBeenCalledTimes(1);
+        expect(JSON.parse(global.fetch.mock.calls[0][1].body).prompt).toContain('Twitter-specific classification, not a real language code');
     });
 
     test('enrichMetadataWithTranslation stores translated text on metadata', async () => {
