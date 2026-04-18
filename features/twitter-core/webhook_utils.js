@@ -126,6 +126,34 @@ function buildSimulatedReplyText(message, modifiedContent, replyMeta) {
          `>>> ${modifiedContent}`;
 }
 
+function extractMentionedUserIds(content) {
+    if (!content) return [];
+
+    const mentionedUserIds = new Set();
+    const mentionPattern = /<@!?(\d+)>/g;
+
+    for (const match of content.matchAll(mentionPattern)) {
+        if (match[1]) {
+            mentionedUserIds.add(match[1]);
+        }
+    }
+
+    return Array.from(mentionedUserIds);
+}
+
+function buildAllowedMentions(content, replyMeta) {
+    const allowedUserIds = new Set(extractMentionedUserIds(content));
+
+    if (replyMeta && !replyMeta.targetIsWebhook && replyMeta.targetId) {
+        allowedUserIds.add(replyMeta.targetId);
+    }
+
+    return {
+        parse: [],
+        users: Array.from(allowedUserIds),
+    };
+}
+
 
 /**
  * Sends a message through a webhook with optional files and embeds,
@@ -174,11 +202,10 @@ const sendWebhookProxyMessageInternal = async (
         const replyMeta = await getReplyMeta(message);
         const finalContent = buildSimulatedReplyText(message, modifiedContent, replyMeta);
 
-        // Limit pings: only the replied-to user (if real). Block @everyone/@here/roles.
-        const allowedMentions =
-      replyMeta && !replyMeta.targetIsWebhook && replyMeta.targetId
-          ? { parse: [], users: [replyMeta.targetId] }
-          : { parse: [] };
+        // Allow only explicit user mentions already present in the rendered text.
+        // This preserves intentional <@user> wakeups while still blocking
+        // @everyone/@here and role mentions from being parsed.
+        const allowedMentions = buildAllowedMentions(finalContent, replyMeta);
 
         await webhook.send({
             content: finalContent,
@@ -257,7 +284,7 @@ const sendWebhookReplacementBatch = async (messages, content, files = []) => {
             username: displayName,
             avatarURL,
             files,
-            allowedMentions: { parse: [] },
+            allowedMentions: buildAllowedMentions(modifiedContent),
         });
     } catch (error) {
         console.error('>>> sendWebhookReplacementBatch error:', error);
@@ -343,6 +370,7 @@ const sendInteractionWebhookProxy = async (interaction, content) => {
 
 module.exports = {
     buildCommunityNoteEmbeds,
+    buildAllowedMentions,
     sendWebhookReplacementBatch,
     sendWebhookReplacementMsg,
     sendWebhookProxyMsg,
