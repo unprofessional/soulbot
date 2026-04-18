@@ -1,6 +1,7 @@
 const mockFindAll = jest.fn();
 const mockFindLatestChannelSummary = jest.fn();
 const mockFindLatestChannelSummaries = jest.fn();
+const mockFindRecentChannelMessagesIncludingDeleted = jest.fn();
 const mockSave = jest.fn();
 const mockFindByMessageId = jest.fn();
 
@@ -13,6 +14,7 @@ jest.mock('../store/dao/message.dao.js', () => {
         findAll: mockFindAll,
         findLatestChannelSummary: mockFindLatestChannelSummary,
         findLatestChannelSummaries: mockFindLatestChannelSummaries,
+        findRecentChannelMessagesIncludingDeleted: mockFindRecentChannelMessagesIncludingDeleted,
         findByMessageId: mockFindByMessageId,
         save: mockSave,
     }));
@@ -24,10 +26,12 @@ jest.mock('../config/env_config.js', () => ({
 
 const {
     addMessage,
+    getDeletedSummaryContext,
     getLlmChannelContext,
     getMessageById,
     getSummaryContext,
     getSummaryMessages,
+    isExpectedDeletedMessage,
 } = require('../store/services/messages.service');
 const { consumePendingRenderOwnership } = require('../features/twitter-core/render_ownership_registry.js');
 
@@ -86,6 +90,88 @@ describe('messages service', () => {
             { user_id: '1', content: 'earlier message' },
             { user_id: '2', content: 'later message' },
         ]);
+    });
+
+    test('getDeletedSummaryContext includes deleted rows but filters expected Twitter and SOULbot cleanup deletions', async () => {
+        const createdAt = new Date('2026-04-18T12:00:00.000Z');
+        mockFindRecentChannelMessagesIncludingDeleted.mockResolvedValue([
+            {
+                user_id: 'user-4',
+                content: 'that insult was gross',
+                created_at: new Date('2026-04-18T12:04:00.000Z'),
+                deleted_at: null,
+                meta: {},
+            },
+            {
+                user_id: 'user-3',
+                content: 'you fucking idiot',
+                created_at: new Date('2026-04-18T12:03:00.000Z'),
+                deleted_at: createdAt,
+                meta: {},
+            },
+            {
+                user_id: '891854264845094922',
+                content: 'Uploading the rendered Twitter/X video...',
+                created_at: new Date('2026-04-18T12:02:00.000Z'),
+                deleted_at: createdAt,
+                meta: {},
+            },
+            {
+                user_id: 'user-2',
+                content: 'https://x.com/example/status/123',
+                created_at: new Date('2026-04-18T12:01:00.000Z'),
+                deleted_at: createdAt,
+                meta: {},
+            },
+            {
+                user_id: 'user-1',
+                content: 'what got deleted?',
+                created_at: new Date('2026-04-18T12:00:00.000Z'),
+                deleted_at: null,
+                meta: {},
+            },
+        ]);
+
+        const context = await getDeletedSummaryContext({
+            channelId: '1481343741712400506',
+            limit: 50,
+        });
+
+        expect(mockFindRecentChannelMessagesIncludingDeleted).toHaveBeenCalledWith(
+            '1481343741712400506',
+            50
+        );
+        expect(context).toEqual({
+            messages: [
+                { user_id: 'user-1', content: 'what got deleted?', deleted_at: null },
+                { user_id: 'user-3', content: 'you fucking idiot', deleted_at: createdAt },
+                { user_id: 'user-4', content: 'that insult was gross', deleted_at: null },
+            ],
+            deletedMessages: [
+                { user_id: 'user-3', content: 'you fucking idiot', deleted_at: createdAt },
+            ],
+            ignoredDeletedCount: 2,
+        });
+    });
+
+    test('isExpectedDeletedMessage only suppresses expected deletion patterns', () => {
+        expect(isExpectedDeletedMessage({
+            user_id: 'user-1',
+            content: 'https://twitter.com/example/status/123',
+            deleted_at: new Date('2026-04-18T12:00:00.000Z'),
+        })).toBe(true);
+
+        expect(isExpectedDeletedMessage({
+            user_id: '891854264845094922',
+            content: 'Encoding Twitter/X video... ██████ 50% (00:10 / 00:20)',
+            deleted_at: new Date('2026-04-18T12:00:00.000Z'),
+        })).toBe(true);
+
+        expect(isExpectedDeletedMessage({
+            user_id: 'user-2',
+            content: 'this message was rude as hell',
+            deleted_at: new Date('2026-04-18T12:00:00.000Z'),
+        })).toBe(false);
     });
 
     test('getSummaryContext falls back to full mode when no prior summary exists', async () => {

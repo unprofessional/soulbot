@@ -1,4 +1,5 @@
 const {
+    buildDeletedSummaryPrompt,
     buildLlmMemoryPrompt,
     buildLlmReplyPrompt,
     buildSummaryPrompt,
@@ -149,6 +150,27 @@ describe('summary prompt formatting', () => {
         expect(prompt).toContain('DominantTopics:');
         expect(prompt).toContain('You are SOULbot, user ID <@891854264845094922>');
         expect(prompt).toContain('avoid repeating the exact same setup or conclusion phrases');
+    });
+
+    test('buildDeletedSummaryPrompt includes deletion markers and abusive-language instructions', () => {
+        const prompt = buildDeletedSummaryPrompt({
+            messages: [
+                { user_id: '111', content: 'what happened here', deleted_at: null },
+                { user_id: '222', content: 'racial slur here', deleted_at: new Date('2026-04-18T12:00:00.000Z') },
+            ],
+            deletedMessages: [
+                { user_id: '222', content: 'racial slur here', deleted_at: new Date('2026-04-18T12:00:00.000Z') },
+            ],
+            ignoredDeletedCount: 2,
+        });
+
+        expect(prompt).toContain('You are summarizing deleted Discord messages');
+        expect(prompt).toContain('IgnoredExpectedDeletedMessages: 2');
+        expect(prompt).toContain('DeletedMessagesToExplain:');
+        expect(prompt).toContain('[active] 111: what happened here');
+        expect(prompt).toContain('[deleted] 222: racial slur here');
+        expect(prompt).toContain('contained the N-word');
+        expect(prompt).toContain('Do not reproduce disallowed slurs verbatim');
     });
 
     test('buildSummaryPrompt adds /no_think for Qwen but not Gemma 4', () => {

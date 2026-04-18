@@ -6,6 +6,40 @@ const { consumePendingRenderOwnership } = require('../../features/twitter-core/r
 require('dotenv').config();
 
 const messageDAO = new MessageDAO();
+const SOULBOT_EXPECTED_DELETION_PATTERNS = [
+    /^Rendering the Twitter\/X video canvas\.\.\.$/i,
+    /^Encoding Twitter\/X video\.\.\./i,
+    /^Uploading the rendered Twitter\/X video\.\.\.$/i,
+];
+
+function isTwitterLinkOnlyContent(content = '') {
+    const trimmed = String(content || '').trim();
+    if (!trimmed) return false;
+    return /^<?https?:\/\/(?:www\.)?(?:x|twitter)\.com\/\S+>?$/i.test(trimmed);
+}
+
+function isExpectedSoulbotDeletion(message = {}) {
+    if (message.user_id !== soulbotUserId) return false;
+    const content = String(message.content || '').trim();
+    if (!content) return false;
+
+    return SOULBOT_EXPECTED_DELETION_PATTERNS.some((pattern) => pattern.test(content));
+}
+
+function isExpectedDeletedMessage(message = {}) {
+    if (!message?.deleted_at) return false;
+    if (isTwitterLinkOnlyContent(message.content)) return true;
+    if (isExpectedSoulbotDeletion(message)) return true;
+    return false;
+}
+
+function formatDeletedSummaryMessages(messages = []) {
+    return messages.map((message) => ({
+        user_id: message.user_id,
+        content: message.content,
+        deleted_at: message.deleted_at,
+    }));
+}
 
 /**
  * Adds a message to the database.
@@ -169,6 +203,25 @@ const getSummaryContext = async (options = {}) => {
     }
 };
 
+const getDeletedSummaryContext = async (options = {}) => {
+    try {
+        const { channelId, limit = 50 } = options;
+        const recentMessages = await messageDAO.findRecentChannelMessagesIncludingDeleted(channelId, limit);
+        const chronologicalMessages = recentMessages.reverse();
+        const filteredMessages = chronologicalMessages.filter((message) => !isExpectedDeletedMessage(message));
+        const deletedMessages = filteredMessages.filter((message) => message.deleted_at);
+
+        return {
+            messages: formatDeletedSummaryMessages(filteredMessages),
+            deletedMessages: formatDeletedSummaryMessages(deletedMessages),
+            ignoredDeletedCount: chronologicalMessages.filter((message) => isExpectedDeletedMessage(message)).length,
+        };
+    } catch (err) {
+        console.error('Error in getDeletedSummaryContext service:', err);
+        throw err;
+    }
+};
+
 const findMessagesByLink = async (guildId, messageId, url) => {
     try {
         const messages = await messageDAO.findMessagesByLink(guildId, messageId, url);
@@ -222,6 +275,7 @@ const deleteMessage = async (messageId) => {
 module.exports = {
     addMessage,
     getMessages,
+    getDeletedSummaryContext,
     getLlmChannelContext,
     getSummaryMessages,
     getSummaryContext,
@@ -229,4 +283,5 @@ module.exports = {
     getMessageById,
     updateMessage,
     deleteMessage,
+    isExpectedDeletedMessage,
 };

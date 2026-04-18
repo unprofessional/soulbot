@@ -14,10 +14,14 @@ class MessageDAO {
      */
     async findAll(options = {}) {
         const {
-            userId, guildId, channelId, limit = 50, fields, excludeContent, excludeContentPrefixes, excludeUserId, createdAfter,
+            userId, guildId, channelId, limit = 50, fields, excludeContent, excludeContentPrefixes, excludeUserId, createdAfter, includeDeleted = false,
         } = options;
         const params = [];
-        const conditions = ['deleted_at IS NULL']; // Always filter out soft-deleted messages
+        const conditions = [];
+
+        if (!includeDeleted) {
+            conditions.push('deleted_at IS NULL'); // Always filter out soft-deleted messages unless explicitly included
+        }
 
         if (userId) {
             conditions.push(`user_id = $${params.length + 1}`);
@@ -237,6 +241,24 @@ class MessageDAO {
             return result.rows[0] || null;
         } catch (err) {
             console.error('Error finding message by ID:', err);
+            throw err;
+        }
+    }
+
+    async findRecentChannelMessagesIncludingDeleted(channelId, limit = 50) {
+        const sql = `
+            SELECT user_id, content, created_at, deleted_at, meta
+            FROM message
+            WHERE channel_id = $1
+            ORDER BY created_at DESC
+            LIMIT $2
+        `;
+
+        try {
+            const result = await pool.query(sql, [channelId, limit]);
+            return result.rows;
+        } catch (err) {
+            console.error('Error fetching recent channel messages including deleted:', err);
             throw err;
         }
     }

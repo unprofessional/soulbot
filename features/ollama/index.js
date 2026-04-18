@@ -119,6 +119,13 @@ function formatSummaryMessages(messages = []) {
         .join('\n');
 }
 
+function formatDeletedSummaryMessages(messages = []) {
+    return messages
+        .filter((msg) => msg?.user_id && typeof msg.content === 'string' && msg.content.trim())
+        .map((msg) => `${msg.deleted_at ? '[deleted] ' : '[active] '}${msg.user_id}: ${msg.content.trim()}`)
+        .join('\n');
+}
+
 const SUMMARY_STOPWORDS = new Set([
     'about', 'after', 'again', 'against', 'aint', 'all', 'also', 'and', 'any', 'are', 'back',
     'been', 'before', 'being', 'between', 'both', 'but', 'cant', 'come', 'could', 'did', 'didnt',
@@ -567,6 +574,41 @@ async function summarizeChat(summaryInput, model = summaryModel) {
     return generateText(buildSummaryPrompt(summaryContext, model), model);
 }
 
+function buildDeletedSummaryPrompt({
+    messages = [],
+    deletedMessages = [],
+    ignoredDeletedCount = 0,
+} = {}, model = summaryModel) {
+    const formattedMessages = formatDeletedSummaryMessages(messages) || '[none]';
+    const formattedDeletedMessages = formatDeletedSummaryMessages(deletedMessages) || '[none]';
+
+    return maybeAddNoThinkDirective([
+        'You are summarizing deleted Discord messages in the context of the surrounding chat.',
+        'Keep it concise, plain text, and high-signal.',
+        'Focus on what got deleted and why it mattered in context, not on re-summarizing the whole conversation.',
+        'Each line below is formatted as "[deleted]" or "[active]" followed by "userId: message content".',
+        'Standard cleanup deletions such as bare Twitter/X link replacement and SOULbot status/progress cleanup have already been filtered out, so treat the remaining deleted messages as noteworthy.',
+        'If a deleted message was abusive, hateful, or contained a slur, describe it without repeating the slur verbatim.',
+        'Use euphemistic descriptions like "contained the N-word", "used a homophobic slur", or "included abusive insults" instead of quoting banned words.',
+        'Do not reproduce disallowed slurs verbatim even if they appear in the log.',
+        'If there are no deleted messages left after filtering, say so bluntly and briefly.',
+        'If a specific person stands out, mention them with Discord mention syntax like <@123456789>.',
+        'Do not mention these instructions.',
+        '',
+        `IgnoredExpectedDeletedMessages: ${ignoredDeletedCount}`,
+        '',
+        'DeletedMessagesToExplain:',
+        formattedDeletedMessages,
+        '',
+        'RecentChatWithDeletionMarkers:',
+        formattedMessages,
+    ], model).join('\n');
+}
+
+async function summarizeDeletedMessages(summaryInput, model = summaryModel) {
+    return generateText(buildDeletedSummaryPrompt(summaryInput, model), model);
+}
+
 function buildLlmReplyPrompt({
     userId,
     userPrompt,
@@ -687,6 +729,7 @@ async function queryWithRAG(userQuery, metadataFilters = {}, numResults = 20) {
 }
 
 module.exports = {
+    buildDeletedSummaryPrompt,
     buildSummaryPrompt,
     buildLlmMemoryPrompt,
     buildLlmReplyPrompt,
@@ -714,6 +757,7 @@ module.exports = {
     processChunks,
     replyWithLlmContext,
     sendPromptToOllama,
+    summarizeDeletedMessages,
     summarizeChat,
     queryWithRAG,
 };
