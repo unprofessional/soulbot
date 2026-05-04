@@ -12,6 +12,10 @@ const { sendVideoReply } = require('./webhook_utils.js');
 const { cleanup } = require('../twitter-video/cleanup.js');
 const { estimateOutputSizeBytes, inspectVideoFileDetails } = require('./estimate_output_size');
 const { toFixupx } = require('./fetch_metadata.js');
+const {
+    acquireTwitterVideoRender,
+    buildTwitterVideoRenderKey,
+} = require('./twitter_video_render_registry.js');
 
 const USE_ESTIMATION = false; // 🔧 Toggle to `true` to re-enable output size estimation
 
@@ -38,14 +42,64 @@ async function handleVideoPost({
         main: metadataJson.communityNote,
         qt: metadataJson.qtMetadata?.communityNote,
     };
+    const renderKey = buildTwitterVideoRenderKey({ metadataJson, originalLink, videoUrl });
+    const renderFlight = acquireTwitterVideoRender(renderKey);
+
+    const uploadRenderedVideo = async (successFilePath) => {
+        await progressMessage?.update?.('Uploading the rendered Twitter/X video...');
+
+        try {
+            await sendVideoReply(
+                message,
+                successFilePath,
+                originalLink,
+                communityNotes,
+            );
+            await progressMessage?.dismiss?.();
+        } catch (err) {
+            await progressMessage?.dismiss?.();
+
+            if (err?.name === 'DiscordAPIError[40005]') {
+                const fixupLink = toFixupx(originalLink);
+                await message.reply({
+                    content: `Discord upload rejected the rendered video because it was too large for this server tier. Defaulting to FIXUPX link: ${fixupLink}`,
+                    allowedMentions: { repliedUser: false },
+                });
+                return;
+            }
+
+            throw err;
+        }
+    };
+
+    if (!renderFlight.isLeader) {
+        try {
+            await progressMessage?.update?.('Waiting for the existing Twitter/X video render...');
+            const { successFilePath } = await renderFlight.promise;
+            await uploadRenderedVideo(successFilePath);
+        } catch (err) {
+            console.error('>>> ERROR: duplicate Twitter/X video render wait failed:', err);
+            await progressMessage?.dismiss?.();
+            await message.reply({
+                content: `Video processing failed for this post. Try again later or use FIXUPX: ${toFixupx(originalLink)}`,
+                allowedMentions: { repliedUser: false },
+            });
+        } finally {
+            await renderFlight.release();
+        }
+        return;
+    }
 
     const currentDirCount = await countDirectoriesInDirectory(processingDir);
     if (currentDirCount >= MAX_CONCURRENT_REQUESTS) {
         await progressMessage?.dismiss?.();
-        return message.reply({
+        const capacityReply = await message.reply({
             content: 'Video processing at capacity; try again later.',
             allowedMentions: { repliedUser: false },
         });
+        renderFlight.fail(new Error('Video processing at capacity'));
+        await renderFlight.release();
+        return capacityReply;
     }
 
     const { filename, localWorkingPath } =
@@ -57,6 +111,7 @@ async function handleVideoPost({
     const startTime = Date.now(); // ⏱️ Start timing
 
     try {
+        renderFlight.setCleanup(() => cleanup([], [localWorkingPath]));
         await downloadVideo(videoUrl, videoInputPath);
 
         const guild = message.client.guilds.cache.get(message.guildId);
@@ -143,39 +198,18 @@ async function handleVideoPost({
         // Optional: dump output file media info
         inspectVideoFileDetails(successFilePath, 'output');
 
-        await progressMessage?.update?.('Uploading the rendered Twitter/X video...');
-
-        try {
-            await sendVideoReply(
-                message,
-                successFilePath,
-                originalLink,
-                communityNotes,
-            );
-            await progressMessage?.dismiss?.();
-        } catch (err) {
-            await progressMessage?.dismiss?.();
-
-            if (err?.name === 'DiscordAPIError[40005]') {
-                const fixupLink = toFixupx(originalLink);
-                await message.reply({
-                    content: `Discord upload rejected the rendered video because it was too large for this server tier. Defaulting to FIXUPX link: ${fixupLink}`,
-                    allowedMentions: { repliedUser: false },
-                });
-                return;
-            }
-
-            throw err;
-        }
+        renderFlight.complete({ successFilePath });
+        await uploadRenderedVideo(successFilePath);
     } catch (err) {
         console.error('>>> ERROR: renderTwitterPost > err:', err);
+        renderFlight.fail(err);
         await progressMessage?.dismiss?.();
         await message.reply({
             content: `Video processing failed for this post. Try again later or use FIXUPX: ${toFixupx(originalLink)}`,
             allowedMentions: { repliedUser: false },
         });
     } finally {
-        await cleanup([], [localWorkingPath]);
+        await renderFlight.release();
         const totalTime = (Date.now() - startTime) / 1000;
         console.log(`⏱️ Video processing completed in ${totalTime.toFixed(2)}s`);
     }

@@ -41,6 +41,7 @@ const { sendVideoReply } = require('../features/twitter-core/webhook_utils.js');
 const { cleanup } = require('../features/twitter-video/cleanup.js');
 const { inspectVideoFileDetails } = require('../features/twitter-core/estimate_output_size');
 const { handleVideoPost } = require('../features/twitter-core/twitter_video_handler.js');
+const { clearTwitterVideoRenderRegistryForTests } = require('../features/twitter-core/twitter_video_render_registry.js');
 
 function buildMessageMock() {
     return {
@@ -84,6 +85,7 @@ describe('handleVideoPost progress lifecycle', () => {
         getVideoFileSize.mockResolvedValue(1024);
         inspectVideoFileDetails.mockResolvedValue({ width: 1280, height: 720 });
         sendVideoReply.mockResolvedValue(undefined);
+        clearTwitterVideoRenderRegistryForTests();
     });
 
     test('cleans up the placeholder when the queue is at capacity', async () => {
@@ -212,6 +214,75 @@ describe('handleVideoPost progress lifecycle', () => {
             content: 'Video processing failed for this post. Try again later or use FIXUPX: https://fixupx.com/test/status/4',
             allowedMentions: { repliedUser: false },
         });
+        expect(cleanup).toHaveBeenCalledWith([], ['/tempdata/video-file']);
+    });
+
+    test('shares an in-flight render for duplicate video posts and uploads once per message', async () => {
+        const leaderMessage = buildMessageMock();
+        const followerMessage = buildMessageMock();
+        const leaderProgress = buildProgressMock();
+        const followerProgress = buildProgressMock();
+        let finishBake;
+
+        bakeImageAsFilterIntoVideo.mockImplementation(() => new Promise((resolve) => {
+            finishBake = () => resolve('/tempdata/video-file/video-file-output.mp4');
+        }));
+
+        const leaderPromise = handleVideoPost({
+            metadataJson: {
+                tweetID: '123456789012345',
+                communityNote: 'note',
+                _videos: [{ size: { width: 1280, height: 720 } }],
+            },
+            message: leaderMessage,
+            originalLink: 'https://x.com/test/status/123456789012345',
+            videoUrl: 'https://video.example.com/file.mp4',
+            processingDir: '/tempdata',
+            processingRunId: 'run-123',
+            MAX_CONCURRENT_REQUESTS: 3,
+            progressMessage: leaderProgress,
+        });
+
+        while (!finishBake) {
+            await Promise.resolve();
+        }
+
+        const followerPromise = handleVideoPost({
+            metadataJson: {
+                tweetID: '123456789012345',
+                communityNote: 'note',
+                _videos: [{ size: { width: 1280, height: 720 } }],
+            },
+            message: followerMessage,
+            originalLink: 'https://twitter.com/test/status/123456789012345',
+            videoUrl: 'https://video.example.com/file.mp4',
+            processingDir: '/tempdata',
+            processingRunId: 'run-456',
+            MAX_CONCURRENT_REQUESTS: 3,
+            progressMessage: followerProgress,
+        });
+
+        finishBake();
+        await Promise.all([leaderPromise, followerPromise]);
+
+        expect(downloadVideo).toHaveBeenCalledTimes(1);
+        expect(createTwitterVideoCanvas).toHaveBeenCalledTimes(1);
+        expect(bakeImageAsFilterIntoVideo).toHaveBeenCalledTimes(1);
+        expect(followerProgress.update).toHaveBeenCalledWith('Waiting for the existing Twitter/X video render...');
+        expect(sendVideoReply).toHaveBeenCalledTimes(2);
+        expect(sendVideoReply).toHaveBeenCalledWith(
+            leaderMessage,
+            '/tempdata/video-file/video-file-output.mp4',
+            'https://x.com/test/status/123456789012345',
+            { main: 'note', qt: undefined },
+        );
+        expect(sendVideoReply).toHaveBeenCalledWith(
+            followerMessage,
+            '/tempdata/video-file/video-file-output.mp4',
+            'https://twitter.com/test/status/123456789012345',
+            { main: 'note', qt: undefined },
+        );
+        expect(cleanup).toHaveBeenCalledTimes(1);
         expect(cleanup).toHaveBeenCalledWith([], ['/tempdata/video-file']);
     });
 });
