@@ -65,31 +65,48 @@ async function estimateOutputSizeBytes(filePath, resolutionHeight = 312) {
  * Used for output file diagnostics.
  */
 function inspectVideoFileDetails(filePath, label = 'ffprobe') {
-    ffmpeg.ffprobe(filePath, (err, metadata) => {
-        if (err) return console.warn(`⚠️ ${label} ffprobe failed:`, err);
+    return new Promise((resolve) => {
+        ffmpeg.ffprobe(filePath, (err, metadata) => {
+            if (err) {
+                console.warn(`⚠️ ${label} ffprobe failed:`, err);
+                resolve(null);
+                return;
+            }
 
-        const { format, streams } = metadata;
-        const videoStream = streams.find((s) => s.codec_type === 'video');
-        const audioStream = streams.find((s) => s.codec_type === 'audio');
+            const { format, streams } = metadata;
+            const videoStream = streams.find((s) => s.codec_type === 'video');
+            const audioStream = streams.find((s) => s.codec_type === 'audio');
 
-        if (videoStream) {
-            console.log(`🎥 ${label} video:`, {
-                durationSec: parseFloat(format.duration).toFixed(2),
-                resolution: `${videoStream.width}x${videoStream.height}`,
-                videoCodec: videoStream.codec_name,
-                videoBitrateKbps: (videoStream.bit_rate / 1000).toFixed(1),
+            if (videoStream) {
+                console.log(`🎥 ${label} video:`, {
+                    durationSec: parseFloat(format.duration).toFixed(2),
+                    resolution: `${videoStream.width}x${videoStream.height}`,
+                    videoCodec: videoStream.codec_name,
+                    videoBitrateKbps: (videoStream.bit_rate / 1000).toFixed(1),
+                });
+            }
+
+            if (audioStream) {
+                console.log(`🔊 ${label} audio:`, {
+                    hasAudio: true,
+                    audioCodec: audioStream.codec_name,
+                    audioBitrateKbps: (audioStream.bit_rate / 1000).toFixed(1),
+                });
+            } else {
+                console.log(`🔇 ${label} audio: none`);
+            }
+
+            resolve({
+                durationSec: Number(format?.duration) || null,
+                width: videoStream?.width || null,
+                height: videoStream?.height || null,
+                videoCodec: videoStream?.codec_name || null,
+                videoBitrateKbps: videoStream?.bit_rate ? Number(videoStream.bit_rate) / 1000 : null,
+                hasAudio: !!audioStream,
+                audioCodec: audioStream?.codec_name || null,
+                audioBitrateKbps: audioStream?.bit_rate ? Number(audioStream.bit_rate) / 1000 : null,
             });
-        }
-
-        if (audioStream) {
-            console.log(`🔊 ${label} audio:`, {
-                hasAudio: true,
-                audioCodec: audioStream.codec_name,
-                audioBitrateKbps: (audioStream.bit_rate / 1000).toFixed(1),
-            });
-        } else {
-            console.log(`🔇 ${label} audio: none`);
-        }
+        });
     });
 }
 
