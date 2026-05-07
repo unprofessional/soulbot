@@ -79,6 +79,48 @@ function normalizeEmbeddedQuoteTweet(rawQuote) {
     return undefined;
 }
 
+function normalizeArticle(rawArticle) {
+    if (!rawArticle || typeof rawArticle !== 'object') return null;
+
+    const article = {
+        title: firstNonEmptyString([
+            rawArticle.title,
+            rawArticle.name,
+            rawArticle.headline,
+        ]),
+        preview_text: firstNonEmptyString([
+            rawArticle.preview_text,
+            rawArticle.previewText,
+            rawArticle.description,
+            rawArticle.summary,
+            rawArticle.subtitle,
+        ]),
+        text: firstNonEmptyString([
+            rawArticle.text,
+            rawArticle.body,
+            rawArticle.content,
+            rawArticle.article_text,
+            rawArticle.articleText,
+        ]),
+        image: firstNonEmptyString([
+            rawArticle.image,
+            rawArticle.image_url,
+            rawArticle.imageUrl,
+            rawArticle.thumbnail_url,
+            rawArticle.thumbnailUrl,
+        ]),
+        url: firstNonEmptyString([
+            rawArticle.url,
+            rawArticle.article_url,
+            rawArticle.articleUrl,
+        ]),
+    };
+
+    return Object.fromEntries(
+        Object.entries(article).filter(([, value]) => value)
+    );
+}
+
 function normalizeFromVX(vx) {
     return {
         tweetID: vx.tweetID,
@@ -91,6 +133,7 @@ function normalizeFromVX(vx) {
         date_epoch: vx.date_epoch ?? Math.floor(Date.now() / 1000),
         hasMedia: Boolean(vx.media_extended?.length),
         media_extended: vx.media_extended ?? [],
+        article: normalizeArticle(vx.article),
         communityNote: extractCommunityNote(vx),
         qtMetadata: normalizeEmbeddedQuoteTweet(vx.qrt),
         qrtURL: vx.qrtURL ?? undefined,
@@ -135,6 +178,7 @@ function normalizeFromFX(fx) {
         date_epoch: t.created_timestamp ?? Math.floor(Date.now() / 1000),
         hasMedia: Boolean(media.length),
         media_extended: media,
+        article: normalizeArticle(t.article ?? fx.article ?? t.card),
         communityNote: extractCommunityNote(fx, t),
         qtMetadata: normalizeEmbeddedQuoteTweet(t.quote ?? fx.quote),
         qrtURL: t.quote?.url ?? undefined,
@@ -143,4 +187,4 @@ function normalizeFromFX(fx) {
     };
 }
 
-module.exports = { normalizeFromVX, normalizeFromFX, extractCommunityNote, normalizeEmbeddedQuoteTweet };
+module.exports = { normalizeFromVX, normalizeFromFX, extractCommunityNote, normalizeEmbeddedQuoteTweet, normalizeArticle };

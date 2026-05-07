@@ -29,6 +29,28 @@ describe('fxvx community note normalization', () => {
         expect(normalized.communityNote).toBe('This post is missing context.');
     });
 
+    test('normalizeFromVX preserves article preview metadata', () => {
+        const normalized = normalizeFromVX({
+            tweetID: '123',
+            text: 'https://x.com/i/article/999',
+            user_name: 'Article User',
+            user_screen_name: 'articleuser',
+            user_profile_image_url: 'https://example.com/pfp.jpg',
+            media_extended: [],
+            article: {
+                title: 'Long-form headline',
+                preview_text: 'The article preview text carries the body snippet.',
+                image: 'https://example.com/article.jpg',
+            },
+        });
+
+        expect(normalized.article).toEqual({
+            title: 'Long-form headline',
+            preview_text: 'The article preview text carries the body snippet.',
+            image: 'https://example.com/article.jpg',
+        });
+    });
+
     test('normalizeFromFX preserves community note text from tweet payloads', () => {
         const normalized = normalizeFromFX({
             message: 'OK',

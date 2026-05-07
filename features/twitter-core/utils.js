@@ -266,6 +266,7 @@ function collectMedia(payload) {
         if (img && typeof img === 'string') {
             push({
                 type: 'image',
+                source: 'article',
                 url: img,
                 thumbnail_url: img,
                 size: { width: 1200, height: 630 },
@@ -376,4 +377,3 @@ module.exports = {
     collectMedia,
     formatTwitterFooter,
 };
-

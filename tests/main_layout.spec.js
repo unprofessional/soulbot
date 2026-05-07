@@ -42,6 +42,20 @@ describe('getMainRenderMode', () => {
         expect(mode).toBe('desktop');
     });
 
+    test('switches to desktop mode for article renders even when the preview is short', () => {
+        const mode = getMainRenderMode({
+            metadata: {
+                description: 'Article headline\n\nShort preview.',
+                isArticleRender: true,
+            },
+            hasImgs: false,
+            hasVids: false,
+            qtMetadata: null,
+        });
+
+        expect(mode).toBe('desktop');
+    });
+
     test('stays compact when a long post includes a quote tweet', () => {
         const mode = getMainRenderMode({
             metadata: { description: 'word '.repeat(260) },

@@ -7,6 +7,46 @@ function getBestText(p) {
     return p?.text ?? p?.full_text ?? p?.tweet?.text ?? '';
 }
 
+const ARTICLE_LINK_ONLY_RE = /^https?:\/\/(?:www\.)?(?:x|twitter)\.com\/i\/article\/\d+\/?$/i;
+
+function firstNonEmptyString(values) {
+    for (const value of values) {
+        if (typeof value === 'string' && value.trim()) return value.trim();
+    }
+    return '';
+}
+
+function isArticleLinkOnlyText(text) {
+    return ARTICLE_LINK_ONLY_RE.test(String(text || '').trim());
+}
+
+function buildArticleDisplayText(article, fallbackText) {
+    if (!article || typeof article !== 'object') return fallbackText;
+
+    const title = firstNonEmptyString([
+        article.title,
+        article.name,
+        article.headline,
+    ]);
+    const body = firstNonEmptyString([
+        article.text,
+        article.body,
+        article.content,
+        article.article_text,
+        article.articleText,
+        article.preview_text,
+        article.previewText,
+        article.description,
+        article.summary,
+    ]);
+
+    const parts = [];
+    if (title) parts.push(title);
+    if (body && body !== title) parts.push(body);
+
+    return parts.length ? parts.join('\n\n') : fallbackText;
+}
+
 function stripTrailingTco(s) {
     const str = String(s || '');
 
@@ -62,14 +102,23 @@ function formatReplyDelta(qtMeta, mainMeta) {
 }
 
 function normalizeMainMetadata(metadataJson) {
-    const media = Array.isArray(collectMedia?.(metadataJson)) ? collectMedia(metadataJson) : [];
+    const rawText = getBestText(metadataJson);
+    const isArticleRender = isArticleLinkOnlyText(rawText) && Boolean(metadataJson?.article);
+    const mediaAll = Array.isArray(collectMedia?.(metadataJson)) ? collectMedia(metadataJson) : [];
+    const media = isArticleRender
+        ? mediaAll.filter(m => m.source !== 'article')
+        : mediaAll;
     const images = media.filter(m => m.type === 'image');
     const videos = media.filter(m => m.type === 'video');
+    const displayText = isArticleRender
+        ? buildArticleDisplayText(metadataJson.article, rawText)
+        : rawText;
 
     const metadata = {
         authorNick: metadataJson.user_screen_name,
         authorUsername: metadataJson.user_name,
         pfpUrl: metadataJson.user_profile_image_url,
+        isArticleRender,
 
         date: metadataJson.date ?? null,
         date_epoch: metadataJson.date_epoch ?? null,
@@ -78,7 +127,7 @@ function normalizeMainMetadata(metadataJson) {
 
         description: stripTrailingTco(buildDisplayText({
             ...metadataJson,
-            text: getBestText(metadataJson),
+            text: displayText,
         })),
 
         mediaUrls: metadataJson.mediaURLs,
@@ -87,9 +136,10 @@ function normalizeMainMetadata(metadataJson) {
     };
 
     console.debug('[desc] normalized', {
-        raw: getBestText(metadataJson),
+        raw: rawText,
         stripped: metadata.description,
         len: (metadata.description || '').length,
+        isArticleRender,
     });
 
     metadata._displayDate = formatTwitterDate(metadataJson, { label: 'canvas.metaJson→displayDate' });
@@ -139,4 +189,6 @@ module.exports = {
     normalizeQtMetadata,
     formatReplyDelta, // <-- new (used by twitter_canvas.js)
     getBestText,
+    isArticleLinkOnlyText,
+    buildArticleDisplayText,
 };
