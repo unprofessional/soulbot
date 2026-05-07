@@ -212,6 +212,7 @@ function collectMedia(payload) {
             if (type === 'image') {
                 push({
                     type: 'image',
+                    source: m.source || undefined,
                     url: m.url || m.thumbnail_url || null,
                     thumbnail_url: m.thumbnail_url || m.url || null,
                     size,

@@ -8,6 +8,8 @@ function getBestText(p) {
 }
 
 const ARTICLE_LINK_ONLY_RE = /^https?:\/\/(?:www\.)?(?:x|twitter)\.com\/i\/article\/\d+\/?$/i;
+const ARTICLE_MARKER = '[X article preview]';
+const ARTICLE_READ_MORE_NOTE = 'Click the article link to read the full article.';
 
 function firstNonEmptyString(values) {
     for (const value of values) {
@@ -20,6 +22,34 @@ function isArticleLinkOnlyText(text) {
     return ARTICLE_LINK_ONLY_RE.test(String(text || '').trim());
 }
 
+function getArticleBodyCandidate(article) {
+    const fullBody = firstNonEmptyString([
+        article.text,
+        article.body,
+        article.content,
+        article.article_text,
+        article.articleText,
+    ]);
+    if (fullBody) return { text: fullBody, isPreview: false };
+
+    const preview = firstNonEmptyString([
+        article.preview_text,
+        article.previewText,
+        article.description,
+        article.summary,
+    ]);
+    if (preview) return { text: preview, isPreview: true };
+
+    return { text: '', isPreview: true };
+}
+
+function appendPreviewEllipsis(text) {
+    const body = String(text || '').trim();
+    if (!body || /(?:\.\.\.|\u2026)$/.test(body)) return body;
+    if (/[.!?]$/.test(body)) return body;
+    return `${body}...`;
+}
+
 function buildArticleDisplayText(article, fallbackText) {
     if (!article || typeof article !== 'object') return fallbackText;
 
@@ -28,21 +58,16 @@ function buildArticleDisplayText(article, fallbackText) {
         article.name,
         article.headline,
     ]);
-    const body = firstNonEmptyString([
-        article.text,
-        article.body,
-        article.content,
-        article.article_text,
-        article.articleText,
-        article.preview_text,
-        article.previewText,
-        article.description,
-        article.summary,
-    ]);
+    const bodyCandidate = getArticleBodyCandidate(article);
+    const body = bodyCandidate.isPreview
+        ? appendPreviewEllipsis(bodyCandidate.text)
+        : bodyCandidate.text;
 
     const parts = [];
+    parts.push(ARTICLE_MARKER);
     if (title) parts.push(title);
     if (body && body !== title) parts.push(body);
+    parts.push(ARTICLE_READ_MORE_NOTE);
 
     return parts.length ? parts.join('\n\n') : fallbackText;
 }
@@ -104,10 +129,7 @@ function formatReplyDelta(qtMeta, mainMeta) {
 function normalizeMainMetadata(metadataJson) {
     const rawText = getBestText(metadataJson);
     const isArticleRender = isArticleLinkOnlyText(rawText) && Boolean(metadataJson?.article);
-    const mediaAll = Array.isArray(collectMedia?.(metadataJson)) ? collectMedia(metadataJson) : [];
-    const media = isArticleRender
-        ? mediaAll.filter(m => m.source !== 'article')
-        : mediaAll;
+    const media = Array.isArray(collectMedia?.(metadataJson)) ? collectMedia(metadataJson) : [];
     const images = media.filter(m => m.type === 'image');
     const videos = media.filter(m => m.type === 'video');
     const displayText = isArticleRender
@@ -191,4 +213,5 @@ module.exports = {
     getBestText,
     isArticleLinkOnlyText,
     buildArticleDisplayText,
+    appendPreviewEllipsis,
 };

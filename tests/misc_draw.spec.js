@@ -1,7 +1,9 @@
 const {
     condenseTranslatedDisplayLines,
     drawDescriptionLines,
+    getArticleMarkerFont,
     getTranslationMarkerFont,
+    isArticleMarkerLine,
     isTranslationMarkerLine,
     trimRenderedLinesToMaxChars,
 } = require('../features/twitter-core/canvas/misc_draw.js');
@@ -12,9 +14,18 @@ describe('misc_draw translation marker styling', () => {
         expect(isTranslationMarkerLine('plain text')).toBe(false);
     });
 
+    test('detects article marker lines', () => {
+        expect(isArticleMarkerLine('[X article preview]')).toBe(true);
+        expect(isArticleMarkerLine('[Translated from PT]')).toBe(false);
+    });
+
     test('reduces font size for translation markers', () => {
         expect(getTranslationMarkerFont('24px "Liberation Sans"')).toBe('18px "Liberation Sans"');
         expect(getTranslationMarkerFont('18px "Liberation Sans"')).toBe('14px "Liberation Sans"');
+    });
+
+    test('renders article markers as smaller italic text', () => {
+        expect(getArticleMarkerFont('24px "Liberation Sans"')).toBe('italic 18px "Liberation Sans"');
     });
 
     test('condenses translated source text to three lines and removes blank lines', () => {
@@ -89,6 +100,32 @@ describe('misc_draw translation marker styling', () => {
         }));
         expect(calls[2]).toEqual(expect.objectContaining({
             text: 'Translated line',
+            font: '24px "Liberation Sans"',
+            fillStyle: '#fff',
+        }));
+    });
+
+    test('drawDescriptionLines draws article markers in smaller italic gray text', () => {
+        const calls = [];
+        const ctx = {
+            font: '24px "Liberation Sans"',
+            fillStyle: '#fff',
+            fillText: jest.fn((text, x, y) => {
+                calls.push({ text, x, y, font: ctx.font, fillStyle: ctx.fillStyle });
+            }),
+        };
+
+        drawDescriptionLines(ctx, ['[X article preview]', 'Article title'], 30, 80, {
+            lineHeight: 30,
+        });
+
+        expect(calls[0]).toEqual(expect.objectContaining({
+            text: '[X article preview]',
+            font: 'italic 18px "Liberation Sans"',
+            fillStyle: '#71767b',
+        }));
+        expect(calls[1]).toEqual(expect.objectContaining({
+            text: 'Article title',
             font: '24px "Liberation Sans"',
             fillStyle: '#fff',
         }));

@@ -1,15 +1,26 @@
 // features/twitter-core/canvas/misc_draw.js
 
 const TRANSLATION_MARKER_RE = /^\[Translated from [^\]]+\]$/;
+const ARTICLE_MARKER_RE = /^\[X article preview\]$/;
 const TRANSLATION_MARKER_COLOR = '#71767b';
 
 function isTranslationMarkerLine(line) {
     return typeof line === 'string' && TRANSLATION_MARKER_RE.test(line.trim());
 }
 
+function isArticleMarkerLine(line) {
+    return typeof line === 'string' && ARTICLE_MARKER_RE.test(line.trim());
+}
+
 function getTranslationMarkerFont(font) {
     if (typeof font !== 'string' || !font.trim()) return font;
     return font.replace(/(\d+(?:\.\d+)?)px/, (_, px) => `${Math.max(14, Number(px) - 6)}px`);
+}
+
+function getArticleMarkerFont(font) {
+    const base = getTranslationMarkerFont(font);
+    if (typeof base !== 'string' || !base.trim() || /^italic\s/i.test(base)) return base;
+    return `italic ${base}`;
 }
 
 function withTrailingEllipsis(text) {
@@ -120,7 +131,10 @@ function drawDescriptionLines(ctx, lines, x, y, { lineHeight = 30, yOffset = 0 }
         const prevFont = ctx.font;
         const prevFillStyle = ctx.fillStyle;
 
-        if (isTranslationMarkerLine(line)) {
+        if (isArticleMarkerLine(line)) {
+            ctx.font = getArticleMarkerFont(prevFont);
+            ctx.fillStyle = TRANSLATION_MARKER_COLOR;
+        } else if (isTranslationMarkerLine(line)) {
             ctx.font = getTranslationMarkerFont(prevFont);
             ctx.fillStyle = TRANSLATION_MARKER_COLOR;
         }
@@ -139,6 +153,8 @@ module.exports = {
     getYPosFromLineHeight,
     drawDescriptionLines,
     getTranslationMarkerFont,
+    getArticleMarkerFont,
+    isArticleMarkerLine,
     isTranslationMarkerLine,
     trimRenderedLinesToMaxChars,
 };

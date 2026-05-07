@@ -22,10 +22,6 @@ function getMainRenderMode({ metadata, hasImgs, hasVids, qtMetadata }) {
     const isPureTextMainPost = !hasImgs && !hasVids;
     const hasQuotedTweet = Boolean(qtMetadata);
 
-    if (metadata?.isArticleRender && isPureTextMainPost && !hasQuotedTweet) {
-        return 'desktop';
-    }
-
     if (isPureTextMainPost && !hasQuotedTweet && descLength > MAX_DESC_CHARS) {
         return 'desktop';
     }
