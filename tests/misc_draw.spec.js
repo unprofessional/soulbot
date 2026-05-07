@@ -16,6 +16,7 @@ describe('misc_draw translation marker styling', () => {
 
     test('detects article marker lines', () => {
         expect(isArticleMarkerLine('[X article preview]')).toBe(true);
+        expect(isArticleMarkerLine('[Click the article link to read the full article.]')).toBe(true);
         expect(isArticleMarkerLine('[Translated from PT]')).toBe(false);
     });
 
@@ -115,7 +116,11 @@ describe('misc_draw translation marker styling', () => {
             }),
         };
 
-        drawDescriptionLines(ctx, ['[X article preview]', 'Article title'], 30, 80, {
+        drawDescriptionLines(ctx, [
+            '[X article preview]',
+            'Article title',
+            '[Click the article link to read the full article.]',
+        ], 30, 80, {
             lineHeight: 30,
         });
 
@@ -128,6 +133,11 @@ describe('misc_draw translation marker styling', () => {
             text: 'Article title',
             font: '24px "Liberation Sans"',
             fillStyle: '#fff',
+        }));
+        expect(calls[2]).toEqual(expect.objectContaining({
+            text: '[Click the article link to read the full article.]',
+            font: 'italic 18px "Liberation Sans"',
+            fillStyle: '#71767b',
         }));
     });
 });

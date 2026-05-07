@@ -1,7 +1,7 @@
 // features/twitter-core/canvas/misc_draw.js
 
 const TRANSLATION_MARKER_RE = /^\[Translated from [^\]]+\]$/;
-const ARTICLE_MARKER_RE = /^\[X article preview\]$/;
+const ARTICLE_MARKER_RE = /^\[(?:X article preview|Click the article link to read the full article\.)\]$/;
 const TRANSLATION_MARKER_COLOR = '#71767b';
 
 function isTranslationMarkerLine(line) {

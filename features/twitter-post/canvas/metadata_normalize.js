@@ -9,7 +9,7 @@ function getBestText(p) {
 
 const ARTICLE_LINK_ONLY_RE = /^https?:\/\/(?:www\.)?(?:x|twitter)\.com\/i\/article\/\d+\/?$/i;
 const ARTICLE_MARKER = '[X article preview]';
-const ARTICLE_READ_MORE_NOTE = 'Click the article link to read the full article.';
+const ARTICLE_READ_MORE_NOTE = '[Click the article link to read the full article.]';
 
 function firstNonEmptyString(values) {
     for (const value of values) {

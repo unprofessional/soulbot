@@ -19,7 +19,7 @@ describe('metadata_normalize article renders', () => {
             preview_text: 'Preview snippet.',
         }, 'https://x.com/i/article/1')).toBe(
             '[X article preview]\n\nArticle title\n\nFull article body.\n\n' +
-            'Click the article link to read the full article.'
+            '[Click the article link to read the full article.]'
         );
     });
 
@@ -50,7 +50,7 @@ describe('metadata_normalize article renders', () => {
             '[X article preview]\n\n' +
             'CENTCOM Protects U.S. Warships Transiting Strait of Hormuz\n\n' +
             'TAMPA, Fla. - U.S. forces intercepted unprovoked Iranian attacks.\n\n' +
-            'Click the article link to read the full article.'
+            '[Click the article link to read the full article.]'
         );
         expect(images).toEqual([expect.objectContaining({
             type: 'image',
