@@ -51,6 +51,47 @@ describe('fxvx community note normalization', () => {
         });
     });
 
+    test('normalizeFromVX preserves API-surfaced translation metadata', () => {
+        const normalized = normalizeFromVX({
+            tweetID: '123',
+            lang: 'pt',
+            text: 'ola mundo',
+            user_name: 'Example User',
+            user_screen_name: 'example',
+            user_profile_image_url: 'https://example.com/pfp.jpg',
+            media_extended: [],
+            translation: {
+                text: 'hello world',
+                source_language: 'pt',
+                target_language: 'en',
+            },
+        });
+
+        expect(normalized.translation).toEqual(expect.objectContaining({
+            provider: 'api',
+            sourceLanguage: 'pt',
+            destinationLanguage: 'en',
+            text: 'hello world',
+        }));
+        expect(normalized.translatedText).toBe('hello world');
+    });
+
+    test('normalizeFromVX keeps null translations null', () => {
+        const normalized = normalizeFromVX({
+            tweetID: '123',
+            lang: 'ht',
+            text: 'LMAOOOO',
+            user_name: 'Example User',
+            user_screen_name: 'example',
+            user_profile_image_url: 'https://example.com/pfp.jpg',
+            media_extended: [],
+            translation: null,
+        });
+
+        expect(normalized.translation).toBeNull();
+        expect(normalized.translatedText).toBeUndefined();
+    });
+
     test('normalizeFromFX preserves community note text from tweet payloads', () => {
         const normalized = normalizeFromFX({
             message: 'OK',

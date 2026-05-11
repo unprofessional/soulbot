@@ -121,12 +121,65 @@ function normalizeArticle(rawArticle) {
     );
 }
 
+function normalizeTranslation(rawTranslation, sourceLanguage) {
+    if (!rawTranslation) return null;
+
+    if (typeof rawTranslation === 'string') {
+        const text = rawTranslation.trim();
+        if (!text) return null;
+        return {
+            provider: 'api',
+            sourceLanguage: sourceLanguage ?? null,
+            destinationLanguage: 'en',
+            text,
+        };
+    }
+
+    if (typeof rawTranslation !== 'object') return null;
+
+    const text = firstNonEmptyString([
+        rawTranslation.text,
+        rawTranslation.translation,
+        rawTranslation.translatedText,
+        rawTranslation.translated_text,
+        rawTranslation.full_text,
+    ]);
+
+    if (!text) return null;
+
+    return {
+        provider: rawTranslation.provider || rawTranslation.service || 'api',
+        model: rawTranslation.model,
+        sourceLanguage: firstNonEmptyString([
+            rawTranslation.sourceLanguage,
+            rawTranslation.source_language,
+            rawTranslation.sourceLang,
+            rawTranslation.source_lang,
+            sourceLanguage,
+        ]),
+        destinationLanguage: firstNonEmptyString([
+            rawTranslation.destinationLanguage,
+            rawTranslation.destination_language,
+            rawTranslation.targetLanguage,
+            rawTranslation.target_language,
+            rawTranslation.targetLang,
+            rawTranslation.target_lang,
+            rawTranslation.lang,
+        ]) || 'en',
+        text,
+    };
+}
+
 function normalizeFromVX(vx) {
+    const translation = normalizeTranslation(vx.translation, vx.lang);
+
     return {
         tweetID: vx.tweetID,
         replyingToID: vx.replyingToID ?? vx.replying_to_status ?? null,
         lang: vx.lang ?? null,
         text: vx.text ?? '',
+        translation,
+        translatedText: translation?.text,
         user_name: vx.user_name ?? 'Unknown',
         user_screen_name: vx.user_screen_name ?? 'unknown',
         user_profile_image_url: vx.user_profile_image_url ?? '',
@@ -143,6 +196,7 @@ function normalizeFromVX(vx) {
 function normalizeFromFX(fx) {
     const t = fx?.tweet;
     if (!t) return null;
+    const translation = normalizeTranslation(t.translation ?? fx.translation, t.lang ?? fx?.lang);
     const media = [];
     if (t.media?.photos) {
         for (const p of t.media.photos) {
@@ -172,6 +226,8 @@ function normalizeFromFX(fx) {
         replyingToID: t.replying_to_status ?? null,
         lang: t.lang ?? fx?.lang ?? null,
         text: t.text ?? '',
+        translation,
+        translatedText: translation?.text,
         user_name: t.author?.name ?? 'Unknown',
         user_screen_name: t.author?.screen_name ?? 'unknown',
         user_profile_image_url: t.author?.avatar_url ?? '',
@@ -187,4 +243,4 @@ function normalizeFromFX(fx) {
     };
 }
 
-module.exports = { normalizeFromVX, normalizeFromFX, extractCommunityNote, normalizeEmbeddedQuoteTweet, normalizeArticle };
+module.exports = { normalizeFromVX, normalizeFromFX, extractCommunityNote, normalizeEmbeddedQuoteTweet, normalizeArticle, normalizeTranslation };

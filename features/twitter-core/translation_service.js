@@ -4,11 +4,11 @@ const {
     ollamaPort,
     ollamaTranslationModel,
 } = require('../../config/env_config.js');
+const { normalizeTranslation } = require('./fxvx_normalize.js');
 
 const ENGLISH_LANGUAGE_RE = /^en(?:[-_]|$)/i;
 const NON_TRANSLATABLE_LANGUAGE_RE = /^(?:zxx|und)(?:[-_]|$)/i;
 const URL_ONLY_RE = /https?:\/\/\S+/gi;
-const translationCache = new Map();
 const languageDisplayNames = typeof Intl !== 'undefined' && typeof Intl.DisplayNames === 'function'
     ? new Intl.DisplayNames(['en'], { type: 'language' })
     : null;
@@ -185,18 +185,9 @@ function isLikelyTranslationFailure(text) {
 
 function shouldTranslateMetadata(metadata) {
     if (!metadata || metadata.error) return false;
-    if (metadata.translation?.text || metadata.translatedText) return false;
-
     const text = getSourceText(metadata);
     if (!text) return false;
-    if (isNonTranslatableLanguage(metadata.lang)) return false;
-
-    return Boolean(metadata.lang) && !isEnglishLanguage(metadata.lang);
-}
-
-function buildTranslationCacheKey(metadata) {
-    const text = getSourceText(metadata);
-    return [metadata?.tweetID || '', metadata?.lang || '', text].join('::');
+    return Boolean(getApiTranslation(metadata));
 }
 
 function extractOutputText(payload) {
@@ -289,31 +280,6 @@ function buildTranslateGemmaPrompt({ text, sourceLanguage, targetLanguage = 'en'
     ].join('\n');
 }
 
-function buildBatchTranslateGemmaPrompt(items, { targetLanguage = 'en' } = {}) {
-    const targetCode = String(targetLanguage || 'en').trim() || 'en';
-    const targetName = getLanguageName(targetCode);
-
-    const serializedItems = items.map(item => ({
-        id: String(item.id),
-        source_language: String(item.sourceLanguage || 'auto'),
-        source_language_name: getLanguageName(item.sourceLanguage || 'auto'),
-        source_language_note: getTwitterSpecialLanguage(item.sourceLanguage)?.isTranslatable
-            ? 'Twitter-specific classification, not a real language code. Infer the actual language from the text.'
-            : undefined,
-        text: item.text,
-    }));
-
-    return [
-        `You are a professional multilingual translator. Translate each item into ${targetName} (${targetCode}).`,
-        'Return only valid JSON as an array of objects in this exact shape:',
-        '[{"id":"...", "translation":"..."}]',
-        'Do not add commentary, markdown, or explanations.',
-        'Preserve meaning, tone, slang, line breaks, @mentions, hashtags, emojis, and proper nouns.',
-        '',
-        JSON.stringify(serializedItems),
-    ].join('\n');
-}
-
 async function translateText({
     text,
     sourceLanguage,
@@ -366,119 +332,24 @@ async function translateText({
     return translatedText;
 }
 
-function extractJsonArray(text) {
-    const normalized = normalizeWhitespace(text);
-    if (!normalized) return null;
-
-    try {
-        const parsed = JSON.parse(normalized);
-        return Array.isArray(parsed) ? parsed : null;
-    } catch {}
-
-    const match = normalized.match(/\[[\s\S]*\]/);
-    if (!match) return null;
-
-    try {
-        const parsed = JSON.parse(match[0]);
-        return Array.isArray(parsed) ? parsed : null;
-    } catch {
-        return null;
-    }
+function getApiTranslation(metadata) {
+    const translation = normalizeTranslation(metadata?.translation, metadata?.lang);
+    if (!translation?.text) return null;
+    if (translation.provider === 'ollama') return null;
+    return translation;
 }
 
 async function translateMetadataBatchToEnglish(items, log = console.log) {
-    const eligible = (Array.isArray(items) ? items : []).filter(shouldTranslateMetadata);
-    if (eligible.length === 0) return items;
+    const list = Array.isArray(items) ? items : [];
+    let applied = 0;
 
-    const uncached = [];
-    for (const metadata of eligible) {
-        const cacheKey = buildTranslationCacheKey(metadata);
-        if (translationCache.has(cacheKey)) {
-            const cached = translationCache.get(cacheKey);
-            metadata.translation = cached;
-            metadata.translatedText = cached.text;
-        } else {
-            uncached.push({
-                id: metadata.tweetID || String(uncached.length),
-                metadata,
-                cacheKey,
-                sourceLanguage: metadata.lang,
-                text: getSourceText(metadata),
-            });
-        }
+    for (const metadata of list) {
+        const before = metadata?.translatedText;
+        await enrichMetadataWithTranslation(metadata, log);
+        if (metadata?.translatedText && metadata.translatedText !== before) applied += 1;
     }
 
-    if (uncached.length === 0) return items;
-
-    const url = `http://${ollamaHost}:${ollamaPort}/${ollamaGenerateEndpoint}`;
-    const prompt = buildBatchTranslateGemmaPrompt(uncached, { targetLanguage: 'en' });
-    const payload = {
-        model: ollamaTranslationModel,
-        prompt,
-        stream: false,
-        keep_alive: -1,
-        options: {
-            temperature: 0,
-        },
-    };
-
-    try {
-        const response = await fetch(url, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(payload),
-        });
-
-        const parsed = await response.json();
-        if (!response.ok) {
-            const message = parsed?.error || parsed?.message || `Ollama batch request failed with status ${response.status}`;
-            throw new Error(message);
-        }
-
-        const responseText = normalizeWhitespace(extractOutputText(parsed));
-        if (!responseText) throw new Error('Ollama returned an empty batch translation payload');
-        if (isLikelyTranslationFailure(responseText)) {
-            throw new Error('Ollama returned a batch translation refusal or non-translation response');
-        }
-
-        const translatedItems = extractJsonArray(responseText);
-        if (!translatedItems) throw new Error('Ollama batch translation response was not valid JSON');
-
-        const translatedById = new Map(
-            translatedItems
-                .filter(item => item && typeof item.id !== 'undefined')
-                .map(item => [String(item.id), normalizeWhitespace(item.translation)])
-        );
-
-        for (const item of uncached) {
-            const translatedText = translatedById.get(String(item.id));
-            if (!translatedText) continue;
-            if (normalizeWhitespace(translatedText) === normalizeWhitespace(item.text)) continue;
-            if (isLikelyTranslationFailure(translatedText)) continue;
-
-            const translation = {
-                provider: 'ollama',
-                model: ollamaTranslationModel,
-                sourceLanguage: item.sourceLanguage,
-                destinationLanguage: 'en',
-                text: translatedText,
-            };
-
-            translationCache.set(item.cacheKey, translation);
-            item.metadata.translation = translation;
-            item.metadata.translatedText = translatedText;
-        }
-
-        log?.(`[translation] batch translation complete for ${uncached.length} item(s)`);
-    } catch (err) {
-        log?.(`[translation] batch translation failed, falling back to per-item translation: ${err.message}`);
-        for (const item of uncached) {
-            await enrichMetadataWithTranslation(item.metadata, log);
-        }
-    }
-
+    if (applied > 0) log?.(`[translation] applied API translation for ${applied} item(s)`);
     return items;
 }
 
@@ -501,56 +372,26 @@ async function improveEnglishText({ text, log = console.log }) {
 }
 
 async function enrichMetadataWithTranslation(metadata, log = console.log) {
-    if (!shouldTranslateMetadata(metadata)) return metadata;
+    const translation = getApiTranslation(metadata);
+    if (!translation) return metadata;
 
-    const cacheKey = buildTranslationCacheKey(metadata);
-    if (translationCache.has(cacheKey)) {
-        const cached = translationCache.get(cacheKey);
-        metadata.translation = cached;
-        metadata.translatedText = cached.text;
-        return metadata;
-    }
-
-    const sourceText = getSourceText(metadata);
-
-    try {
-        const translatedText = await translateTextToEnglish({
-            text: sourceText,
-            sourceLanguage: metadata.lang,
-            log,
-        });
-
-        if (!translatedText || normalizeWhitespace(translatedText) === normalizeWhitespace(sourceText)) {
-            return metadata;
-        }
-
-        const translation = {
-            provider: 'ollama',
-            model: ollamaTranslationModel,
-            sourceLanguage: metadata.lang,
-            destinationLanguage: 'en',
-            text: translatedText,
-        };
-
-        translationCache.set(cacheKey, translation);
-        metadata.translation = translation;
-        metadata.translatedText = translatedText;
-    } catch (err) {
-        log?.(`[translation] skipping translation for tweet ${metadata?.tweetID || 'unknown'}: ${err.message}`);
-    }
+    metadata.translation = translation;
+    metadata.translatedText = translation.text;
+    log?.(`[translation] applied API translation for tweet ${metadata?.tweetID || 'unknown'}`);
 
     return metadata;
 }
 
 function buildDisplayText(metadata) {
     const sourceText = normalizeWhitespace(getSourceText(metadata));
-    const translatedText = normalizeWhitespace(metadata?.translatedText || metadata?.translation?.text);
+    const translation = getApiTranslation(metadata);
+    const translatedText = normalizeWhitespace(translation?.text);
 
     if (!sourceText) return '';
     if (!translatedText) return sourceText;
 
     const sourceLanguageCode = String(
-        metadata?.translation?.sourceLanguage || metadata?.lang || 'unknown'
+        translation?.sourceLanguage || metadata?.lang || 'unknown'
     ).trim();
     const sourceLanguageName = getLanguageName(sourceLanguageCode);
 
@@ -559,7 +400,6 @@ function buildDisplayText(metadata) {
 
 module.exports = {
     buildDisplayText,
-    buildBatchTranslateGemmaPrompt,
     buildTranslateGemmaPrompt,
     enrichMetadataWithTranslation,
     translateMetadataBatchToEnglish,
@@ -569,6 +409,7 @@ module.exports = {
     isEnglishLanguage,
     isLikelyTranslationFailure,
     isNonTranslatableLanguage,
+    getApiTranslation,
     normalizeWhitespace,
     resolveLanguageCode,
     shouldTranslateMetadata,

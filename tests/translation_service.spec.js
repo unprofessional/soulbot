@@ -23,10 +23,15 @@ describe('translation_service', () => {
         jest.restoreAllMocks();
     });
 
-    test('shouldTranslateMetadata only enables translation for non-English posts', () => {
+    test('shouldTranslateMetadata only enables API-surfaced translations', () => {
         const { shouldTranslateMetadata } = loadServiceWithEnv();
 
-        expect(shouldTranslateMetadata({ text: 'ola', lang: 'pt' })).toBe(true);
+        expect(shouldTranslateMetadata({
+            text: 'ola',
+            lang: 'pt',
+            translation: { text: 'hello' },
+        })).toBe(true);
+        expect(shouldTranslateMetadata({ text: 'ola', lang: 'pt', translation: null })).toBe(false);
         expect(shouldTranslateMetadata({ text: 'hello', lang: 'en' })).toBe(false);
         expect(shouldTranslateMetadata({ text: 'bonjour', lang: null })).toBe(false);
         expect(shouldTranslateMetadata({ text: 'https://t.co/abcdef', lang: 'pt' })).toBe(false);
@@ -70,7 +75,7 @@ describe('translation_service', () => {
         expect(resolveLanguageCode('not-a-real-language')).toBeNull();
     });
 
-    test('buildDisplayText appends the translated English copy', () => {
+    test('buildDisplayText appends API-surfaced translated English copy', () => {
         const { buildDisplayText } = loadServiceWithEnv();
 
         const rendered = buildDisplayText({
@@ -85,6 +90,26 @@ describe('translation_service', () => {
         expect(rendered).toContain('Charlie Sheen farmou muita aura nesse comercial');
         expect(rendered).toContain('[Translated from Portuguese]');
         expect(rendered).toContain('Charlie Sheen farmed a lot of aura in this commercial.');
+    });
+
+    test('buildDisplayText ignores internal Ollama translations and missing API translations', () => {
+        const { buildDisplayText } = loadServiceWithEnv();
+
+        expect(buildDisplayText({
+            text: 'LMAOOOO',
+            lang: 'ht',
+            translation: null,
+        })).toBe('LMAOOOO');
+
+        expect(buildDisplayText({
+            text: 'LMAOOOO',
+            lang: 'ht',
+            translation: {
+                provider: 'ollama',
+                sourceLanguage: 'ht',
+                text: 'LOL (Laughing Out Loud)',
+            },
+        })).toBe('LMAOOOO');
     });
 
     test('buildDisplayText uses friendly names for Twitter synthetic lang codes', () => {
@@ -159,46 +184,33 @@ describe('translation_service', () => {
         }));
     });
 
-    test('translateMetadataBatchToEnglish applies one batched translation response across multiple posts', async () => {
+    test('translateMetadataBatchToEnglish applies existing API translations without calling Ollama', async () => {
         const { translateMetadataBatchToEnglish } = loadServiceWithEnv({
             OLLAMA_TRANSLATION_MODEL: 'translategemma:12b',
         });
 
-        global.fetch = jest.fn().mockResolvedValue({
-            ok: true,
-            json: async () => ({
-                response: JSON.stringify([
-                    { id: '1', translation: 'Hello world' },
-                    { id: '2', translation: 'Good morning' },
-                ]),
-            }),
-        });
+        global.fetch = jest.fn();
 
         const posts = [
-            { tweetID: '1', lang: 'pt', text: 'ola mundo' },
-            { tweetID: '2', lang: 'es', text: 'buenos dias' },
+            { tweetID: '1', lang: 'pt', text: 'ola mundo', translation: { text: 'Hello world' } },
+            { tweetID: '2', lang: 'es', text: 'buenos dias', translation: { text: 'Good morning' } },
+            { tweetID: '3', lang: 'ht', text: 'LMAOOOO', translation: null },
         ];
 
         await translateMetadataBatchToEnglish(posts, jest.fn());
 
-        expect(global.fetch).toHaveBeenCalledTimes(1);
+        expect(global.fetch).not.toHaveBeenCalled();
         expect(posts[0].translatedText).toBe('Hello world');
         expect(posts[1].translatedText).toBe('Good morning');
+        expect(posts[2].translatedText).toBeUndefined();
     });
 
-    test('translateMetadataBatchToEnglish annotates Twitter synthetic lang codes in batch prompts', async () => {
+    test('translateMetadataBatchToEnglish does not generate translations for Twitter synthetic lang codes', async () => {
         const { translateMetadataBatchToEnglish } = loadServiceWithEnv({
             OLLAMA_TRANSLATION_MODEL: 'translategemma:12b',
         });
 
-        global.fetch = jest.fn().mockResolvedValue({
-            ok: true,
-            json: async () => ({
-                response: JSON.stringify([
-                    { id: '1', translation: 'N.' },
-                ]),
-            }),
-        });
+        global.fetch = jest.fn();
 
         const posts = [
             { tweetID: '1', lang: 'qst', text: 'N' },
@@ -206,39 +218,58 @@ describe('translation_service', () => {
 
         await translateMetadataBatchToEnglish(posts, jest.fn());
 
-        expect(global.fetch).toHaveBeenCalledTimes(1);
-        expect(JSON.parse(global.fetch.mock.calls[0][1].body).prompt).toContain('Twitter-specific classification, not a real language code');
+        expect(global.fetch).not.toHaveBeenCalled();
+        expect(posts[0].translatedText).toBeUndefined();
     });
 
-    test('enrichMetadataWithTranslation stores translated text on metadata', async () => {
+    test('enrichMetadataWithTranslation stores API translated text on metadata', async () => {
         const { enrichMetadataWithTranslation } = loadServiceWithEnv({
             OLLAMA_TRANSLATION_MODEL: 'translategemma:12b',
             OLLAMA_HOST: 'ollama-service',
             OLLAMA_PORT: '11434',
         });
 
-        global.fetch = jest.fn().mockResolvedValue({
-            ok: true,
-            json: async () => ({
-                response: 'Charlie Sheen created a lot of aura in this 90s Japanese cigarette commercial.',
-            }),
-        });
+        global.fetch = jest.fn();
 
         const metadata = {
             tweetID: '123',
             lang: 'pt',
             text: 'Charlie Sheen farmou muita aura nesse comercial de cigarro japonês dos anos 90',
+            translation: {
+                text: 'Charlie Sheen created a lot of aura in this 90s Japanese cigarette commercial.',
+            },
         };
 
         await enrichMetadataWithTranslation(metadata, jest.fn());
 
-        expect(global.fetch).toHaveBeenCalledTimes(1);
+        expect(global.fetch).not.toHaveBeenCalled();
         expect(metadata.translatedText).toBe('Charlie Sheen created a lot of aura in this 90s Japanese cigarette commercial.');
         expect(metadata.translation).toEqual(expect.objectContaining({
-            provider: 'ollama',
-            model: 'translategemma:12b',
+            provider: 'api',
             sourceLanguage: 'pt',
             destinationLanguage: 'en',
         }));
+    });
+
+    test('enrichMetadataWithTranslation leaves metadata untouched when API translation is absent', async () => {
+        const { enrichMetadataWithTranslation } = loadServiceWithEnv();
+        global.fetch = jest.fn();
+
+        const metadata = {
+            tweetID: '2053349312910840242',
+            lang: 'ht',
+            text: 'LMAOOOO',
+            translation: null,
+        };
+
+        await enrichMetadataWithTranslation(metadata, jest.fn());
+
+        expect(global.fetch).not.toHaveBeenCalled();
+        expect(metadata).toEqual({
+            tweetID: '2053349312910840242',
+            lang: 'ht',
+            text: 'LMAOOOO',
+            translation: null,
+        });
     });
 });

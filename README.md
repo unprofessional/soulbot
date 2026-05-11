@@ -9,8 +9,9 @@ makes use of Kubernetes, a Persistent Volume, and a Persistent Volume Claim
 - all config resids in the `/kubernetes` directory
 - you must set the `DISCORD_BOT_TOKEN` environment variable within Kubernetes via:
   - `kubectl create secret generic discord-bot-secret --from-literal=DISCORD_BOT_TOKEN=xxxxx`
-- tweet translation runs server-side through Ollama/Kokoro using `translategemma:12b`
-- set `OLLAMA_TRANSLATION_MODEL` if you want to override the default model
+- tweet renders only show translations surfaced by the Twitter metadata API
+- `/translate`, `/translate-en`, and speak-english cleanup run server-side through Ollama/Kokoro using `translategemma:12b`
+- set `OLLAMA_TRANSLATION_MODEL` if you want to override the default translation/cleanup model
 - the bot now exposes health endpoints on `HEALTH_PORT` (default `8080`): `/livez`, `/readyz`, and `/drain`
 - during shutdown the pod marks itself unready, pauses new queued work, waits for active work to finish, then disconnects Discord and closes Postgres
 - a Postgres advisory lock now serializes Discord leadership across pods so a new pod waits for the old one to stand down before it logs in
