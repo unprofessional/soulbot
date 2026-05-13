@@ -190,6 +190,15 @@ function shouldTranslateMetadata(metadata) {
     return Boolean(getApiTranslation(metadata));
 }
 
+function hasMissingApiTranslation(metadata) {
+    if (!metadata || metadata.error) return false;
+    if (getApiTranslation(metadata)) return false;
+    if (!getSourceText(metadata)) return false;
+    if (!metadata.lang || isEnglishLanguage(metadata.lang)) return false;
+    if (isNonTranslatableLanguage(metadata.lang)) return false;
+    return true;
+}
+
 function extractOutputText(payload) {
     return typeof payload?.response === 'string' ? payload.response.trim() : '';
 }
@@ -373,7 +382,12 @@ async function improveEnglishText({ text, log = console.log }) {
 
 async function enrichMetadataWithTranslation(metadata, log = console.log) {
     const translation = getApiTranslation(metadata);
-    if (!translation) return metadata;
+    if (!translation) {
+        if (hasMissingApiTranslation(metadata)) {
+            log?.(`[translation] missing API translation for non-English tweet ${metadata?.tweetID || 'unknown'} (${metadata.lang})`);
+        }
+        return metadata;
+    }
 
     metadata.translation = translation;
     metadata.translatedText = translation.text;
@@ -409,6 +423,7 @@ module.exports = {
     isEnglishLanguage,
     isLikelyTranslationFailure,
     isNonTranslatableLanguage,
+    hasMissingApiTranslation,
     getApiTranslation,
     normalizeWhitespace,
     resolveLanguageCode,

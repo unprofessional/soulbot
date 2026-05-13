@@ -38,6 +38,37 @@ describe('translation_service', () => {
         expect(shouldTranslateMetadata({ text: 'video only', lang: 'zxx' })).toBe(false);
     });
 
+    test('hasMissingApiTranslation detects non-English posts without API translation', () => {
+        const { hasMissingApiTranslation } = loadServiceWithEnv();
+
+        expect(hasMissingApiTranslation({
+            tweetID: '2054042128062525820',
+            text: '中国の地方のライブ',
+            lang: 'ja',
+            translation: null,
+        })).toBe(true);
+        expect(hasMissingApiTranslation({
+            text: 'LMAOOOO',
+            lang: 'ht',
+            translation: null,
+        })).toBe(true);
+        expect(hasMissingApiTranslation({
+            text: 'hello',
+            lang: 'en',
+            translation: null,
+        })).toBe(false);
+        expect(hasMissingApiTranslation({
+            text: 'video only',
+            lang: 'zxx',
+            translation: null,
+        })).toBe(false);
+        expect(hasMissingApiTranslation({
+            text: 'ola',
+            lang: 'pt',
+            translation: { text: 'hello' },
+        })).toBe(false);
+    });
+
     test('buildTranslateGemmaPrompt matches the expected translation template shape', () => {
         const { buildTranslateGemmaPrompt } = loadServiceWithEnv();
 
@@ -254,6 +285,7 @@ describe('translation_service', () => {
     test('enrichMetadataWithTranslation leaves metadata untouched when API translation is absent', async () => {
         const { enrichMetadataWithTranslation } = loadServiceWithEnv();
         global.fetch = jest.fn();
+        const log = jest.fn();
 
         const metadata = {
             tweetID: '2053349312910840242',
@@ -262,9 +294,10 @@ describe('translation_service', () => {
             translation: null,
         };
 
-        await enrichMetadataWithTranslation(metadata, jest.fn());
+        await enrichMetadataWithTranslation(metadata, log);
 
         expect(global.fetch).not.toHaveBeenCalled();
+        expect(log).toHaveBeenCalledWith('[translation] missing API translation for non-English tweet 2053349312910840242 (ht)');
         expect(metadata).toEqual({
             tweetID: '2053349312910840242',
             lang: 'ht',
