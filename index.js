@@ -15,6 +15,7 @@ const {
     isDraining,
     markReady,
     registerCleanup,
+    registerDrainHandler,
     shutdown,
 } = require('./app/lifecycle.js');
 const PromiseQueue = require('./lib/promise_queue.js');
@@ -65,7 +66,7 @@ const initializeApp = async () => {
 
     await healthServer.start();
 
-    registerCleanup('announce bot restart', async () => {
+    registerDrainHandler('announce bot restart', async () => {
         const result = await announceBotRestart(client);
         console.log(
             `[bot-announcements] Restart announcement summary: sent=${result.sent}, skipped=${result.skipped}, failed=${result.failed}`

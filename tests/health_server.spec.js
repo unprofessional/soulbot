@@ -1,15 +1,15 @@
 jest.mock('../app/lifecycle.js', () => ({
+    drain: jest.fn(),
     getState: jest.fn(),
-    startDraining: jest.fn(),
 }));
 
-const { getState, startDraining } = require('../app/lifecycle.js');
+const { drain, getState } = require('../app/lifecycle.js');
 const { handleHealthRequest } = require('../app/health_server.js');
 
 describe('health server', () => {
     beforeEach(() => {
+        drain.mockReset();
         getState.mockReset();
-        startDraining.mockReset();
     });
 
     test('readyz returns 200 when ready', async () => {
@@ -44,7 +44,7 @@ describe('health server', () => {
         );
 
         expect(response.statusCode).toBe(200);
-        expect(startDraining).toHaveBeenCalledWith('preStop hook');
+        expect(drain).toHaveBeenCalledWith('preStop hook');
     });
 });
 

@@ -1,8 +1,10 @@
 const cleanupHandlers = [];
+const drainHandlers = [];
 
 const state = {
     isReady: false,
     isDraining: false,
+    drainHandlersPromise: null,
     shutdownReason: null,
     shutdownPromise: null,
 };
@@ -38,6 +40,34 @@ function registerCleanup(name, fn) {
     cleanupHandlers.push({ name, fn });
 }
 
+function registerDrainHandler(name, fn) {
+    drainHandlers.push({ name, fn });
+}
+
+async function runDrainHandlers() {
+    if (state.drainHandlersPromise) {
+        return state.drainHandlersPromise;
+    }
+
+    state.drainHandlersPromise = (async () => {
+        for (const { name, fn } of drainHandlers) {
+            try {
+                console.log(`[Lifecycle] Running drain handler: ${name}`);
+                await fn(state.shutdownReason);
+            } catch (error) {
+                console.error(`[Lifecycle] Drain handler failed: ${name}`, error);
+            }
+        }
+    })();
+
+    return state.drainHandlersPromise;
+}
+
+async function drain(reason = 'shutdown requested') {
+    startDraining(reason);
+    await runDrainHandlers();
+}
+
 async function runCleanupHandlers() {
     for (const { name, fn } of cleanupHandlers) {
         try {
@@ -54,9 +84,8 @@ async function shutdown({ signal = 'unknown', exitCode = 0 } = {}) {
         return state.shutdownPromise;
     }
 
-    startDraining(`signal=${signal}`);
-
     state.shutdownPromise = (async () => {
+        await drain(`signal=${signal}`);
         await runCleanupHandlers();
         return exitCode;
     })();
@@ -78,6 +107,8 @@ module.exports = {
     isReady,
     markReady,
     registerCleanup,
+    registerDrainHandler,
+    drain,
     shouldAcceptWork,
     shutdown,
     startDraining,

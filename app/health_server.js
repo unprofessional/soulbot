@@ -1,6 +1,6 @@
 const http = require('node:http');
 
-const { getState, startDraining } = require('./lifecycle.js');
+const { drain, getState } = require('./lifecycle.js');
 const { getActiveJobs } = require('./media_work_registry.js');
 
 async function handleHealthRequest(req, res, { drainDelayMs = 10000 } = {}) {
@@ -26,7 +26,7 @@ async function handleHealthRequest(req, res, { drainDelayMs = 10000 } = {}) {
     }
 
     if (method === 'GET' && url === '/drain') {
-        startDraining('preStop hook');
+        await drain('preStop hook');
 
         await new Promise((resolve) => {
             setTimeout(resolve, drainDelayMs);
