@@ -9,6 +9,8 @@ const { normalizeTranslation } = require('./fxvx_normalize.js');
 const ENGLISH_LANGUAGE_RE = /^en(?:[-_]|$)/i;
 const NON_TRANSLATABLE_LANGUAGE_RE = /^(?:zxx|und)(?:[-_]|$)/i;
 const URL_ONLY_RE = /https?:\/\/\S+/gi;
+const NON_LATIN_SCRIPT_RE = /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}\p{Script=Arabic}\p{Script=Cyrillic}\p{Script=Hebrew}\p{Script=Devanagari}\p{Script=Thai}]/u;
+const MISSING_API_FALLBACK_PROVIDER = 'ollama-missing-api';
 const languageDisplayNames = typeof Intl !== 'undefined' && typeof Intl.DisplayNames === 'function'
     ? new Intl.DisplayNames(['en'], { type: 'language' })
     : null;
@@ -199,6 +201,16 @@ function hasMissingApiTranslation(metadata) {
     return true;
 }
 
+function hasReliableNonEnglishTextSignal(metadata) {
+    const text = getSourceText(metadata);
+    if (!text) return false;
+    return NON_LATIN_SCRIPT_RE.test(text);
+}
+
+function shouldInferMissingApiTranslation(metadata) {
+    return hasMissingApiTranslation(metadata) && hasReliableNonEnglishTextSignal(metadata);
+}
+
 function extractOutputText(payload) {
     return typeof payload?.response === 'string' ? payload.response.trim() : '';
 }
@@ -348,6 +360,18 @@ function getApiTranslation(metadata) {
     return translation;
 }
 
+function getDisplayTranslation(metadata) {
+    const apiTranslation = getApiTranslation(metadata);
+    if (apiTranslation) return apiTranslation;
+
+    const generatedTranslation = normalizeTranslation(metadata?.translation, metadata?.lang);
+    if (generatedTranslation?.provider === MISSING_API_FALLBACK_PROVIDER) {
+        return generatedTranslation;
+    }
+
+    return null;
+}
+
 async function translateMetadataBatchToEnglish(items, log = console.log) {
     const list = Array.isArray(items) ? items : [];
     let applied = 0;
@@ -358,7 +382,7 @@ async function translateMetadataBatchToEnglish(items, log = console.log) {
         if (metadata?.translatedText && metadata.translatedText !== before) applied += 1;
     }
 
-    if (applied > 0) log?.(`[translation] applied API translation for ${applied} item(s)`);
+    if (applied > 0) log?.(`[translation] applied translation for ${applied} item(s)`);
     return items;
 }
 
@@ -383,8 +407,36 @@ async function improveEnglishText({ text, log = console.log }) {
 async function enrichMetadataWithTranslation(metadata, log = console.log) {
     const translation = getApiTranslation(metadata);
     if (!translation) {
-        if (hasMissingApiTranslation(metadata)) {
-            log?.(`[translation] missing API translation for non-English tweet ${metadata?.tweetID || 'unknown'} (${metadata.lang})`);
+        if (!hasMissingApiTranslation(metadata)) return metadata;
+
+        if (!shouldInferMissingApiTranslation(metadata)) {
+            log?.(`[translation] missing API translation for non-English tweet ${metadata?.tweetID || 'unknown'} (${metadata.lang}); skipping model fallback because the source text signal is weak`);
+            return metadata;
+        }
+
+        const sourceText = getSourceText(metadata);
+        try {
+            const translatedText = await translateTextToEnglish({
+                text: sourceText,
+                sourceLanguage: metadata.lang,
+                log,
+            });
+
+            if (!translatedText || normalizeWhitespace(translatedText) === normalizeWhitespace(sourceText)) {
+                return metadata;
+            }
+
+            metadata.translation = {
+                provider: MISSING_API_FALLBACK_PROVIDER,
+                model: ollamaTranslationModel,
+                sourceLanguage: metadata.lang,
+                destinationLanguage: 'en',
+                text: translatedText,
+            };
+            metadata.translatedText = translatedText;
+            log?.(`[translation] generated fallback translation for tweet ${metadata?.tweetID || 'unknown'} (${metadata.lang})`);
+        } catch (err) {
+            log?.(`[translation] skipping fallback translation for tweet ${metadata?.tweetID || 'unknown'}: ${err.message}`);
         }
         return metadata;
     }
@@ -398,7 +450,7 @@ async function enrichMetadataWithTranslation(metadata, log = console.log) {
 
 function buildDisplayText(metadata) {
     const sourceText = normalizeWhitespace(getSourceText(metadata));
-    const translation = getApiTranslation(metadata);
+    const translation = getDisplayTranslation(metadata);
     const translatedText = normalizeWhitespace(translation?.text);
 
     if (!sourceText) return '';
@@ -424,7 +476,10 @@ module.exports = {
     isLikelyTranslationFailure,
     isNonTranslatableLanguage,
     hasMissingApiTranslation,
+    hasReliableNonEnglishTextSignal,
+    shouldInferMissingApiTranslation,
     getApiTranslation,
+    getDisplayTranslation,
     normalizeWhitespace,
     resolveLanguageCode,
     shouldTranslateMetadata,

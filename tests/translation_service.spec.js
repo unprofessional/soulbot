@@ -39,19 +39,27 @@ describe('translation_service', () => {
     });
 
     test('hasMissingApiTranslation detects non-English posts without API translation', () => {
-        const { hasMissingApiTranslation } = loadServiceWithEnv();
+        const {
+            hasMissingApiTranslation,
+            shouldInferMissingApiTranslation,
+        } = loadServiceWithEnv();
 
-        expect(hasMissingApiTranslation({
+        const japanesePost = {
             tweetID: '2054042128062525820',
             text: '中国の地方のライブ',
             lang: 'ja',
             translation: null,
-        })).toBe(true);
-        expect(hasMissingApiTranslation({
+        };
+        const weakSignalPost = {
             text: 'LMAOOOO',
             lang: 'ht',
             translation: null,
-        })).toBe(true);
+        };
+
+        expect(hasMissingApiTranslation(japanesePost)).toBe(true);
+        expect(shouldInferMissingApiTranslation(japanesePost)).toBe(true);
+        expect(hasMissingApiTranslation(weakSignalPost)).toBe(true);
+        expect(shouldInferMissingApiTranslation(weakSignalPost)).toBe(false);
         expect(hasMissingApiTranslation({
             text: 'hello',
             lang: 'en',
@@ -143,6 +151,23 @@ describe('translation_service', () => {
         })).toBe('LMAOOOO');
     });
 
+    test('buildDisplayText renders missing-API fallback translations', () => {
+        const { buildDisplayText } = loadServiceWithEnv();
+
+        const rendered = buildDisplayText({
+            text: '中国の地方のライブ',
+            lang: 'ja',
+            translation: {
+                provider: 'ollama-missing-api',
+                sourceLanguage: 'ja',
+                text: 'A local live show in China.',
+            },
+        });
+
+        expect(rendered).toContain('[Translated from Japanese]');
+        expect(rendered).toContain('A local live show in China.');
+    });
+
     test('buildDisplayText uses friendly names for Twitter synthetic lang codes', () => {
         const { buildDisplayText } = loadServiceWithEnv();
 
@@ -215,25 +240,32 @@ describe('translation_service', () => {
         }));
     });
 
-    test('translateMetadataBatchToEnglish applies existing API translations without calling Ollama', async () => {
+    test('translateMetadataBatchToEnglish applies existing API translations and guarded fallbacks', async () => {
         const { translateMetadataBatchToEnglish } = loadServiceWithEnv({
             OLLAMA_TRANSLATION_MODEL: 'translategemma:12b',
         });
 
-        global.fetch = jest.fn();
+        global.fetch = jest.fn().mockResolvedValue({
+            ok: true,
+            json: async () => ({
+                response: 'A local live show in China.',
+            }),
+        });
 
         const posts = [
             { tweetID: '1', lang: 'pt', text: 'ola mundo', translation: { text: 'Hello world' } },
             { tweetID: '2', lang: 'es', text: 'buenos dias', translation: { text: 'Good morning' } },
             { tweetID: '3', lang: 'ht', text: 'LMAOOOO', translation: null },
+            { tweetID: '4', lang: 'ja', text: '中国の地方のライブ', translation: null },
         ];
 
         await translateMetadataBatchToEnglish(posts, jest.fn());
 
-        expect(global.fetch).not.toHaveBeenCalled();
+        expect(global.fetch).toHaveBeenCalledTimes(1);
         expect(posts[0].translatedText).toBe('Hello world');
         expect(posts[1].translatedText).toBe('Good morning');
         expect(posts[2].translatedText).toBeUndefined();
+        expect(posts[3].translatedText).toBe('A local live show in China.');
     });
 
     test('translateMetadataBatchToEnglish does not generate translations for Twitter synthetic lang codes', async () => {
@@ -297,12 +329,45 @@ describe('translation_service', () => {
         await enrichMetadataWithTranslation(metadata, log);
 
         expect(global.fetch).not.toHaveBeenCalled();
-        expect(log).toHaveBeenCalledWith('[translation] missing API translation for non-English tweet 2053349312910840242 (ht)');
+        expect(log).toHaveBeenCalledWith('[translation] missing API translation for non-English tweet 2053349312910840242 (ht); skipping model fallback because the source text signal is weak');
         expect(metadata).toEqual({
             tweetID: '2053349312910840242',
             lang: 'ht',
             text: 'LMAOOOO',
             translation: null,
         });
+    });
+
+    test('enrichMetadataWithTranslation generates fallback translation for strong non-English text', async () => {
+        const { enrichMetadataWithTranslation, buildDisplayText } = loadServiceWithEnv({
+            OLLAMA_TRANSLATION_MODEL: 'translategemma:12b',
+        });
+        const log = jest.fn();
+        global.fetch = jest.fn().mockResolvedValue({
+            ok: true,
+            json: async () => ({
+                response: 'A local live show in China introduced seismic isolation devices because the venue audience was not lively enough.',
+            }),
+        });
+
+        const metadata = {
+            tweetID: '2054042128062525820',
+            lang: 'ja',
+            text: '中国の地方のライブ、会場のノリが悪いから免震装置を導入されたのまだ面白い',
+            translation: null,
+        };
+
+        await enrichMetadataWithTranslation(metadata, log);
+
+        expect(global.fetch).toHaveBeenCalledTimes(1);
+        expect(JSON.parse(global.fetch.mock.calls[0][1].body).prompt).toContain('Japanese (ja) to English (en)');
+        expect(metadata.translation).toEqual(expect.objectContaining({
+            provider: 'ollama-missing-api',
+            model: 'translategemma:12b',
+            sourceLanguage: 'ja',
+            destinationLanguage: 'en',
+        }));
+        expect(buildDisplayText(metadata)).toContain('[Translated from Japanese]');
+        expect(buildDisplayText(metadata)).toContain('A local live show in China introduced seismic isolation devices');
     });
 });

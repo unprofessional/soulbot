@@ -9,7 +9,7 @@ makes use of Kubernetes, a Persistent Volume, and a Persistent Volume Claim
 - all config resids in the `/kubernetes` directory
 - you must set the `DISCORD_BOT_TOKEN` environment variable within Kubernetes via:
   - `kubectl create secret generic discord-bot-secret --from-literal=DISCORD_BOT_TOKEN=xxxxx`
-- tweet renders only show translations surfaced by the Twitter metadata API
+- tweet renders prefer translations surfaced by the Twitter metadata API, with a guarded Ollama fallback for non-English posts whose API translation is missing
 - `/translate`, `/translate-en`, and speak-english cleanup run server-side through Ollama/Kokoro using `translategemma:12b`
 - set `OLLAMA_TRANSLATION_MODEL` if you want to override the default translation/cleanup model
 - the bot now exposes health endpoints on `HEALTH_PORT` (default `8080`): `/livez`, `/readyz`, and `/drain`
