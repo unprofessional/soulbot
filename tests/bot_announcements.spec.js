@@ -11,8 +11,18 @@ const {
 } = require('../app/bot_announcements.js');
 
 describe('bot announcements', () => {
+    let consoleLogSpy;
+    let consoleWarnSpy;
+
     beforeEach(() => {
         jest.clearAllMocks();
+        consoleLogSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
+        consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    });
+
+    afterEach(() => {
+        consoleLogSpy.mockRestore();
+        consoleWarnSpy.mockRestore();
     });
 
     test('announceBotRestart sends the restart message to configured channels', async () => {

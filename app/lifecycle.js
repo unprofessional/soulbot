@@ -42,6 +42,7 @@ function registerCleanup(name, fn) {
 
 function registerDrainHandler(name, fn) {
     drainHandlers.push({ name, fn });
+    console.log(`[Lifecycle] Registered drain handler: ${name}`);
 }
 
 async function runDrainHandlers() {
@@ -50,6 +51,8 @@ async function runDrainHandlers() {
     }
 
     state.drainHandlersPromise = (async () => {
+        console.log(`[Lifecycle] Running ${drainHandlers.length} drain handler(s)`);
+
         for (const { name, fn } of drainHandlers) {
             try {
                 console.log(`[Lifecycle] Running drain handler: ${name}`);

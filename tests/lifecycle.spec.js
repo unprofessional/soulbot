@@ -4,6 +4,16 @@ function loadLifecycle() {
 }
 
 describe('lifecycle drain handlers', () => {
+    let consoleLogSpy;
+
+    beforeEach(() => {
+        consoleLogSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
+    });
+
+    afterEach(() => {
+        consoleLogSpy.mockRestore();
+    });
+
     test('drain runs registered drain handlers when the pod enters draining', async () => {
         const {
             drain,

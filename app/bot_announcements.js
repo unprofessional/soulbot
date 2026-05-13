@@ -19,14 +19,23 @@ async function resolveAnnouncementChannel(client, { guildId, channelId }) {
 
 async function announceBotRestart(client, message = RESTART_ANNOUNCEMENT) {
     if (!client?.isReady?.()) {
+        console.warn('[bot-announcements] Skipping restart announcement because Discord client is not ready.');
         return { sent: 0, failed: 0, skipped: 0 };
     }
 
     const configuredChannels = await getBotAnnouncementChannels();
+    console.log(`[bot-announcements] Found ${configuredChannels.length} configured announcement channel(s).`);
+
     const results = await Promise.all(configuredChannels.map(async (config) => {
         try {
+            console.log(
+                `[bot-announcements] Resolving announcement channel guild=${config.guildId} channel=${config.channelId}`
+            );
             const channel = await resolveAnnouncementChannel(client, config);
             if (!channel) {
+                console.warn(
+                    `[bot-announcements] Skipping unresolved announcement channel guild=${config.guildId} channel=${config.channelId}`
+                );
                 return 'skipped';
             }
 
