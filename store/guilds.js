@@ -118,14 +118,52 @@ const clearGreetingChannelId = async (guildId) => {
     return meta;
 };
 
+const getBotAnnouncementChannelId = async (guildId) => {
+    const meta = await getGuildMeta(guildId);
+    return meta?.botAnnouncementChannelId || null;
+};
+
+const setBotAnnouncementChannelId = async (guildId, channelId) => {
+    const meta = await updateGuildMeta(guildId, (currentMeta) => ({
+        ...currentMeta,
+        botAnnouncementChannelId: String(channelId),
+    }));
+
+    return meta.botAnnouncementChannelId;
+};
+
+const clearBotAnnouncementChannelId = async (guildId) => {
+    const meta = await updateGuildMeta(guildId, (currentMeta) => {
+        const nextMeta = { ...currentMeta };
+        delete nextMeta.botAnnouncementChannelId;
+        return nextMeta;
+    });
+
+    return meta;
+};
+
+const getBotAnnouncementChannels = async () => {
+    const guilds = await guildDAO.findAll();
+    return guilds
+        .map(({ guild_id: guildId, meta }) => ({
+            guildId,
+            channelId: meta?.botAnnouncementChannelId || null,
+        }))
+        .filter(({ channelId }) => Boolean(channelId));
+};
+
 module.exports = { 
     addGuild,
+    clearBotAnnouncementChannelId,
     clearGreetingChannelId,
+    getBotAnnouncementChannelId,
+    getBotAnnouncementChannels,
     getGreetingChannelId,
     getGuild,
     getGuildMeta,
     getGuilds,
     removeGuild,
+    setBotAnnouncementChannelId,
     setGreetingChannelId,
     updateGuildMeta,
     guildIsSupported,

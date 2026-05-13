@@ -18,9 +18,13 @@ jest.mock('../store/dao/guild.dao.js', () => {
 
 const {
     addGuild,
+    clearBotAnnouncementChannelId,
     clearGreetingChannelId,
+    getBotAnnouncementChannelId,
+    getBotAnnouncementChannels,
     getGreetingChannelId,
     guildIsSupported,
+    setBotAnnouncementChannelId,
     setGreetingChannelId,
 } = require('../store/guilds.js');
 
@@ -53,6 +57,67 @@ describe('guild store helpers', () => {
             foo: 'bar',
             greetingChannelId: 'channel-1',
         });
+    });
+
+    test('getBotAnnouncementChannelId returns null when guild meta is empty', async () => {
+        mockFindByGuildId.mockResolvedValue({
+            guild_id: 'guild-1',
+            meta: {},
+        });
+
+        await expect(getBotAnnouncementChannelId('guild-1')).resolves.toBeNull();
+    });
+
+    test('setBotAnnouncementChannelId persists the bot announcement channel into guild meta', async () => {
+        mockFindByGuildId.mockResolvedValue({
+            guild_id: 'guild-1',
+            meta: {
+                supported: true,
+            },
+        });
+
+        await expect(setBotAnnouncementChannelId('guild-1', 'channel-1')).resolves.toBe('channel-1');
+        expect(mockUpdateMeta).toHaveBeenCalledWith('guild-1', {
+            supported: true,
+            botAnnouncementChannelId: 'channel-1',
+        });
+    });
+
+    test('clearBotAnnouncementChannelId removes the bot announcement channel while preserving other meta', async () => {
+        mockFindByGuildId.mockResolvedValue({
+            guild_id: 'guild-1',
+            meta: {
+                botAnnouncementChannelId: 'channel-1',
+                supported: true,
+            },
+        });
+
+        await clearBotAnnouncementChannelId('guild-1');
+        expect(mockUpdateMeta).toHaveBeenCalledWith('guild-1', {
+            supported: true,
+        });
+    });
+
+    test('getBotAnnouncementChannels returns configured guild/channel pairs', async () => {
+        mockFindAll.mockResolvedValue([
+            {
+                guild_id: 'guild-1',
+                meta: {
+                    botAnnouncementChannelId: 'channel-1',
+                },
+            },
+            {
+                guild_id: 'guild-2',
+                meta: {},
+            },
+        ]);
+
+        await expect(getBotAnnouncementChannels()).resolves.toEqual([
+            {
+                guildId: 'guild-1',
+                channelId: 'channel-1',
+            },
+        ]);
     });
 
     test('clearGreetingChannelId removes the greeting channel while preserving other meta', async () => {

@@ -10,6 +10,7 @@ const { testChromaConnection } = require('./features/ollama/embed.js');
 const { registerFonts } = require('./features/twitter-post/canvas/fonts.js');
 const { initializeGuildMemberAdd } = require('./events/guild_member_add.js');
 const { createHealthServer } = require('./app/health_server.js');
+const { announceBotRestart } = require('./app/bot_announcements.js');
 const {
     isDraining,
     markReady,
@@ -63,6 +64,13 @@ const initializeApp = async () => {
     });
 
     await healthServer.start();
+
+    registerCleanup('announce bot restart', async () => {
+        const result = await announceBotRestart(client);
+        console.log(
+            `[bot-announcements] Restart announcement summary: sent=${result.sent}, skipped=${result.skipped}, failed=${result.failed}`
+        );
+    });
 
     registerCleanup('pause async queues', async () => {
         PromiseQueue.pauseAll();
