@@ -41,6 +41,7 @@ describe('translation_service', () => {
     test('hasMissingApiTranslation detects non-English posts without API translation', () => {
         const {
             hasMissingApiTranslation,
+            isWeakMissingTranslationSource,
             shouldInferMissingApiTranslation,
         } = loadServiceWithEnv();
 
@@ -55,10 +56,44 @@ describe('translation_service', () => {
             lang: 'ht',
             translation: null,
         };
+        const spanishPost = {
+            tweetID: '2055816539174040015',
+            text: 'Un tribunal francés dictamina que Ousmane Diallo no puede ser considerado penalmente responsable del asesinato.',
+            lang: 'es',
+            translation: null,
+        };
+        const frenchPost = {
+            tweetID: '2055696364265423140',
+            text: 'Ce coréen a copieusement insulté les Blancs dans l’un de ses streams.',
+            lang: 'fr',
+            translation: null,
+        };
+        const plainLatinSpanishPost = {
+            tweetID: 'plain-es',
+            text: 'Un tribunal dicta sentencia sobre un asesinato durante uno de sus primeros dias de trabajo.',
+            lang: 'es',
+            translation: null,
+        };
+        const syntheticLanguagePost = {
+            tweetID: 'qht-post',
+            text: '#東京 #速報 #事件',
+            lang: 'qht',
+            translation: null,
+        };
 
         expect(hasMissingApiTranslation(japanesePost)).toBe(true);
+        expect(isWeakMissingTranslationSource(japanesePost)).toBe(false);
         expect(shouldInferMissingApiTranslation(japanesePost)).toBe(true);
+        expect(hasMissingApiTranslation(spanishPost)).toBe(true);
+        expect(shouldInferMissingApiTranslation(spanishPost)).toBe(true);
+        expect(hasMissingApiTranslation(frenchPost)).toBe(true);
+        expect(shouldInferMissingApiTranslation(frenchPost)).toBe(true);
+        expect(hasMissingApiTranslation(plainLatinSpanishPost)).toBe(true);
+        expect(shouldInferMissingApiTranslation(plainLatinSpanishPost)).toBe(true);
+        expect(hasMissingApiTranslation(syntheticLanguagePost)).toBe(true);
+        expect(shouldInferMissingApiTranslation(syntheticLanguagePost)).toBe(true);
         expect(hasMissingApiTranslation(weakSignalPost)).toBe(true);
+        expect(isWeakMissingTranslationSource(weakSignalPost)).toBe(true);
         expect(shouldInferMissingApiTranslation(weakSignalPost)).toBe(false);
         expect(hasMissingApiTranslation({
             text: 'hello',
@@ -257,18 +292,20 @@ describe('translation_service', () => {
             { tweetID: '2', lang: 'es', text: 'buenos dias', translation: { text: 'Good morning' } },
             { tweetID: '3', lang: 'ht', text: 'LMAOOOO', translation: null },
             { tweetID: '4', lang: 'ja', text: '中国の地方のライブ', translation: null },
+            { tweetID: '5', lang: 'es', text: 'Un tribunal francés dictamina que Ousmane no puede ser considerado penalmente responsable.', translation: null },
         ];
 
         await translateMetadataBatchToEnglish(posts, jest.fn());
 
-        expect(global.fetch).toHaveBeenCalledTimes(1);
+        expect(global.fetch).toHaveBeenCalledTimes(2);
         expect(posts[0].translatedText).toBe('Hello world');
         expect(posts[1].translatedText).toBe('Good morning');
         expect(posts[2].translatedText).toBeUndefined();
         expect(posts[3].translatedText).toBe('A local live show in China.');
+        expect(posts[4].translatedText).toBe('A local live show in China.');
     });
 
-    test('translateMetadataBatchToEnglish does not generate translations for Twitter synthetic lang codes', async () => {
+    test('translateMetadataBatchToEnglish does not generate translations for weak Twitter synthetic lang codes', async () => {
         const { translateMetadataBatchToEnglish } = loadServiceWithEnv({
             OLLAMA_TRANSLATION_MODEL: 'translategemma:12b',
         });
@@ -369,5 +406,36 @@ describe('translation_service', () => {
         }));
         expect(buildDisplayText(metadata)).toContain('[Translated from Japanese]');
         expect(buildDisplayText(metadata)).toContain('A local live show in China introduced seismic isolation devices');
+    });
+
+    test('enrichMetadataWithTranslation generates fallback translation for Latin-script text with diacritics', async () => {
+        const { enrichMetadataWithTranslation, buildDisplayText } = loadServiceWithEnv({
+            OLLAMA_TRANSLATION_MODEL: 'translategemma:12b',
+        });
+        global.fetch = jest.fn().mockResolvedValue({
+            ok: true,
+            json: async () => ({
+                response: 'A French court ruled that Ousmane Diallo cannot be held criminally responsible.',
+            }),
+        });
+
+        const metadata = {
+            tweetID: '2055816539174040015',
+            lang: 'es',
+            text: 'Un tribunal francés dictamina que Ousmane Diallo no puede ser considerado penalmente responsable del asesinato.',
+            translation: null,
+        };
+
+        await enrichMetadataWithTranslation(metadata, jest.fn());
+
+        expect(global.fetch).toHaveBeenCalledTimes(1);
+        expect(JSON.parse(global.fetch.mock.calls[0][1].body).prompt).toContain('Spanish (es) to English (en)');
+        expect(metadata.translation).toEqual(expect.objectContaining({
+            provider: 'ollama-missing-api',
+            sourceLanguage: 'es',
+            destinationLanguage: 'en',
+        }));
+        expect(buildDisplayText(metadata)).toContain('[Translated from Spanish]');
+        expect(buildDisplayText(metadata)).toContain('A French court ruled');
     });
 });

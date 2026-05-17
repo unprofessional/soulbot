@@ -10,6 +10,8 @@ const ENGLISH_LANGUAGE_RE = /^en(?:[-_]|$)/i;
 const NON_TRANSLATABLE_LANGUAGE_RE = /^(?:zxx|und)(?:[-_]|$)/i;
 const URL_ONLY_RE = /https?:\/\/\S+/gi;
 const NON_LATIN_SCRIPT_RE = /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}\p{Script=Arabic}\p{Script=Cyrillic}\p{Script=Hebrew}\p{Script=Devanagari}\p{Script=Thai}]/u;
+const LATIN_EXTENDED_LETTER_RE = /[À-ÖØ-öø-ſ]/;
+const WORD_RE = /\p{L}+/gu;
 const MISSING_API_FALLBACK_PROVIDER = 'ollama-missing-api';
 const languageDisplayNames = typeof Intl !== 'undefined' && typeof Intl.DisplayNames === 'function'
     ? new Intl.DisplayNames(['en'], { type: 'language' })
@@ -201,14 +203,38 @@ function hasMissingApiTranslation(metadata) {
     return true;
 }
 
+function isWeakMissingTranslationSource(metadata) {
+    const text = getSourceText(metadata);
+    if (!text) return true;
+    if (NON_LATIN_SCRIPT_RE.test(text)) return false;
+
+    const words = text.match(WORD_RE) || [];
+    if (words.length === 0) return true;
+    if (words.length === 1 && text.length <= 20) return true;
+    if (words.length <= 2 && !LATIN_EXTENDED_LETTER_RE.test(text)) return true;
+
+    return false;
+}
+
 function hasReliableNonEnglishTextSignal(metadata) {
     const text = getSourceText(metadata);
     if (!text) return false;
-    return NON_LATIN_SCRIPT_RE.test(text);
+    if (NON_LATIN_SCRIPT_RE.test(text)) return true;
+
+    const words = text.match(WORD_RE) || [];
+    if (LATIN_EXTENDED_LETTER_RE.test(text) && words.length >= 3) return true;
+
+    return words.length >= 12;
 }
 
 function shouldInferMissingApiTranslation(metadata) {
-    return hasMissingApiTranslation(metadata) && hasReliableNonEnglishTextSignal(metadata);
+    if (!hasMissingApiTranslation(metadata)) return false;
+    if (isWeakMissingTranslationSource(metadata)) return false;
+
+    const special = getTwitterSpecialLanguage(metadata.lang);
+    if (special) return special.isTranslatable && hasReliableNonEnglishTextSignal(metadata);
+
+    return true;
 }
 
 function extractOutputText(payload) {
@@ -476,6 +502,7 @@ module.exports = {
     isLikelyTranslationFailure,
     isNonTranslatableLanguage,
     hasMissingApiTranslation,
+    isWeakMissingTranslationSource,
     hasReliableNonEnglishTextSignal,
     shouldInferMissingApiTranslation,
     getApiTranslation,
