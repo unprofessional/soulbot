@@ -10,7 +10,7 @@ const { testChromaConnection } = require('./features/ollama/embed.js');
 const { registerFonts } = require('./features/twitter-post/canvas/fonts.js');
 const { initializeGuildMemberAdd } = require('./events/guild_member_add.js');
 const { createHealthServer } = require('./app/health_server.js');
-const { announceBotRestart } = require('./app/bot_announcements.js');
+const { announceBotOnline, announceBotRestart } = require('./app/bot_announcements.js');
 const {
     isDraining,
     markReady,
@@ -104,9 +104,18 @@ const initializeApp = async () => {
     /**
      * Client lifecycle
      */
-    client.on(Events.ClientReady, () => {
+    client.on(Events.ClientReady, async () => {
         console.log(`----- Events: Logged in as ${client.user.tag}`);
         markReady();
+
+        try {
+            const result = await announceBotOnline(client);
+            console.log(
+                `[bot-announcements] Online announcement summary: sent=${result.sent}, skipped=${result.skipped}, failed=${result.failed}`
+            );
+        } catch (error) {
+            console.error('[bot-announcements] Online announcement failed:', error);
+        }
     });
     client.on(Events.Error, (error) => {
         console.error('----- Events: Error:', error);

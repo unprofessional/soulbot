@@ -1,5 +1,6 @@
 const { getBotAnnouncementChannels } = require('../store/guilds.js');
 
+const ONLINE_ANNOUNCEMENT = 'Soulbot is back online.';
 const RESTART_ANNOUNCEMENT = 'Soulbot is restarting for an update. I will be back shortly.';
 
 async function resolveAnnouncementChannel(client, { guildId, channelId }) {
@@ -17,14 +18,17 @@ async function resolveAnnouncementChannel(client, { guildId, channelId }) {
     return channel;
 }
 
-async function announceBotRestart(client, message = RESTART_ANNOUNCEMENT) {
+async function sendBotAnnouncement(client, {
+    eventName,
+    message,
+}) {
     if (!client?.isReady?.()) {
-        console.warn('[bot-announcements] Skipping restart announcement because Discord client is not ready.');
+        console.warn(`[bot-announcements] Skipping ${eventName} announcement because Discord client is not ready.`);
         return { sent: 0, failed: 0, skipped: 0 };
     }
 
     const configuredChannels = await getBotAnnouncementChannels();
-    console.log(`[bot-announcements] Found ${configuredChannels.length} configured announcement channel(s).`);
+    console.log(`[bot-announcements] Found ${configuredChannels.length} configured announcement channel(s) for ${eventName}.`);
 
     const results = await Promise.all(configuredChannels.map(async (config) => {
         try {
@@ -43,7 +47,7 @@ async function announceBotRestart(client, message = RESTART_ANNOUNCEMENT) {
             return 'sent';
         } catch (error) {
             console.error(
-                `[bot-announcements] Failed to send restart announcement for guild=${config.guildId} channel=${config.channelId}:`,
+                `[bot-announcements] Failed to send ${eventName} announcement for guild=${config.guildId} channel=${config.channelId}:`,
                 error
             );
             return 'failed';
@@ -56,8 +60,25 @@ async function announceBotRestart(client, message = RESTART_ANNOUNCEMENT) {
     }), { sent: 0, failed: 0, skipped: 0 });
 }
 
+async function announceBotRestart(client, message = RESTART_ANNOUNCEMENT) {
+    return sendBotAnnouncement(client, {
+        eventName: 'restart',
+        message,
+    });
+}
+
+async function announceBotOnline(client, message = ONLINE_ANNOUNCEMENT) {
+    return sendBotAnnouncement(client, {
+        eventName: 'online',
+        message,
+    });
+}
+
 module.exports = {
+    ONLINE_ANNOUNCEMENT,
     RESTART_ANNOUNCEMENT,
+    announceBotOnline,
     announceBotRestart,
     resolveAnnouncementChannel,
+    sendBotAnnouncement,
 };

@@ -5,7 +5,9 @@ jest.mock('../store/guilds.js', () => ({
 }));
 
 const {
+    ONLINE_ANNOUNCEMENT,
     RESTART_ANNOUNCEMENT,
+    announceBotOnline,
     announceBotRestart,
     resolveAnnouncementChannel,
 } = require('../app/bot_announcements.js');
@@ -49,6 +51,32 @@ describe('bot announcements', () => {
             skipped: 0,
         });
         expect(send).toHaveBeenCalledWith(RESTART_ANNOUNCEMENT);
+    });
+
+    test('announceBotOnline sends the online message to configured channels', async () => {
+        const send = jest.fn().mockResolvedValue({});
+        const channel = {
+            guildId: 'guild-1',
+            isTextBased: jest.fn().mockReturnValue(true),
+            send,
+        };
+        const client = createClient({
+            guilds: new Map([
+                ['guild-1', createGuild('guild-1', new Map([
+                    ['channel-1', channel],
+                ]))],
+            ]),
+        });
+        mockGetBotAnnouncementChannels.mockResolvedValue([
+            { guildId: 'guild-1', channelId: 'channel-1' },
+        ]);
+
+        await expect(announceBotOnline(client)).resolves.toEqual({
+            sent: 1,
+            failed: 0,
+            skipped: 0,
+        });
+        expect(send).toHaveBeenCalledWith(ONLINE_ANNOUNCEMENT);
     });
 
     test('announceBotRestart skips when the client is not ready', async () => {
