@@ -155,6 +155,59 @@ describe('handleVideoPost progress lifecycle', () => {
         expect(message.reply).not.toHaveBeenCalled();
     });
 
+    test('passes the server tier upload limit to the encoder', async () => {
+        const message = buildMessageMock();
+        message.client.guilds.cache.get.mockReturnValue({ premiumTier: 2 });
+        const progressMessage = buildProgressMock();
+
+        await handleVideoPost({
+            metadataJson: {
+                communityNote: 'note',
+                _videos: [{ size: { width: 1280, height: 720 } }],
+            },
+            message,
+            originalLink: 'https://x.com/test/status/22',
+            videoUrl: 'https://video.example.com/file.mp4',
+            processingDir: '/tempdata',
+            processingRunId: 'run-123',
+            MAX_CONCURRENT_REQUESTS: 3,
+            progressMessage,
+        });
+
+        const options = bakeImageAsFilterIntoVideo.mock.calls[0][8];
+        expect(options.maxOutputBytes).toBe(50 * 1024 * 1024);
+    });
+
+    test('falls back to FIXUPX when encoding exceeds the server tier upload limit', async () => {
+        const message = buildMessageMock();
+        const progressMessage = buildProgressMock();
+        const tooLargeError = new Error('too large while encoding');
+        tooLargeError.code = 'OUTPUT_FILE_TOO_LARGE';
+        bakeImageAsFilterIntoVideo.mockRejectedValue(tooLargeError);
+
+        await handleVideoPost({
+            metadataJson: {
+                communityNote: 'note',
+                _videos: [{ size: { width: 1280, height: 720 } }],
+            },
+            message,
+            originalLink: 'https://x.com/test/status/23',
+            videoUrl: 'https://video.example.com/file.mp4',
+            processingDir: '/tempdata',
+            processingRunId: 'run-123',
+            MAX_CONCURRENT_REQUESTS: 3,
+            progressMessage,
+        });
+
+        expect(progressMessage.dismiss).toHaveBeenCalledTimes(1);
+        expect(message.reply).toHaveBeenCalledWith({
+            content: "Rendered video exceeded this server tier's upload limit (10MB). Defaulting to FIXUPX link: https://fixupx.com/test/status/23",
+            allowedMentions: { repliedUser: false },
+        });
+        expect(sendVideoReply).not.toHaveBeenCalled();
+        expect(cleanup).toHaveBeenCalledWith([], ['/tempdata/video-file']);
+    });
+
     test('dismisses the placeholder before the file-too-large fallback reply', async () => {
         const message = buildMessageMock();
         const progressMessage = buildProgressMock();

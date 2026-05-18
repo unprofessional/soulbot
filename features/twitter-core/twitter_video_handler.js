@@ -11,6 +11,10 @@ const { createTwitterVideoCanvas } = require('../twitter-video/twitter_video_can
 const { sendVideoReply } = require('./webhook_utils.js');
 const { cleanup } = require('../twitter-video/cleanup.js');
 const { estimateOutputSizeBytes, inspectVideoFileDetails } = require('./estimate_output_size');
+const {
+    getDiscordUploadLimitBytes,
+    getDiscordUploadLimitMb,
+} = require('./discord_upload_limits.js');
 const { toFixupx } = require('./fetch_metadata.js');
 const {
     acquireTwitterVideoRender,
@@ -18,13 +22,6 @@ const {
 } = require('./twitter_video_render_registry.js');
 
 const USE_ESTIMATION = false; // 🔧 Toggle to `true` to re-enable output size estimation
-
-const DISCORD_UPLOAD_LIMITS_MB = {
-    0: 8,
-    1: 8,
-    2: 50,
-    3: 100,
-};
 
 async function handleVideoPost({
     metadataJson,
@@ -72,6 +69,15 @@ async function handleVideoPost({
         }
     };
 
+    const replyFileTooLargeFallback = async (limitMb) => {
+        const fixupLink = toFixupx(originalLink);
+        await progressMessage?.dismiss?.();
+        await message.reply({
+            content: `Rendered video exceeded this server tier's upload limit (${limitMb}MB). Defaulting to FIXUPX link: ${fixupLink}`,
+            allowedMentions: { repliedUser: false },
+        });
+    };
+
     if (!renderFlight.isLeader) {
         try {
             await progressMessage?.update?.('Waiting for the existing Twitter/X video render...');
@@ -79,6 +85,12 @@ async function handleVideoPost({
             await uploadRenderedVideo(successFilePath);
         } catch (err) {
             console.error('>>> ERROR: duplicate Twitter/X video render wait failed:', err);
+            if (err?.code === 'OUTPUT_FILE_TOO_LARGE') {
+                const guild = message.client.guilds.cache.get(message.guildId);
+                const boostTier = guild?.premiumTier ?? 0;
+                await replyFileTooLargeFallback(getDiscordUploadLimitMb(boostTier));
+                return;
+            }
             await progressMessage?.dismiss?.();
             await message.reply({
                 content: `Video processing failed for this post. Try again later or use FIXUPX: ${toFixupx(originalLink)}`,
@@ -109,26 +121,29 @@ async function handleVideoPost({
     const videoOutputPath = `${localWorkingPath}/${filename}-output.mp4`;
 
     const startTime = Date.now(); // ⏱️ Start timing
+    let boostTier = 0;
+    let guildName = message.guild?.name || 'Unknown Guild';
 
     try {
         renderFlight.setCleanup(() => cleanup([], [localWorkingPath]));
         await downloadVideo(videoUrl, videoInputPath);
 
         const guild = message.client.guilds.cache.get(message.guildId);
-        const boostTier = guild?.premiumTier ?? 0;
-        const maxBytes = DISCORD_UPLOAD_LIMITS_MB[boostTier] * 1024 * 1024;
-        const guildName = message.guild?.name || 'Unknown Guild';
+        boostTier = guild?.premiumTier ?? 0;
+        const maxBytes = getDiscordUploadLimitBytes(boostTier);
+        const maxMb = getDiscordUploadLimitMb(boostTier);
+        guildName = message.guild?.name || 'Unknown Guild';
 
         if (USE_ESTIMATION) {
             const estimatedSize = await estimateOutputSizeBytes(videoInputPath, 800);
             const estimatedMB = (estimatedSize / 1024 / 1024).toFixed(2);
-            console.log(`[${guildName}] Estimated: ${estimatedMB}MB / Limit: ${DISCORD_UPLOAD_LIMITS_MB[boostTier]}MB`);
+            console.log(`[${guildName}] Estimated: ${estimatedMB}MB / Limit: ${maxMb}MB`);
 
             if (estimatedSize > maxBytes) {
                 const fixupLink = originalLink.replace('https://x.com', 'https://fixupx.com');
                 await progressMessage?.dismiss?.();
                 return message.reply(
-                    `⚠️ Estimated output file too large for this server tier (max ${DISCORD_UPLOAD_LIMITS_MB[boostTier]}MB). Defaulting to FIXUPX link: ${fixupLink}`,
+                    `⚠️ Estimated output file too large for this server tier (max ${maxMb}MB). Defaulting to FIXUPX link: ${fixupLink}`,
                 );
             }
         } else {
@@ -188,6 +203,7 @@ async function handleVideoPost({
                 onSpawn: (proc) => {
                     mediaJob?.attachProcess(proc, { label: 'ffmpeg encode' });
                 },
+                maxOutputBytes: maxBytes,
             },
         );
 
@@ -203,6 +219,10 @@ async function handleVideoPost({
     } catch (err) {
         console.error('>>> ERROR: renderTwitterPost > err:', err);
         renderFlight.fail(err);
+        if (err?.code === 'OUTPUT_FILE_TOO_LARGE') {
+            await replyFileTooLargeFallback(getDiscordUploadLimitMb(boostTier));
+            return;
+        }
         await progressMessage?.dismiss?.();
         await message.reply({
             content: `Video processing failed for this post. Try again later or use FIXUPX: ${toFixupx(originalLink)}`,

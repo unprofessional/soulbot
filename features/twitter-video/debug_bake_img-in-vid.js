@@ -9,6 +9,18 @@ const { getAdjustedAspectRatios } = require('../twitter-core/canvas_utils');
 const VERBOSE = process.env.TWIT_DEBUG === '1';
 const NO_PROGRESS_TIMEOUT_MS = Number(process.env.TWIT_NOPROG_MS || 30000);
 
+function createOutputTooLargeError(outputPath, outputBytes, maxOutputBytes) {
+    const error = new Error(
+        `Encoded video exceeded upload limit: ${outputBytes} > ${maxOutputBytes} bytes`
+    );
+    error.name = 'OutputFileTooLargeError';
+    error.code = 'OUTPUT_FILE_TOO_LARGE';
+    error.outputPath = outputPath;
+    error.outputBytes = outputBytes;
+    error.maxOutputBytes = maxOutputBytes;
+    return error;
+}
+
 function sha1File(path) {
     return new Promise((resolve, reject) => {
         const hash = crypto.createHash('sha1');
@@ -119,6 +131,7 @@ function bakeImageAsFilterIntoVideoDEBUG(
 
         (async () => {
             const onProgress = typeof options?.onProgress === 'function' ? options.onProgress : null;
+            const maxOutputBytes = Number(options?.maxOutputBytes) || 0;
             if (!existsSync(videoInputPath)) throw new Error(`Missing video input: ${videoInputPath}`);
             if (!existsSync(canvasInputPath)) throw new Error(`Missing canvas input: ${canvasInputPath}`);
 
@@ -224,11 +237,42 @@ function bakeImageAsFilterIntoVideoDEBUG(
 
             let lastProgTs = Date.now();
             let lastTimemark = '';
+            let lastOutputBytes = 0;
+            let abortError = null;
             const stderrTail = [];
             const keepTail = (line) => {
                 const s = String(line);
                 stderrTail.push(s);
                 if (stderrTail.length > 200) stderrTail.shift();
+            };
+
+            const readOutputBytes = () => {
+                try {
+                    lastOutputBytes = existsSync(videoOutputPath) ? statSync(videoOutputPath).size : 0;
+                } catch (_) {
+                    lastOutputBytes = 0;
+                }
+                return lastOutputBytes;
+            };
+
+            const abortIfOutputTooLarge = () => {
+                if (!maxOutputBytes || abortError) return false;
+
+                const outputBytes = readOutputBytes();
+                if (outputBytes <= maxOutputBytes) return false;
+
+                abortError = createOutputTooLargeError(videoOutputPath, outputBytes, maxOutputBytes);
+                console.warn(`[ffmpeg] output exceeded limit; killing encode: ${outputBytes} > ${maxOutputBytes}`);
+
+                try {
+                    if (cmd && cmd.ffmpegProc && cmd.ffmpegProc.pid) {
+                        cmd.ffmpegProc.kill('SIGKILL');
+                    }
+                } catch (e) {
+                    console.warn('[ffmpeg] output limit kill failed:', e?.message || e);
+                }
+
+                return true;
             };
 
             let watchdog;
@@ -259,11 +303,12 @@ function bakeImageAsFilterIntoVideoDEBUG(
                     lastProgTs = Date.now();
                     lastTimemark = p.timemark || lastTimemark;
                     const currentSeconds = parseTimemarkToSeconds(lastTimemark);
+                    const outputBytes = readOutputBytes();
                     const pctNum = outSeconds > 0
                         ? Math.max(0, Math.min(100, (currentSeconds / outSeconds) * 100))
                         : 0;
                     const pct = pctNum.toFixed(2);
-                    console.log(`[ffmpeg][progress] pct=${pct} frames=${p.frames ?? 'n/a'} timemark=${p.timemark ?? 'n/a'}`);
+                    console.log(`[ffmpeg][progress] pct=${pct} frames=${p.frames ?? 'n/a'} timemark=${p.timemark ?? 'n/a'} outputBytes=${outputBytes}`);
 
                     if (onProgress) {
                         Promise.resolve(onProgress({
@@ -273,10 +318,14 @@ function bakeImageAsFilterIntoVideoDEBUG(
                             totalSeconds: outSeconds,
                             timemark: lastTimemark,
                             frames: p.frames ?? null,
+                            outputBytes,
+                            maxOutputBytes: maxOutputBytes || null,
                         })).catch(error => {
                             console.warn('[ffmpeg] onProgress(progress) failed:', error);
                         });
                     }
+
+                    abortIfOutputTooLarge();
                 })
                 .on('stderr', line => { if (VERBOSE) console.log('[ffmpeg][stderr]', String(line).trim()); keepTail(line); })
                 .on('end', async () => {
@@ -303,11 +352,12 @@ function bakeImageAsFilterIntoVideoDEBUG(
                 })
                 .on('error', (e, stdout, stderr) => {
                     cleanupWatchdog();
-                    console.error('[ffmpeg] error:', e?.message || e);
+                    const error = abortError || e;
+                    console.error('[ffmpeg] error:', error?.message || error);
                     if (stdout) console.error('[ffmpeg] stdout(sample):', String(stdout).slice(-1500));
                     if (stderr) console.error('[ffmpeg] stderr(sample):', String(stderr).slice(-3000));
                     if (stderrTail.length) console.error('[ffmpeg] stderr(tail):\n' + stderrTail.slice(-40).join(''));
-                    reject(e);
+                    reject(error);
                 });
 
             // Cap runtime + canvas frames using numeric fps
@@ -318,6 +368,8 @@ function bakeImageAsFilterIntoVideoDEBUG(
 
             // Watchdog
             watchdog = setInterval(() => {
+                if (abortIfOutputTooLarge()) return;
+
                 const since = Date.now() - lastProgTs;
                 if (since > NO_PROGRESS_TIMEOUT_MS) {
                     console.error(`[watchdog] no progress for ${since}ms (> ${NO_PROGRESS_TIMEOUT_MS}). lastTimemark=${lastTimemark || 'n/a'}`);

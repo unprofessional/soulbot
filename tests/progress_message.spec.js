@@ -41,6 +41,16 @@ describe('createVideoProgressMessage', () => {
         })).toBe('Encoding Twitter/X video... ███████░░░░░ 62% (00:25 / 00:40)');
     });
 
+    test('includes output size when available', () => {
+        expect(formatVideoEncodeProgress({
+            percent: 62,
+            currentSeconds: 25.4,
+            totalSeconds: 40.8,
+            outputBytes: 7.5 * 1024 * 1024,
+            maxOutputBytes: 8 * 1024 * 1024,
+        })).toBe('Encoding Twitter/X video... ███████░░░░░ 62% (00:25 / 00:40) - 7.50MB / 8.00MB');
+    });
+
     test('throttles live encode progress edits but forces the final 100% update', async () => {
         const progressMessage = {
             edit: jest.fn().mockResolvedValue(undefined),

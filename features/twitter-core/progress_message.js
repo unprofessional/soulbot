@@ -36,14 +36,26 @@ function buildProgressBar(percent, width = 12) {
     return `${'█'.repeat(filled)}${'░'.repeat(width - filled)}`;
 }
 
+function formatBytes(bytes) {
+    const safeBytes = Math.max(0, Number(bytes) || 0);
+    const mib = safeBytes / 1024 / 1024;
+    return `${mib.toFixed(mib >= 10 ? 1 : 2)}MB`;
+}
+
 function formatVideoEncodeProgress({
     percent = 0,
     currentSeconds = 0,
     totalSeconds = 0,
+    outputBytes = null,
+    maxOutputBytes = null,
 }) {
     const safePercent = Math.max(0, Math.min(100, Math.round(Number(percent) || 0)));
     const progressBar = buildProgressBar(safePercent);
-    return `Encoding Twitter/X video... ${progressBar} ${safePercent}% (${formatClock(currentSeconds)} / ${formatClock(totalSeconds)})`;
+    const sizeLabel = Number.isFinite(Number(outputBytes)) && Number(outputBytes) > 0
+        ? ` - ${formatBytes(outputBytes)}${Number(maxOutputBytes) > 0 ? ` / ${formatBytes(maxOutputBytes)}` : ''}`
+        : '';
+
+    return `Encoding Twitter/X video... ${progressBar} ${safePercent}% (${formatClock(currentSeconds)} / ${formatClock(totalSeconds)})${sizeLabel}`;
 }
 
 function buildProgressHandle(progressMessage) {
