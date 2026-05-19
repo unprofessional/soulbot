@@ -31,12 +31,16 @@ function isLiveDiscordUser(user) {
     ].includes(username);
 }
 
+function isMentionableGlobalUser(user) {
+    return isLiveDiscordUser(user) && !user.bot;
+}
+
 async function formatLeaderboardUser(interaction, entry) {
     const member = await interaction.guild?.members?.fetch?.(entry.memberId).catch(() => null);
     if (member?.id) return `<@${entry.memberId}>`;
 
     const user = await interaction.client?.users?.fetch?.(entry.memberId, { force: true }).catch(() => null);
-    if (isLiveDiscordUser(user)) return `<@${entry.memberId}>`;
+    if (isMentionableGlobalUser(user)) return `<@${entry.memberId}>`;
 
     return formatDeletedUser(entry);
 }
@@ -71,4 +75,5 @@ module.exports = {
     formatDeletedUser,
     formatLeaderboardUser,
     isLiveDiscordUser,
+    isMentionableGlobalUser,
 };

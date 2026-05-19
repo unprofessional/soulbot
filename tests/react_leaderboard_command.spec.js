@@ -154,4 +154,27 @@ describe('/react-leaderboard', () => {
             'Top <:hilarious:12345> leaderboard\n1. <@live-user-1> - 52'
         );
     });
+
+    test('renders stored identity for non-guild bot users because their mentions show as unknown-user', async () => {
+        mockGetHilariousLeaderboard.mockResolvedValue([
+            {
+                memberId: 'deleted-bot-1',
+                total: 43,
+                lastKnownUser: {
+                    username: 'Gata Bot',
+                    displayName: 'Gata Bot',
+                },
+            },
+        ]);
+
+        const interaction = buildInteraction();
+        interaction.fetchMember.mockRejectedValue(new Error('Unknown Member'));
+        interaction.fetchUser.mockResolvedValue({ id: 'deleted-bot-1', username: 'Gata Bot', bot: true });
+
+        await command.execute(interaction);
+
+        expect(interaction.editReply).toHaveBeenCalledWith(
+            'Top <:hilarious:12345> leaderboard\n1. `Gata Bot` (deleted acc) - 43'
+        );
+    });
 });
