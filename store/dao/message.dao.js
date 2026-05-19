@@ -245,13 +245,17 @@ class MessageDAO {
         }
     }
 
-    async findLatestUserIdentities(guildId, memberIds = []) {
+    async findLatestUserIdentities(guildId, memberIds = [], messageIds = []) {
         const uniqueMemberIds = [...new Set(memberIds.map(String).filter(Boolean))];
-        if (!guildId || uniqueMemberIds.length === 0) return [];
+        const uniqueMessageIds = [...new Set(messageIds.map(String).filter(Boolean))];
+        if (!guildId || (uniqueMemberIds.length === 0 && uniqueMessageIds.length === 0)) return [];
 
         const sql = `
             WITH requested(member_id) AS (
                 SELECT unnest($2::text[])
+            ),
+            requested_messages(message_id) AS (
+                SELECT unnest($3::text[])
             ),
             identity_events AS (
                 SELECT
@@ -279,6 +283,20 @@ class MessageDAO {
                 JOIN requested ON requested.member_id = message.meta->>'owningUserId'
                 WHERE message.guild_id = $1
                   AND message.meta ? 'owningUserId'
+
+                UNION ALL
+
+                SELECT
+                    COALESCE(message.meta->>'owningUserId', message.user_id) AS member_id,
+                    NULLIF(COALESCE(message.meta->>'ownerUsername', message.meta->>'username'), '') AS username,
+                    NULLIF(COALESCE(message.meta->>'ownerGlobalName', message.meta->>'globalName', message.meta->>'global_name'), '') AS global_name,
+                    NULLIF(COALESCE(message.meta->>'ownerDisplayName', message.meta->>'displayName', message.meta->>'display_name'), '') AS display_name,
+                    message.created_at,
+                    0 AS source_rank
+                FROM message
+                JOIN requested_messages ON requested_messages.message_id = message.message_id
+                WHERE message.guild_id = $1
+                  AND message.meta IS NOT NULL
             )
             SELECT DISTINCT ON (member_id)
                 member_id,
@@ -294,7 +312,7 @@ class MessageDAO {
         `;
 
         try {
-            const result = await pool.query(sql, [guildId, uniqueMemberIds]);
+            const result = await pool.query(sql, [guildId, uniqueMemberIds, uniqueMessageIds]);
             return result.rows;
         } catch (err) {
             console.error('Error fetching latest user identities:', err);

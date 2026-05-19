@@ -256,9 +256,9 @@ const normalizeIdentityRow = (row = {}) => {
     };
 };
 
-const getLatestMemberIdentities = async ({ guildId, memberIds = [] }) => {
+const getLatestMemberIdentities = async ({ guildId, memberIds = [], messageIds = [] }) => {
     try {
-        const rows = await messageDAO.findLatestUserIdentities(guildId, memberIds);
+        const rows = await messageDAO.findLatestUserIdentities(guildId, memberIds, messageIds);
         return new Map(rows.map((row) => [
             row.member_id || row.memberId,
             normalizeIdentityRow(row),

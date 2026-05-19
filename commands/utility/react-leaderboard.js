@@ -19,9 +19,21 @@ function formatDeletedUser(entry) {
     return `<@${entry.memberId}>`;
 }
 
+function isLiveDiscordUser(user) {
+    const username = String(user?.username || '').trim().toLowerCase();
+    if (!user?.id || !username) return false;
+
+    return ![
+        'deleted user',
+        'deleted_user',
+        'unknown-user',
+        'unknown user',
+    ].includes(username);
+}
+
 async function formatLeaderboardUser(interaction, entry) {
     const user = await interaction.client?.users?.fetch?.(entry.memberId, { force: true }).catch(() => null);
-    if (user) return `<@${entry.memberId}>`;
+    if (isLiveDiscordUser(user)) return `<@${entry.memberId}>`;
 
     return formatDeletedUser(entry);
 }
@@ -55,4 +67,5 @@ module.exports = {
 
     formatDeletedUser,
     formatLeaderboardUser,
+    isLiveDiscordUser,
 };

@@ -346,9 +346,10 @@ describe('messages service', () => {
         const identities = await getLatestMemberIdentities({
             guildId: 'guild-1',
             memberIds: ['user-1'],
+            messageIds: ['message-1'],
         });
 
-        expect(mockFindLatestUserIdentities).toHaveBeenCalledWith('guild-1', ['user-1']);
+        expect(mockFindLatestUserIdentities).toHaveBeenCalledWith('guild-1', ['user-1'], ['message-1']);
         expect(identities.get('user-1')).toEqual({
             username: 'original_acc_name',
             globalName: 'DisplayName',

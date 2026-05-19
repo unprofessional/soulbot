@@ -16,7 +16,7 @@ jest.mock('../features/reactions/hilarious_reacts.js', () => ({
 const command = require('../commands/utility/react-leaderboard.js');
 
 function buildInteraction() {
-    const fetchUser = jest.fn().mockResolvedValue({ id: 'user' });
+    const fetchUser = jest.fn().mockResolvedValue({ id: 'user', username: 'live-user' });
     return {
         guildId: 'guild-1',
         guild: {},
@@ -96,6 +96,29 @@ describe('/react-leaderboard', () => {
             'Top <:hilarious:12345> leaderboard\n'
             + '1. `original_acc_name` / DisplayName (deleted acc) - 43\n'
             + '2. `SecondUser` (deleted acc) - 38'
+        );
+    });
+
+    test('does not render a mention when Discord returns a deleted-user placeholder', async () => {
+        mockGetHilariousLeaderboard.mockResolvedValue([
+            {
+                memberId: 'deleted-user-1',
+                total: 43,
+                lastKnownUser: {
+                    username: 'original_acc_name',
+                    displayName: 'DisplayName',
+                },
+            },
+        ]);
+
+        const interaction = buildInteraction();
+        interaction.fetchUser.mockResolvedValue({ id: 'deleted-user-1', username: 'unknown-user' });
+
+        await command.execute(interaction);
+
+        expect(interaction.editReply).toHaveBeenCalledWith(
+            'Top <:hilarious:12345> leaderboard\n'
+            + '1. `original_acc_name` / DisplayName (deleted acc) - 43'
         );
     });
 });

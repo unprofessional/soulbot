@@ -134,6 +134,9 @@ describe('hilarious reacts', () => {
                         'guild-1': {
                             hilariousReacts: {
                                 receivedCount: 10,
+                                reactedBy: {
+                                    reactor: ['message-3'],
+                                },
                             },
                         },
                     },
@@ -146,6 +149,9 @@ describe('hilarious reacts', () => {
                         'guild-1': {
                             hilariousReacts: {
                                 receivedCount: 30,
+                                reactedBy: {
+                                    reactor: ['message-1'],
+                                },
                             },
                         },
                     },
@@ -158,6 +164,9 @@ describe('hilarious reacts', () => {
                         'guild-1': {
                             hilariousReacts: {
                                 receivedCount: 30,
+                                reactedBy: {
+                                    reactor: ['message-2'],
+                                },
                             },
                         },
                     },
@@ -189,6 +198,7 @@ describe('hilarious reacts', () => {
         expect(mockGetLatestMemberIdentities).toHaveBeenCalledWith({
             guildId: 'guild-1',
             memberIds: ['member-1', 'member-2', 'member-3'],
+            messageIds: ['message-1', 'message-2', 'message-3'],
         });
         expect(leaderboard).toEqual([
             {

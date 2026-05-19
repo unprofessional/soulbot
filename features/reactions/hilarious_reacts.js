@@ -52,6 +52,15 @@ function getGuildMetricContainer(meta = {}, guildId) {
     };
 }
 
+function getMetricMessageIds(metric = {}) {
+    return [...new Set(
+        Object.values(metric.reactedBy || {})
+            .flat()
+            .map(String)
+            .filter(Boolean)
+    )];
+}
+
 async function recordHilariousReaction({ guildId, recipientUser, reactorId, messageId }) {
     if (!guildId || !recipientUser?.id || !reactorId || !messageId) {
         return {
@@ -123,6 +132,7 @@ async function getHilariousLeaderboard(guildId, limit = 10) {
             return {
                 memberId: member.memberId,
                 total: hilariousMetric.receivedCount,
+                messageIds: getMetricMessageIds(hilariousMetric),
             };
         })
         .filter((member) => member.total > 0)
@@ -132,13 +142,15 @@ async function getHilariousLeaderboard(guildId, limit = 10) {
     const identities = await getLatestMemberIdentities({
         guildId,
         memberIds: leaderboard.map((entry) => entry.memberId),
+        messageIds: leaderboard.flatMap((entry) => entry.messageIds),
     }).catch((error) => {
         console.error('Error resolving leaderboard member identities:', error);
         return new Map();
     });
 
     return leaderboard.map((entry) => ({
-        ...entry,
+        memberId: entry.memberId,
+        total: entry.total,
         lastKnownUser: identities.get(entry.memberId) || null,
     }));
 }
@@ -206,6 +218,7 @@ module.exports = {
     handleHilariousReactionAdd,
     getHilariousEmojiDisplay,
     getHilariousLeaderboard,
+    getMetricMessageIds,
     isMilestone,
     recordHilariousReaction,
     resolveReactionRecipient,
