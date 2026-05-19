@@ -2,6 +2,7 @@ const mockGetAllMemberRecords = jest.fn();
 const mockGetMemberRecord = jest.fn();
 const mockUpsertMemberRecord = jest.fn();
 const mockGetMessageById = jest.fn();
+const mockGetLatestMemberIdentities = jest.fn();
 const mockFetchUser = jest.fn();
 
 jest.mock('../store/members.js', () => ({
@@ -11,6 +12,7 @@ jest.mock('../store/members.js', () => ({
 }));
 
 jest.mock('../store/services/messages.service.js', () => ({
+    getLatestMemberIdentities: mockGetLatestMemberIdentities,
     getMessageById: mockGetMessageById,
 }));
 
@@ -27,6 +29,7 @@ describe('hilarious reacts', () => {
         mockGetMemberRecord.mockResolvedValue(null);
         mockUpsertMemberRecord.mockResolvedValue(null);
         mockGetMessageById.mockResolvedValue(null);
+        mockGetLatestMemberIdentities.mockResolvedValue(new Map());
         mockFetchUser.mockResolvedValue(null);
     });
 
@@ -173,13 +176,32 @@ describe('hilarious reacts', () => {
                 },
             },
         ]);
+        mockGetLatestMemberIdentities.mockResolvedValue(new Map([
+            ['member-1', {
+                username: 'MemberOne',
+                globalName: 'Member One',
+                displayName: 'Member One',
+            }],
+        ]));
 
         const leaderboard = await getHilariousLeaderboard('guild-1', 10);
 
+        expect(mockGetLatestMemberIdentities).toHaveBeenCalledWith({
+            guildId: 'guild-1',
+            memberIds: ['member-1', 'member-2', 'member-3'],
+        });
         expect(leaderboard).toEqual([
-            { memberId: 'member-1', total: 30 },
-            { memberId: 'member-2', total: 30 },
-            { memberId: 'member-3', total: 10 },
+            {
+                memberId: 'member-1',
+                total: 30,
+                lastKnownUser: {
+                    username: 'MemberOne',
+                    globalName: 'Member One',
+                    displayName: 'Member One',
+                },
+            },
+            { memberId: 'member-2', total: 30, lastKnownUser: null },
+            { memberId: 'member-3', total: 10, lastKnownUser: null },
         ]);
     });
 

@@ -185,6 +185,9 @@ const sendWebhookProxyMessageInternal = async (
 
     registerPendingRenderOwnership(webhook.id, {
         owningUserId: message.author.id,
+        ownerUsername: message.author.username || null,
+        ownerGlobalName: message.author.globalName || null,
+        ownerDisplayName: displayName || message.author.globalName || message.author.username || null,
         originalMessageId: message.id,
         originalChannelId: message.channel?.id || null,
         originalLink: originalLink || null,
@@ -269,6 +272,9 @@ const sendWebhookReplacementBatch = async (messages, content, files = []) => {
 
     registerPendingRenderOwnership(webhook.id, {
         owningUserId: anchorMessage.author.id,
+        ownerUsername: anchorMessage.author.username || null,
+        ownerGlobalName: anchorMessage.author.globalName || null,
+        ownerDisplayName: displayName || anchorMessage.author.globalName || anchorMessage.author.username || null,
         originalMessageId: anchorMessage.id,
         originalChannelId: anchorMessage.channel?.id || null,
         originalLink: null,

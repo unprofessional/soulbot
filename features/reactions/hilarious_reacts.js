@@ -1,5 +1,8 @@
 const { getAllMemberRecords, getMemberRecord, upsertMemberRecord } = require('../../store/members.js');
-const { getMessageById } = require('../../store/services/messages.service.js');
+const {
+    getLatestMemberIdentities,
+    getMessageById,
+} = require('../../store/services/messages.service.js');
 
 const HILARIOUS_EMOJI_NAME = 'hilarious';
 const HILARIOUS_METRIC_KEY = 'hilariousReacts';
@@ -114,7 +117,7 @@ async function recordHilariousReaction({ guildId, recipientUser, reactorId, mess
 
 async function getHilariousLeaderboard(guildId, limit = 10) {
     const members = await getAllMemberRecords();
-    return members
+    const leaderboard = members
         .map((member) => {
             const { hilariousMetric } = getGuildMetricContainer(member.meta || {}, guildId);
             return {
@@ -125,6 +128,19 @@ async function getHilariousLeaderboard(guildId, limit = 10) {
         .filter((member) => member.total > 0)
         .sort((a, b) => b.total - a.total || a.memberId.localeCompare(b.memberId))
         .slice(0, limit);
+
+    const identities = await getLatestMemberIdentities({
+        guildId,
+        memberIds: leaderboard.map((entry) => entry.memberId),
+    }).catch((error) => {
+        console.error('Error resolving leaderboard member identities:', error);
+        return new Map();
+    });
+
+    return leaderboard.map((entry) => ({
+        ...entry,
+        lastKnownUser: identities.get(entry.memberId) || null,
+    }));
 }
 
 async function fetchPartialReactionContext(reaction) {

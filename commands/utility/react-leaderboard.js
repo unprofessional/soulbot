@@ -4,6 +4,28 @@ const {
     getHilariousLeaderboard,
 } = require('../../features/reactions/hilarious_reacts.js');
 
+function formatDeletedUser(entry) {
+    const username = entry.lastKnownUser?.username;
+    const displayName = entry.lastKnownUser?.displayName || entry.lastKnownUser?.globalName;
+
+    if (username && displayName && displayName !== username) {
+        return `\`${username}\` / ${displayName} (deleted acc)`;
+    }
+
+    if (username || displayName) {
+        return `\`${username || displayName}\` (deleted acc)`;
+    }
+
+    return `<@${entry.memberId}>`;
+}
+
+async function formatLeaderboardUser(interaction, entry) {
+    const user = await interaction.client?.users?.fetch?.(entry.memberId, { force: true }).catch(() => null);
+    if (user) return `<@${entry.memberId}>`;
+
+    return formatDeletedUser(entry);
+}
+
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('react-leaderboard')
@@ -19,12 +41,18 @@ module.exports = {
             return interaction.editReply(`No one has received any ${emojiDisplay} reacts yet.`);
         }
 
+        const renderedUsers = await Promise.all(
+            leaderboard.map((entry) => formatLeaderboardUser(interaction, entry))
+        );
         const lines = leaderboard.map((entry, index) => (
-            `${index + 1}. <@${entry.memberId}> - ${entry.total}`
+            `${index + 1}. ${renderedUsers[index]} - ${entry.total}`
         ));
 
         return interaction.editReply(
             `Top ${emojiDisplay} leaderboard\n${lines.join('\n')}`
         );
     },
+
+    formatDeletedUser,
+    formatLeaderboardUser,
 };

@@ -69,6 +69,8 @@ const addMessage = async (message) => {
             meta: {
                 ...(message.channel.isThread?.() && { threadId: message.channel.id }),
                 username: message.author.username,
+                globalName: message.author.globalName || null,
+                displayName: message.member?.displayName || message.author.globalName || message.author.username,
                 channelName: message.channel?.name,
                 guildName: message.guild?.name,
                 ...ownershipMeta,
@@ -242,6 +244,31 @@ const getMessageById = async (messageId) => {
     }
 };
 
+const normalizeIdentityRow = (row = {}) => {
+    const username = row.username || null;
+    const globalName = row.global_name || row.globalName || null;
+    const displayName = row.display_name || row.displayName || globalName || username || null;
+
+    return {
+        username,
+        globalName,
+        displayName,
+    };
+};
+
+const getLatestMemberIdentities = async ({ guildId, memberIds = [] }) => {
+    try {
+        const rows = await messageDAO.findLatestUserIdentities(guildId, memberIds);
+        return new Map(rows.map((row) => [
+            row.member_id || row.memberId,
+            normalizeIdentityRow(row),
+        ]));
+    } catch (err) {
+        console.error('Error in getLatestMemberIdentities service:', err);
+        throw err;
+    }
+};
+
 const updateMessage = async (messageId, newContent) => {
     try {
         const success = await messageDAO.updateMessage(messageId, newContent);
@@ -281,6 +308,7 @@ module.exports = {
     getSummaryContext,
     findMessagesByLink,
     getMessageById,
+    getLatestMemberIdentities,
     updateMessage,
     deleteMessage,
     isExpectedDeletedMessage,

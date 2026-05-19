@@ -4,6 +4,7 @@ const mockFindLatestChannelSummaries = jest.fn();
 const mockFindRecentChannelMessagesIncludingDeleted = jest.fn();
 const mockSave = jest.fn();
 const mockFindByMessageId = jest.fn();
+const mockFindLatestUserIdentities = jest.fn();
 
 jest.mock('../features/twitter-core/render_ownership_registry.js', () => ({
     consumePendingRenderOwnership: jest.fn(),
@@ -16,6 +17,7 @@ jest.mock('../store/dao/message.dao.js', () => {
         findLatestChannelSummaries: mockFindLatestChannelSummaries,
         findRecentChannelMessagesIncludingDeleted: mockFindRecentChannelMessagesIncludingDeleted,
         findByMessageId: mockFindByMessageId,
+        findLatestUserIdentities: mockFindLatestUserIdentities,
         save: mockSave,
     }));
 });
@@ -27,6 +29,7 @@ jest.mock('../config/env_config.js', () => ({
 const {
     addMessage,
     getDeletedSummaryContext,
+    getLatestMemberIdentities,
     getLlmChannelContext,
     getMessageById,
     getSummaryContext,
@@ -39,6 +42,7 @@ describe('messages service', () => {
     beforeEach(() => {
         jest.clearAllMocks();
         mockFindLatestChannelSummary.mockResolvedValue(null);
+        mockFindLatestUserIdentities.mockResolvedValue([]);
         mockSave.mockResolvedValue(true);
         consumePendingRenderOwnership.mockReturnValue(null);
     });
@@ -288,6 +292,10 @@ describe('messages service', () => {
             author: {
                 id: 'bot-user',
                 username: 'Soulbot Webhook',
+                globalName: 'Soulbot Global',
+            },
+            member: {
+                displayName: 'Soulbot Display',
             },
             guild: {
                 id: 'guild-1',
@@ -305,6 +313,9 @@ describe('messages service', () => {
             userId: 'bot-user',
             messageId: 'message-1',
             meta: expect.objectContaining({
+                username: 'Soulbot Webhook',
+                globalName: 'Soulbot Global',
+                displayName: 'Soulbot Display',
                 kind: 'twitter_render',
                 owningUserId: 'user-1',
                 originalMessageId: 'source-1',
@@ -320,5 +331,28 @@ describe('messages service', () => {
 
         await expect(getMessageById('abc')).resolves.toEqual({ message_id: 'abc' });
         expect(mockFindByMessageId).toHaveBeenCalledWith('abc');
+    });
+
+    test('getLatestMemberIdentities returns normalized identity rows keyed by member ID', async () => {
+        mockFindLatestUserIdentities.mockResolvedValue([
+            {
+                member_id: 'user-1',
+                username: 'original_acc_name',
+                global_name: 'DisplayName',
+                display_name: 'Guild Nick',
+            },
+        ]);
+
+        const identities = await getLatestMemberIdentities({
+            guildId: 'guild-1',
+            memberIds: ['user-1'],
+        });
+
+        expect(mockFindLatestUserIdentities).toHaveBeenCalledWith('guild-1', ['user-1']);
+        expect(identities.get('user-1')).toEqual({
+            username: 'original_acc_name',
+            globalName: 'DisplayName',
+            displayName: 'Guild Nick',
+        });
     });
 });

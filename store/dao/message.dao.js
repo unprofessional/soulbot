@@ -245,6 +245,63 @@ class MessageDAO {
         }
     }
 
+    async findLatestUserIdentities(guildId, memberIds = []) {
+        const uniqueMemberIds = [...new Set(memberIds.map(String).filter(Boolean))];
+        if (!guildId || uniqueMemberIds.length === 0) return [];
+
+        const sql = `
+            WITH requested(member_id) AS (
+                SELECT unnest($2::text[])
+            ),
+            identity_events AS (
+                SELECT
+                    message.user_id AS member_id,
+                    NULLIF(message.meta->>'username', '') AS username,
+                    NULLIF(COALESCE(message.meta->>'globalName', message.meta->>'global_name'), '') AS global_name,
+                    NULLIF(COALESCE(message.meta->>'displayName', message.meta->>'display_name'), '') AS display_name,
+                    message.created_at,
+                    0 AS source_rank
+                FROM message
+                JOIN requested ON requested.member_id = message.user_id
+                WHERE message.guild_id = $1
+                  AND message.meta IS NOT NULL
+
+                UNION ALL
+
+                SELECT
+                    message.meta->>'owningUserId' AS member_id,
+                    NULLIF(COALESCE(message.meta->>'ownerUsername', message.meta->>'username'), '') AS username,
+                    NULLIF(COALESCE(message.meta->>'ownerGlobalName', message.meta->>'globalName', message.meta->>'global_name'), '') AS global_name,
+                    NULLIF(COALESCE(message.meta->>'ownerDisplayName', message.meta->>'displayName', message.meta->>'display_name'), '') AS display_name,
+                    message.created_at,
+                    1 AS source_rank
+                FROM message
+                JOIN requested ON requested.member_id = message.meta->>'owningUserId'
+                WHERE message.guild_id = $1
+                  AND message.meta ? 'owningUserId'
+            )
+            SELECT DISTINCT ON (member_id)
+                member_id,
+                username,
+                global_name,
+                display_name,
+                created_at
+            FROM identity_events
+            WHERE username IS NOT NULL
+               OR global_name IS NOT NULL
+               OR display_name IS NOT NULL
+            ORDER BY member_id, source_rank ASC, created_at DESC
+        `;
+
+        try {
+            const result = await pool.query(sql, [guildId, uniqueMemberIds]);
+            return result.rows;
+        } catch (err) {
+            console.error('Error fetching latest user identities:', err);
+            throw err;
+        }
+    }
+
     async findRecentChannelMessagesIncludingDeleted(channelId, limit = 50) {
         const sql = `
             SELECT user_id, content, created_at, deleted_at, meta
