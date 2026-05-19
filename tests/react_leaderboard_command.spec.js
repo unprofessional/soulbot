@@ -17,15 +17,21 @@ const command = require('../commands/utility/react-leaderboard.js');
 
 function buildInteraction() {
     const fetchUser = jest.fn().mockResolvedValue({ id: 'user', username: 'live-user' });
+    const fetchMember = jest.fn().mockImplementation((id) => Promise.resolve({ id }));
     return {
         guildId: 'guild-1',
-        guild: {},
+        guild: {
+            members: {
+                fetch: fetchMember,
+            },
+        },
         client: {
             users: {
                 fetch: fetchUser,
             },
         },
         fetchUser,
+        fetchMember,
         deferReply: jest.fn().mockResolvedValue(undefined),
         editReply: jest.fn().mockResolvedValue(undefined),
     };
@@ -51,8 +57,8 @@ describe('/react-leaderboard', () => {
 
     test('renders the top 10 hilarious react leaderboard', async () => {
         mockGetHilariousLeaderboard.mockResolvedValue([
-            { memberId: 'user-1', total: 50 },
-            { memberId: 'user-2', total: 25 },
+            { memberId: 'user-1', total: 50, lastKnownUser: { username: 'UserOne', displayName: 'User One' } },
+            { memberId: 'user-2', total: 25, lastKnownUser: { username: 'UserTwo', displayName: 'User Two' } },
         ]);
 
         const interaction = buildInteraction();
@@ -61,8 +67,9 @@ describe('/react-leaderboard', () => {
         expect(interaction.editReply).toHaveBeenCalledWith(
             'Top <:hilarious:12345> leaderboard\n1. <@user-1> - 50\n2. <@user-2> - 25'
         );
-        expect(interaction.fetchUser).toHaveBeenCalledWith('user-1', { force: true });
-        expect(interaction.fetchUser).toHaveBeenCalledWith('user-2', { force: true });
+        expect(interaction.fetchMember).toHaveBeenCalledWith('user-1');
+        expect(interaction.fetchMember).toHaveBeenCalledWith('user-2');
+        expect(interaction.fetchUser).not.toHaveBeenCalled();
     });
 
     test('renders the last known identity for deleted users', async () => {
@@ -88,6 +95,7 @@ describe('/react-leaderboard', () => {
         ]);
 
         const interaction = buildInteraction();
+        interaction.fetchMember.mockRejectedValue(new Error('Unknown Member'));
         interaction.fetchUser.mockRejectedValue(new Error('Unknown User'));
 
         await command.execute(interaction);
@@ -112,6 +120,7 @@ describe('/react-leaderboard', () => {
         ]);
 
         const interaction = buildInteraction();
+        interaction.fetchMember.mockRejectedValue(new Error('Unknown Member'));
         interaction.fetchUser.mockResolvedValue({ id: 'deleted-user-1', username: 'unknown-user' });
 
         await command.execute(interaction);
@@ -120,5 +129,6 @@ describe('/react-leaderboard', () => {
             'Top <:hilarious:12345> leaderboard\n'
             + '1. `original_acc_name` / DisplayName (deleted acc) - 43'
         );
+        expect(interaction.fetchUser).not.toHaveBeenCalled();
     });
 });
