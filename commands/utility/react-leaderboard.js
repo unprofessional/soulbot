@@ -34,7 +34,6 @@ function isLiveDiscordUser(user) {
 async function formatLeaderboardUser(interaction, entry) {
     const member = await interaction.guild?.members?.fetch?.(entry.memberId).catch(() => null);
     if (member?.id) return `<@${entry.memberId}>`;
-    if (entry.lastKnownUser) return formatDeletedUser(entry);
 
     const user = await interaction.client?.users?.fetch?.(entry.memberId, { force: true }).catch(() => null);
     if (isLiveDiscordUser(user)) return `<@${entry.memberId}>`;

@@ -129,6 +129,29 @@ describe('/react-leaderboard', () => {
             'Top <:hilarious:12345> leaderboard\n'
             + '1. `original_acc_name` / DisplayName (deleted acc) - 43'
         );
-        expect(interaction.fetchUser).not.toHaveBeenCalled();
+        expect(interaction.fetchUser).toHaveBeenCalledWith('deleted-user-1', { force: true });
+    });
+
+    test('renders a mention when guild member fetch fails but global user fetch is live', async () => {
+        mockGetHilariousLeaderboard.mockResolvedValue([
+            {
+                memberId: 'live-user-1',
+                total: 52,
+                lastKnownUser: {
+                    username: 'rylo2823',
+                    displayName: 'rylo2823',
+                },
+            },
+        ]);
+
+        const interaction = buildInteraction();
+        interaction.fetchMember.mockRejectedValue(new Error('Unknown Member'));
+        interaction.fetchUser.mockResolvedValue({ id: 'live-user-1', username: 'rylo2823' });
+
+        await command.execute(interaction);
+
+        expect(interaction.editReply).toHaveBeenCalledWith(
+            'Top <:hilarious:12345> leaderboard\n1. <@live-user-1> - 52'
+        );
     });
 });
