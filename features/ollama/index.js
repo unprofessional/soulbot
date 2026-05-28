@@ -82,7 +82,7 @@ Categorize the image now and follow the JSON schema strictly.
         keep_alive: -1, // Keep model in memory
     };
 
-    if (isGemma4Model(chatModel)) {
+    if (shouldDisableThinking(chatModel)) {
         requestBody.think = false;
     }
 
@@ -155,6 +155,10 @@ function isGemma4Model(model = '') {
     return normalizedModel.includes('gemma4') || normalizedModel.includes('gemma-4');
 }
 
+function shouldDisableThinking(model = '') {
+    return isGemma4Model(model) || isQwenModel(model);
+}
+
 function maybeAddNoThinkDirective(lines, model = '') {
     if (isQwenModel(model)) {
         return [...lines, '/no_think'];
@@ -171,7 +175,7 @@ function sanitizeThinkingOutput(responseText = '', model = '') {
     }
 
     return sanitized
-        .replace(/<think>\s*<\/think>\s*/gi, '')
+        .replace(/<think>[\s\S]*?<\/think>\s*/gi, '')
         .trim();
 }
 
@@ -541,7 +545,7 @@ async function generateText(prompt, model = chatModel) {
         keep_alive: -1,
     };
 
-    if (isGemma4Model(model)) {
+    if (shouldDisableThinking(model)) {
         requestBody.think = false;
     }
 
@@ -752,6 +756,7 @@ module.exports = {
     stripSummaryPrefix,
     isGemma4Model,
     isQwenModel,
+    shouldDisableThinking,
     sanitizeThinkingOutput,
     generateText,
     processChunks,

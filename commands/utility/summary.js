@@ -4,7 +4,8 @@ const { SlashCommandBuilder } = require('discord.js');
 const PromiseQueue = require('../../lib/promise_queue');
 const { getSummaryContext } = require('../../store/services/messages.service');
 const { summarizeChat } = require('../../features/ollama');
-const queue = new PromiseQueue(1, 60000); // Max 1 concurrent task, 20 seconds timeout
+const summaryTimeoutMs = Number(process.env.SUMMARY_QUEUE_TIMEOUT_MS || 300000);
+const queue = new PromiseQueue(1, summaryTimeoutMs);
 const queueLimit = 3;
 
 module.exports = {
@@ -39,10 +40,9 @@ module.exports = {
             }
         } catch (error) {
             if (error.name === 'TimeoutError') {
-                await interaction.reply({
-                    content: `The bot is currently handling too many requests. Please try again in ${Math.ceil(queueLimit * 20)} seconds.`,
-                    ephemeral: true,
-                });                
+                await interaction.editReply(
+                    'The summary model is taking too long right now. Please try again later.'
+                );
             } else {
                 console.error('Error processing LLM message:', error, {
                     user: interaction.user.id,

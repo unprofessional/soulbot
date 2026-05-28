@@ -5,6 +5,7 @@ const {
     buildSummaryPrompt,
     buildSummaryIntelligence,
     formatSummaryMessages,
+    generateText,
     isLowSignalContent,
     isUrlOnlyContent,
     isGemma4Model,
@@ -13,6 +14,7 @@ const {
     sanitizeThinkingOutput,
     scoreSummaryMessages,
     selectMessagesForPrompt,
+    shouldDisableThinking,
     stripSummaryPrefix,
     summarizeRecentSummaryPhrases,
     summarizeSoulbotAwareness,
@@ -285,12 +287,39 @@ describe('summary prompt formatting', () => {
         expect(isGemma4Model('supergemma4-26b-fixed:latest')).toBe(true);
         expect(isGemma4Model('gemma-4-31b-it')).toBe(true);
         expect(isGemma4Model('qwen3:14b')).toBe(false);
+        expect(shouldDisableThinking('qwen3.6:35b')).toBe(true);
+        expect(shouldDisableThinking('supergemma4-26b-fixed:latest')).toBe(true);
+        expect(shouldDisableThinking('llama3.2-vision:11b')).toBe(false);
     });
 
-    test('sanitizeThinkingOutput removes Gemma 4 empty thought wrappers and empty think tags', () => {
+    test('sanitizeThinkingOutput removes Gemma 4 thought wrappers and think tags', () => {
         expect(sanitizeThinkingOutput('<|channel|>thought\n<channel|>final answer', 'supergemma4-26b-fixed:latest'))
             .toBe('final answer');
         expect(sanitizeThinkingOutput('<think></think>final answer', 'qwen3:14b'))
             .toBe('final answer');
+        expect(sanitizeThinkingOutput('<think>private chain of thought</think>final answer', 'qwen3.6:35b'))
+            .toBe('final answer');
+    });
+
+    test('generateText disables thinking for Qwen request bodies', async () => {
+        const originalFetch = global.fetch;
+        const logSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
+        global.fetch = jest.fn().mockResolvedValue({
+            ok: true,
+            json: jest.fn().mockResolvedValue({ response: '<think>hidden</think>visible summary' }),
+        });
+
+        try {
+            await expect(generateText('summarize this', 'qwen3.6:35b')).resolves.toBe('visible summary');
+
+            const requestBody = JSON.parse(global.fetch.mock.calls[0][1].body);
+            expect(requestBody).toEqual(expect.objectContaining({
+                model: 'qwen3.6:35b',
+                think: false,
+            }));
+        } finally {
+            global.fetch = originalFetch;
+            logSpy.mockRestore();
+        }
     });
 });
