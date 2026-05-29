@@ -1,77 +1,129 @@
-const fetchMetadata = async (url, message, isXDotCom) => {
+// features/twitter-core/fetch_metadata.js
+const { getJsonWithFallback } = require('./http');
+const { normalizeFromVX, normalizeFromFX } = require('./fxvx_normalize');
+
+function toFixupx(link) {
+    if (!link) return undefined;
+    return link
+        .replace('https://twitter.com', 'https://fixupx.com')
+        .replace('https://x.com', 'https://fixupx.com');
+}
+
+function stripHtml(s) {
+    if (typeof s !== 'string') return '';
+    return s.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
+function summarizeUpstreamFailure({ status, text = '', ct = '', source }) {
+    const isHtml = ct && ct.includes('text/html');
+    const raw = isHtml ? stripHtml(text) : (text || '');
+    const hint = /failed to scan/i.test(raw)
+        ? 'Provider could not scan the tweet link.'
+        : (raw ? raw.slice(0, 160) : 'Upstream returned an unexpected response.');
+
+    return {
+        error: true,
+        status: typeof status === 'number' ? status : 0,
+        message: `${hint} Defaulting to a FIXUPX link.`,
+        _source: source,
+        // For callers that want to render a fallback
+        fallback_link: undefined, // set by caller-aware helpers below
+    };
+}
+
+function buildError({ status, text, source, ct }) {
+    // Never leak big HTML blobs to users; keep it summarized.
+    const summary = summarizeUpstreamFailure({ status, text, ct, source });
+    return summary;
+}
+
+function parseExtract(url, isXDotCom) {
     const urlPattern = isXDotCom ? 'https://x.com/' : 'https://twitter.com/';
-    const parts = url.split(urlPattern);
-    // console.log('>>>>> fetchMetadata > parts: ', parts);
-    const extractedPart = parts[1];
-    const vxApiUrl = `https://api.vxtwitter.com/${extractedPart}`;
-    const result = await fetch(vxApiUrl);
+    return url.split(urlPattern)[1]; // e.g., user/status/12345
+}
 
-    if(result.status === 500) {
-        console.log('>>>>> ERROR 500 > result: ', result);
-        result.error = true;
-        result.errorMsg = await result.text();
-        return result;
+/**
+ * Returns either a normalized tweet object, or an error object:
+ * {
+ *   error: true,
+ *   status,
+ *   message,           // summarized
+ *   _source,           // which upstream produced the terminal error
+ *   fallback_link,     // fixupx.com version of the original link (if provided)
+ * }
+ */
+async function fetchMetadata(url, message, isXDotCom, log = console.log) {
+    const extracted = parseExtract(url, isXDotCom);
+    if (!extracted) return buildError({ status: 0, error: 'Bad URL parse', source: 'client' });
+
+    // Prefer VX first; FX second
+    const vx = `https://api.vxtwitter.com/${extracted}`;
+    const fx = `https://api.fxtwitter.com/${extracted}`;
+
+    const res = await getJsonWithFallback([vx, fx], { log });
+
+    // If nothing useful came back
+    if (!res || (!res.ok && !res.json && !res.text)) {
+        const err = buildError({ status: res?.status, text: res?.text, error: res?.error, source: res?.url, ct: res?.ct });
+        err.fallback_link = toFixupx(url);
+        return err;
     }
 
-    let resultJson = {};
-    try {
-        resultJson = await result.json();
-        // console.log('>>>>> fetchMetadata > resultJson: ', resultJson);
-    } catch (err) {
-        // console.error('>>>>> fetchMetadata > err: ', err);
-        // console.error('>>>>> fetchMetadata > typeof err: ', typeof err);
-        if(err.name === 'SyntaxError') {
-            // console.error('>>>>> fetchMetadata > SyntaxError TYPE!');
-            // This is the best we get with result.json()...
-            // Most likely scenario
-            resultJson = {
-                error: 'No status found with that ID.',
-                message: 'The quoted post is unavailable.'
-            };
-        }
+    const j = res.json;
+
+    // VX success
+    if (j && (j.tweetID || j.user_name)) {
+        return normalizeFromVX(j);
     }
 
-    return resultJson;
-};
-
-const fetchQTMetadata = async (url) => {
-    const urlPattern = 'https://twitter.com/';
-    const parts = url.split(urlPattern);
-    // console.log('>>>>> fetchMetadata > parts: ', parts);
-    const extractedPart = parts[1];
-    const vxApiUrl = `https://api.vxtwitter.com/${extractedPart}`;
-    const result = await fetch(vxApiUrl);
-
-    if(result.status === 500) {
-        console.error(`>>>>> ERROR 500 (quote-tweet url: ${url}) > result: ${result}`);
-        result.error = true;
-        result.errorMsg = await result.text();
-        return result;
+    // FX success or FX error payloads
+    if (j && (j.tweet || typeof j.code === 'number')) {
+        return normalizeFromFX(j);
     }
 
-    let resultJson = {};
-    try {
-        // console.log('>>>>> fetchQTMetadata > result (before async/await): ', result);
-        resultJson = await result.json();
-        // console.log(`>>>>> fetchQTMetadata > resultJson: ${resultJson}`);
-    } catch (err) {
-        // console.error('>>>>> fetchQTMetadata > err: ', err);
-        // console.error('>>>>> fetchQTMetadata > typeof err: ', typeof err);
-        if(err.name === 'SyntaxError') {
-            // console.error('>>>>> fetchQTMetadata > SyntaxError TYPE!');
-            // This is the best we get with result.json()...
-            // Most likely scenario
-            resultJson = {
-                error: 'No status found with that ID.',
-                message: 'The quoted post is unavailable.'
-            };
-        }
+    // Generic JSON error shape
+    if (j && (j.error || j.message)) {
+        const err = summarizeUpstreamFailure({ status: typeof j.code === 'number' ? j.code : res.status, text: String(j.message || j.error), ct: res.ct, source: res.url });
+        err.fallback_link = toFixupx(url);
+        return err;
     }
 
-    return resultJson;
-};
+    // Non-JSON or unexpected shape (e.g., HTML page)
+    const err = buildError({ status: res.status, text: res.text, source: res.url, ct: res.ct });
+    err.fallback_link = toFixupx(url);
+    return err;
+}
 
-module.exports = {
-    fetchMetadata,
-    fetchQTMetadata,
-};
+async function fetchQTMetadata(url, log = console.log) {
+    const extracted = url.split('https://twitter.com/')[1] || url.split('https://x.com/')[1];
+    if (!extracted) return buildError({ status: 0, error: 'Bad QT URL parse', source: 'client' });
+
+    // Prefer VX first; FX second
+    const vx = `https://api.vxtwitter.com/${extracted}`;
+    const fx = `https://api.fxtwitter.com/${extracted}`;
+
+    const res = await getJsonWithFallback([vx, fx], { log });
+
+    if (!res || (!res.ok && !res.json && !res.text)) {
+        const err = buildError({ status: res?.status, text: res?.text, error: res?.error, source: res?.url, ct: res?.ct });
+        err.fallback_link = toFixupx(url);
+        return err;
+    }
+
+    const j = res.json;
+
+    if (j && (j.tweetID || j.user_name)) return normalizeFromVX(j);
+    if (j && (j.tweet || typeof j.code === 'number')) return normalizeFromFX(j);
+
+    if (j && (j.error || j.message)) {
+        const err = summarizeUpstreamFailure({ status: typeof j.code === 'number' ? j.code : res.status, text: String(j.message || j.error), ct: res.ct, source: res.url });
+        err.fallback_link = toFixupx(url);
+        return err;
+    }
+
+    const err = buildError({ status: res.status, text: res.text, source: res.url, ct: res.ct });
+    err.fallback_link = toFixupx(url);
+    return err;
+}
+
+module.exports = { toFixupx, fetchMetadata, fetchQTMetadata };

@@ -2,8 +2,8 @@
 
 const { Events } = require('discord.js');
 const {
-    members,
     memberIsControlled,
+    getMemberRecord,
     nickNameIsAlreadySet,
 } = require('../store/members.js');
 const { guildIsSupported } = require('../store/guilds.js');
@@ -15,7 +15,7 @@ const initializeGuildMemberUpdate = (client) => {
         // Hard-coded channel for logging (dev server #general)
         const channel = client.channels.cache.get('1170400835763707946');
 
-        if (!guildIsSupported(guildId)) {
+        if (!(await guildIsSupported(guildId))) {
             console.log('🚫 Unsupported guild. Ignoring GuildMemberUpdate event.');
             channel?.send('Server is not in the supported list. Ignoring...');
             return;
@@ -31,12 +31,12 @@ const initializeGuildMemberUpdate = (client) => {
             console.log('📝 Nickname change detected.');
             channel?.send(`\`${oldMember.user.username}\` changed nickname from **${oldNick}** to **${newNick}**.`);
 
-            if (!memberIsControlled(oldMember.id)) {
+            if (!(await memberIsControlled(oldMember.id))) {
                 console.log('🛑 Member not controlled. Ignoring nickname enforcement.');
                 return;
             }
 
-            const record = members.find((m) => m.memberId === oldMember.id);
+            const record = await getMemberRecord(oldMember.id);
             const nicknamePrefix = record?.prefix;
 
             if (!nicknamePrefix) {
@@ -61,14 +61,28 @@ const initializeGuildMemberUpdate = (client) => {
             }
         }
 
-        // Handle role changes (basic diffing by count)
-        const oldRoles = oldMember.roles.cache.size;
-        const newRoles = newMember.roles.cache.size;
+        // Handle role changes with side-by-side old → new output
+        const oldRoleNames = oldMember.roles.cache
+            .filter(r => r.id !== oldMember.guild.id) // exclude @everyone
+            .map(r => r.name)
+            .sort();
 
-        if (oldRoles !== newRoles) {
-            console.log('🎭 Role count changed.');
-            channel?.send(`\`${newMember.user.username}\` has had a role added or removed.`);
+        const newRoleNames = newMember.roles.cache
+            .filter(r => r.id !== newMember.guild.id) // exclude @everyone
+            .map(r => r.name)
+            .sort();
+
+        // Only send if the roles actually changed
+        if (oldRoleNames.join(',') !== newRoleNames.join(',')) {
+            console.log(`🎭 Roles changed for ${newMember.user.username}`);
+            console.log(`   Old: ${oldRoleNames.join(', ') || '(none)'}`);
+            console.log(`   New: ${newRoleNames.join(', ') || '(none)'}`);
+
+            channel?.send(
+                `\`${newMember.user.username}\` changed roles from **${oldRoleNames.join(', ') || '(none)'}** to **${newRoleNames.join(', ') || '(none)'}**.`
+            );
         }
+        
     });
 
     return client;

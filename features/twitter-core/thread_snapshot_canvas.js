@@ -1,36 +1,40 @@
 // features/twitter-core/thread_snapshot_canvas.js
 
-const { createCanvas, loadImage, registerFont } = require('canvas');
+const { createCanvas, loadImage } = require('canvas');
 const { threadBubbleWrapText } = require('./canvas_utils');
-
-// Paths to various fonts for multilingual + emoji support
-const FONT_PATHS = [
-    ['/truetype/noto/NotoColorEmoji.ttf', 'Noto Color Emoji'],
-    ['/truetype/noto/NotoSansMath-Regular.ttf', 'Noto Sans Math'],
-    ['/opentype/noto/NotoSansCJK-VF.ttf.ttc', 'Noto Sans CJK']
-];
+const { cropSingleImage } = require('../twitter-post/crop_single_image');
+const { MAIN_DESKTOP, getMainLineHeight } = require('./layout/geometry');
+const {
+    DESKTOP_MAX_WIDTH,
+    MAIN_FONT,
+    TEXT_FONT_FAMILY,
+} = require('../twitter-post/canvas/constants');
+const { buildDisplayText } = require('./translation_service.js');
 
 // Layout constants
-const MAX_WIDTH = 1080;
+const MAX_WIDTH = DESKTOP_MAX_WIDTH;
 const PADDING_X = 40;
 const PADDING_Y = 60;
 const AVATAR_SIZE = 48;
 const MIN_BUBBLE_WIDTH = 300;
-const LINE_HEIGHT = 22;
-const FONT_SIZE = 14;
-const FONT_FAMILY = '"Noto Color Emoji", "Noto Sans CJK", "Noto Sans Math"';
+const LINE_HEIGHT = getMainLineHeight({ layoutMode: 'desktop' });
+const FONT_FAMILY = TEXT_FONT_FAMILY;
 const INNER_BUBBLE_PADDING = 24;
-const THUMB_WIDTH = 96;
-const THUMB_HEIGHT = 96;
-const THUMB_MARGIN_LEFT = 12;
+const THUMB_WIDTH = 175;
+const THUMB_HEIGHT = 175;
+const THUMB_MARGIN_RIGHT = 12;
+const MAX_THREAD_LINES = 16;
+const BUBBLE_TEXT_INSET = INNER_BUBBLE_PADDING / 2;
+const THREAD_RIGHT_PAD = MAIN_DESKTOP.rightPad;
 
-
-// Load fonts into canvas context
-function registerFonts(baseFontUrl = '/usr/share/fonts') {
-    FONT_PATHS.forEach(([path, family]) =>
-        registerFont(`${baseFontUrl}${path}`, { family })
-    );
-}
+const BACKGROUND_COLOR = '#000';
+const PRIMARY_TEXT_COLOR = '#fff';
+const SECONDARY_TEXT_COLOR = 'gray';
+const MUTED_TEXT_COLOR = '#888';
+const TIMESTAMP_TEXT_COLOR = '#aaa';
+const BUBBLE_FILL_COLOR = '#383838';
+const DIVIDER_COLOR = '#444';
+const BODY_FONT = MAIN_FONT;
 
 function formatTimePassed(msDelta) {
     const seconds = Math.floor(msDelta / 1000);
@@ -43,7 +47,6 @@ function formatTimePassed(msDelta) {
     return `${days} day${days > 1 ? 's' : ''} later`;
 }
 
-// Format timestamp as "4:33 PM · Jan 23, 2025 · 5 minutes later"
 function formatAbsoluteTimestamp(ms, replyToMs = null) {
     const date = new Date(ms);
     const timeStr = date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
@@ -56,7 +59,6 @@ function formatAbsoluteTimestamp(ms, replyToMs = null) {
     return result;
 }
 
-// Helper to draw a filled or stroked rounded rectangle
 function drawRoundedRect(ctx, x, y, width, height, radius = 10, fill = true) {
     ctx.beginPath();
     ctx.moveTo(x + radius, y);
@@ -73,37 +75,32 @@ function drawRoundedRect(ctx, x, y, width, height, radius = 10, fill = true) {
     else ctx.stroke();
 }
 
-// Draws the "Earlier replies not shown" box
 function renderTruncationNotice(ctx, y, width) {
     const text = 'Earlier replies not shown';
-    ctx.font = `16px ${FONT_FAMILY}`;
+    ctx.font = BODY_FONT;
     const textWidth = ctx.measureText(text).width;
     const padding = 24;
-    const bw = textWidth + padding; // Bubble width
-    const bh = 38; // Bubble height
-    const bx = (width - bw) / 2; // Centered horizontally
+    const bw = textWidth + padding;
+    const bh = 38;
+    const bx = (width - bw) / 2;
 
-    // Draw outlined gray rounded box
-    ctx.fillStyle = '#000';
-    ctx.strokeStyle = '#444';
+    ctx.fillStyle = BACKGROUND_COLOR;
+    ctx.strokeStyle = DIVIDER_COLOR;
     ctx.lineWidth = 1.5;
     drawRoundedRect(ctx, bx, y, bw, bh, 12, false);
 
-    // Draw centered gray text inside
-    ctx.fillStyle = '#888';
+    ctx.fillStyle = MUTED_TEXT_COLOR;
     ctx.fillText(text, bx + padding / 2, y + 25);
 
-    return y + bh + 22; // Advance Y position after the box
+    return y + bh + 22;
 }
 
-// Draw one individual post
 async function renderPost(ctx, post, y) {
     const { user_name, user_screen_name, user_profile_image_url, date_epoch } = post;
 
     const avatarX = PADDING_X;
     const avatarY = y;
 
-    // Draw circular avatar (clip mask)
     try {
         const avatarImg = await loadImage(user_profile_image_url);
         ctx.save();
@@ -113,161 +110,167 @@ async function renderPost(ctx, post, y) {
         ctx.drawImage(avatarImg, avatarX, avatarY, AVATAR_SIZE, AVATAR_SIZE);
         ctx.restore();
     } catch {
-        // Draw fallback avatar circle
-        ctx.fillStyle = '#444';
+        ctx.fillStyle = DIVIDER_COLOR;
         ctx.beginPath();
         ctx.arc(avatarX + AVATAR_SIZE / 2, avatarY + AVATAR_SIZE / 2, AVATAR_SIZE / 2, 0, Math.PI * 2);
         ctx.fill();
     }
 
-    // Draw user display name
     const nameX = avatarX + AVATAR_SIZE + 10;
     const nameY = avatarY + 18;
     ctx.font = `bold 16px ${FONT_FAMILY}`;
-    ctx.fillStyle = '#ffffff';
+    ctx.fillStyle = PRIMARY_TEXT_COLOR;
     ctx.fillText(user_name, nameX, nameY);
 
-    // Draw username handle after name
     const nameWidth = ctx.measureText(user_name).width;
     ctx.font = `16px ${FONT_FAMILY}`;
-    ctx.fillStyle = '#bbbbbb';
+    ctx.fillStyle = SECONDARY_TEXT_COLOR;
     ctx.fillText(` @${user_screen_name}`, nameX + nameWidth, nameY);
 
     y += AVATAR_SIZE - 20;
 
-    const bubbleX = nameX;
-    const { _wrappedLines: lines, _bubbleWidth: bw, _bubbleHeight: bh } = post;
-
-    // Draw chat bubble background
-    ctx.fillStyle = '#383838';
-    drawRoundedRect(ctx, bubbleX, y, bw, bh, 12);
-
-    // Media thumbnail
+    const hasText = post._wrappedLines && post._wrappedLines.some(line => line.trim() !== '');
     let thumbnailDrawn = false;
+    const contentX = nameX;
+    let bubbleX = contentX;
 
+    // Media thumbnail first, to the left of the bubble
     if (post._mediaThumbnailUrl) {
         try {
             const img = await loadImage(post._mediaThumbnailUrl);
-            const thumbX = bubbleX + bw + THUMB_MARGIN_LEFT;
+            const thumbX = contentX;
             const thumbY = y;
-
-            ctx.drawImage(img, thumbX, thumbY, THUMB_WIDTH, THUMB_HEIGHT);
+            cropSingleImage(ctx, img, THUMB_WIDTH, THUMB_HEIGHT, thumbX, thumbY, {
+                tag: 'thread_snapshot/thumb',
+            });
             thumbnailDrawn = true;
+
+            if (hasText) {
+                bubbleX = thumbX + THUMB_WIDTH + THUMB_MARGIN_RIGHT;
+            }
         } catch (err) {
             console.warn(`Failed to load media thumbnail for ${post.user_screen_name}:`, err);
         }
     }
 
-    // Draw each line of post text inside bubble
-    ctx.font = `14px ${FONT_FAMILY}`;
-    ctx.fillStyle = '#e4e4e4ff';
-    lines.forEach((line, i) => {
-        ctx.fillText(line, bubbleX + 12, y + 22 + i * LINE_HEIGHT);
-    });
+    const timestampY = y + (hasText ? Math.max(post._bubbleHeight, THUMB_HEIGHT) : THUMB_HEIGHT) + 20;
 
-    // Draw timestamp below bubble
-    const finalHeight = Math.max(bh, thumbnailDrawn ? THUMB_HEIGHT : 0);
+    if (hasText) {
+        const { _wrappedLines: lines, _bubbleWidth: bw } = post;
 
-    ctx.font = `12px ${FONT_FAMILY}`;
-    ctx.fillStyle = '#aaaaaa';
-    ctx.fillText(
-        formatAbsoluteTimestamp(date_epoch * 1000, post.reply_to_epoch ? post.reply_to_epoch * 1000 : null),
-        bubbleX,
-        y + finalHeight + 20
-    );
+        ctx.fillStyle = BUBBLE_FILL_COLOR;
+        drawRoundedRect(ctx, bubbleX, y, bw, post._bubbleHeight, 12);
 
-    return {
-        y: y + finalHeight + 30 + 20,
-        anchor: { avatarX, avatarY, bubbleX, bubbleY: y }
-    };
+        ctx.font = BODY_FONT;
+        ctx.fillStyle = PRIMARY_TEXT_COLOR;
+        lines.forEach((line, i) => {
+            ctx.fillText(line, bubbleX + BUBBLE_TEXT_INSET, y + 32 + i * LINE_HEIGHT);
+        });
 
+        const lineHeight = LINE_HEIGHT;
+        const textHeight = lines.length * lineHeight + 24;
+        const contentHeight = Math.max(textHeight, thumbnailDrawn ? THUMB_HEIGHT : 0);
+        const timestampY = y + contentHeight + 20;
+
+        ctx.font = `12px ${FONT_FAMILY}`;
+        ctx.fillStyle = TIMESTAMP_TEXT_COLOR;
+        ctx.fillText(
+            formatAbsoluteTimestamp(date_epoch * 1000, post.reply_to_epoch ? post.reply_to_epoch * 1000 : null),
+            bubbleX,
+            timestampY
+        );
+
+        return {
+            y: timestampY + 30,
+            anchor: { avatarX, avatarY, bubbleX, bubbleY: y }
+        };
+    }
+    else if (thumbnailDrawn) {
+        ctx.font = `12px ${FONT_FAMILY}`;
+        ctx.fillStyle = TIMESTAMP_TEXT_COLOR;
+        ctx.fillText(
+            formatAbsoluteTimestamp(date_epoch * 1000, post.reply_to_epoch ? post.reply_to_epoch * 1000 : null),
+            contentX,
+            timestampY
+        );
+
+        return {
+            y: timestampY + 30,
+            anchor: { avatarX, avatarY, bubbleX: contentX, bubbleY: y }
+        };
+    } else {
+        return {
+            y: y + 30,
+            anchor: { avatarX, avatarY, bubbleX: contentX, bubbleY: y }
+        };
+    }
 }
 
-// Main thread snapshot renderer
 async function renderThreadSnapshotCanvas({ posts, isTruncated }) {
-    registerFonts();
 
-    // Create temp canvas to measure text
     const tmpCanvas = createCanvas(1, 1);
     const tmpCtx = tmpCanvas.getContext('2d');
-    tmpCtx.font = `${FONT_SIZE}px ${FONT_FAMILY}`;
 
     let totalHeight = PADDING_Y;
-    let maxContentWidth = 0;
 
-    // If truncated, measure truncation notice height
     if (isTruncated) {
-        tmpCtx.font = `16px ${FONT_FAMILY}`;
-        const textWidth = tmpCtx.measureText('Earlier replies not shown').width;
-        maxContentWidth = Math.max(maxContentWidth, textWidth + 24);
-        totalHeight += 60; // Add vertical space for truncation box
+        totalHeight += 60;
     }
 
-    // Precompute layout dimensions per post
     for (const post of posts) {
-        const wrapped = threadBubbleWrapText(
-            tmpCtx,
-            post.text,
-            MAX_WIDTH - PADDING_X - AVATAR_SIZE - 10 - PADDING_X - INNER_BUBBLE_PADDING - (post._mediaThumbnailUrl ? (THUMB_WIDTH + THUMB_MARGIN_LEFT) : 0),
-            4
+        tmpCtx.font = BODY_FONT;
+        const displayText = buildDisplayText(post);
+        const contentX = PADDING_X + AVATAR_SIZE + 10;
+        const bubbleX = post._mediaThumbnailUrl
+            ? (contentX + THUMB_WIDTH + THUMB_MARGIN_RIGHT)
+            : contentX;
+
+        const maxTextWidth = Math.max(
+            1,
+            MAX_WIDTH - bubbleX - THREAD_RIGHT_PAD - INNER_BUBBLE_PADDING
         );
+
+        const wrapped = threadBubbleWrapText(tmpCtx, displayText, maxTextWidth, MAX_THREAD_LINES);
         const maxLineWidth = Math.max(...wrapped.map(l => tmpCtx.measureText(l).width));
         const baseHeight = wrapped.length * LINE_HEIGHT + 24;
 
+        post._displayText = displayText;
         post._wrappedLines = wrapped;
         post._bubbleWidth = Math.max(maxLineWidth + INNER_BUBBLE_PADDING, MIN_BUBBLE_WIDTH);
         post._bubbleHeight = Math.max(baseHeight, post._mediaThumbnailUrl ? THUMB_HEIGHT : 0);
-
-        maxContentWidth = Math.max(
-            maxContentWidth,
-            post._bubbleWidth + (post._mediaThumbnailUrl ? (THUMB_WIDTH + THUMB_MARGIN_LEFT) : 0)
-        );
 
         totalHeight += AVATAR_SIZE - 20 + post._bubbleHeight + 30 + 20;
     }
 
     totalHeight += PADDING_Y;
 
-    // Final canvas width and height
-    const effectiveWidth = Math.min(
-        MAX_WIDTH,
-        PADDING_X + AVATAR_SIZE + 10 + maxContentWidth + PADDING_X
-    );
+    const effectiveWidth = MAX_WIDTH;
 
     const canvas = createCanvas(effectiveWidth, totalHeight);
     const ctx = canvas.getContext('2d');
 
-    // Fill background color
-    ctx.fillStyle = '#0C162E';
+    ctx.fillStyle = BACKGROUND_COLOR;
     ctx.fillRect(0, 0, effectiveWidth, totalHeight);
     ctx.textDrawingMode = 'glyph';
-
-    // Set default text font
-    ctx.font = `${FONT_SIZE}px ${FONT_FAMILY}`;
-    ctx.fillStyle = '#ffffff';
 
     let y = PADDING_Y;
     const postAnchors = [];
 
-    // Render truncation message if applicable
     if (isTruncated) {
         y = renderTruncationNotice(ctx, y, effectiveWidth);
     }
 
-    // Annotate each post with `reply_to_epoch` (assume replying to prior post)
     posts.forEach((post, i) => {
         post.reply_to_epoch = i > 0 ? posts[i - 1].date_epoch : null;
     });
 
-    // Render each post
     for (const post of posts) {
-        const result = await renderPost(ctx, post, y, effectiveWidth, tmpCtx);
+        const result = await renderPost(ctx, post, y);
         y = result.y;
-        postAnchors.push(result.anchor); // Save anchor info for reply lines, etc
+        postAnchors.push(result.anchor);
     }
 
-    // Draw reply lines (avatar-to-avatar, straight vertical)
-    ctx.strokeStyle = '#2C3045';
+    ctx.strokeStyle = DIVIDER_COLOR;
     ctx.lineWidth = 2;
 
     for (let i = 1; i < postAnchors.length; i++) {

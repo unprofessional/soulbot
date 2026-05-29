@@ -1,9 +1,45 @@
 // store/services/messages.service.js
 
 const MessageDAO = require('../dao/message.dao.js');
+const { soulbotUserId } = require('../../config/env_config.js');
+const { consumePendingRenderOwnership } = require('../../features/twitter-core/render_ownership_registry.js');
 require('dotenv').config();
 
 const messageDAO = new MessageDAO();
+const SOULBOT_EXPECTED_DELETION_PATTERNS = [
+    /^Rendering the Twitter\/X video canvas\.\.\.$/i,
+    /^Encoding Twitter\/X video\.\.\./i,
+    /^Uploading the rendered Twitter\/X video\.\.\.$/i,
+];
+
+function isTwitterLinkOnlyContent(content = '') {
+    const trimmed = String(content || '').trim();
+    if (!trimmed) return false;
+    return /^<?https?:\/\/(?:www\.)?(?:x|twitter)\.com\/\S+>?$/i.test(trimmed);
+}
+
+function isExpectedSoulbotDeletion(message = {}) {
+    if (message.user_id !== soulbotUserId) return false;
+    const content = String(message.content || '').trim();
+    if (!content) return false;
+
+    return SOULBOT_EXPECTED_DELETION_PATTERNS.some((pattern) => pattern.test(content));
+}
+
+function isExpectedDeletedMessage(message = {}) {
+    if (!message?.deleted_at) return false;
+    if (isTwitterLinkOnlyContent(message.content)) return true;
+    if (isExpectedSoulbotDeletion(message)) return true;
+    return false;
+}
+
+function formatDeletedSummaryMessages(messages = []) {
+    return messages.map((message) => ({
+        user_id: message.user_id,
+        content: message.content,
+        deleted_at: message.deleted_at,
+    }));
+}
 
 /**
  * Adds a message to the database.
@@ -11,6 +47,18 @@ const messageDAO = new MessageDAO();
  */
 const addMessage = async (message) => {
     try {
+        const pendingRenderOwnership = consumePendingRenderOwnership(message.webhookId);
+        const ownershipMeta = pendingRenderOwnership
+            ? {
+                kind: pendingRenderOwnership.kind || 'twitter_render',
+                owningUserId: pendingRenderOwnership.owningUserId,
+                originalMessageId: pendingRenderOwnership.originalMessageId || null,
+                originalChannelId: pendingRenderOwnership.originalChannelId || null,
+                originalLink: pendingRenderOwnership.originalLink || null,
+                threadId: pendingRenderOwnership.threadId || null,
+            }
+            : {};
+
         const structuredMessage = {
             userId: message.author.id,
             guildId: message.guild?.id || null,
@@ -21,8 +69,11 @@ const addMessage = async (message) => {
             meta: {
                 ...(message.channel.isThread?.() && { threadId: message.channel.id }),
                 username: message.author.username,
+                globalName: message.author.globalName || null,
+                displayName: message.member?.displayName || message.author.globalName || message.author.username,
                 channelName: message.channel?.name,
                 guildName: message.guild?.name,
+                ...ownershipMeta,
             },
         };
 
@@ -77,6 +128,102 @@ const getMessages = async (options = {}) => {
     }
 };
 
+const getSummaryMessages = async (options = {}) => {
+    try {
+        const messages = await messageDAO.findAll({
+            ...options,
+            fields: ['user_id', 'content'],
+            excludeUserId: soulbotUserId,
+            excludeContent: '[Non-text message]',
+            excludeContentPrefixes: ['**Summary:**'],
+        });
+        console.log('Summary messages retrieved successfully:', messages);
+        return messages.reverse();
+    } catch (err) {
+        console.error('Error in getSummaryMessages service:', err);
+        throw err;
+    }
+};
+
+const getLlmChannelContext = async (options = {}) => {
+    const { limit = 50, ...rest } = options;
+    return getSummaryMessages({
+        ...rest,
+        limit,
+    });
+};
+
+const getSummaryContext = async (options = {}) => {
+    try {
+        const { channelId, limit = 100 } = options;
+        const latestSummaries = await messageDAO.findLatestChannelSummaries(channelId, soulbotUserId, 3);
+        const latestSummary = latestSummaries[0] || null;
+        const summaryHistory = latestSummaries.map((summary) => ({
+            content: summary.content,
+            created_at: summary.created_at,
+        }));
+
+        if (!latestSummary) {
+            const messages = await getSummaryMessages({ channelId, limit });
+            return {
+                mode: 'full',
+                previousSummary: null,
+                messages,
+                lastSummaryCreatedAt: null,
+                summaryHistory,
+            };
+        }
+
+        const messages = await messageDAO.findAll({
+            channelId,
+            limit,
+            createdAfter: latestSummary.created_at,
+            fields: ['user_id', 'content'],
+            excludeUserId: soulbotUserId,
+            excludeContent: '[Non-text message]',
+            excludeContentPrefixes: ['**Summary:**'],
+        });
+
+        const chronologicalMessages = messages.reverse();
+
+        console.log('Summary context retrieved successfully:', {
+            mode: 'delta',
+            lastSummaryCreatedAt: latestSummary.created_at,
+            messagesCount: chronologicalMessages.length,
+        });
+
+        return {
+            mode: 'delta',
+            previousSummary: latestSummary.content,
+            messages: chronologicalMessages,
+            lastSummaryCreatedAt: latestSummary.created_at,
+            summaryHistory,
+        };
+    } catch (err) {
+        console.error('Error in getSummaryContext service:', err);
+        throw err;
+    }
+};
+
+const getDeletedSummaryContext = async (options = {}) => {
+    try {
+        const { channelId, limit = 50 } = options;
+        const recentMessages = await messageDAO.findRecentChannelMessagesIncludingDeleted(channelId, limit);
+        const chronologicalMessages = recentMessages.reverse();
+        const filteredMessages = chronologicalMessages.filter((message) => !isExpectedDeletedMessage(message));
+        const deletedMessages = filteredMessages.filter((message) => message.deleted_at);
+
+        return {
+            messages: formatDeletedSummaryMessages(filteredMessages),
+            deletedMessages: formatDeletedSummaryMessages(deletedMessages),
+            ignoredDeletedCount: chronologicalMessages.filter((message) => isExpectedDeletedMessage(message)).length,
+        };
+    } catch (err) {
+        console.error('Error in getDeletedSummaryContext service:', err);
+        throw err;
+    }
+};
+
 const findMessagesByLink = async (guildId, messageId, url) => {
     try {
         const messages = await messageDAO.findMessagesByLink(guildId, messageId, url);
@@ -87,6 +234,40 @@ const findMessagesByLink = async (guildId, messageId, url) => {
         throw err;
     }
 }
+
+const getMessageById = async (messageId) => {
+    try {
+        return await messageDAO.findByMessageId(messageId);
+    } catch (err) {
+        console.error('Error in getMessageById service:', err);
+        throw err;
+    }
+};
+
+const normalizeIdentityRow = (row = {}) => {
+    const username = row.username || null;
+    const globalName = row.global_name || row.globalName || null;
+    const displayName = row.display_name || row.displayName || globalName || username || null;
+
+    return {
+        username,
+        globalName,
+        displayName,
+    };
+};
+
+const getLatestMemberIdentities = async ({ guildId, memberIds = [], messageIds = [] }) => {
+    try {
+        const rows = await messageDAO.findLatestUserIdentities(guildId, memberIds, messageIds);
+        return new Map(rows.map((row) => [
+            row.member_id || row.memberId,
+            normalizeIdentityRow(row),
+        ]));
+    } catch (err) {
+        console.error('Error in getLatestMemberIdentities service:', err);
+        throw err;
+    }
+};
 
 const updateMessage = async (messageId, newContent) => {
     try {
@@ -121,8 +302,14 @@ const deleteMessage = async (messageId) => {
 module.exports = {
     addMessage,
     getMessages,
+    getDeletedSummaryContext,
+    getLlmChannelContext,
+    getSummaryMessages,
+    getSummaryContext,
     findMessagesByLink,
+    getMessageById,
+    getLatestMemberIdentities,
     updateMessage,
     deleteMessage,
+    isExpectedDeletedMessage,
 };
-

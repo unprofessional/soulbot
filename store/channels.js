@@ -1,12 +1,27 @@
-const DAO = require('./dao/store.dao.js');
-require('dotenv').config();
-const path = process.env.STORE_PATH;
-const file = process.env.CHANNEL_STORE_FILE;
-const filePath = `${path}/${file}`;
-const channelDAO = new DAO(filePath);
-const channels = channelDAO.initializeLocalStore().channels || [];
-console.log('>>>>> channels: ', channels)
+const ChannelDAO = require('./dao/channel.dao.js');
+
+const channelDAO = new ChannelDAO();
+
+const getChannels = async () => {
+    const channels = await channelDAO.findAll();
+    return channels.map(({ channel_id: channelId }) => channelId);
+};
+
+const addChannel = async (channelId) => {
+    return await channelDAO.save(channelId);
+};
+
+const removeChannel = async (channelId) => {
+    return await channelDAO.delete(channelId);
+};
+
+const channelIsTracked = async (channelId) => {
+    return await channelDAO.exists(channelId);
+};
 
 module.exports = { 
-    channels,
+    getChannels,
+    addChannel,
+    removeChannel,
+    channelIsTracked,
 };

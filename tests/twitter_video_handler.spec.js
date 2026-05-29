@@ -1,0 +1,341 @@
+jest.mock('../features/twitter-core/twitter_post_utils.js', () => ({
+    countDirectoriesInDirectory: jest.fn(),
+}));
+
+jest.mock('../features/twitter-core/path_builder.js', () => ({
+    buildPathsAndStuff: jest.fn(),
+}));
+
+jest.mock('../features/twitter-video', () => ({
+    downloadVideo: jest.fn(),
+    getVideoFileSize: jest.fn(),
+    bakeImageAsFilterIntoVideo: jest.fn(),
+}));
+
+jest.mock('../features/twitter-video/twitter_video_canvas.js', () => ({
+    createTwitterVideoCanvas: jest.fn(),
+}));
+
+jest.mock('../features/twitter-core/webhook_utils.js', () => ({
+    sendVideoReply: jest.fn(),
+}));
+
+jest.mock('../features/twitter-video/cleanup.js', () => ({
+    cleanup: jest.fn().mockResolvedValue(undefined),
+}));
+
+jest.mock('../features/twitter-core/estimate_output_size', () => ({
+    estimateOutputSizeBytes: jest.fn(),
+    inspectVideoFileDetails: jest.fn(),
+}));
+
+const { countDirectoriesInDirectory } = require('../features/twitter-core/twitter_post_utils.js');
+const { buildPathsAndStuff } = require('../features/twitter-core/path_builder.js');
+const {
+    downloadVideo,
+    getVideoFileSize,
+    bakeImageAsFilterIntoVideo,
+} = require('../features/twitter-video');
+const { createTwitterVideoCanvas } = require('../features/twitter-video/twitter_video_canvas.js');
+const { sendVideoReply } = require('../features/twitter-core/webhook_utils.js');
+const { cleanup } = require('../features/twitter-video/cleanup.js');
+const { inspectVideoFileDetails } = require('../features/twitter-core/estimate_output_size');
+const { handleVideoPost } = require('../features/twitter-core/twitter_video_handler.js');
+const { clearTwitterVideoRenderRegistryForTests } = require('../features/twitter-core/twitter_video_render_registry.js');
+
+function buildMessageMock() {
+    return {
+        guildId: 'guild-1',
+        guild: { name: 'Test Guild' },
+        client: {
+            guilds: {
+                cache: {
+                    get: jest.fn(() => ({ premiumTier: 0 })),
+                },
+            },
+        },
+        reply: jest.fn().mockResolvedValue(undefined),
+    };
+}
+
+function buildProgressMock() {
+    return {
+        update: jest.fn().mockResolvedValue(undefined),
+        updateVideoEncodeProgress: jest.fn().mockResolvedValue(undefined),
+        dismiss: jest.fn().mockResolvedValue(undefined),
+    };
+}
+
+describe('handleVideoPost progress lifecycle', () => {
+    beforeEach(() => {
+        jest.clearAllMocks();
+
+        countDirectoriesInDirectory.mockResolvedValue(0);
+        buildPathsAndStuff.mockReturnValue({
+            filename: 'video-file',
+            localWorkingPath: '/tempdata/video-file',
+        });
+        downloadVideo.mockResolvedValue(undefined);
+        createTwitterVideoCanvas.mockResolvedValue({
+            canvasHeight: 600,
+            canvasWidth: 560,
+            heightShim: 120,
+        });
+        bakeImageAsFilterIntoVideo.mockResolvedValue('/tempdata/video-file/video-file-output.mp4');
+        getVideoFileSize.mockResolvedValue(1024);
+        inspectVideoFileDetails.mockResolvedValue({ width: 1280, height: 720 });
+        sendVideoReply.mockResolvedValue(undefined);
+        clearTwitterVideoRenderRegistryForTests();
+    });
+
+    test('cleans up the placeholder when the queue is at capacity', async () => {
+        countDirectoriesInDirectory.mockResolvedValue(3);
+        const message = buildMessageMock();
+        const progressMessage = buildProgressMock();
+
+        await handleVideoPost({
+            metadataJson: { communityNote: 'note' },
+            message,
+            originalLink: 'https://x.com/test/status/1',
+            videoUrl: 'https://video.example.com/file.mp4',
+            processingDir: '/tempdata',
+            MAX_CONCURRENT_REQUESTS: 3,
+            progressMessage,
+        });
+
+        expect(progressMessage.dismiss).toHaveBeenCalledTimes(1);
+        expect(message.reply).toHaveBeenCalledWith({
+            content: 'Video processing at capacity; try again later.',
+            allowedMentions: { repliedUser: false },
+        });
+        expect(cleanup).not.toHaveBeenCalled();
+    });
+
+    test('dismisses the placeholder after a successful upload', async () => {
+        const message = buildMessageMock();
+        const progressMessage = buildProgressMock();
+        bakeImageAsFilterIntoVideo.mockImplementation(async (...args) => {
+            const options = args[8];
+            await options.onProgress({
+                percent: 62,
+                currentSeconds: 25,
+                totalSeconds: 40,
+            });
+            return '/tempdata/video-file/video-file-output.mp4';
+        });
+
+        await handleVideoPost({
+            metadataJson: {
+                communityNote: 'note',
+                _videos: [{ size: { width: 1280, height: 720 } }],
+            },
+            message,
+            originalLink: 'https://x.com/test/status/2',
+            videoUrl: 'https://video.example.com/file.mp4',
+            processingDir: '/tempdata',
+            processingRunId: 'run-123',
+            MAX_CONCURRENT_REQUESTS: 3,
+            progressMessage,
+        });
+
+        expect(progressMessage.updateVideoEncodeProgress).toHaveBeenCalledWith({
+            percent: 62,
+            currentSeconds: 25,
+            totalSeconds: 40,
+        });
+        expect(progressMessage.update).toHaveBeenCalledWith('Uploading the rendered Twitter/X video...');
+        expect(sendVideoReply).toHaveBeenCalledWith(
+            message,
+            '/tempdata/video-file/video-file-output.mp4',
+            'https://x.com/test/status/2',
+            { main: 'note', qt: undefined },
+        );
+        expect(progressMessage.dismiss).toHaveBeenCalledTimes(1);
+        expect(cleanup).toHaveBeenCalledWith([], ['/tempdata/video-file']);
+        expect(message.reply).not.toHaveBeenCalled();
+    });
+
+    test('passes the server tier upload limit to the encoder', async () => {
+        const message = buildMessageMock();
+        message.client.guilds.cache.get.mockReturnValue({ premiumTier: 2 });
+        const progressMessage = buildProgressMock();
+
+        await handleVideoPost({
+            metadataJson: {
+                communityNote: 'note',
+                _videos: [{ size: { width: 1280, height: 720 } }],
+            },
+            message,
+            originalLink: 'https://x.com/test/status/22',
+            videoUrl: 'https://video.example.com/file.mp4',
+            processingDir: '/tempdata',
+            processingRunId: 'run-123',
+            MAX_CONCURRENT_REQUESTS: 3,
+            progressMessage,
+        });
+
+        const options = bakeImageAsFilterIntoVideo.mock.calls[0][8];
+        expect(options.maxOutputBytes).toBe(50 * 1024 * 1024);
+    });
+
+    test('falls back to FIXUPX when encoding exceeds the server tier upload limit', async () => {
+        const message = buildMessageMock();
+        const progressMessage = buildProgressMock();
+        const tooLargeError = new Error('too large while encoding');
+        tooLargeError.code = 'OUTPUT_FILE_TOO_LARGE';
+        bakeImageAsFilterIntoVideo.mockRejectedValue(tooLargeError);
+
+        await handleVideoPost({
+            metadataJson: {
+                communityNote: 'note',
+                _videos: [{ size: { width: 1280, height: 720 } }],
+            },
+            message,
+            originalLink: 'https://x.com/test/status/23',
+            videoUrl: 'https://video.example.com/file.mp4',
+            processingDir: '/tempdata',
+            processingRunId: 'run-123',
+            MAX_CONCURRENT_REQUESTS: 3,
+            progressMessage,
+        });
+
+        expect(progressMessage.dismiss).toHaveBeenCalledTimes(1);
+        expect(message.reply).toHaveBeenCalledWith({
+            content: "Rendered video exceeded this server tier's upload limit (10MB). Defaulting to FIXUPX link: https://fixupx.com/test/status/23",
+            allowedMentions: { repliedUser: false },
+        });
+        expect(sendVideoReply).not.toHaveBeenCalled();
+        expect(cleanup).toHaveBeenCalledWith([], ['/tempdata/video-file']);
+    });
+
+    test('dismisses the placeholder before the file-too-large fallback reply', async () => {
+        const message = buildMessageMock();
+        const progressMessage = buildProgressMock();
+        const uploadError = new Error('too large');
+        uploadError.name = 'DiscordAPIError[40005]';
+        sendVideoReply.mockRejectedValue(uploadError);
+
+        await handleVideoPost({
+            metadataJson: {
+                communityNote: 'note',
+                _videos: [{ size: { width: 1280, height: 720 } }],
+            },
+            message,
+            originalLink: 'https://x.com/test/status/3',
+            videoUrl: 'https://video.example.com/file.mp4',
+            processingDir: '/tempdata',
+            processingRunId: 'run-123',
+            MAX_CONCURRENT_REQUESTS: 3,
+            progressMessage,
+        });
+
+        expect(progressMessage.dismiss).toHaveBeenCalledTimes(1);
+        expect(progressMessage.dismiss.mock.invocationCallOrder[0]).toBeLessThan(
+            message.reply.mock.invocationCallOrder[0]
+        );
+        expect(message.reply).toHaveBeenCalledWith({
+            content: 'Discord upload rejected the rendered video because it was too large for this server tier. Defaulting to FIXUPX link: https://fixupx.com/test/status/3',
+            allowedMentions: { repliedUser: false },
+        });
+        expect(cleanup).toHaveBeenCalledWith([], ['/tempdata/video-file']);
+    });
+
+    test('dismisses the placeholder before replying on unexpected processing errors', async () => {
+        const message = buildMessageMock();
+        const progressMessage = buildProgressMock();
+        createTwitterVideoCanvas.mockRejectedValue(new Error('canvas failed'));
+
+        await handleVideoPost({
+            metadataJson: {
+                communityNote: 'note',
+                _videos: [{ size: { width: 1280, height: 720 } }],
+            },
+            message,
+            originalLink: 'https://x.com/test/status/4',
+            videoUrl: 'https://video.example.com/file.mp4',
+            processingDir: '/tempdata',
+            processingRunId: 'run-123',
+            MAX_CONCURRENT_REQUESTS: 3,
+            progressMessage,
+        });
+
+        expect(progressMessage.dismiss).toHaveBeenCalledTimes(1);
+        expect(progressMessage.dismiss.mock.invocationCallOrder[0]).toBeLessThan(
+            message.reply.mock.invocationCallOrder[0]
+        );
+        expect(message.reply).toHaveBeenCalledWith({
+            content: 'Video processing failed for this post. Try again later or use FIXUPX: https://fixupx.com/test/status/4',
+            allowedMentions: { repliedUser: false },
+        });
+        expect(cleanup).toHaveBeenCalledWith([], ['/tempdata/video-file']);
+    });
+
+    test('shares an in-flight render for duplicate video posts and uploads once per message', async () => {
+        const leaderMessage = buildMessageMock();
+        const followerMessage = buildMessageMock();
+        const leaderProgress = buildProgressMock();
+        const followerProgress = buildProgressMock();
+        let finishBake;
+
+        bakeImageAsFilterIntoVideo.mockImplementation(() => new Promise((resolve) => {
+            finishBake = () => resolve('/tempdata/video-file/video-file-output.mp4');
+        }));
+
+        const leaderPromise = handleVideoPost({
+            metadataJson: {
+                tweetID: '123456789012345',
+                communityNote: 'note',
+                _videos: [{ size: { width: 1280, height: 720 } }],
+            },
+            message: leaderMessage,
+            originalLink: 'https://x.com/test/status/123456789012345',
+            videoUrl: 'https://video.example.com/file.mp4',
+            processingDir: '/tempdata',
+            processingRunId: 'run-123',
+            MAX_CONCURRENT_REQUESTS: 3,
+            progressMessage: leaderProgress,
+        });
+
+        while (!finishBake) {
+            await Promise.resolve();
+        }
+
+        const followerPromise = handleVideoPost({
+            metadataJson: {
+                tweetID: '123456789012345',
+                communityNote: 'note',
+                _videos: [{ size: { width: 1280, height: 720 } }],
+            },
+            message: followerMessage,
+            originalLink: 'https://twitter.com/test/status/123456789012345',
+            videoUrl: 'https://video.example.com/file.mp4',
+            processingDir: '/tempdata',
+            processingRunId: 'run-456',
+            MAX_CONCURRENT_REQUESTS: 3,
+            progressMessage: followerProgress,
+        });
+
+        finishBake();
+        await Promise.all([leaderPromise, followerPromise]);
+
+        expect(downloadVideo).toHaveBeenCalledTimes(1);
+        expect(createTwitterVideoCanvas).toHaveBeenCalledTimes(1);
+        expect(bakeImageAsFilterIntoVideo).toHaveBeenCalledTimes(1);
+        expect(followerProgress.update).toHaveBeenCalledWith('Waiting for the existing Twitter/X video render...');
+        expect(sendVideoReply).toHaveBeenCalledTimes(2);
+        expect(sendVideoReply).toHaveBeenCalledWith(
+            leaderMessage,
+            '/tempdata/video-file/video-file-output.mp4',
+            'https://x.com/test/status/123456789012345',
+            { main: 'note', qt: undefined },
+        );
+        expect(sendVideoReply).toHaveBeenCalledWith(
+            followerMessage,
+            '/tempdata/video-file/video-file-output.mp4',
+            'https://twitter.com/test/status/123456789012345',
+            { main: 'note', qt: undefined },
+        );
+        expect(cleanup).toHaveBeenCalledTimes(1);
+        expect(cleanup).toHaveBeenCalledWith([], ['/tempdata/video-file']);
+    });
+});

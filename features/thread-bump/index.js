@@ -3,7 +3,7 @@
 const { startThreadBumpScheduler } = require('./scheduler');
 
 function initializeThreadBumpFeature(client) {
-    startThreadBumpScheduler(client);
+    return startThreadBumpScheduler(client);
 }
 
 module.exports = { initializeThreadBumpFeature };

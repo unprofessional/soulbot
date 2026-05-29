@@ -1,0 +1,47 @@
+{
+  "allSameType": true,
+  "article": null,
+  "combinedMediaUrl": null,
+  "communityNote": null,
+  "conversationID": "1486771164475232260",
+  "date": "Thu Jan 27 18:40:43 +0000 2022",
+  "date_epoch": 1643308843,
+  "fetched_on": 1775766263,
+  "hasMedia": true,
+  "hashtags": [],
+  "lang": "zxx",
+  "likes": 37,
+  "mediaURLs": [
+    "https://video.twimg.com/ext_tw_video/1486771138030190596/pu/vid/940x534/xK7yRU3Nrmk09DJS.mp4"
+  ],
+  "media_extended": [
+    {
+      "altText": null,
+      "duration_millis": 15210,
+      "id_str": "1486771138030190596",
+      "size": {
+        "height": 534,
+        "width": 940
+      },
+      "thumbnail_url": "https://pbs.twimg.com/ext_tw_video_thumb/1486771138030190596/pu/img/KfCbxQXU0lwDTx4m.jpg",
+      "type": "video",
+      "url": "https://video.twimg.com/ext_tw_video/1486771138030190596/pu/vid/940x534/xK7yRU3Nrmk09DJS.mp4"
+    }
+  ],
+  "pollData": null,
+  "possibly_sensitive": false,
+  "qrt": null,
+  "qrtURL": null,
+  "replies": 1,
+  "replyingTo": null,
+  "replyingToID": null,
+  "retweet": null,
+  "retweetURL": null,
+  "retweets": 14,
+  "text": "https://t.co/mYw3aw5bGS",
+  "tweetID": "1486771164475232260",
+  "tweetURL": "https://twitter.com/unpromadman/status/1486771164475232260",
+  "user_name": "mads",
+  "user_profile_image_url": "https://pbs.twimg.com/profile_images/1296946615639592960/7_GWeMMC_normal.jpg",
+  "user_screen_name": "unpromadman"
+}

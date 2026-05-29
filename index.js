@@ -1,49 +1,121 @@
+// index.js
 const { Events, ShardEvents, WebSocketShardEvents } = require('discord.js');
 const { client } = require('./initial_client.js');
-const { initializeDataStore } = require('./initial_store.js');
 const { initializeListeners } = require('./message_listeners/core.js');
 const { initializeCommands } = require('./initial_commands.js');
 const { initializeGuildMemberUpdate } = require('./events/guild_member_update.js');
-const { initializeGuildMemberAdd } = require('./events/guild_member_add.js');
 const { initializeGuildMemberRemove } = require('./events/guild_member_remove.js');
-const { testPgConnection, initializeDB } = require('./store/db/db.js');
+const { closeDB, testPgConnection, initializeDB } = require('./store/db/db.js');
 const { testChromaConnection } = require('./features/ollama/embed.js');
+const { registerFonts } = require('./features/twitter-post/canvas/fonts.js');
+const { initializeGuildMemberAdd } = require('./events/guild_member_add.js');
+const { createHealthServer } = require('./app/health_server.js');
+const { announceBotOnline, announceBotRestart } = require('./app/bot_announcements.js');
+const {
+    isDraining,
+    markReady,
+    registerCleanup,
+    registerDrainHandler,
+    shutdown,
+} = require('./app/lifecycle.js');
+const PromiseQueue = require('./lib/promise_queue.js');
+const { onIdle: onMediaWorkIdle } = require('./app/media_work_registry.js');
+const {
+    drainDelayMs,
+    healthPort,
+    leaderLockId,
+    leaderLockRetryMs,
+    shutdownTimeoutMs,
+} = require('./config/env_config.js');
+const { createLeaderLock } = require('./store/db/leader_lock.js');
+
 require('dotenv').config();
 
 const token = process.env.DISCORD_BOT_TOKEN;
-const path = process.env.STORE_PATH;
-const guildFile = process.env.GUILD_STORE_FILE;
-const channelFile = process.env.CHANNEL_STORE_FILE;
-const memberFile = process.env.MEMBER_STORE_FILE;
-const featureFile = process.env.FEATURE_STORE_FILE;
 const runMode = process.env.RUN_MODE || 'development';
 
-// const clientId = process.env.DISCORD_CLIENT_ID;
-// console.log('>>>>> THE_INDEX > token: ', token);
-// console.log('>>>>> THE_INDEX > clientId: ', clientId);
-
 const initializeApp = async () => {
-    // CI/Build/Function test
+    // CI / build-time sanity check
     if (runMode === 'test') {
-        console.log("Syntax check passed.");
+        console.log('Syntax check passed.');
         process.exit(0);
     }
 
-    [
-        guildFile,
-        channelFile,
-        memberFile,
-        featureFile,
-    ].forEach((file) => {
-        console.log('>>>>> file: ', file);
-        const filePath = `${path}/${file}`;
-        console.log('>>>>> filePath: ', filePath);
-        initializeDataStore(filePath);
+    /**
+     * Font bootstrap (process-global)
+     * Must happen before ANY canvas is created.
+     */
+    try {
+        const { registered, skipped } = registerFonts();
+        console.log(
+            `----- Fonts: registered=${registered.length}, skipped=${skipped.length}`
+        );
+    } catch (error) {
+        console.error('----- Fonts: failed to register fonts:', error);
+        process.exit(1);
+    }
+
+    const healthServer = createHealthServer({
+        port: healthPort,
+        drainDelayMs,
+    });
+    const leaderLock = createLeaderLock({
+        lockId: leaderLockId,
+        retryDelayMs: leaderLockRetryMs,
     });
 
-    // Client
-    client.on(Events.ClientReady, () => {
+    await healthServer.start();
+
+    registerDrainHandler('announce bot restart', async () => {
+        const result = await announceBotRestart(client);
+        console.log(
+            `[bot-announcements] Restart announcement summary: sent=${result.sent}, skipped=${result.skipped}, failed=${result.failed}`
+        );
+    });
+
+    registerCleanup('pause async queues', async () => {
+        PromiseQueue.pauseAll();
+        await PromiseQueue.onIdleAll();
+    });
+
+    registerCleanup('wait for twitter/media work', async () => {
+        await onMediaWorkIdle();
+    });
+
+    registerCleanup('close health server', async () => {
+        await healthServer.stop();
+    });
+
+    registerCleanup('disconnect Discord client', async () => {
+        if (client.isReady()) {
+            await client.destroy();
+            console.log('----- Events: Discord client destroyed');
+        }
+    });
+
+    registerCleanup('close Postgres pool', async () => {
+        await closeDB();
+    });
+
+    registerCleanup('release leader lock', async () => {
+        await leaderLock.close();
+    });
+
+    /**
+     * Client lifecycle
+     */
+    client.on(Events.ClientReady, async () => {
         console.log(`----- Events: Logged in as ${client.user.tag}`);
+        markReady();
+
+        try {
+            const result = await announceBotOnline(client);
+            console.log(
+                `[bot-announcements] Online announcement summary: sent=${result.sent}, skipped=${result.skipped}, failed=${result.failed}`
+            );
+        } catch (error) {
+            console.error('[bot-announcements] Online announcement failed:', error);
+        }
     });
     client.on(Events.Error, (error) => {
         console.error('----- Events: Error:', error);
@@ -52,7 +124,9 @@ const initializeApp = async () => {
         console.error('----- Events: Warn:', warning);
     });
 
-    // ShardEvents
+    /**
+     * Shard events
+     */
     client.on(ShardEvents.Disconnect, () => {
         console.log('----- ShardEvents: Disconnect');
     });
@@ -75,7 +149,9 @@ const initializeApp = async () => {
         console.error('----- ShardEvents: Spawn');
     });
 
-    // Websockets
+    /**
+     * WebSocket events
+     */
     client.on(WebSocketShardEvents.Ready, () => {
         console.log('----- WebSocketShardEvents: Ready');
     });
@@ -95,25 +171,67 @@ const initializeApp = async () => {
         console.error('----- WebSocketShardEvents: InvalidSession');
     });
 
+    /**
+     * Feature initialization
+     */
     initializeListeners(client);
     initializeCommands(client);
     initializeGuildMemberUpdate(client);
     initializeGuildMemberAdd(client);
     initializeGuildMemberRemove(client);
 
+    /**
+     * Persistence / external services
+     */
     await testPgConnection();
+
+    await initializeDB();
+
     try {
         const result = await testChromaConnection();
         console.log(result);
     } catch (error) {
         console.error('ChromaDB connection test failed:', error.message);
-        // process.exit(1); // Exit if ChromaDB is not reachable
+        // intentionally non-fatal
     }
-    await initializeDB();
 
-    client.login(token);
+    await leaderLock.acquire({
+        shouldStop: () => isDraining(),
+    });
+
+    /**
+     * Login last — nothing should create canvases before this point
+     */
+    await client.login(token);
 };
+
+async function handleShutdown(signal) {
+    const timeout = setTimeout(() => {
+        console.error(`[Lifecycle] Forced shutdown after ${shutdownTimeoutMs}ms`);
+        process.exit(1);
+    }, shutdownTimeoutMs);
+    timeout.unref?.();
+
+    try {
+        const exitCode = await shutdown({ signal, exitCode: 0 });
+        clearTimeout(timeout);
+        process.exit(exitCode);
+    } catch (error) {
+        clearTimeout(timeout);
+        console.error('[Lifecycle] Shutdown failed:', error);
+        process.exit(1);
+    }
+}
+
+process.on('SIGTERM', () => {
+    void handleShutdown('SIGTERM');
+});
+
+process.on('SIGINT', () => {
+    void handleShutdown('SIGINT');
+});
 
 initializeApp().catch((error) => {
     console.error('Error during initialization:', error);
+    process.exit(1);
 });

@@ -1,0 +1,46 @@
+{
+  "allSameType": true,
+  "article": null,
+  "combinedMediaUrl": null,
+  "communityNote": null,
+  "conversationID": "2020282484316090588",
+  "date": "Sat Feb 07 23:44:13 +0000 2026",
+  "date_epoch": 1770507853,
+  "fetched_on": 1775766753,
+  "hasMedia": true,
+  "hashtags": [],
+  "lang": "zxx",
+  "likes": 0,
+  "mediaURLs": [
+    "https://pbs.twimg.com/media/HAl8NMKacAUhar2.jpg"
+  ],
+  "media_extended": [
+    {
+      "altText": null,
+      "id_str": "2020282473897422853",
+      "size": {
+        "height": 853,
+        "width": 1170
+      },
+      "thumbnail_url": "https://pbs.twimg.com/media/HAl8NMKacAUhar2.jpg",
+      "type": "image",
+      "url": "https://pbs.twimg.com/media/HAl8NMKacAUhar2.jpg"
+    }
+  ],
+  "pollData": null,
+  "possibly_sensitive": false,
+  "qrt": null,
+  "qrtURL": null,
+  "replies": 0,
+  "replyingTo": null,
+  "replyingToID": null,
+  "retweet": null,
+  "retweetURL": null,
+  "retweets": 0,
+  "text": "https://t.co/2Ujh3duEZo",
+  "tweetID": "2020282484316090588",
+  "tweetURL": "https://twitter.com/unpromadman/status/2020282484316090588",
+  "user_name": "mads",
+  "user_profile_image_url": "https://pbs.twimg.com/profile_images/1296946615639592960/7_GWeMMC_normal.jpg",
+  "user_screen_name": "unpromadman"
+}

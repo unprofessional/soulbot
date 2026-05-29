@@ -1,75 +1,43 @@
+/* eslint-disable no-empty */
 // features/twitter-core/utils.js
 
 const crypto = require("crypto");
 
-const formatTwitterDate = (twitterDate) => {
+const DATE_DEBUG = process.env.DEBUG_DATES === '1';
+function dateLog(...args) { if (DATE_DEBUG) console.debug('[date]', ...args); }
 
-    // console.log('>>>>> formatTwitterDate > twitterDate: ', twitterDate);
+/**
+ * Safe, locale-aware formatter.
+ * You can pass:
+ *  - The full tweet/meta object (recommended)
+ *  - A Date
+ *  - An ISO/epoch value
+ * Returns '' if not parseable.
+ * @param {*} input
+ * @param {{locale?:string,timeZone?:string,label?:string}} [opts]
+ */
+function formatTwitterDate(input, opts = {}) {
+    const { locale = 'en-US', timeZone, label = 'format' } = opts;
+    const dt = coerceTweetDate(input, label);
+    if (!dt) { dateLog('format: no date', { label }); return ''; }
 
-    const date = new Date(twitterDate);
-
-    // console.log('>>>>> formatTwitterDate > date: ', date);
-
-    // Define the Eastern Time Zone
-    const timeZone = 'America/New_York';
-
-    // Format the time (e.g., "12:50 PM") with time zone information
-    const twitterTimeFormatter = new Intl.DateTimeFormat('en-US', {
-        hour: 'numeric',
-        minute: 'numeric',
-        hour12: true,
-        timeZone,
-        timeZoneName: 'short',
-    });
-    const formattedTimeWithZone = twitterTimeFormatter.format(date);
-
-    // console.log('>>>>> formatTwitterDate > formattedTimeWithZone: ', formattedTimeWithZone);
-
-    // Extract the time and the time zone abbreviation (e.g., "12:50 PM EST" or "12:50 PM EDT")
-    const [formattedTime, meridiem, timeZoneAbbreviation] = formattedTimeWithZone.split(' ');
-
-    // console.log('>>>>> formatTwitterDate > formattedTime: ', formattedTime);
-    // console.log('>>>>> formatTwitterDate > meridiem: ', meridiem);
-    // console.log('>>>>> formatTwitterDate > timeZoneAbbreviation: ', timeZoneAbbreviation);
-
-    // Map common abbreviations to user-friendly names
-    const timeZoneNames = {
-        EST: 'Eastern',
-        EDT: 'Eastern',
-    };
-
-    const friendlyTimeZoneName = timeZoneNames[timeZoneAbbreviation] || timeZoneAbbreviation;
-
-    // console.log('>>>>> formatTwitterDate > friendlyTimeZoneName: ', friendlyTimeZoneName);
-
-    // Format the date (e.g., "Nov 4, 2024") in Eastern Time
-    const dateFormatter = new Intl.DateTimeFormat('en-US', {
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric',
-        timeZone,
-    });
-    const formattedDate = dateFormatter.format(date);
-
-    // Combine the formatted time, friendly time zone name, and date
-    return `${formattedTime} ${meridiem} ${friendlyTimeZoneName} · ${formattedDate}`;
-};
-
-// Find number of associated media
-const filterMediaUrls = (metadata, extensions) => {
-    // console.log('!!! filterMediaUrls > metadata.mediaUrls: ', metadata.mediaUrls);
-    return metadata.mediaUrls.filter((mediaUrl) => {
-        // console.log('!!! filterMediaUrls > mediaUrl: ', mediaUrl);
-        const mediaUrlParts = mediaUrl.split('.');
-        // console.log('!!! filterMediaUrls > mediaUrlParts: ', mediaUrlParts);
-        const fileExtensionWithQueryParams = mediaUrlParts[mediaUrlParts.length - 1];
-        // console.log('!!! filterMediaUrls > fileExtensionWithQueryParams: ', fileExtensionWithQueryParams);
-        const fileExtension = fileExtensionWithQueryParams.split('?')[0];
-        // console.log('!!! filterMediaUrls > fileExtension: ', fileExtension);
-        // console.log('!!! ================================================');
-        return extensions.includes(fileExtension);
-    });
-};
+    try {
+        const s = dt.toLocaleString(locale, {
+            timeZone,
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric',
+            hour: 'numeric',
+            minute: '2-digit',
+        });
+        dateLog('format: OK', { label, out: s });
+        return s;
+    } catch (e) {
+        const iso = dt.toISOString();
+        dateLog('format: toLocaleString threw, fallback ISO', { label, iso, err: String(e) });
+        return iso;
+    }
+}
 
 function getExtensionFromMediaUrl(mediaUrl) {
     if (typeof mediaUrl !== 'string') {
@@ -122,6 +90,284 @@ const randomNameGenerator = () => {
     return `${adjective}-${noun}-${uniqueId}`;
 };
 
+/**
+ * Build a Date from any tweet-ish input or return null if unknown.
+ * Accepts:
+ *  - A Date
+ *  - ISO string or epoch (seconds/ms)
+ *  - A tweet/meta object with: date, date_epoch, created_timestamp, tweet.created_at, created_at
+ */
+function coerceTweetDate(input, label = 'input') {
+    if (!input) { dateLog('coerceTweetDate: empty', { label }); return null; }
+
+    if (input instanceof Date) {
+        dateLog('coerceTweetDate: got Date', { label, iso: input.toISOString() });
+        return Number.isNaN(input.getTime()) ? null : input;
+    }
+
+    if (typeof input === 'number' || typeof input === 'string') {
+        const ms = coerceEpochOrIsoToMs(input, `${label}:primitive`);
+        const dt = ms == null ? null : new Date(ms);
+        dateLog('coerceTweetDate: primitive →', { ms, iso: dt && !Number.isNaN(dt.getTime()) ? dt.toISOString() : null });
+        return dt && !Number.isNaN(dt.getTime()) ? dt : null;
+    }
+
+    // Assume object with possible fields
+    const candidates = [
+        { k: 'date',               v: input.date },
+        { k: 'date_epoch',         v: input.date_epoch },
+        { k: 'created_timestamp',  v: input.created_timestamp },
+        { k: 'tweet.created_at',   v: input.tweet?.created_at },
+        { k: 'created_at',         v: input.created_at },
+    ];
+
+    dateLog('coerceTweetDate: candidates', Object.fromEntries(candidates.map(c => [c.k, c.v])));
+    for (const c of candidates) {
+        const ms = coerceEpochOrIsoToMs(c.v, `${label}:${c.k}`);
+        if (ms != null) {
+            const dt = new Date(ms);
+            if (!Number.isNaN(dt.getTime())) {
+                dateLog('coerceTweetDate: chose', { key: c.k, ms, iso: dt.toISOString() });
+                return dt;
+            }
+        }
+    }
+
+    dateLog('coerceTweetDate: none matched', { label });
+    return null;
+}
+
+/**
+ * Convert ISO string or epoch (seconds or ms) to milliseconds since epoch, or null.
+ * @param {string|number|null|undefined} v
+ * @param {string} [label] - for debug logs
+ */
+function coerceEpochOrIsoToMs(v, label = 'value') {
+    if (v == null) {
+        dateLog('coerce: null/undefined', { label });
+        return null;
+    }
+
+    // Numeric or numeric-like string?
+    const n = Number(v);
+    if (!Number.isNaN(n) && Number.isFinite(n)) {
+        const ms = n < 1e12 ? Math.trunc(n) * 1000 : Math.trunc(n);
+        dateLog('coerce: numeric', { label, input: String(v).slice(0, 40), seconds: n < 1e12, ms });
+        return ms;
+    }
+
+    // Non-numeric string → try Date.parse
+    if (typeof v === 'string') {
+        const t = Date.parse(v);
+        dateLog('coerce: string', { label, input: v.slice(0, 80), parsed: t, ok: !Number.isNaN(t) });
+        return Number.isNaN(t) ? null : t;
+    }
+
+    dateLog('coerce: unsupported type', { label, type: typeof v });
+    return null;
+}
+
+/* -------------------------------------------------------------------------------------------------
+ * OPTIONAL: media helpers you may already have; shown here for completeness.
+ * If you already added collectMedia/filterMediaUrls previously, keep those implementations.
+ ------------------------------------------------------------------------------------------------- */
+
+/**
+ * Normalize FX/VX payload media into a single array.
+ * Handles images, videos, and card/OG "article" images.
+ *
+ * Output shape (per item):
+ * {
+ *   type: 'image' | 'video',
+ *   url: string,                 // media URL
+ *   thumbnail_url?: string,      // preview/thumbnail (video & sometimes images)
+ *   size?: { width:number, height:number },
+ *   width?: number,
+ *   height?: number,
+ * }
+ */
+function collectMedia(payload) {
+    if (!payload || typeof payload !== 'object') return [];
+
+    const out = [];
+    const seen = new Set();
+
+    const push = (item) => {
+        if (!item || !item.url) return;
+        const key = `${item.type}:${item.url}`;
+        if (seen.has(key)) return;
+        seen.add(key);
+        out.push(item);
+    };
+
+    // --- 1) Preferred: media_extended from FX/VX
+    if (Array.isArray(payload.media_extended)) {
+        for (const m of payload.media_extended) {
+            const type = (m?.type || '').toLowerCase();
+            const size = (m?.size && typeof m.size === 'object') ? {
+                width: Number(m.size.width) || undefined,
+                height: Number(m.size.height) || undefined,
+            } : undefined;
+
+            if (type === 'image') {
+                push({
+                    type: 'image',
+                    source: m.source || undefined,
+                    url: m.url || m.thumbnail_url || null,
+                    thumbnail_url: m.thumbnail_url || m.url || null,
+                    size,
+                    width: size?.width,
+                    height: size?.height,
+                });
+            } else if (type === 'video' || type === 'gif') {
+                push({
+                    type: 'video',
+                    url: m.url || m.video_url || null,
+                    thumbnail_url: m.thumbnail_url || null,
+                    size,
+                    width: size?.width,
+                    height: size?.height,
+                });
+            }
+        }
+    }
+
+    // --- 2) mediaURLs fallback (heuristic by extension)
+    if (Array.isArray(payload.mediaURLs)) {
+        for (const u of payload.mediaURLs) {
+            if (typeof u !== 'string') continue;
+            const lower = u.toLowerCase();
+            const isImg = /\.(jpe?g|png|webp)(\?|#|$)/i.test(lower);
+            const isVid = /\.(mp4|mov|m4v)(\?|#|$)/i.test(lower);
+
+            if (isImg) {
+                push({
+                    type: 'image',
+                    url: u,
+                    thumbnail_url: u,
+                    // Unknown size; let renderer/load compute/crop
+                    size: undefined,
+                });
+            } else if (isVid) {
+                push({
+                    type: 'video',
+                    url: u,
+                    thumbnail_url: null,
+                    size: undefined,
+                });
+            }
+        }
+    }
+
+    // --- 3) Link-preview / card image (FX/VX exposes as `article`)
+    // Many “no media” tweets still have a large preview image here.
+    // Guess a common OG size to reserve space (1200x630).
+    if (payload.article && typeof payload.article === 'object') {
+        const img = payload.article.image || payload.article.image_url || null;
+        if (img && typeof img === 'string') {
+            push({
+                type: 'image',
+                source: 'article',
+                url: img,
+                thumbnail_url: img,
+                size: { width: 1200, height: 630 },
+                width: 1200,
+                height: 630,
+            });
+        }
+    }
+
+    // --- 4) Combined multi-image render (rare but supported by VX)
+    // Treat as a single static image.
+    if (payload.combinedMediaUrl && typeof payload.combinedMediaUrl === 'string') {
+        push({
+            type: 'image',
+            url: payload.combinedMediaUrl,
+            thumbnail_url: payload.combinedMediaUrl,
+            // no reliable size; provide a square-ish fallback
+            size: { width: 1200, height: 1200 },
+            width: 1200,
+            height: 1200,
+        });
+    }
+
+    return out;
+}
+
+/**
+ * Back-compat filter. Accepts either:
+ *  - array of types: ['image','video']
+ *  - array of extensions: ['jpg','jpeg','png','mp4']  (heuristic by extension length)
+ *  - object: { types: [...] }
+ */
+function filterMediaUrls(meta, typesOrExts = ['image', 'video']) {
+    const all = collectMedia(meta);
+
+    // If it looks like an extensions array (e.g., ['jpg','png','mp4'])
+    if (Array.isArray(typesOrExts) && typesOrExts.length && typeof typesOrExts[0] === 'string' && typesOrExts[0].length <= 5) {
+        const exts = new Set(typesOrExts.map(s => s.toLowerCase()));
+        return all.filter(m => {
+            const u = m.url || '';
+            const match = u.match(/\.([a-z0-9]{2,5})(?:[?#]|$)/i);
+            const ext = match ? match[1].toLowerCase() : '';
+            return exts.has(ext);
+        });
+    }
+
+    // Otherwise treat as types filter
+    const types = Array.isArray(typesOrExts) ? typesOrExts : (typesOrExts?.types || ['image', 'video']);
+    const typeSet = new Set(types);
+    return all.filter(m => typeSet.has(m.type));
+}
+
+
+const TZ_DEFAULT = process.env.TWITTER_TS_TZ || 'America/New_York';
+const TZ_LABEL_DEFAULT = process.env.TWITTER_TS_LABEL || 'Eastern';
+const DOT = '·';
+
+/**
+ * Format a tweet-ish object into:
+ *   "3:58 PM Eastern · Sep 10, 2025"
+ *
+ * Uses env overrides:
+ *   TWITTER_TS_TZ    (default: America/New_York)
+ *   TWITTER_TS_LABEL (default: Eastern)
+ */
+function formatTwitterFooter(input, opts = {}) {
+    const {
+        locale = 'en-US',
+        timeZone = TZ_DEFAULT,
+        tzLabel = TZ_LABEL_DEFAULT,
+        label = 'footer',
+    } = opts;
+
+    const dt = coerceTweetDate(input, label);
+    if (!dt) return '';
+
+    let time = '';
+    let date = '';
+    try {
+        time = dt.toLocaleString(locale, {
+            timeZone,
+            hour: 'numeric',
+            minute: '2-digit',
+        });
+    } catch {}
+
+    try {
+        date = dt.toLocaleString(locale, {
+            timeZone,
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric',
+        });
+    } catch {}
+
+    if (!time && !date) return '';
+    if (time && date) return `${time} ${tzLabel} ${DOT} ${date}`;
+    return time || date;
+}
+
 module.exports = {
     formatTwitterDate,
     filterMediaUrls,
@@ -129,5 +375,6 @@ module.exports = {
     removeTCOLink,
     stripQueryParams,
     randomNameGenerator,
+    collectMedia,
+    formatTwitterFooter,
 };
-

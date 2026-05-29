@@ -4,19 +4,34 @@ const { createTwitterCanvas } = require('../twitter-post/twitter_canvas.js');
 const { sendWebhookProxyMsg } = require('./webhook_utils.js');
 const { randomNameGenerator } = require('./utils.js');
 
-async function handleImagePost({ metadataJson, message, originalLink }) {
+async function handleImagePost({
+    metadataJson,
+    message,
+    originalLink,
+    processingRunId,
+    mediaJob,
+}) {
     console.log('>>>>> handleImagePost > Not a video');
+
+    if (!mediaJob) {
+        console.warn('>>> handleImagePost > no mediaJob tracker supplied');
+    }
 
     const buffer = await createTwitterCanvas(metadataJson);
     await message.suppressEmbeds(true);
 
     const files = [{
         attachment: buffer,
-        name: `${randomNameGenerator()}.png`,
+        name: `${processingRunId || randomNameGenerator()}.png`,
     }];
 
+    const communityNotes = {
+        main: metadataJson.communityNote,
+        qt: metadataJson.qtMetadata?.communityNote,
+    };
+
     try {
-        await sendWebhookProxyMsg(message, 'Here’s the Twitter canvas:', files, metadataJson.communityNote, originalLink);
+        await sendWebhookProxyMsg(message, 'Here’s the Twitter canvas:', files, communityNotes, originalLink);
     } catch (err) {
         console.warn('>>> handleImagePost > WEBHOOK FAILED!');
         await sendWebhookProxyMsg(message, `File(s) too large to attach! err: ${err}`, undefined, undefined, originalLink);

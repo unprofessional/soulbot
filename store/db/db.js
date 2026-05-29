@@ -1,17 +1,5 @@
-const { Pool } = require('pg');
-
-const {
-    pgHost, pgPort, pgUser, pgPass, pgDb,
-} = require('../../config/env_config.js');
 const { getSql } = require('./sql-loader.js');
-
-const pool = new Pool({
-    user: pgUser,
-    host: pgHost,
-    database: pgDb,
-    password: pgPass,
-    port: pgPort,
-});
+const { pool } = require('./pool.js');
 
 const testPgConnection = async () => {
     try {
@@ -35,7 +23,13 @@ const initializeDB = async () => {
     }
 };
 
+const closeDB = async () => {
+    await pool.end();
+    console.log('PG Database pool closed.');
+};
+
 module.exports = {
+    closeDB,
     testPgConnection,
     initializeDB,
 };
