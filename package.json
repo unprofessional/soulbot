@@ -21,7 +21,6 @@
   },
   "author": "unprofessionalmadman@gmail.com",
   "dependencies": {
-    "@langchain/core": "^0.3.26",
     "canvas": "^3.2.2",
     "cheerio": "^1.0.0",
     "chromadb": "^1.10.0",
@@ -29,7 +28,6 @@
     "dotenv": "^16.3.1",
     "fluent-ffmpeg": "^2.1.2",
     "javascript-time-ago": "^2.5.9",
-    "langchain": "^0.3.8",
     "pg": "^8.11.3",
     "unfurl.js": "^6.3.2",
     "winston": "^3.17.0"
