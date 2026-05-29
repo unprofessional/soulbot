@@ -2,6 +2,7 @@ const {
     buildDeletedSummaryPrompt,
     buildLlmMemoryPrompt,
     buildLlmReplyPrompt,
+    buildSingleMessageSummaryPrompt,
     buildSummaryPrompt,
     buildSummaryIntelligence,
     formatSummaryMessages,
@@ -173,6 +174,20 @@ describe('summary prompt formatting', () => {
         expect(prompt).toContain('[deleted] 222: racial slur here');
         expect(prompt).toContain('contained the N-word');
         expect(prompt).toContain('Do not reproduce disallowed slurs verbatim');
+    });
+
+    test('buildSingleMessageSummaryPrompt is scoped to one post and forbids echoing it', () => {
+        const prompt = buildSingleMessageSummaryPrompt({
+            user_id: '111',
+            content: 'A very long update about settling in Utah, getting documents, visiting Boot Barn, and thanking the military.',
+        }, 'qwen3:14b');
+
+        expect(prompt).toContain('You are summarizing one Discord post.');
+        expect(prompt).toContain('Summarize only the single post below.');
+        expect(prompt).toContain('Do not quote or restate the whole post.');
+        expect(prompt).toContain('PostText:');
+        expect(prompt).toContain('111');
+        expect(prompt).toContain('/no_think');
     });
 
     test('buildSummaryPrompt adds /no_think for Qwen but not Gemma 4', () => {

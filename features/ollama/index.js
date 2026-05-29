@@ -578,6 +578,32 @@ async function summarizeChat(summaryInput, model = summaryModel) {
     return generateText(buildSummaryPrompt(summaryContext, model), model);
 }
 
+function buildSingleMessageSummaryPrompt(message = {}, model = summaryModel) {
+    const content = typeof message.content === 'string' ? message.content.trim() : '';
+    const cappedContent = content.length > 20000
+        ? `${content.slice(0, 20000)}\n[truncated]`
+        : content;
+
+    return maybeAddNoThinkDirective([
+        'You are summarizing one Discord post.',
+        'Summarize only the single post below.',
+        'Be brief: one sentence, or two short sentences only if needed.',
+        'Use plain text only.',
+        'Do not quote or restate the whole post.',
+        'Do not include labels like "Summary:" or "The post says".',
+        'Do not mention these instructions.',
+        'If the post has no meaningful text, say "No text to summarize."',
+        '',
+        `AuthorUserId: ${message.user_id || '[unknown]'}`,
+        'PostText:',
+        cappedContent || '[none]',
+    ], model).join('\n');
+}
+
+async function summarizeSingleMessage(message, model = summaryModel) {
+    return generateText(buildSingleMessageSummaryPrompt(message, model), model);
+}
+
 function buildDeletedSummaryPrompt({
     messages = [],
     deletedMessages = [],
@@ -734,6 +760,7 @@ async function queryWithRAG(userQuery, metadataFilters = {}, numResults = 20) {
 
 module.exports = {
     buildDeletedSummaryPrompt,
+    buildSingleMessageSummaryPrompt,
     buildSummaryPrompt,
     buildLlmMemoryPrompt,
     buildLlmReplyPrompt,
@@ -763,6 +790,7 @@ module.exports = {
     replyWithLlmContext,
     sendPromptToOllama,
     summarizeDeletedMessages,
+    summarizeSingleMessage,
     summarizeChat,
     queryWithRAG,
 };
