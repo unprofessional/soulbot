@@ -76,6 +76,32 @@ describe('fxvx community note normalization', () => {
         expect(normalized.translatedText).toBe('hello world');
     });
 
+    test('normalizeFromVX preserves poll metadata', () => {
+        const normalized = normalizeFromVX({
+            tweetID: '2070308040163688556',
+            text: 'Choose wisely:',
+            user_name: 'Poll User',
+            user_screen_name: 'polluser',
+            user_profile_image_url: 'https://example.com/pfp.jpg',
+            media_extended: [],
+            pollData: {
+                options: [
+                    { name: 'First choice', percent: 59.56, votes: 511 },
+                    { name: 'Second choice', percent: 28.09, votes: 241 },
+                ],
+            },
+        });
+
+        expect(normalized.pollData).toEqual({
+            options: [
+                { name: 'First choice', percent: 59.56, votes: 511 },
+                { name: 'Second choice', percent: 28.09, votes: 241 },
+            ],
+            totalVotes: 752,
+            endDate: null,
+        });
+    });
+
     test('normalizeFromVX keeps null translations null', () => {
         const normalized = normalizeFromVX({
             tweetID: '123',

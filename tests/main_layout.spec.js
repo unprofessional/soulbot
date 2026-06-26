@@ -28,6 +28,46 @@ describe('measureMainLayout no-description spacing', () => {
         expect(result.textHeight).toBe(30);
         expect(result.mediaY).toBe(148);
     });
+
+    test('reserves poll space between post text and footer', () => {
+        const ctx = {
+            font: '',
+            measureText: jest.fn(text => ({ width: String(text || '').length * 9 })),
+        };
+
+        const withoutPoll = measureMainLayout(ctx, {
+            metadata: { description: 'Choose wisely:' },
+            images: [],
+            hasImgs: false,
+            hasVids: false,
+            maxWidth: 600,
+            mediaMaxHeight: 600,
+        });
+
+        const withPoll = measureMainLayout(ctx, {
+            metadata: {
+                description: 'Choose wisely:',
+                pollData: {
+                    options: [
+                        { name: 'First choice', percent: 59.56, votes: 511 },
+                        { name: 'Second choice', percent: 28.09, votes: 241 },
+                        { name: 'Third choice', percent: 12.35, votes: 106 },
+                    ],
+                },
+            },
+            images: [],
+            hasImgs: false,
+            hasVids: false,
+            maxWidth: 600,
+            mediaMaxHeight: 600,
+        });
+
+        expect(withPoll.hasPoll).toBe(true);
+        expect(withPoll.pollHeight).toBeGreaterThan(0);
+        expect(withPoll.pollY).toBeGreaterThan(withoutPoll.descBottomY);
+        expect(withPoll.footerBaselineY).toBeGreaterThan(withoutPoll.footerBaselineY);
+        expect(withPoll.bodyBottomY).toBeGreaterThan(withoutPoll.bodyBottomY);
+    });
 });
 
 describe('getMainRenderMode', () => {
