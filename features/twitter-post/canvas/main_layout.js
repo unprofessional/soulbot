@@ -1,6 +1,7 @@
 // features/twitter-post/canvas/main_layout.js
 
 const { measureGalleryHeight } = require('../image_gallery_rendering.js');
+const { isRenderablePoll, measurePollHeight } = require('./poll_canvas.js');
 const { condenseTranslatedDisplayLines, getWrappedText, trimRenderedLinesToMaxChars } = require('../../twitter-core/canvas_utils.js');
 const {
     getMainBaseY,
@@ -120,9 +121,26 @@ function measureMainLayout(ctx, {
         ? (mediaY + galleryH + GAP_MEDIA_TO_FOOTER + FOOTER_FONT_SIZE)
         : (descBottomY + 40);
 
-    const bodyBottomY = willDrawGallery
-        ? (mediaY + galleryH + GAP_MEDIA_TO_FOOTER + FOOTER_LINE_H)
-        : (footerBaselineY + FOOTER_LINE_H);
+    const pollData = metadata?.pollData;
+    const hasPoll = isRenderablePoll(pollData);
+    const pollWidth = Math.min(mainWrapWidth, layoutMode === 'desktop' ? 640 : mainWrapWidth);
+    const pollX = descX;
+    const pollY = willDrawGallery
+        ? (mediaY + galleryH + GAP_MEDIA_TO_FOOTER)
+        : (descBottomY + 22);
+    const pollHeight = hasPoll
+        ? measurePollHeight(ctx, pollData, pollWidth)
+        : 0;
+
+    const resolvedFooterBaselineY = hasPoll
+        ? (pollY + pollHeight + FOOTER_FONT_SIZE)
+        : footerBaselineY;
+
+    const bodyBottomY = hasPoll
+        ? (resolvedFooterBaselineY + FOOTER_LINE_H)
+        : (willDrawGallery
+            ? (mediaY + galleryH + GAP_MEDIA_TO_FOOTER + FOOTER_LINE_H)
+            : (footerBaselineY + FOOTER_LINE_H));
 
     /**
      * 🔍 Final layout debug
@@ -135,8 +153,11 @@ function measureMainLayout(ctx, {
             descBottomY,
             mediaY,
             galleryH,
-            footerBaselineY,
+            footerBaselineY: resolvedFooterBaselineY,
             bodyBottomY,
+            hasPoll,
+            pollY,
+            pollHeight,
             font: ctx.font,
         });
     }
@@ -158,8 +179,16 @@ function measureMainLayout(ctx, {
         mediaY,
         galleryH,
 
+        // poll
+        hasPoll,
+        pollData,
+        pollX,
+        pollY,
+        pollWidth,
+        pollHeight,
+
         // footer + body bottom
-        footerBaselineY,
+        footerBaselineY: resolvedFooterBaselineY,
         bodyBottomY,
     };
 }

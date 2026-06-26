@@ -154,6 +154,7 @@ function normalizeMainMetadata(metadataJson) {
 
         mediaUrls: metadataJson.mediaURLs,
         mediaExtended: media,
+        pollData: metadataJson.pollData ?? null,
         communityNote: stripTrailingTco(metadataJson.communityNote || ''),
     };
 

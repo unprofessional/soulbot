@@ -170,6 +170,52 @@ function normalizeTranslation(rawTranslation, sourceLanguage) {
     };
 }
 
+function normalizePollData(rawPoll) {
+    if (!rawPoll || typeof rawPoll !== 'object') return null;
+
+    const rawOptions = Array.isArray(rawPoll.options)
+        ? rawPoll.options
+        : Array.isArray(rawPoll.choices)
+            ? rawPoll.choices
+            : [];
+
+    const options = rawOptions
+        .map((option) => {
+            const name = firstNonEmptyString([
+                option?.name,
+                option?.label,
+                option?.text,
+                option?.choice,
+            ]);
+            if (!name) return null;
+
+            const votes = Number(option?.votes ?? option?.vote_count ?? option?.voteCount);
+            const percent = Number(option?.percent ?? option?.percentage);
+
+            return {
+                name,
+                votes: Number.isFinite(votes) ? votes : null,
+                percent: Number.isFinite(percent) ? percent : null,
+            };
+        })
+        .filter(Boolean);
+
+    if (options.length === 0) return null;
+
+    return {
+        options,
+        totalVotes: Number.isFinite(Number(rawPoll.totalVotes ?? rawPoll.total_votes ?? rawPoll.votes))
+            ? Number(rawPoll.totalVotes ?? rawPoll.total_votes ?? rawPoll.votes)
+            : options.reduce((sum, option) => sum + (Number.isFinite(option.votes) ? option.votes : 0), 0),
+        endDate: firstNonEmptyString([
+            rawPoll.endDate,
+            rawPoll.end_date,
+            rawPoll.endsAt,
+            rawPoll.ends_at,
+        ]) || null,
+    };
+}
+
 function normalizeFromVX(vx) {
     const translation = normalizeTranslation(vx.translation, vx.lang);
 
@@ -187,6 +233,7 @@ function normalizeFromVX(vx) {
         hasMedia: Boolean(vx.media_extended?.length),
         media_extended: vx.media_extended ?? [],
         article: normalizeArticle(vx.article),
+        pollData: normalizePollData(vx.pollData ?? vx.poll ?? vx.card?.poll),
         communityNote: extractCommunityNote(vx),
         qtMetadata: normalizeEmbeddedQuoteTweet(vx.qrt),
         qrtURL: vx.qrtURL ?? undefined,
@@ -235,6 +282,7 @@ function normalizeFromFX(fx) {
         hasMedia: Boolean(media.length),
         media_extended: media,
         article: normalizeArticle(t.article ?? fx.article ?? t.card),
+        pollData: normalizePollData(t.poll ?? t.pollData ?? fx.poll ?? fx.pollData ?? t.card?.poll),
         communityNote: extractCommunityNote(fx, t),
         qtMetadata: normalizeEmbeddedQuoteTweet(t.quote ?? fx.quote),
         qrtURL: t.quote?.url ?? undefined,
@@ -243,4 +291,4 @@ function normalizeFromFX(fx) {
     };
 }
 
-module.exports = { normalizeFromVX, normalizeFromFX, extractCommunityNote, normalizeEmbeddedQuoteTweet, normalizeArticle, normalizeTranslation };
+module.exports = { normalizeFromVX, normalizeFromFX, extractCommunityNote, normalizeEmbeddedQuoteTweet, normalizeArticle, normalizeTranslation, normalizePollData };

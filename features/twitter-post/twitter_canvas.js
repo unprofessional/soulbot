@@ -31,6 +31,7 @@ const {
 } = require('./canvas/metadata_normalize.js');
 const { measureMainLayout, getMainRenderMode } = require('./canvas/main_layout.js');
 const { computeQtSizing } = require('./canvas/qt_layout.js');
+const { drawPoll } = require('./canvas/poll_canvas.js');
 const { scaleDownToFitAspectRatio } = require('./scale_down.js');
 
 async function createTwitterCanvas(metadataJson, isImage) {
@@ -169,6 +170,11 @@ async function createTwitterCanvas(metadataJson, isImage) {
         ext,
         mediaY,
         galleryH,
+        hasPoll,
+        pollData,
+        pollX,
+        pollY,
+        pollWidth,
         footerBaselineY,
         bodyBottomY,
     } = main;
@@ -189,6 +195,9 @@ async function createTwitterCanvas(metadataJson, isImage) {
         galleryH,
         footerBaselineY,
         bodyBottomY,
+        hasPoll,
+        pollY,
+        pollWidth,
         heightShim,
         descHeight,
         fontChain,
@@ -376,6 +385,16 @@ async function createTwitterCanvas(metadataJson, isImage) {
             560,
             mediaY
         );
+    }
+
+    if (hasPoll) {
+        log('poll', {
+            atY: pollY,
+            width: pollWidth,
+            options: pollData?.options?.length || 0,
+        });
+
+        drawPoll(ctx, pollData, pollX, pollY, pollWidth);
     }
 
     return isImage ? canvas.toBuffer('image/png') : canvas.toBuffer();
