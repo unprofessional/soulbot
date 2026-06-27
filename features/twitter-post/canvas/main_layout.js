@@ -103,7 +103,7 @@ function measureMainLayout(ctx, {
     }
 
     const baseY = getMainBaseY({ layoutMode });
-    const reservedLineCount = descLines.length > 0 ? descLines.length : (hasImgs ? 1 : 0);
+    const reservedLineCount = descLines.length;
     const textHeight = reservedLineCount * lineHeight;
     const descBottomY = baseY + textHeight;
 

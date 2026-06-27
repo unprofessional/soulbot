@@ -41,7 +41,7 @@ jest.mock('../features/twitter-core/path_builder.js', () => ({
 const { createTwitterVideoCanvas } = require('../features/twitter-video/twitter_video_canvas.js');
 
 describe('twitter_video_canvas empty-description spacing', () => {
-    test('reserves one quiet line when the description is empty', async () => {
+    test('does not reserve a phantom text line when the description is empty', async () => {
         const result = await createTwitterVideoCanvas({
             user_screen_name: 'example',
             user_name: 'Example User',
@@ -57,7 +57,25 @@ describe('twitter_video_canvas empty-description spacing', () => {
             _canvasOutputPath: '/tempdata/test-video/test-video.png',
         });
 
-        expect(result.canvasHeight).toBeGreaterThan(465);
+        expect(result.canvasHeight).toBe(465);
+    });
+
+    test('keeps one text line when the description is present', async () => {
+        const result = await createTwitterVideoCanvas({
+            user_screen_name: 'example',
+            user_name: 'Example User',
+            user_profile_image_url: '',
+            lang: 'en',
+            text: 'hello world',
+            mediaURLs: ['https://video.example.com/video.mp4'],
+            media_extended: [{
+                type: 'video',
+                url: 'https://video.example.com/video.mp4',
+                size: { width: 1280, height: 720 },
+            }],
+            _canvasOutputPath: '/tempdata/test-video/test-video.png',
+        });
+
         expect(result.canvasHeight).toBe(495);
     });
 });
