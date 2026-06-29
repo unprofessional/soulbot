@@ -6,7 +6,7 @@ const { buildPathsAndStuff } = require('../twitter-core/path_builder.js');
 const { condenseTranslatedDisplayLines, getWrappedText, drawBasicElements } = require('../twitter-core/canvas_utils.js');
 const { collectMedia, formatTwitterDate } = require('../twitter-core/utils.js');
 const { buildDisplayText } = require('../twitter-core/translation_service.js');
-const { MAX_DESC_CHARS } = require('../twitter-post/canvas/constants.js');
+const { MAX_DESC_CHARS, TEXT_FONT_FAMILY } = require('../twitter-post/canvas/constants.js');
 
 function truncateDescription(text, maxChars = MAX_DESC_CHARS) {
     const normalized = String(text || '').trim();
@@ -66,7 +66,7 @@ async function createTwitterVideoCanvas(metadataJson) {
     // Precompute display date (drawer can also compute; this is for parity/logs)
     metadata._displayDate = formatTwitterDate(metadataJson, { label: 'videoCanvas/metaJson→displayDate' });
 
-    const globalFont = '"Noto Color Emoji", "Noto Sans CJK", "Noto Sans Math"';
+    const globalFont = TEXT_FONT_FAMILY;
 
     const canvasWidth = 600;
     const heightShim = getHeightShim(vSize);
@@ -77,7 +77,7 @@ async function createTwitterVideoCanvas(metadataJson) {
     ctx.textDrawingMode = 'glyph';
 
     // Text wrapping (video layout used 420 previously)
-    ctx.font = '18px "Noto Color Emoji"';
+    ctx.font = `18px ${globalFont}`;
     const hasDescription = (metadata.description || '').trim().length > 0;
     const descLines = hasDescription
         ? condenseTranslatedDisplayLines(getWrappedText(ctx, metadata.description, 420))

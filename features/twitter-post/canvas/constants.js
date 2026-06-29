@@ -8,8 +8,24 @@ function numEnv(key, fallback) {
 /**
  * Font system
  * - Use Liberation Sans as primary (Arial-compatible)
+ * - Keep script/math/emoji fallbacks in the chain for decorative usernames.
  */
-const TEXT_FONT_FAMILY = '"Liberation Sans"';
+const TEXT_FONT_FAMILY = [
+    '"Liberation Sans"',
+    '"Noto Sans"',
+    '"Noto Sans Math"',
+    '"Noto Sans Old Italic"',
+    '"Noto Sans Cherokee"',
+    '"Noto Color Emoji"',
+    '"Noto Sans CJK JP"',
+    '"Noto Sans Linear A"',
+    '"Noto Sans Linear B"',
+    '"Noto Sans Egyptian Hieroglyphs"',
+    '"Noto Sans Oriya"',
+    '"Noto Sans Bamum"',
+    '"Noto Sans Vai"',
+    'sans-serif',
+].join(', ');
 
 // Main body font/metrics used in both measure and draw
 const MAIN_LINE_HEIGHT = 30;
