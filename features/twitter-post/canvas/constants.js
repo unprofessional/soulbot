@@ -8,7 +8,9 @@ function numEnv(key, fallback) {
 /**
  * Font system
  * - Use Liberation Sans as primary (Arial-compatible)
- * - Keep script/math/emoji fallbacks in the chain for decorative usernames.
+ * - Keep script/math fallbacks in the chain for decorative usernames.
+ * - Emoji fonts are registered separately; naming them here can let their
+ *   keycap digit glyphs hijack ordinary numeric runs.
  */
 const TEXT_FONT_FAMILY = [
     '"Liberation Sans"',
@@ -17,8 +19,6 @@ const TEXT_FONT_FAMILY = [
     '"Noto Sans Old Italic"',
     '"Noto Sans Cherokee"',
     '"Noto Serif Tibetan"',
-    '"Noto Color Emoji"',
-    '"Noto Emoji"',
     '"Noto Sans CJK JP"',
     '"Noto Sans Linear A"',
     '"Noto Sans Linear B"',
