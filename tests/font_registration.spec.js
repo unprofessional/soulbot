@@ -24,7 +24,9 @@ describe('twitter canvas font registration', () => {
             'Noto Sans Math',
             'Noto Sans Old Italic',
             'Noto Sans Cherokee',
+            'Noto Serif Tibetan',
             'Noto Color Emoji',
+            'Noto Emoji',
         ]));
         expect(registerFont).toHaveBeenCalledWith(
             expect.stringContaining('NotoSansOldItalic-Regular.ttf'),
@@ -33,6 +35,14 @@ describe('twitter canvas font registration', () => {
         expect(registerFont).toHaveBeenCalledWith(
             expect.stringContaining('NotoSansCherokee[wght].ttf'),
             { family: 'Noto Sans Cherokee' }
+        );
+        expect(registerFont).toHaveBeenCalledWith(
+            expect.stringContaining('NotoSerifTibetan[wght].ttf'),
+            { family: 'Noto Serif Tibetan' }
+        );
+        expect(registerFont).toHaveBeenCalledWith(
+            expect.stringContaining('NotoEmoji[wght].ttf'),
+            { family: 'Noto Emoji' }
         );
     });
 
@@ -43,6 +53,8 @@ describe('twitter canvas font registration', () => {
             'Noto Sans Math',
             'Noto Sans Old Italic',
             'Noto Sans Cherokee',
+            'Noto Serif Tibetan',
+            'Noto Emoji',
         ]) {
             expect(bundledFamilies).toContain(family);
             expect(TEXT_FONT_FAMILY).toContain(`"${family}"`);
