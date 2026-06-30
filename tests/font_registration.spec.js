@@ -46,7 +46,7 @@ describe('twitter canvas font registration', () => {
         );
     });
 
-    test('keeps bundled font definitions aligned with the shared font chain', () => {
+    test('keeps bundled text font definitions aligned with the shared font chain', () => {
         const bundledFamilies = FONT_DEFINITIONS.map(font => font.family);
 
         for (const family of [
@@ -54,10 +54,21 @@ describe('twitter canvas font registration', () => {
             'Noto Sans Old Italic',
             'Noto Sans Cherokee',
             'Noto Serif Tibetan',
-            'Noto Emoji',
         ]) {
             expect(bundledFamilies).toContain(family);
             expect(TEXT_FONT_FAMILY).toContain(`"${family}"`);
+        }
+    });
+
+    test('keeps emoji fonts registered without putting them in the text chain', () => {
+        const bundledFamilies = FONT_DEFINITIONS.map(font => font.family);
+
+        for (const family of [
+            'Noto Color Emoji',
+            'Noto Emoji',
+        ]) {
+            expect(bundledFamilies).toContain(family);
+            expect(TEXT_FONT_FAMILY).not.toContain(`"${family}"`);
         }
     });
 });
