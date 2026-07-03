@@ -46,9 +46,15 @@ RUN apt-get update && apt-get install -y \
     fonts-dejavu-core \
     fonts-noto-cjk \
     fonts-noto-color-emoji \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
 RUN npm install -g npm@11.8.0
+
+# Install Infisical CLI
+RUN curl -1sLf "https://dl.cloudsmith.io/public/infisical/infisical-cli/setup.deb.sh" | bash \
+    && apt-get update && apt-get install -y infisical \
+    && rm -rf /var/lib/apt/lists/*
 
 # Rebuild font cache after font installation.
 RUN fc-cache -f -v
@@ -63,6 +69,10 @@ WORKDIR /app
 
 # Copy the pruned app and node_modules from the build stage.
 COPY --from=build /app /app
+
+# Copy entrypoint
+COPY entrypoint.sh /app/entrypoint.sh
+RUN chmod +x /app/entrypoint.sh
 
 EXPOSE 80 443
 
