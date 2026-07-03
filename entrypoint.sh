@@ -16,4 +16,4 @@ exec infisical run \
   --env "$INFISICAL_ENV" \
   --token "$INFISICAL_TOKEN" \
   --silent \
-  -- npm start
+  -- node index.js
