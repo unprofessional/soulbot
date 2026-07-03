@@ -10,6 +10,18 @@ INFISICAL_TOKEN=$(curl -sf -X POST \
 
 export INFISICAL_TOKEN
 
+# Pre-inject secrets so the cleanup script can read PG_* env vars
+eval "$(infisical export \
+  --domain "$INFISICAL_API_URL" \
+  --projectId "$INFISICAL_PROJECT_ID" \
+  --env "$INFISICAL_ENV" \
+  --token "$INFISICAL_TOKEN" \
+  --format dotenv-export 2>/dev/null)" || true
+
+# Clear stale advisory locks from previous container
+node release-stale-lock.js || true
+
+# Start the app with full Infisical secret injection
 exec infisical run \
   --domain "$INFISICAL_API_URL" \
   --projectId "$INFISICAL_PROJECT_ID" \
