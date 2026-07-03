@@ -5,43 +5,68 @@ a discord bot
 - Persist a nickname prefix for users that change their nicknames and profile pictures too often
 
 ## Deployment
-makes use of Kubernetes, a Persistent Volume, and a Persistent Volume Claim
-- all config resids in the `/kubernetes` directory
-- you must set the `DISCORD_BOT_TOKEN` environment variable within Kubernetes via:
-  - `kubectl create secret generic discord-bot-secret --from-literal=DISCORD_BOT_TOKEN=xxxxx`
-- tweet renders prefer translations surfaced by the Twitter metadata API, with a guarded Ollama fallback for non-English posts whose API translation is missing
+
+SOULbot runs as a Docker Compose service. Secrets are managed via [Infisical](https://infisical.com/) and injected at container startup.
+
+### Notes
+
+- Tweet renders prefer translations surfaced by the Twitter metadata API, with a guarded Ollama fallback for non-English posts whose API translation is missing
 - `/translate`, `/translate-en`, and speak-english cleanup run server-side through Ollama/Kokoro using `translategemma:12b`
-- set `OLLAMA_TRANSLATION_MODEL` if you want to override the default translation/cleanup model
-- the bot now exposes health endpoints on `HEALTH_PORT` (default `8080`): `/livez`, `/readyz`, and `/drain`
-- during shutdown the pod marks itself unready, pauses new queued work, waits for active work to finish, then disconnects Discord and closes Postgres
-- a Postgres advisory lock now serializes Discord leadership across pods so a new pod waits for the old one to stand down before it logs in
-- set `REGISTER_GLOBAL_COMMANDS=true` only for the one-off rollout or admin job that should publish slash command definitions
+- Set `OLLAMA_TRANSLATION_MODEL` if you want to override the default translation/cleanup model
+- The bot exposes health endpoints on `HEALTH_PORT` (default `8080`): `/livez`, `/readyz`, and `/drain`
+- During shutdown the bot marks itself unready, pauses new queued work, waits for active work to finish, then disconnects Discord and closes Postgres
+- A Postgres advisory lock serializes Discord leadership so a new container waits for the old one to stand down before it logs in
+- Set `REGISTER_GLOBAL_COMMANDS=true` only for the one-off rollout or admin job that should publish slash command definitions
 
-## If using Minikube
-### Start
-1) `minikube start --driver=docker`
-2) `eval $(minikube -p minikube docker-env)`
-  - https://stackoverflow.com/a/42564211
-3) `docker build --platform="linux/amd64" --no-cache -t unprofessional/soulbot:rc-0.0.1 .`
-  - generic: `docker build --no-cache -t unprofessional/soulbot:rc-0.0.1 .`
-4) `kubectl create secret generic discord-bot-secret --from-literal=DISCORD_BOT_TOKEN=xxxxx`
-5) `kubectl apply -f kubernetes/soulbot-deployment.yaml ; kubectl apply -f kubernetes/soulbot-http-service.yaml`
-### Stop
-1) `kubectl delete service soulbot-http-service ; kubectl delete deployment soulbot`
-2) `kubectl delete persistentvolumeclaim soulbot-pvc ; kubectl delete persistentvolume soulbot-pv`
-3) `kubectl delete pods -l app=soulbot`
+### Secret Management (Infisical)
 
-## Misc Kube Troubleshooting
-- `kubectl get svc soulbot-http-service`
-- `kubectl logs -f pod/soulbot-xxxxxxxxx-xxxxx`
-- `kubectl describe pod/soulbot-xxxxxxxxx-xxxxx`
+SOULbot uses [Infisical](https://infisical.com/) for secret management. Application secrets (bot token, DB credentials, etc.) are stored in Infisical and injected at container startup via the Infisical CLI. No application secrets are stored in local files.
 
-## Kubernetes Troubleshooting Pod (`pvc-inspector`)
-### Start
-- `kubectl apply -f kubernetes/pvc-inspector.yaml`
-- `kubectl exec -it pvc-inspector -- sh`
-### Stop
-- `kubectl delete pod pvc-inspector`
+**Setup:**
+
+1. Create a `.env.infisical` file (gitignored) with your Infisical machine identity credentials:
+
+   ```env
+   INFISICAL_CLIENT_ID=your-machine-identity-client-id
+   INFISICAL_CLIENT_SECRET=your-machine-identity-client-secret
+   INFISICAL_API_URL=http://your-infisical-instance
+   INFISICAL_PROJECT_ID=your-project-id
+   INFISICAL_ENV=prod
+   ```
+
+2. Ensure all application secrets are stored in the corresponding Infisical project and environment.
+
+3. Build and run:
+
+   ```bash
+   docker compose up --build -d
+   ```
+
+The entrypoint script (`entrypoint.sh`) authenticates with Infisical using Universal Auth, fetches secrets, and injects them as environment variables before starting the bot. A pre-start cleanup script (`release-stale-lock.js`) terminates any orphaned Postgres sessions holding the advisory lock from a previous unclean shutdown.
+
+**Fallback:** If you need to run without Infisical, you can override the container command to `node index.js` and provide a traditional `.env` file with all application secrets.
+
+The container does not provision PostgreSQL — you still need a reachable database.
+
+### Docker Compose
+
+```bash
+# Start
+docker compose up --build -d
+
+# Logs
+docker compose logs -f soulbot
+
+# Stop (graceful — 35s grace period for shutdown announcements)
+docker compose down
+
+# Restart
+docker compose down && docker compose up --build -d
+```
+
+### Legacy Kubernetes
+
+The `/kubernetes` directory contains the previous k8s/minikube deployment manifests. These are no longer used in production but are kept for reference.
 
 ## TODO
 - Consider using GitHub issues to track problems
