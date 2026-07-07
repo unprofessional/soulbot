@@ -1,6 +1,7 @@
 // features/twitter-post/canvas/qt_layout.js
 
 const { scaleDownToFitAspectRatio } = require('../scale_down.js');
+const { fitWithinBox, getCombinedNaturalSize } = require('../image_gallery_rendering.js');
 const { condenseTranslatedDisplayLines, getWrappedText, trimRenderedLinesToMaxChars } = require('../../twitter-core/canvas_utils.js');
 const {
     QT,
@@ -163,14 +164,22 @@ function computeQtSizing(ctx, {
 
     let qtExpandedMediaSize = null;
     if (expandQtMedia && qtFirst?.size) {
-        const size = qtFirst.size?.width && qtFirst.size?.height
-            ? { width: qtFirst.size.width, height: qtFirst.size.height }
+        const imageMedia = Array.isArray(qtMedia)
+            ? qtMedia.filter(m => (m?.type || '').toLowerCase() === 'image')
+            : [];
+        const combinedSize = imageMedia.length > 1
+            ? getCombinedNaturalSize(imageMedia.slice(0, 4))
             : null;
+        const size = combinedSize || (qtFirst.size?.width && qtFirst.size?.height
+            ? { width: qtFirst.size.width, height: qtFirst.size.height }
+            : null);
 
         if (size) {
             // Expanded image is drawn inside inner content width (wrap uses innerRight - innerLeft = 520)
             // Keep maxW=520 consistent with QT inner width.
-            qtExpandedMediaSize = scaleDownToFitAspectRatio(size, /*maxH*/ 420, /*maxW*/ 520);
+            qtExpandedMediaSize = combinedSize
+                ? fitWithinBox(size, /*maxW*/ 520, /*maxH*/ 420)
+                : scaleDownToFitAspectRatio(size, /*maxH*/ 420, /*maxW*/ 520);
             qtMetadata._expandMediaHint = true;
             qtMetadata._expandedMediaHeight = qtExpandedMediaSize.height;
         } else {
