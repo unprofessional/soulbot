@@ -25,7 +25,6 @@ function calculateQuoteHeight(ctx, qtMetadata, { fontChain = 'sans-serif' } = {}
 
     try {
         const lineHeight = QT.lineH;
-        const bottomPadding = QT.bottomPad;
         const HEADER = QT.headerH;
         const MARGIN_BOTTOM = QT.marginBottom;
         const hasFooter = Boolean(qtMetadata._displayDateFooter);
@@ -36,6 +35,7 @@ function calculateQuoteHeight(ctx, qtMetadata, { fontChain = 'sans-serif' } = {}
         const qtMedia = Array.isArray(qtMetadata.mediaExtended) ? qtMetadata.mediaExtended : [];
         const hasMedia = qtMedia.length > 0;
         const expanded = Boolean(qtMetadata._expandMediaHint);
+        const bottomPadding = expanded ? QT.expandedBottomPad : QT.bottomPad;
         const text = qtMetadata.error ? (qtMetadata.message || '') : (qtMetadata.description || '');
 
         ctx.font = `24px ${fontChain}`;
@@ -58,13 +58,13 @@ function calculateQuoteHeight(ctx, qtMetadata, { fontChain = 'sans-serif' } = {}
 
         if (expanded && qtMetadata._expandedMediaHeight) {
             const total =
-                HEADER + descHeight + 20 /*gap*/ +
+                HEADER + descHeight + QT.expandedMediaGap +
                 qtMetadata._expandedMediaHeight +
                 bottomPadding + MARGIN_BOTTOM +
                 (hasFooter ? QT_FOOTER_LINE_H : 0);
 
             DEBUG && console.debug(
-                `${TAG} [expanded] parts: HEADER=${HEADER} desc=${descHeight} gap=20 media=${qtMetadata._expandedMediaHeight} bottomPad=${bottomPadding} marginBottom=${MARGIN_BOTTOM} footer=${hasFooter ? QT_FOOTER_LINE_H : 0} => total=${total}`
+                `${TAG} [expanded] parts: HEADER=${HEADER} desc=${descHeight} gap=${QT.expandedMediaGap} media=${qtMetadata._expandedMediaHeight} bottomPad=${bottomPadding} marginBottom=${MARGIN_BOTTOM} footer=${hasFooter ? QT_FOOTER_LINE_H : 0} => total=${total}`
             );
             DEBUG && console.debug(`${TAG} ───────────────────────────────────────────`);
             return total;
@@ -105,7 +105,7 @@ function measureQtTextNeed(ctx, fontChain, qtMetadata, { expandQtMedia = false }
 
     const LINE_H = QT.lineH;
     const HEADER = QT.headerH;
-    const bottomPadding = QT.bottomPad;
+    const bottomPadding = expandQtMedia ? QT.expandedBottomPad : QT.bottomPad;
     const MARGIN_BOTTOM = QT.marginBottom;
 
     const textHeight = qtLines.length * LINE_H;
@@ -194,7 +194,7 @@ function computeQtSizing(ctx, {
 
     if (expandQtMedia) {
         // Keep consistent with drawer's baseline assumption for expanded layout
-        const minExpanded = (qtMetadata._expandedMediaHeight ?? 0) + 150;
+        const minExpanded = (qtMetadata._expandedMediaHeight ?? 0) + 135;
         minByMedia = Math.max(minByMedia, minExpanded);
     }
 

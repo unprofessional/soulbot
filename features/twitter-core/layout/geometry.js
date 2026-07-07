@@ -34,6 +34,8 @@ const QT = {
     compactThumbTop: 80,
     compactThumbH: 175,
     compactFooterGap: 12,
+    expandedMediaGap: 10,
+    expandedBottomPad: 15,
 
     // textX rules
     textXNoMedia: 100,

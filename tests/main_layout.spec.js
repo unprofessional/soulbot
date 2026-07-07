@@ -88,6 +88,26 @@ describe('measureMainLayout no-description spacing', () => {
         expect(withPoll.footerBaselineY).toBeGreaterThan(withoutPoll.footerBaselineY);
         expect(withPoll.bodyBottomY).toBeGreaterThan(withoutPoll.bodyBottomY);
     });
+
+    test('uses a tighter text-to-footer gap for text-only primary tweets', () => {
+        const ctx = {
+            font: '',
+            measureText: jest.fn(text => ({ width: String(text || '').length * 10 })),
+        };
+
+        const result = measureMainLayout(ctx, {
+            metadata: { description: 'hello' },
+            images: [],
+            hasImgs: false,
+            hasVids: false,
+            maxWidth: 600,
+            mediaMaxHeight: 600,
+        });
+
+        expect(result.textHeight).toBe(30);
+        expect(result.descBottomY).toBe(140);
+        expect(result.footerBaselineY).toBe(160);
+    });
 });
 
 describe('getMainRenderMode', () => {

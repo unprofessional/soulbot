@@ -147,7 +147,7 @@ function drawQtBasicElements(ctx, fontChain, metadata, pfp, mediaObj, options) {
 
         // Expanded media (big image under text)
         if (expandQtMedia && qtHasMedia && expandedMediaSize && expandedMediaSize.width && expandedMediaSize.height) {
-            const GAP = 20;
+            const GAP = QT.expandedMediaGap;
             const maxInnerW = innerW - 6;
 
             let w = Math.min(maxInnerW, Math.round(expandedMediaSize.width));
@@ -157,7 +157,7 @@ function drawQtBasicElements(ctx, fontChain, metadata, pfp, mediaObj, options) {
             let mediaY = Math.round(textBottomY + GAP);
 
             // Ensure it fits inside box (leave footer space)
-            const boxBottom = qtY + boxHeight - QT.innerPad - QT.marginBottom - QT_FOOTER_LINE_H;
+            const boxBottom = qtY + boxHeight - QT.expandedBottomPad - QT.marginBottom - QT_FOOTER_LINE_H;
             if (mediaY + h > boxBottom) {
                 const availH = Math.max(1, boxBottom - mediaY);
                 const scale = availH / h;

@@ -13,6 +13,7 @@ const {
     MAIN_FONT,
     GAP_TEXT_TO_MEDIA,
     GAP_MEDIA_TO_FOOTER,
+    GAP_TEXT_TO_FOOTER,
     FOOTER_LINE_H,
     FOOTER_FONT_SIZE,
     MAX_DESC_CHARS,
@@ -119,7 +120,7 @@ function measureMainLayout(ctx, {
 
     const footerBaselineY = willDrawGallery
         ? (mediaY + galleryH + GAP_MEDIA_TO_FOOTER + FOOTER_FONT_SIZE)
-        : (descBottomY + 40);
+        : (descBottomY + GAP_TEXT_TO_FOOTER);
 
     const pollData = metadata?.pollData;
     const hasPoll = isRenderablePoll(pollData);
