@@ -78,6 +78,35 @@ describe('computeQtSizing', () => {
         expect(qtMetadata._expandedMediaHeight).toBe(332);
     });
 
+    test('uses tighter expanded QT media and footer spacing', () => {
+        const qtMetadata = {
+            description: 'short quote',
+            mediaExtended: [{
+                type: 'image',
+                size: { width: 900, height: 720 },
+            }],
+            _displayDateFooter: '10:59 AM Eastern · Jul 7, 2026',
+        };
+
+        const result = computeQtSizing(makeCtx(), {
+            qtMetadata,
+            qtMedia: qtMetadata.mediaExtended,
+            qtFirst: qtMetadata.mediaExtended[0],
+            hasImgs: false,
+            hasVids: false,
+            fontChain: 'sans-serif',
+            maxQtDescChars: 500,
+        });
+
+        expect(result.expandQtMedia).toBe(true);
+        expect(result.qtExpandedMediaSize).toEqual({
+            width: 520,
+            height: 415,
+        });
+        expect(result.calcHeight).toBe(602);
+        expect(result.qtBoxHeight).toBe(602);
+    });
+
     test('keeps compact wrapping when the primary tweet already has media', () => {
         const qtMetadata = {
             description: 'alpha alpha alpha alpha alpha alpha alpha alpha',
