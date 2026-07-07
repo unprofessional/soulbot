@@ -19,6 +19,7 @@ const {
     getMaxHeight,
     FOOTER_LINE_H,
     FOOTER_FONT_SIZE,
+    CANVAS_RENDER_SCALE,
     GAP_FOOTER_TO_QT,
     TEXT_FONT_FAMILY,
 } = require('./canvas/constants.js');
@@ -290,10 +291,12 @@ async function createTwitterCanvas(metadataJson, isImage) {
         ? (qtStartY + qtBoxHeight + extraBottomPad)
         : (descHeight + extraBottomPad);
 
-    canvas.width = canvasWidth;
-    canvas.height = totalHeight;
+    const outputScale = CANVAS_RENDER_SCALE;
+    canvas.width = Math.round(canvasWidth * outputScale);
+    canvas.height = Math.round(totalHeight * outputScale);
 
     // Canvas resize resets context state; reapply the essentials.
+    ctx.setTransform(outputScale, 0, 0, outputScale, 0, 0);
     ctx.fillStyle = '#000';
     ctx.textDrawingMode = 'glyph';
     ctx.fillRect(0, 0, canvasWidth, totalHeight);
@@ -303,13 +306,13 @@ async function createTwitterCanvas(metadataJson, isImage) {
         ctx.strokeStyle = '#ff66aa';
         ctx.lineWidth = 1;
         ctx.beginPath();
-        ctx.moveTo(0, canvas.height - 0.5);
-        ctx.lineTo(canvasWidth, canvas.height - 0.5);
+        ctx.moveTo(0, totalHeight - 0.5);
+        ctx.lineTo(canvasWidth, totalHeight - 0.5);
         ctx.stroke();
         ctx.restore();
     }
 
-    log('canvas', { canvasWidth, totalHeight, mainRenderMode });
+    log('canvas', { canvasWidth, totalHeight, outputScale, mainRenderMode });
 
     const [favicon, pfp] = await Promise.all([
         safeLoadImage('https://abs.twimg.com/favicons/twitter.3.ico'),
