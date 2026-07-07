@@ -1,6 +1,6 @@
 // features/twitter-post/image_gallery_rendering.js
 /* eslint-disable no-empty */
-const { loadImage } = require('canvas');
+const { createCanvas, loadImage } = require('canvas');
 const { cropSingleImage } = require('./crop_single_image.js');
 const { scaleDownToFitAspectRatio } = require('./scale_down.js');
 
@@ -10,8 +10,8 @@ const { scaleDownToFitAspectRatio } = require('./scale_down.js');
 
 // Layout constants
 const LEFT_X = 20;
-const COL_GUTTER_X = 10;
-const ROW_GUTTER_Y = 10;
+const MAX_COMBINED_RENDER_WIDTH = 2600;
+const BLUR_DOWNSAMPLE_FACTOR = 14;
 
 // Helpers --------------------------------------------------------------------
 
@@ -32,6 +32,195 @@ function getSize(m) {
     return (w && h) ? { width: w, height: h } : null;
 }
 
+function getImageSize(image) {
+    const w = Number(image?.width) || Number(image?.videoWidth) || null;
+    const h = Number(image?.height) || Number(image?.videoHeight) || null;
+    return (w && h) ? { width: w, height: h } : null;
+}
+
+function findLargestItem(items) {
+    return items.reduce((largest, item) => {
+        const size = getSize(item);
+        if (!size) return largest;
+        if (!largest) return item;
+        const largestSize = getSize(largest);
+        return size.width * size.height > largestSize.width * largestSize.height
+            ? item
+            : largest;
+    }, null);
+}
+
+function getCombinedNaturalSize(items) {
+    const largest = findLargestItem(items);
+    const largestSize = largest ? getSize(largest) : null;
+    if (!largestSize) return null;
+
+    if (items.length === 1) return largestSize;
+    if (items.length === 2) {
+        return {
+            width: largestSize.width * 2,
+            height: largestSize.height,
+        };
+    }
+
+    return {
+        width: largestSize.width * 2,
+        height: largestSize.height * 2,
+    };
+}
+
+function fitWithinBox(source, maxWidth, maxHeight) {
+    if (!source?.width || !source?.height) return { width: maxWidth, height: maxHeight };
+
+    const scale = Math.min(maxWidth / source.width, maxHeight / source.height, 1);
+    return {
+        width: Math.max(1, Math.round(source.width * scale)),
+        height: Math.max(1, Math.round(source.height * scale)),
+    };
+}
+
+function containRect(srcW, srcH, dstX, dstY, dstW, dstH) {
+    const scale = Math.min(dstW / srcW, dstH / srcH);
+    const w = srcW * scale;
+    const h = srcH * scale;
+    return {
+        x: dstX + (dstW - w) / 2,
+        y: dstY + (dstH - h) / 2,
+        width: w,
+        height: h,
+    };
+}
+
+function coverRect(srcW, srcH, dstX, dstY, dstW, dstH) {
+    const scale = Math.max(dstW / srcW, dstH / srcH);
+    const w = srcW * scale;
+    const h = srcH * scale;
+    return {
+        x: dstX + (dstW - w) / 2,
+        y: dstY + (dstH - h) / 2,
+        width: w,
+        height: h,
+    };
+}
+
+function getTileRects(count, totalWidth, totalHeight) {
+    if (count <= 1) {
+        return [{ x: 0, y: 0, width: totalWidth, height: totalHeight }];
+    }
+
+    if (count === 2) {
+        const tileW = totalWidth / 2;
+        return [
+            { x: 0, y: 0, width: tileW, height: totalHeight },
+            { x: tileW, y: 0, width: tileW, height: totalHeight },
+        ];
+    }
+
+    const tileW = totalWidth / 2;
+    const tileH = totalHeight / 2;
+    const rects = [
+        { x: 0, y: 0, width: tileW, height: tileH },
+        { x: tileW, y: 0, width: tileW, height: tileH },
+    ];
+
+    if (count === 3) {
+        rects.push({ x: 0, y: tileH, width: totalWidth, height: tileH });
+        return rects;
+    }
+
+    rects.push(
+        { x: 0, y: tileH, width: tileW, height: tileH },
+        { x: tileW, y: tileH, width: tileW, height: tileH }
+    );
+    return rects;
+}
+
+function drawRoundedImage(ctx, img, x, y, w, h, radius = 15) {
+    ctx.save();
+    ctx.beginPath();
+    ctx.moveTo(x + radius, y);
+    ctx.lineTo(x + w - radius, y);
+    ctx.quadraticCurveTo(x + w, y, x + w, y + radius);
+    ctx.lineTo(x + w, y + h - radius);
+    ctx.quadraticCurveTo(x + w, y + h, x + w - radius, y + h);
+    ctx.lineTo(x + radius, y + h);
+    ctx.quadraticCurveTo(x, y + h, x, y + h - radius);
+    ctx.lineTo(x, y + radius);
+    ctx.quadraticCurveTo(x, y, x + radius, y);
+    ctx.closePath();
+    ctx.clip();
+    ctx.drawImage(img, x, y, w, h);
+    ctx.restore();
+}
+
+function drawCoverImage(ctx, img, rect) {
+    const size = getImageSize(img);
+    if (!size) return;
+
+    const cover = coverRect(size.width, size.height, rect.x, rect.y, rect.width, rect.height);
+    ctx.drawImage(img, cover.x, cover.y, cover.width, cover.height);
+}
+
+function drawContainedImage(ctx, img, rect) {
+    const size = getImageSize(img);
+    if (!size) return;
+
+    const contain = containRect(size.width, size.height, rect.x, rect.y, rect.width, rect.height);
+    ctx.drawImage(img, contain.x, contain.y, contain.width, contain.height);
+}
+
+function drawApproxBlurredBackground(ctx, imgs, rects, width, height) {
+    const blurW = Math.max(1, Math.round(width / BLUR_DOWNSAMPLE_FACTOR));
+    const blurH = Math.max(1, Math.round(height / BLUR_DOWNSAMPLE_FACTOR));
+    const blurCanvas = createCanvas(blurW, blurH);
+    const blurCtx = blurCanvas.getContext('2d');
+    const scaleX = blurW / width;
+    const scaleY = blurH / height;
+
+    blurCtx.imageSmoothingEnabled = true;
+    blurCtx.imageSmoothingQuality = 'high';
+
+    for (let i = 0; i < imgs.length; i++) {
+        const rect = rects[i];
+        drawCoverImage(blurCtx, imgs[i], {
+            x: rect.x * scaleX,
+            y: rect.y * scaleY,
+            width: rect.width * scaleX,
+            height: rect.height * scaleY,
+        });
+    }
+
+    ctx.save();
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(blurCanvas, 0, 0, width, height);
+    ctx.restore();
+}
+
+function buildCombinedGalleryCanvas(imgs, items) {
+    const naturalSize = getCombinedNaturalSize(items);
+    if (!naturalSize) return null;
+
+    const renderScale = Math.min(1, MAX_COMBINED_RENDER_WIDTH / naturalSize.width);
+    const width = Math.max(1, Math.round(naturalSize.width * renderScale));
+    const height = Math.max(1, Math.round(naturalSize.height * renderScale));
+    const canvas = createCanvas(width, height);
+    const ctx = canvas.getContext('2d');
+    const rects = getTileRects(imgs.length, width, height);
+
+    ctx.clearRect(0, 0, width, height);
+    drawApproxBlurredBackground(ctx, imgs, rects, width, height);
+
+    ctx.save();
+    ctx.globalCompositeOperation = 'source-over';
+    for (let i = 0; i < imgs.length; i++) {
+        drawContainedImage(ctx, imgs[i], rects[i]);
+    }
+    ctx.restore();
+
+    return canvas;
+}
+
 function computeBaseY(defaultYPosition, calculatedCanvasHeightFromDescLines, heightShim) {
     // If caller provides a Y, trust it (this is now the normal path)
     if (Number.isFinite(defaultYPosition)) return Math.max(0, defaultYPosition);
@@ -43,6 +232,7 @@ function computeBaseY(defaultYPosition, calculatedCanvasHeightFromDescLines, hei
 
 // Draws an image with a rounded-rect mask (centered horizontally)
 function drawRounded(ctx, img, x, y, w, h, radius = 15) {
+    ctx.save();
     ctx.beginPath();
     ctx.moveTo(x + radius, y);
     ctx.lineTo(x + w - radius, y);
@@ -60,6 +250,7 @@ function drawRounded(ctx, img, x, y, w, h, radius = 15) {
     ctx.strokeStyle = '#4d4d4d';
     ctx.lineWidth = 2;
     ctx.stroke();
+    ctx.restore();
 }
 
 // Single-image layout ---------------------------------------------------------
@@ -102,28 +293,13 @@ function measureGalleryHeight(metadata, mediaMaxHeight, mediaMaxWidth) {
     const items = getItems(metadata).slice(0, 4);
     if (!items.length) return 0;
 
-    const firstSize = getSize(items[0]) || { width: mediaMaxWidth, height: mediaMaxHeight };
-    const scaled1 = scaleDownToFitAspectRatio(firstSize, mediaMaxHeight, mediaMaxWidth);
-
-    const n = items.length;
-
-    if (n === 1) {
-        return scaled1.height;
-    }
-
-    if (n === 2) {
-        // side-by-side, height matched to first scaled
-        return scaled1.height;
-    }
-
-    if (n === 3) {
-        // left tall defines total height
-        return scaled1.height;
-    }
-
-    // n >= 4 => 2x2 grid
-    const tileH = Math.round(scaled1.height / 2);
-    return tileH * 2 + ROW_GUTTER_Y;
+    const combinedSize = getCombinedNaturalSize(items);
+    const scaled = fitWithinBox(
+        combinedSize || { width: mediaMaxWidth, height: mediaMaxHeight },
+        mediaMaxWidth,
+        mediaMaxHeight
+    );
+    return scaled.height;
 }
 
 // Main renderer ---------------------------------------------------------------
@@ -146,11 +322,7 @@ async function renderImageGallery(
     const urls = items.map(getUrl).filter(Boolean);
     if (!urls.length) return;
 
-    const firstSize = getSize(items[0]) || { width: mediaMaxWidth, height: mediaMaxHeight };
-    const scaled1 = scaleDownToFitAspectRatio(firstSize, mediaMaxHeight, mediaMaxWidth);
-
     const yBase = computeBaseY(defaultYPosition, calculatedCanvasHeightFromDescLines, heightShim);
-    const colW = mediaMaxWidth / 2;
 
     // 1 image
     if (urls.length === 1) {
@@ -160,47 +332,26 @@ async function renderImageGallery(
 
     // Load all images we need in parallel
     const imgs = await Promise.all(urls.map(u => loadImage(u)));
+    const combined = buildCombinedGalleryCanvas(imgs, items);
+    if (!combined) return;
 
-    // 2 images (side-by-side, matched height to first's scaled)
-    if (urls.length === 2) {
-        const h = scaled1.height;
-        cropSingleImage(ctx, imgs[0], colW, h, LEFT_X, yBase, { tag: 'gallery/2-left' });
-        cropSingleImage(ctx, imgs[1], colW, h, LEFT_X + colW + COL_GUTTER_X, yBase, { tag: 'gallery/2-right' });
-        return;
-    }
+    const displaySize = fitWithinBox(
+        { width: combined.width, height: combined.height },
+        mediaMaxWidth,
+        mediaMaxHeight
+    );
+    const x = LEFT_X + (mediaMaxWidth - displaySize.width) / 2;
 
-    // 3 images (left tall, two stacked on right)
-    if (urls.length === 3) {
-        const leftH = scaled1.height;
-        const rightTileH = Math.round((leftH - ROW_GUTTER_Y) / 2);
-        const rightX = LEFT_X + colW + COL_GUTTER_X;
-
-        // left column
-        cropSingleImage(ctx, imgs[0], colW, leftH, LEFT_X, yBase, { tag: 'gallery/3-left' });
-        // right/top
-        cropSingleImage(ctx, imgs[1], colW, rightTileH, rightX, yBase, { tag: 'gallery/3-rt' });
-        // right/bottom
-        cropSingleImage(ctx, imgs[2], colW, rightTileH, rightX, yBase + rightTileH + ROW_GUTTER_Y, { tag: 'gallery/3-rb' });
-        return;
-    }
-
-    // 4 images (2x2 grid)
-    if (urls.length >= 4) {
-        const tileH = Math.round(scaled1.height / 2);
-        const rightX = LEFT_X + colW + COL_GUTTER_X;
-        const row2Y = yBase + tileH + ROW_GUTTER_Y;
-
-        // top row
-        cropSingleImage(ctx, imgs[0], colW, tileH, LEFT_X, yBase, { tag: 'gallery/4-tl' });
-        cropSingleImage(ctx, imgs[1], colW, tileH, rightX, yBase, { tag: 'gallery/4-tr' });
-
-        // bottom row
-        cropSingleImage(ctx, imgs[2], colW, tileH, LEFT_X, row2Y, { tag: 'gallery/4-bl' });
-        cropSingleImage(ctx, imgs[3], colW, tileH, rightX, row2Y, { tag: 'gallery/4-br' });
-    }
+    drawRoundedImage(ctx, combined, x, yBase, displaySize.width, displaySize.height, 15);
 }
 
 module.exports = {
+    buildCombinedGalleryCanvas,
+    containRect,
+    coverRect,
+    fitWithinBox,
+    getCombinedNaturalSize,
+    getTileRects,
     singleImage,
     singleVideoFrame,
     renderImageGallery,

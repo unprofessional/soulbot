@@ -5,6 +5,11 @@ function numEnv(key, fallback) {
     return Number.isFinite(v) ? v : fallback;
 }
 
+function clampedNumEnv(key, fallback, min, max) {
+    const v = numEnv(key, fallback);
+    return Math.min(max, Math.max(min, v));
+}
+
 /**
  * Font system
  * - Use Liberation Sans as primary (Arial-compatible)
@@ -54,6 +59,7 @@ const MAX_QT_DESC_CHARS = 500;
 const MAX_WIDTH = 600;
 const DESKTOP_MAX_WIDTH = 1240;
 const INITIAL_HEIGHT = 650;
+const CANVAS_RENDER_SCALE = clampedNumEnv('CANVAS_RENDER_SCALE', 1.5, 1, 2);
 
 const FOOTER_FONT_SIZE = 18;
 
@@ -87,6 +93,7 @@ module.exports = {
     MAX_WIDTH,
     DESKTOP_MAX_WIDTH,
     INITIAL_HEIGHT,
+    CANVAS_RENDER_SCALE,
     FOOTER_FONT_SIZE,
 
     getMaxHeight,
