@@ -2,6 +2,7 @@
 // features/twitter-core/canvas/qt_draw.js
 
 const { cropSingleImage } = require('../../twitter-post/crop_single_image');
+const { drawImageWithBlurredBackground } = require('../../twitter-post/image_gallery_rendering');
 const { getWrappedText } = require('./text_wrap');
 const { condenseTranslatedDisplayLines, drawDescriptionLines } = require('./misc_draw');
 const {
@@ -130,9 +131,9 @@ function drawQtBasicElements(ctx, fontChain, metadata, pfp, mediaObj, options) {
             ctx.roundRect(thumbX + inset, thumbY + inset, thumbW - 2 * inset, thumbH - 2 * inset, r);
             ctx.clip();
             try {
-                cropSingleImage(ctx, mediaObj, thumbW, thumbH, thumbX, thumbY);
+                drawImageWithBlurredBackground(ctx, mediaObj, thumbX, thumbY, thumbW, thumbH);
             } catch (e) {
-                console.warn(`${TAG} [thumb] cropSingleImage ERROR:`, e);
+                console.warn(`${TAG} [thumb] drawImageWithBlurredBackground ERROR:`, e);
             }
             ctx.restore();
 

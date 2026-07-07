@@ -12,6 +12,8 @@ const { scaleDownToFitAspectRatio } = require('./scale_down.js');
 const LEFT_X = 20;
 const MAX_COMBINED_RENDER_WIDTH = 2600;
 const BLUR_DOWNSAMPLE_FACTOR = 14;
+const BLUR_BOX_RADIUS = 5;
+const BLUR_BOX_PASSES = 3;
 
 // Helpers --------------------------------------------------------------------
 
@@ -169,6 +171,93 @@ function drawContainedImage(ctx, img, rect) {
     ctx.drawImage(img, contain.x, contain.y, contain.width, contain.height);
 }
 
+function blurImageData(imageData, radius = BLUR_BOX_RADIUS, passes = BLUR_BOX_PASSES) {
+    const { width, height, data } = imageData;
+    const blurRadius = Math.max(1, Math.floor(radius));
+    const passCount = Math.max(1, Math.floor(passes));
+    let source = new Uint8ClampedArray(data);
+    let target = new Uint8ClampedArray(source.length);
+
+    for (let pass = 0; pass < passCount; pass++) {
+        blurHorizontal(source, target, width, height, blurRadius);
+        blurVertical(target, source, width, height, blurRadius);
+    }
+
+    data.set(source);
+    return imageData;
+}
+
+function blurHorizontal(source, target, width, height, radius) {
+    const windowSize = radius * 2 + 1;
+
+    for (let y = 0; y < height; y++) {
+        const rowOffset = y * width * 4;
+        let r = 0, g = 0, b = 0, a = 0;
+
+        for (let ix = -radius; ix <= radius; ix++) {
+            const x = Math.min(width - 1, Math.max(0, ix));
+            const i = rowOffset + x * 4;
+            r += source[i];
+            g += source[i + 1];
+            b += source[i + 2];
+            a += source[i + 3];
+        }
+
+        for (let x = 0; x < width; x++) {
+            const out = rowOffset + x * 4;
+            target[out] = r / windowSize;
+            target[out + 1] = g / windowSize;
+            target[out + 2] = b / windowSize;
+            target[out + 3] = a / windowSize;
+
+            const removeX = Math.max(0, x - radius);
+            const addX = Math.min(width - 1, x + radius + 1);
+            const remove = rowOffset + removeX * 4;
+            const add = rowOffset + addX * 4;
+
+            r += source[add] - source[remove];
+            g += source[add + 1] - source[remove + 1];
+            b += source[add + 2] - source[remove + 2];
+            a += source[add + 3] - source[remove + 3];
+        }
+    }
+}
+
+function blurVertical(source, target, width, height, radius) {
+    const windowSize = radius * 2 + 1;
+
+    for (let x = 0; x < width; x++) {
+        let r = 0, g = 0, b = 0, a = 0;
+
+        for (let iy = -radius; iy <= radius; iy++) {
+            const y = Math.min(height - 1, Math.max(0, iy));
+            const i = (y * width + x) * 4;
+            r += source[i];
+            g += source[i + 1];
+            b += source[i + 2];
+            a += source[i + 3];
+        }
+
+        for (let y = 0; y < height; y++) {
+            const out = (y * width + x) * 4;
+            target[out] = r / windowSize;
+            target[out + 1] = g / windowSize;
+            target[out + 2] = b / windowSize;
+            target[out + 3] = a / windowSize;
+
+            const removeY = Math.max(0, y - radius);
+            const addY = Math.min(height - 1, y + radius + 1);
+            const remove = (removeY * width + x) * 4;
+            const add = (addY * width + x) * 4;
+
+            r += source[add] - source[remove];
+            g += source[add + 1] - source[remove + 1];
+            b += source[add + 2] - source[remove + 2];
+            a += source[add + 3] - source[remove + 3];
+        }
+    }
+}
+
 function drawApproxBlurredBackground(ctx, imgs, rects, width, height) {
     const blurW = Math.max(1, Math.round(width / BLUR_DOWNSAMPLE_FACTOR));
     const blurH = Math.max(1, Math.round(height / BLUR_DOWNSAMPLE_FACTOR));
@@ -190,10 +279,33 @@ function drawApproxBlurredBackground(ctx, imgs, rects, width, height) {
         });
     }
 
+    const imageData = blurCtx.getImageData(0, 0, blurW, blurH);
+    blurCtx.putImageData(blurImageData(imageData), 0, 0);
+
     ctx.save();
     ctx.imageSmoothingEnabled = true;
     ctx.imageSmoothingQuality = 'high';
     ctx.drawImage(blurCanvas, 0, 0, width, height);
+    ctx.restore();
+}
+
+function drawImageWithBlurredBackground(ctx, img, x, y, width, height) {
+    const blurW = Math.max(1, Math.round(width / BLUR_DOWNSAMPLE_FACTOR));
+    const blurH = Math.max(1, Math.round(height / BLUR_DOWNSAMPLE_FACTOR));
+    const blurCanvas = createCanvas(blurW, blurH);
+    const blurCtx = blurCanvas.getContext('2d');
+
+    blurCtx.imageSmoothingEnabled = true;
+    blurCtx.imageSmoothingQuality = 'high';
+    drawCoverImage(blurCtx, img, { x: 0, y: 0, width: blurW, height: blurH });
+    const imageData = blurCtx.getImageData(0, 0, blurW, blurH);
+    blurCtx.putImageData(blurImageData(imageData), 0, 0);
+
+    ctx.save();
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(blurCanvas, x, y, width, height);
+    drawContainedImage(ctx, img, { x, y, width, height });
     ctx.restore();
 }
 
@@ -366,6 +478,7 @@ module.exports = {
     fitWithinBox,
     getCombinedNaturalSize,
     getTileRects,
+    drawImageWithBlurredBackground,
     loadCombinedGalleryCanvas,
     singleImage,
     singleVideoFrame,
