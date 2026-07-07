@@ -221,6 +221,15 @@ function buildCombinedGalleryCanvas(imgs, items) {
     return canvas;
 }
 
+async function loadCombinedGalleryCanvas(items) {
+    const galleryItems = Array.isArray(items) ? items.slice(0, 4) : [];
+    const urls = galleryItems.map(getUrl).filter(Boolean);
+    if (!urls.length) return null;
+
+    const imgs = await Promise.all(urls.map(u => loadImage(u)));
+    return buildCombinedGalleryCanvas(imgs, galleryItems);
+}
+
 function computeBaseY(defaultYPosition, calculatedCanvasHeightFromDescLines, heightShim) {
     // If caller provides a Y, trust it (this is now the normal path)
     if (Number.isFinite(defaultYPosition)) return Math.max(0, defaultYPosition);
@@ -293,6 +302,11 @@ function measureGalleryHeight(metadata, mediaMaxHeight, mediaMaxWidth) {
     const items = getItems(metadata).slice(0, 4);
     if (!items.length) return 0;
 
+    if (items.length === 1) {
+        const firstSize = getSize(items[0]) || { width: mediaMaxWidth, height: mediaMaxHeight };
+        return scaleDownToFitAspectRatio(firstSize, mediaMaxHeight, mediaMaxWidth).height;
+    }
+
     const combinedSize = getCombinedNaturalSize(items);
     const scaled = fitWithinBox(
         combinedSize || { width: mediaMaxWidth, height: mediaMaxHeight },
@@ -352,6 +366,7 @@ module.exports = {
     fitWithinBox,
     getCombinedNaturalSize,
     getTileRects,
+    loadCombinedGalleryCanvas,
     singleImage,
     singleVideoFrame,
     renderImageGallery,

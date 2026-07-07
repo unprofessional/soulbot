@@ -18,6 +18,14 @@ function imageItem(width, height) {
 }
 
 describe('VX-style image gallery sizing', () => {
+    test('single-image height matches the legacy draw scaler when small images upscale', () => {
+        const items = [
+            imageItem(400, 180),
+        ];
+
+        expect(measureGalleryHeight({ mediaExtended: items }, 600, 560)).toBe(251);
+    });
+
     test('uses the largest image as the canonical two-image tile size', () => {
         const items = [
             imageItem(1206, 1539),

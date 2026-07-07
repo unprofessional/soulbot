@@ -2,7 +2,7 @@
 // features/twitter-post/twitter_canvas.js
 
 const { createCanvas } = require('canvas');
-const { renderImageGallery } = require('./image_gallery_rendering.js');
+const { loadCombinedGalleryCanvas, renderImageGallery } = require('./image_gallery_rendering.js');
 const {
     drawBasicElements,
     drawQtBasicElements,
@@ -336,8 +336,13 @@ async function createTwitterCanvas(metadataJson, isImage) {
 
     if (qtMetadata) {
         const qtPfp = await safeLoadImage(qtMetadata.pfpUrl);
+        const qtImageMedia = Array.isArray(qtMedia)
+            ? qtMedia.filter(m => (m?.type || '').toLowerCase() === 'image')
+            : [];
         const qtMediaUrl = qtFirstThumbUrl || null;
-        const qtMediaImg = qtMediaUrl ? await safeLoadImage(qtMediaUrl) : undefined;
+        const qtMediaImg = qtImageMedia.length > 1
+            ? await loadCombinedGalleryCanvas(qtImageMedia)
+            : (qtMediaUrl ? await safeLoadImage(qtMediaUrl) : undefined);
         const qtUseDesktopLayout = false;
 
         log('qt:draw', {

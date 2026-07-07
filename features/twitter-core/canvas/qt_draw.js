@@ -171,9 +171,9 @@ function drawQtBasicElements(ctx, fontChain, metadata, pfp, mediaObj, options) {
             ctx.roundRect(mediaX + 0.5, mediaY + 0.5, w - 1, h - 1, r);
             ctx.clip();
             try {
-                cropSingleImage(ctx, mediaObj, w, h, mediaX, mediaY, { tag: 'qt/expanded', debugOverlay: DEBUG });
+                ctx.drawImage(mediaObj, mediaX, mediaY, w, h);
             } catch (e) {
-                console.warn(`${TAG} [expanded] cropSingleImage ERROR:`, e);
+                console.warn(`${TAG} [expanded] drawImage ERROR:`, e);
             }
             ctx.restore();
 

@@ -45,6 +45,39 @@ describe('computeQtSizing', () => {
         expect(qtMetadata.description).not.toContain('\n');
     });
 
+    test('sizes expanded multi-image QT media from the VX-style composite aspect', () => {
+        const qtMetadata = {
+            description: 'short quote',
+            mediaExtended: [
+                {
+                    type: 'image',
+                    size: { width: 1206, height: 1539 },
+                },
+                {
+                    type: 'image',
+                    size: { width: 896, height: 1152 },
+                },
+            ],
+        };
+
+        const result = computeQtSizing(makeCtx(), {
+            qtMetadata,
+            qtMedia: qtMetadata.mediaExtended,
+            qtFirst: qtMetadata.mediaExtended[0],
+            hasImgs: false,
+            hasVids: false,
+            fontChain: 'sans-serif',
+            maxQtDescChars: 500,
+        });
+
+        expect(result.expandQtMedia).toBe(true);
+        expect(result.qtExpandedMediaSize).toEqual({
+            width: 520,
+            height: 332,
+        });
+        expect(qtMetadata._expandedMediaHeight).toBe(332);
+    });
+
     test('keeps compact wrapping when the primary tweet already has media', () => {
         const qtMetadata = {
             description: 'alpha alpha alpha alpha alpha alpha alpha alpha',
