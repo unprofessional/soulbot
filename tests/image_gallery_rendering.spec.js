@@ -61,6 +61,30 @@ describe('VX-style image gallery sizing', () => {
         ]);
     });
 
+    test('places four images into a two-by-two VX-style grid', () => {
+        expect(getTileRects(4, 1000, 800)).toEqual([
+            { x: 0, y: 0, width: 500, height: 400 },
+            { x: 500, y: 0, width: 500, height: 400 },
+            { x: 0, y: 400, width: 500, height: 400 },
+            { x: 500, y: 400, width: 500, height: 400 },
+        ]);
+    });
+
+    test('uses a two-by-two natural canvas for four images', () => {
+        const items = [
+            imageItem(640, 360),
+            imageItem(300, 800),
+            imageItem(1000, 300),
+            imageItem(480, 480),
+        ];
+
+        expect(getCombinedNaturalSize(items)).toEqual({
+            width: 2000,
+            height: 600,
+        });
+        expect(measureGalleryHeight({ mediaExtended: items }, 600, 560)).toBe(168);
+    });
+
     test('computes contain and cover draw rectangles without changing aspect ratio', () => {
         const contained = containRect(1206, 1539, 0, 0, 280, 357);
         expect(contained.y).toBe(0);
