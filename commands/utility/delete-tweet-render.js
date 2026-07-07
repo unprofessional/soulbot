@@ -1,13 +1,25 @@
 const { SlashCommandBuilder } = require('discord.js');
-const { deleteMessage, getMessageById } = require('../../store/services/messages.service.js');
+const {
+    deleteMessage,
+    findTweetRenderByOriginalLink,
+    getMessageById,
+} = require('../../store/services/messages.service.js');
 
 function parseTarget(rawTarget, fallbackChannelId) {
-    const target = String(rawTarget || '').trim();
+    const target = String(rawTarget || '').trim().replace(/^<|>$/g, '');
     if (!target) return null;
+
+    if (/^https?:\/\/(?:www\.)?(?:x|twitter)\.com\/[A-Za-z0-9_]+\/status\/\d+/i.test(target)) {
+        return {
+            type: 'tweet_link',
+            url: target,
+        };
+    }
 
     const linkMatch = target.match(/^https:\/\/discord\.com\/channels\/([^/]+)\/([^/]+)\/([^/]+)$/);
     if (linkMatch) {
         return {
+            type: 'discord_message',
             guildId: linkMatch[1],
             channelId: linkMatch[2],
             messageId: linkMatch[3],
@@ -16,6 +28,7 @@ function parseTarget(rawTarget, fallbackChannelId) {
 
     if (/^\d+$/.test(target)) {
         return {
+            type: 'discord_message',
             guildId: null,
             channelId: fallbackChannelId,
             messageId: target,
@@ -33,7 +46,7 @@ module.exports = {
         .addStringOption(option =>
             option
                 .setName('target')
-                .setDescription('A Discord message link or message ID for the rendered tweet post.')
+                .setDescription('A rendered tweet message link/ID, or the original X/Twitter URL.')
                 .setRequired(true)
         ),
 
@@ -43,7 +56,7 @@ module.exports = {
 
         if (!parsedTarget) {
             return interaction.reply({
-                content: 'Provide a valid Discord message link or message ID.',
+                content: 'Provide a valid rendered tweet message link/ID, or the original X/Twitter URL.',
                 ephemeral: true,
             });
         }
@@ -55,7 +68,9 @@ module.exports = {
             });
         }
 
-        const record = await getMessageById(parsedTarget.messageId);
+        const record = parsedTarget.type === 'tweet_link'
+            ? await findTweetRenderByOriginalLink(interaction.guildId, parsedTarget.url)
+            : await getMessageById(parsedTarget.messageId);
 
         if (!record || record.meta?.kind !== 'twitter_render') {
             return interaction.reply({
@@ -72,6 +87,7 @@ module.exports = {
         }
 
         const channelId = parsedTarget.channelId || record.channel_id;
+        const messageId = parsedTarget.messageId || record.message_id;
 
         if (!channelId) {
             return interaction.reply({
@@ -90,14 +106,14 @@ module.exports = {
                 throw new Error('Target channel is not text-based.');
             }
 
-            const targetMessage = await channel.messages.fetch(parsedTarget.messageId);
+            const targetMessage = await channel.messages.fetch(messageId);
             await targetMessage.delete();
             discordDeleteSucceeded = true;
         } catch (error) {
             console.warn('[delete-tweet-render] Discord delete failed, falling back to DB-only cleanup:', error);
         }
 
-        await deleteMessage(parsedTarget.messageId);
+        await deleteMessage(messageId);
 
         return interaction.editReply({
             content: discordDeleteSucceeded

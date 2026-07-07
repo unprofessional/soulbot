@@ -226,6 +226,38 @@ class MessageDAO {
         }
     }
 
+    async findTweetRenderByOriginalLink(guildId, url) {
+        const urlWithoutParams = String(url || '').split('?')[0];
+
+        const twitterUrl = urlWithoutParams.replace(/^https?:\/\/x\.com/, 'https://twitter.com');
+        const xUrl = urlWithoutParams.replace(/^https?:\/\/twitter\.com/, 'https://x.com');
+
+        const sql = `
+            SELECT *
+            FROM message
+            WHERE guild_id = $1
+              AND deleted_at IS NULL
+              AND meta->>'kind' = 'twitter_render'
+              AND (
+                  meta->>'originalLink' ILIKE $2 OR meta->>'originalLink' ILIKE $3
+              )
+            ORDER BY created_at ASC
+            LIMIT 1
+        `;
+
+        try {
+            const result = await pool.query(sql, [
+                guildId,
+                twitterUrl,
+                xUrl,
+            ]);
+            return result.rows[0] || null;
+        } catch (err) {
+            console.error('Error finding tweet render by original link:', err);
+            throw err;
+        }
+    }
+
     async findByMessageId(messageId) {
         const sql = `
             SELECT *

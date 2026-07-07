@@ -6,7 +6,7 @@ const { fetchMetadata, fetchQTMetadata, toFixupx } = require('./fetch_metadata.j
 const { renderTwitterPost } = require('./render_twitter_post.js');
 const { stripQueryParams } = require('./utils.js');
 const { enrichMetadataWithTranslation } = require('./translation_service.js');
-const { findMessagesByLink } = require('../../store/services/messages.service.js');
+const { deleteMessage, findMessagesByLink } = require('../../store/services/messages.service.js');
 const { MediaDrainError } = require('../../app/media_work_registry.js');
 
 // Domains we consider "known" (for optional logging)
@@ -32,6 +32,10 @@ function replyForError(meta) {
 
     // Fallback: short ops-friendly summary (most cases will already be summarized upstream)
     return `Upstream error.\n\`\`\`\n${meta?.message || 'Unexpected'}\n\`\`\``;
+}
+
+function isUnknownDiscordMessageError(error) {
+    return error?.code === 10008 || /Unknown Message/i.test(String(error?.message || ''));
 }
 
 async function handleTwitterUrl(message, { guildId }) {
@@ -115,6 +119,7 @@ async function handleTwitterUrl(message, { guildId }) {
 
         const channelId = existing.meta?.thread_id ? existing.meta.threadId : existing.channel_id;
         const link = `https://discord.com/channels/${guildId}/${channelId}/${existing.message_id}`;
+        let existingRenderIsGone = false;
 
         console.log('[TwitterHandler] Resolved original message location:', {
             guildId,
@@ -141,24 +146,37 @@ async function handleTwitterUrl(message, { guildId }) {
                 }
 
                 if (originalChannel && typeof originalChannel.isTextBased === 'function' && originalChannel.isTextBased()) {
-                    console.log('[TwitterHandler] Fetching original message:', existing.message_id);
-                    const originalMessage = await originalChannel.messages.fetch(existing.message_id);
+                    try {
+                        console.log('[TwitterHandler] Fetching original message:', existing.message_id);
+                        const originalMessage = await originalChannel.messages.fetch(existing.message_id);
 
-                    console.log('[TwitterHandler] originalMessage fetched, checking for .forward():', {
-                        originalMessageId: originalMessage?.id,
-                        hasForward: typeof originalMessage?.forward === 'function',
-                    });
-
-                    // discord.js v14.21+ has Message#forward
-                    if (originalMessage && typeof originalMessage.forward === 'function') {
-                        console.log('[TwitterHandler] Forwarding originalMessage into current channel:', {
-                            fromChannelId: originalChannel.id,
-                            toChannelId: message.channel.id,
+                        console.log('[TwitterHandler] originalMessage fetched, checking for .forward():', {
+                            originalMessageId: originalMessage?.id,
+                            hasForward: typeof originalMessage?.forward === 'function',
                         });
-                        await originalMessage.forward(message.channel);
-                        console.log('[TwitterHandler] Forward completed.');
-                    } else {
-                        console.warn('[TwitterHandler] originalMessage.forward is not a function; check discord.js version.');
+
+                        // discord.js v14.21+ has Message#forward
+                        if (originalMessage && typeof originalMessage.forward === 'function') {
+                            console.log('[TwitterHandler] Forwarding originalMessage into current channel:', {
+                                fromChannelId: originalChannel.id,
+                                toChannelId: message.channel.id,
+                            });
+                            await originalMessage.forward(message.channel);
+                            console.log('[TwitterHandler] Forward completed.');
+                        } else {
+                            console.warn('[TwitterHandler] originalMessage.forward is not a function; check discord.js version.');
+                        }
+                    } catch (err) {
+                        if (isUnknownDiscordMessageError(err)) {
+                            console.warn('[TwitterHandler] Existing tweet render was missing in Discord; cleaning stale DB row and continuing.', {
+                                existingMessageId: existing.message_id,
+                                channelId,
+                            });
+                            await deleteMessage(existing.message_id);
+                            existingRenderIsGone = true;
+                        } else {
+                            throw err;
+                        }
                     }
                 } else {
                     console.warn('[TwitterHandler] originalChannel is not text-based; cannot fetch messages.');
@@ -170,8 +188,12 @@ async function handleTwitterUrl(message, { guildId }) {
             console.warn('[TwitterHandler] No valid channelId resolved for existing tweet message; skipping forward.');
         }
 
-        console.log('[TwitterHandler] Replying with duplicate notice link.');
-        return message.reply(`Someone already posted this here: ${link}`);
+        if (existingRenderIsGone) {
+            console.log('[TwitterHandler] Stale duplicate record cleaned; proceeding with fresh render.');
+        } else {
+            console.log('[TwitterHandler] Replying with duplicate notice link.');
+            return message.reply(`Someone already posted this here: ${link}`);
+        }
     }
 
     console.log('[TwitterHandler] No existing message found, proceeding with fresh fetchMetadata.');

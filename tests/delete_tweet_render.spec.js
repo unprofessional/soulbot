@@ -1,4 +1,5 @@
 const mockGetMessageById = jest.fn();
+const mockFindTweetRenderByOriginalLink = jest.fn();
 const mockDeleteMessage = jest.fn();
 
 jest.mock('discord.js', () => ({
@@ -18,6 +19,7 @@ jest.mock('discord.js', () => ({
 }));
 
 jest.mock('../store/services/messages.service.js', () => ({
+    findTweetRenderByOriginalLink: mockFindTweetRenderByOriginalLink,
     getMessageById: mockGetMessageById,
     deleteMessage: mockDeleteMessage,
 }));
@@ -47,6 +49,7 @@ describe('/delete-tweet-render', () => {
     beforeEach(() => {
         jest.clearAllMocks();
         mockDeleteMessage.mockResolvedValue(true);
+        mockFindTweetRenderByOriginalLink.mockResolvedValue(null);
     });
 
     test('rejects untracked messages', async () => {
@@ -109,6 +112,47 @@ describe('/delete-tweet-render', () => {
         expect(fetchMessage).toHaveBeenCalledWith('123');
         expect(deleteFn).toHaveBeenCalled();
         expect(mockDeleteMessage).toHaveBeenCalledWith('123');
+        expect(interaction.editReply).toHaveBeenCalledWith({
+            content: 'Deleted your tweet render.',
+        });
+    });
+
+    test('deletes owned tweet renders by original tweet URL', async () => {
+        mockFindTweetRenderByOriginalLink.mockResolvedValue({
+            message_id: 'render-msg-1',
+            channel_id: 'channel-9',
+            meta: {
+                kind: 'twitter_render',
+                owningUserId: 'user-1',
+                originalLink: 'https://x.com/example/status/1234567890123456789',
+            },
+        });
+
+        const deleteFn = jest.fn().mockResolvedValue();
+        const fetchMessage = jest.fn().mockResolvedValue({ delete: deleteFn });
+        const fetchChannel = jest.fn().mockResolvedValue({
+            isTextBased: () => true,
+            messages: { fetch: fetchMessage },
+        });
+
+        const interaction = buildInteraction({
+            target: 'https://x.com/example/status/1234567890123456789',
+        });
+        interaction.client.channels.fetch = fetchChannel;
+        interaction.deferReply.mockResolvedValue();
+        interaction.editReply.mockResolvedValue();
+
+        await command.execute(interaction);
+
+        expect(mockFindTweetRenderByOriginalLink).toHaveBeenCalledWith(
+            'guild-1',
+            'https://x.com/example/status/1234567890123456789'
+        );
+        expect(mockGetMessageById).not.toHaveBeenCalled();
+        expect(fetchChannel).toHaveBeenCalledWith('channel-9');
+        expect(fetchMessage).toHaveBeenCalledWith('render-msg-1');
+        expect(deleteFn).toHaveBeenCalled();
+        expect(mockDeleteMessage).toHaveBeenCalledWith('render-msg-1');
         expect(interaction.editReply).toHaveBeenCalledWith({
             content: 'Deleted your tweet render.',
         });
