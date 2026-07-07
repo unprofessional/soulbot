@@ -15,6 +15,7 @@ jest.mock('../features/twitter-core/translation_service.js', () => ({
 }));
 
 jest.mock('../store/services/messages.service.js', () => ({
+    deleteMessage: jest.fn(),
     findMessagesByLink: jest.fn(),
 }));
 
@@ -24,7 +25,7 @@ const {
 } = require('../features/twitter-core/fetch_metadata.js');
 const { renderTwitterPost } = require('../features/twitter-core/render_twitter_post.js');
 const { enrichMetadataWithTranslation } = require('../features/twitter-core/translation_service.js');
-const { findMessagesByLink } = require('../store/services/messages.service.js');
+const { deleteMessage, findMessagesByLink } = require('../store/services/messages.service.js');
 const { handleTwitterUrl } = require('../features/twitter-core/twitter_handler.js');
 const { loadJsonFixture } = require('./helpers/twitter_fixtures.js');
 
@@ -168,6 +169,46 @@ describe('twitter_handler deterministic fixture flows', () => {
         expect(forward).toHaveBeenCalledWith(message.channel);
         expect(message.reply).toHaveBeenCalledWith(
             'Someone already posted this here: https://discord.com/channels/guild-1/channel-9/orig-msg-1'
+        );
+    });
+
+    test('cleans up stale duplicate records and renders when the original Discord message is gone', async () => {
+        const fixture = loadJsonFixture('2040243625179668887.json');
+        const message = buildMessage(fixture.tweetURL);
+        const originalChannel = {
+            id: 'channel-9',
+            isTextBased: () => true,
+            messages: {
+                fetch: jest.fn().mockRejectedValue(Object.assign(new Error('Unknown Message'), { code: 10008 })),
+            },
+        };
+        message.client.channels.fetch.mockResolvedValue(originalChannel);
+        findMessagesByLink.mockResolvedValue([{
+            message_id: 'stale-render-1',
+            channel_id: 'channel-9',
+            meta: {
+                kind: 'twitter_render',
+            },
+        }]);
+        fetchMetadata.mockResolvedValue({ ...fixture });
+
+        await handleTwitterUrl(message, { guildId: 'guild-1' });
+
+        expect(originalChannel.messages.fetch).toHaveBeenCalledWith('stale-render-1');
+        expect(deleteMessage).toHaveBeenCalledWith('stale-render-1');
+        expect(fetchMetadata).toHaveBeenCalledWith(
+            fixture.tweetURL,
+            message,
+            false,
+            expect.any(Function),
+        );
+        expect(renderTwitterPost).toHaveBeenCalledWith(
+            expect.objectContaining({ tweetID: fixture.tweetID }),
+            message,
+            fixture.tweetURL,
+        );
+        expect(message.reply).not.toHaveBeenCalledWith(
+            expect.stringContaining('Someone already posted this here:')
         );
     });
 });

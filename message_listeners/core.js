@@ -61,10 +61,8 @@ async function initializeListeners(client) {
             return;
         }
 
-        if (!deletedMessage.partial) {
-            console.log(`🗑️ Message deleted: ${deletedMessage.id}`);
-            await deleteMessage(deletedMessage.id);
-        }
+        console.log(`🗑️ Message deleted: ${deletedMessage.id}${deletedMessage.partial ? ' (partial)' : ''}`);
+        await deleteMessage(deletedMessage.id);
     });
 
     client.on(Events.MessageReactionAdd, async (reaction, user) => {
