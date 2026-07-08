@@ -14,6 +14,7 @@ const {
     GAP_TEXT_TO_MEDIA,
     GAP_MEDIA_TO_FOOTER,
     GAP_TEXT_TO_FOOTER,
+    GAP_HEADER_TO_MEDIA_NO_DESC,
     FOOTER_LINE_H,
     FOOTER_FONT_SIZE,
     MAX_DESC_CHARS,
@@ -111,7 +112,7 @@ function measureMainLayout(ctx, {
     const { willDrawGallery, ext } = computeWillDrawGallery(images);
 
     const mediaY = willDrawGallery
-        ? (descBottomY + GAP_TEXT_TO_MEDIA)
+        ? (hasVisibleDesc ? (descBottomY + GAP_TEXT_TO_MEDIA) : (70 + GAP_HEADER_TO_MEDIA_NO_DESC))
         : 0;
 
     const galleryH = willDrawGallery
