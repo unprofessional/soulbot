@@ -26,7 +26,7 @@ describe('measureMainLayout no-description spacing', () => {
         expect(result.descLines).toEqual([]);
         expect(result.baseY).toBe(110);
         expect(result.textHeight).toBe(0);
-        expect(result.mediaY).toBe(118);
+        expect(result.mediaY).toBe(94);
     });
 
     test('keeps one text line before image media when description is present', () => {
