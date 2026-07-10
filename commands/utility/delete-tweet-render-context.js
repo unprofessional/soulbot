@@ -1,6 +1,5 @@
 const {
     ApplicationCommandType,
-    ApplicationIntegrationType,
     ContextMenuCommandBuilder,
 } = require('discord.js');
 const { deleteTrackedTweetRender } = require('./delete-tweet-render.js');
@@ -8,11 +7,7 @@ const { deleteTrackedTweetRender } = require('./delete-tweet-render.js');
 module.exports = {
     data: new ContextMenuCommandBuilder()
         .setName('Delete tweet render')
-        .setType(ApplicationCommandType.Message)
-        .setIntegrationTypes(
-            ApplicationIntegrationType.GuildInstall,
-            ApplicationIntegrationType.UserInstall,
-        ),
+        .setType(ApplicationCommandType.Message),
 
     async execute(interaction) {
         const targetMessage = interaction.targetMessage;

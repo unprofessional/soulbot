@@ -31,6 +31,25 @@ const getCommandFilesRecursively = (dir) => {
 };
 
 const commandKey = command => `${command.type || 1}:${command.name}`;
+const MESSAGE_CONTEXT_COMMAND_TYPE = 3;
+
+const commandLogShape = command => ({
+    id: command.id,
+    name: command.name,
+    type: command.type,
+    contexts: command.contexts,
+    integration_types: command.integration_types,
+    dm_permission: command.dm_permission,
+    default_member_permissions: command.default_member_permissions,
+    version: command.version,
+});
+
+const stripGlobalOnlyCommandFields = command => {
+    const commandBody = { ...command };
+    delete commandBody.contexts;
+    delete commandBody.integration_types;
+    return commandBody;
+};
 
 const getMissingCommands = (requestedCommands, registeredCommands) => {
     const registeredList = Array.isArray(registeredCommands) ? registeredCommands : [];
@@ -71,6 +90,40 @@ const reconcileRegisteredCommands = async ({ rest, route, scope, requestedComman
     logRegisteredCommands(`${scope} commands after reconciliation`, requestedCommands, finalCommands);
 };
 
+const registerMessageContextCommandsForGuilds = async ({ client, rest, discordClientId, commands }) => {
+    const messageContextCommands = commands.filter(command => (command.type || 1) === MESSAGE_CONTEXT_COMMAND_TYPE);
+
+    if (messageContextCommands.length === 0) {
+        console.log('[commands] No message context commands to register per guild.');
+        return;
+    }
+
+    const guilds = [...client.guilds.cache.values()];
+    console.log(`[commands] Registering ${messageContextCommands.length} message context command(s) across ${guilds.length} guild(s).`);
+
+    for (const guild of guilds) {
+        const route = Routes.applicationGuildCommands(discordClientId, guild.id);
+
+        try {
+            for (const command of messageContextCommands) {
+                const commandBody = stripGlobalOnlyCommandFields(command);
+                const registeredCommand = await rest.post(route, { body: commandBody });
+                console.log(`[commands] Upserted guild message context command: guild=${guild.id} name="${command.name}"`);
+                console.table([commandLogShape(registeredCommand)]);
+            }
+
+            const guildReadback = await rest.get(route);
+            const contextReadback = Array.isArray(guildReadback)
+                ? guildReadback.filter(command => command.type === MESSAGE_CONTEXT_COMMAND_TYPE)
+                : [];
+            console.log(`[commands] Guild message context readback: guild=${guild.id} count=${contextReadback.length}`);
+            console.table(contextReadback.map(commandLogShape));
+        } catch (err) {
+            console.error(`[commands] Failed to register guild message context commands for guild=${guild.id}:`, err);
+        }
+    }
+};
+
 const initializeCommands = async (client) => {
     client.commands = new Collection();
 
@@ -96,8 +149,9 @@ const initializeCommands = async (client) => {
     }
 
     const shouldRegisterCommands = registerGuildCommands || registerGlobalCommands;
+    const globalCommandsForAPI = commandsForAPI.filter(command => (command.type || 1) !== MESSAGE_CONTEXT_COMMAND_TYPE);
     const guildCommandsForAPI = registerGlobalCommands
-        ? commandsForAPI.filter(command => (command.type || 1) !== 3)
+        ? commandsForAPI.filter(command => (command.type || 1) !== MESSAGE_CONTEXT_COMMAND_TYPE)
         : commandsForAPI;
 
     if (shouldRegisterCommands && !token) {
@@ -129,14 +183,14 @@ const initializeCommands = async (client) => {
             const globalCommandsRoute = Routes.applicationCommands(discordClientId);
             console.log('🔄 Registering global application (/) commands...');
             const registeredCommands = await rest.put(globalCommandsRoute, {
-                body: commandsForAPI,
+                body: globalCommandsForAPI,
             });
-            logRegisteredCommands('global commands', commandsForAPI, registeredCommands);
+            logRegisteredCommands('global commands', globalCommandsForAPI, registeredCommands);
             await reconcileRegisteredCommands({
                 rest,
                 route: globalCommandsRoute,
                 scope: 'global',
-                requestedCommands: commandsForAPI,
+                requestedCommands: globalCommandsForAPI,
             });
         } catch (err) {
             console.error('❌ Error registering application commands:', err);
@@ -199,9 +253,21 @@ const initializeCommands = async (client) => {
             activities: [{ name: 'with human emotions', type: 0 }],
             status: 'online',
         });
+
+        if (registerGuildCommands && rest && discordClientId) {
+            void registerMessageContextCommandsForGuilds({
+                client,
+                rest,
+                discordClientId,
+                commands: commandsForAPI,
+            });
+        }
     });
 
     return client;
 };
 
-module.exports = { initializeCommands };
+module.exports = {
+    initializeCommands,
+    registerMessageContextCommandsForGuilds,
+};
