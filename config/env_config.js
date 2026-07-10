@@ -4,10 +4,13 @@ require('dotenv').config();
 const token = process.env.DISCORD_BOT_TOKEN;
 const runMode = process.env.RUN_MODE || 'development';
 const soulbotUserId = process.env.SOULBOT_USER_ID || '891854264845094922';
+const discordClientId = process.env.DISCORD_CLIENT_ID || process.env.CLIENT_ID || null;
 const healthPort = Number(process.env.HEALTH_PORT || '8080');
 const shutdownTimeoutMs = Number(process.env.SHUTDOWN_TIMEOUT_MS || '25000');
 const drainDelayMs = Number(process.env.DRAIN_DELAY_MS || '10000');
 const registerGlobalCommands = process.env.REGISTER_GLOBAL_COMMANDS === 'true';
+const registerGuildCommands = process.env.REGISTER_GUILD_COMMANDS === 'true';
+const discordGuildId = process.env.DISCORD_GUILD_ID || process.env.DEV_GUILD_ID || null;
 const leaderLockId = Number(process.env.LEADER_LOCK_ID || '424242');
 const leaderLockRetryMs = Number(process.env.LEADER_LOCK_RETRY_MS || '2000');
 
@@ -39,7 +42,7 @@ const kokoroUrl = process.env.KOKORO_URL || 'http://kokoro-http-service:8081';
 const ollamaTranslationModel = process.env.OLLAMA_TRANSLATION_MODEL || 'translategemma:12b';
 
 module.exports = {
-    token, runMode, soulbotUserId, healthPort, shutdownTimeoutMs, drainDelayMs, registerGlobalCommands, leaderLockId, leaderLockRetryMs,
+    token, runMode, soulbotUserId, discordClientId, healthPort, shutdownTimeoutMs, drainDelayMs, registerGlobalCommands, registerGuildCommands, discordGuildId, leaderLockId, leaderLockRetryMs,
     ollamaHost, ollamaPort, ollamaChatEndpoint, ollamaGenerateEndpoint, ollamaEmbeddingEndpoint, ollamaModel, ollamaEmbedModel,
     pgHost, pgPort, pgUser, pgPass, pgDb,
     chromaHost, chromaPort, chromaUpsertEndpoint,

@@ -16,7 +16,9 @@ SOULbot runs as a Docker Compose service. Secrets are managed via [Infisical](ht
 - The bot exposes health endpoints on `HEALTH_PORT` (default `8080`): `/livez`, `/readyz`, and `/drain`
 - During shutdown the bot marks itself unready, pauses new queued work, waits for active work to finish, then disconnects Discord and closes Postgres
 - A Postgres advisory lock serializes Discord leadership so a new container waits for the old one to stand down before it logs in
-- Set `REGISTER_GLOBAL_COMMANDS=true` only for the one-off rollout or admin job that should publish slash command definitions
+- Set `REGISTER_GUILD_COMMANDS=true` to publish application commands immediately to the configured guild
+- Set `REGISTER_GLOBAL_COMMANDS=true` to publish global application commands; global changes may take time to propagate
+- Command registration requires `DISCORD_CLIENT_ID`/`DISCORD_GUILD_ID`, or their legacy aliases `CLIENT_ID`/`DEV_GUILD_ID`
 
 ### Secret Management (Infisical)
 

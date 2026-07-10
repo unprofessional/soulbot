@@ -5,9 +5,13 @@ const path = require('node:path');
 const { Collection, REST, Routes, Events } = require('discord.js');
 require('dotenv').config();
 const { shouldAcceptWork } = require('./app/lifecycle.js');
-const { registerGlobalCommands } = require('./config/env_config.js');
-
-const { DISCORD_CLIENT_ID, DISCORD_BOT_TOKEN } = process.env;
+const {
+    discordClientId,
+    discordGuildId,
+    registerGlobalCommands,
+    registerGuildCommands,
+    token,
+} = require('./config/env_config.js');
 
 /**
  * Recursively collect all .js files in a directory
@@ -33,7 +37,7 @@ const initializeCommands = async (client) => {
     const commandFiles = getCommandFilesRecursively(commandsRootPath);
 
     const commandsForAPI = [];
-    const rest = new REST({ version: '10' }).setToken(DISCORD_BOT_TOKEN);
+    const rest = token ? new REST({ version: '10' }).setToken(token) : null;
 
     for (const filePath of commandFiles) {
         try {
@@ -50,15 +54,41 @@ const initializeCommands = async (client) => {
         }
     }
 
+    const shouldRegisterCommands = registerGuildCommands || registerGlobalCommands;
+
+    if (shouldRegisterCommands && !token) {
+        console.warn('⚠️ Command registration was requested, but DISCORD_BOT_TOKEN is not set.');
+    }
+
+    if (shouldRegisterCommands && !discordClientId) {
+        console.warn('⚠️ Command registration was requested, but DISCORD_CLIENT_ID/CLIENT_ID is not set.');
+    }
+
+    // === Register guild application commands ===
+    if (registerGuildCommands && rest && discordClientId && discordGuildId) {
+        try {
+            console.log('🔄 Registering guild application commands...');
+            await rest.put(Routes.applicationGuildCommands(discordClientId, discordGuildId), {
+                body: commandsForAPI,
+            });
+            console.log(`✅ Successfully registered ${commandsForAPI.length} guild commands for ${discordGuildId}:`);
+            console.table(commandsForAPI.map(c => ({ name: c.name, type: c.type, description: c.description })));
+        } catch (err) {
+            console.error('❌ Error registering guild application commands:', err);
+        }
+    } else if (registerGuildCommands && !discordGuildId) {
+        console.warn('⚠️ REGISTER_GUILD_COMMANDS is true, but DISCORD_GUILD_ID/DEV_GUILD_ID is not set.');
+    }
+
     // === Register global application commands ===
-    if (registerGlobalCommands) {
+    if (registerGlobalCommands && rest && discordClientId) {
         try {
             console.log('🔄 Registering global application (/) commands...');
-            await rest.put(Routes.applicationCommands(DISCORD_CLIENT_ID), {
+            await rest.put(Routes.applicationCommands(discordClientId), {
                 body: commandsForAPI,
             });
             console.log(`✅ Successfully registered ${commandsForAPI.length} global commands:`);
-            console.table(commandsForAPI.map(c => ({ name: c.name, description: c.description })));
+            console.table(commandsForAPI.map(c => ({ name: c.name, type: c.type, description: c.description })));
         } catch (err) {
             console.error('❌ Error registering application commands:', err);
         }
