@@ -175,7 +175,7 @@ const initializeApp = async () => {
      * Feature initialization
      */
     initializeListeners(client);
-    initializeCommands(client);
+    await initializeCommands(client);
     initializeGuildMemberUpdate(client);
     initializeGuildMemberAdd(client);
     initializeGuildMemberRemove(client);
