@@ -30,6 +30,22 @@ const getCommandFilesRecursively = (dir) => {
     });
 };
 
+const commandKey = command => `${command.type || 1}:${command.name}`;
+
+const logRegisteredCommands = (scope, requestedCommands, registeredCommands) => {
+    const registeredList = Array.isArray(registeredCommands) ? registeredCommands : [];
+    const registeredKeys = new Set(registeredList.map(commandKey));
+    const missingCommands = requestedCommands.filter(command => !registeredKeys.has(commandKey(command)));
+
+    console.log(`✅ Successfully registered ${registeredList.length}/${requestedCommands.length} ${scope} commands:`);
+    console.table(registeredList.map(c => ({ name: c.name, type: c.type, description: c.description })));
+
+    if (missingCommands.length > 0) {
+        console.warn(`⚠️ Discord response was missing ${missingCommands.length} ${scope} command(s):`);
+        console.table(missingCommands.map(c => ({ name: c.name, type: c.type, description: c.description })));
+    }
+};
+
 const initializeCommands = async (client) => {
     client.commands = new Collection();
 
@@ -68,11 +84,10 @@ const initializeCommands = async (client) => {
     if (registerGuildCommands && rest && discordClientId && discordGuildId) {
         try {
             console.log('🔄 Registering guild application commands...');
-            await rest.put(Routes.applicationGuildCommands(discordClientId, discordGuildId), {
+            const registeredCommands = await rest.put(Routes.applicationGuildCommands(discordClientId, discordGuildId), {
                 body: commandsForAPI,
             });
-            console.log(`✅ Successfully registered ${commandsForAPI.length} guild commands for ${discordGuildId}:`);
-            console.table(commandsForAPI.map(c => ({ name: c.name, type: c.type, description: c.description })));
+            logRegisteredCommands(`guild commands for ${discordGuildId}`, commandsForAPI, registeredCommands);
         } catch (err) {
             console.error('❌ Error registering guild application commands:', err);
         }
@@ -84,11 +99,10 @@ const initializeCommands = async (client) => {
     if (registerGlobalCommands && rest && discordClientId) {
         try {
             console.log('🔄 Registering global application (/) commands...');
-            await rest.put(Routes.applicationCommands(discordClientId), {
+            const registeredCommands = await rest.put(Routes.applicationCommands(discordClientId), {
                 body: commandsForAPI,
             });
-            console.log(`✅ Successfully registered ${commandsForAPI.length} global commands:`);
-            console.table(commandsForAPI.map(c => ({ name: c.name, type: c.type, description: c.description })));
+            logRegisteredCommands('global commands', commandsForAPI, registeredCommands);
         } catch (err) {
             console.error('❌ Error registering application commands:', err);
         }
