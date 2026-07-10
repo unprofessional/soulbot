@@ -20,7 +20,7 @@ services:
     stop_grace_period: 35s
     network_mode: bridge
     healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8080/livez"]
+      test: ["CMD", "curl", "-fsS", "http://localhost:8080/livez"]
       interval: 10s
       timeout: 3s
       retries: 3
