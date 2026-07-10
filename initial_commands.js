@@ -96,6 +96,9 @@ const initializeCommands = async (client) => {
     }
 
     const shouldRegisterCommands = registerGuildCommands || registerGlobalCommands;
+    const guildCommandsForAPI = registerGlobalCommands
+        ? commandsForAPI.filter(command => (command.type || 1) !== 3)
+        : commandsForAPI;
 
     if (shouldRegisterCommands && !token) {
         console.warn('⚠️ Command registration was requested, but DISCORD_BOT_TOKEN is not set.');
@@ -110,9 +113,9 @@ const initializeCommands = async (client) => {
         try {
             console.log('🔄 Registering guild application commands...');
             const registeredCommands = await rest.put(Routes.applicationGuildCommands(discordClientId, discordGuildId), {
-                body: commandsForAPI,
+                body: guildCommandsForAPI,
             });
-            logRegisteredCommands(`guild commands for ${discordGuildId}`, commandsForAPI, registeredCommands);
+            logRegisteredCommands(`guild commands for ${discordGuildId}`, guildCommandsForAPI, registeredCommands);
         } catch (err) {
             console.error('❌ Error registering guild application commands:', err);
         }

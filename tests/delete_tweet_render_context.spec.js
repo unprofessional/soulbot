@@ -2,7 +2,7 @@ const mockDeleteTrackedTweetRender = jest.fn();
 
 jest.mock('discord.js', () => ({
     ApplicationCommandType: { Message: 3 },
-    ApplicationIntegrationType: { GuildInstall: 0 },
+    ApplicationIntegrationType: { GuildInstall: 0, UserInstall: 1 },
     ContextMenuCommandBuilder: class ContextMenuCommandBuilder {
         constructor() {
             this.contexts = [];
@@ -27,15 +27,17 @@ jest.mock('discord.js', () => ({
             return this;
         }
         toJSON() {
-            return {
-                contexts: this.contexts,
+            const json = {
                 integration_types: this.integrationTypes,
                 name: this.name,
                 type: this.type,
             };
+            if (this.contexts.length > 0) {
+                json.contexts = this.contexts;
+            }
+            return json;
         }
     },
-    InteractionContextType: { Guild: 0 },
 }));
 
 jest.mock('../commands/utility/delete-tweet-render.js', () => ({
@@ -68,8 +70,7 @@ describe('Delete tweet render message context command', () => {
 
     test('registers as a message context menu command', () => {
         expect(command.data.toJSON()).toEqual({
-            contexts: [0],
-            integration_types: [0],
+            integration_types: [0, 1],
             name: 'Delete tweet render',
             type: 3,
         });
