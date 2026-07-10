@@ -32,10 +32,15 @@ const getCommandFilesRecursively = (dir) => {
 
 const commandKey = command => `${command.type || 1}:${command.name}`;
 
-const logRegisteredCommands = (scope, requestedCommands, registeredCommands) => {
+const getMissingCommands = (requestedCommands, registeredCommands) => {
     const registeredList = Array.isArray(registeredCommands) ? registeredCommands : [];
     const registeredKeys = new Set(registeredList.map(commandKey));
-    const missingCommands = requestedCommands.filter(command => !registeredKeys.has(commandKey(command)));
+    return requestedCommands.filter(command => !registeredKeys.has(commandKey(command)));
+};
+
+const logRegisteredCommands = (scope, requestedCommands, registeredCommands) => {
+    const registeredList = Array.isArray(registeredCommands) ? registeredCommands : [];
+    const missingCommands = getMissingCommands(requestedCommands, registeredCommands);
 
     console.log(`✅ Successfully registered ${registeredList.length}/${requestedCommands.length} ${scope} commands:`);
     console.table(registeredList.map(c => ({ name: c.name, type: c.type, description: c.description })));
@@ -44,6 +49,26 @@ const logRegisteredCommands = (scope, requestedCommands, registeredCommands) => 
         console.warn(`⚠️ Discord response was missing ${missingCommands.length} ${scope} command(s):`);
         console.table(missingCommands.map(c => ({ name: c.name, type: c.type, description: c.description })));
     }
+};
+
+const reconcileRegisteredCommands = async ({ rest, route, scope, requestedCommands }) => {
+    const registeredCommands = await rest.get(route);
+    const missingCommands = getMissingCommands(requestedCommands, registeredCommands);
+
+    if (missingCommands.length === 0) {
+        return;
+    }
+
+    console.warn(`⚠️ Discord readback was missing ${missingCommands.length} ${scope} command(s); upserting individually.`);
+    console.table(missingCommands.map(c => ({ name: c.name, type: c.type, description: c.description })));
+
+    for (const command of missingCommands) {
+        await rest.post(route, { body: command });
+        console.log(`✅ Upserted missing ${scope} command: ${command.name} (type ${command.type || 1})`);
+    }
+
+    const finalCommands = await rest.get(route);
+    logRegisteredCommands(`${scope} commands after reconciliation`, requestedCommands, finalCommands);
 };
 
 const initializeCommands = async (client) => {
@@ -98,11 +123,18 @@ const initializeCommands = async (client) => {
     // === Register global application commands ===
     if (registerGlobalCommands && rest && discordClientId) {
         try {
+            const globalCommandsRoute = Routes.applicationCommands(discordClientId);
             console.log('🔄 Registering global application (/) commands...');
-            const registeredCommands = await rest.put(Routes.applicationCommands(discordClientId), {
+            const registeredCommands = await rest.put(globalCommandsRoute, {
                 body: commandsForAPI,
             });
             logRegisteredCommands('global commands', commandsForAPI, registeredCommands);
+            await reconcileRegisteredCommands({
+                rest,
+                route: globalCommandsRoute,
+                scope: 'global',
+                requestedCommands: commandsForAPI,
+            });
         } catch (err) {
             console.error('❌ Error registering application commands:', err);
         }
