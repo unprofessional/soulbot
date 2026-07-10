@@ -5,6 +5,7 @@ const mockFindRecentChannelMessagesIncludingDeleted = jest.fn();
 const mockSave = jest.fn();
 const mockFindByMessageId = jest.fn();
 const mockFindLatestUserIdentities = jest.fn();
+const mockFindLatestTweetRenderByOriginalLinkAcrossGuilds = jest.fn();
 
 jest.mock('../features/twitter-core/render_ownership_registry.js', () => ({
     consumePendingRenderOwnership: jest.fn(),
@@ -18,6 +19,7 @@ jest.mock('../store/dao/message.dao.js', () => {
         findRecentChannelMessagesIncludingDeleted: mockFindRecentChannelMessagesIncludingDeleted,
         findByMessageId: mockFindByMessageId,
         findLatestUserIdentities: mockFindLatestUserIdentities,
+        findLatestTweetRenderByOriginalLinkAcrossGuilds: mockFindLatestTweetRenderByOriginalLinkAcrossGuilds,
         save: mockSave,
     }));
 });
@@ -34,6 +36,7 @@ const {
     getMessageById,
     getSummaryContext,
     getSummaryMessages,
+    findLatestTweetRenderByOriginalLinkAcrossGuilds,
     isExpectedDeletedMessage,
 } = require('../store/services/messages.service');
 const { consumePendingRenderOwnership } = require('../features/twitter-core/render_ownership_registry.js');
@@ -331,6 +334,18 @@ describe('messages service', () => {
 
         await expect(getMessageById('abc')).resolves.toEqual({ message_id: 'abc' });
         expect(mockFindByMessageId).toHaveBeenCalledWith('abc');
+    });
+
+    test('findLatestTweetRenderByOriginalLinkAcrossGuilds delegates to the DAO', async () => {
+        const cachedRender = {
+            message_id: 'render-1',
+            attachments: ['https://cdn.example/render.png'],
+        };
+        mockFindLatestTweetRenderByOriginalLinkAcrossGuilds.mockResolvedValue(cachedRender);
+
+        await expect(findLatestTweetRenderByOriginalLinkAcrossGuilds('https://x.com/user/status/1'))
+            .resolves.toEqual(cachedRender);
+        expect(mockFindLatestTweetRenderByOriginalLinkAcrossGuilds).toHaveBeenCalledWith('https://x.com/user/status/1');
     });
 
     test('getLatestMemberIdentities returns normalized identity rows keyed by member ID', async () => {

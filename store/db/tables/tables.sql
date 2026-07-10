@@ -74,6 +74,12 @@ CREATE TABLE IF NOT EXISTS message (
     created_at TIMESTAMP DEFAULT NOW() -- Timestamp of the message
 );
 
+ALTER TABLE message
+ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT NOW();
+
+ALTER TABLE message
+ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP;
+
 CREATE EXTENSION IF NOT EXISTS pg_trgm;
 CREATE INDEX IF NOT EXISTS idx_guild_guild_id ON guild (guild_id);
 CREATE INDEX IF NOT EXISTS idx_channel_channel_id ON channel (channel_id);
@@ -85,6 +91,12 @@ CREATE INDEX IF NOT EXISTS idx_message_user_id ON message (user_id);
 CREATE INDEX IF NOT EXISTS idx_message_guild_id ON message (guild_id);
 CREATE INDEX IF NOT EXISTS idx_message_content_trgm ON message USING GIN (content gin_trgm_ops);
 CREATE INDEX IF NOT EXISTS idx_message_guild_created ON message (guild_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_message_twitter_render_original_link
+ON message (LOWER(meta->>'originalLink'), created_at DESC)
+WHERE deleted_at IS NULL
+  AND meta->>'kind' = 'twitter_render'
+  AND attachments IS NOT NULL
+  AND cardinality(attachments) > 0;
 
 INSERT INTO feature (type, enabled)
 VALUES ('twitter', TRUE)

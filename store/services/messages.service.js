@@ -244,6 +244,15 @@ const findTweetRenderByOriginalLink = async (guildId, url) => {
     }
 };
 
+const findLatestTweetRenderByOriginalLinkAcrossGuilds = async (url) => {
+    try {
+        return await messageDAO.findLatestTweetRenderByOriginalLinkAcrossGuilds(url);
+    } catch (err) {
+        console.error('Error in findLatestTweetRenderByOriginalLinkAcrossGuilds service:', err);
+        throw err;
+    }
+};
+
 const getMessageById = async (messageId) => {
     try {
         return await messageDAO.findByMessageId(messageId);
@@ -317,6 +326,7 @@ module.exports = {
     getSummaryContext,
     findMessagesByLink,
     findTweetRenderByOriginalLink,
+    findLatestTweetRenderByOriginalLinkAcrossGuilds,
     getMessageById,
     getLatestMemberIdentities,
     updateMessage,

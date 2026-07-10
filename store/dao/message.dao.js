@@ -192,8 +192,8 @@ class MessageDAO {
     async findMessagesByLink(guildId, messageId, url) {
         const urlWithoutParams = url.split('?')[0];
 
-        const twitterUrl = urlWithoutParams.replace(/^https?:\/\/x\.com/, 'https://twitter.com');
-        const xUrl = urlWithoutParams.replace(/^https?:\/\/twitter\.com/, 'https://x.com');
+        const twitterUrl = urlWithoutParams.replace(/^https?:\/\/x\.com/, 'https://twitter.com').toLowerCase();
+        const xUrl = urlWithoutParams.replace(/^https?:\/\/twitter\.com/, 'https://x.com').toLowerCase();
 
         const sql = `
         SELECT * 
@@ -229,8 +229,8 @@ class MessageDAO {
     async findTweetRenderByOriginalLink(guildId, url) {
         const urlWithoutParams = String(url || '').split('?')[0];
 
-        const twitterUrl = urlWithoutParams.replace(/^https?:\/\/x\.com/, 'https://twitter.com');
-        const xUrl = urlWithoutParams.replace(/^https?:\/\/twitter\.com/, 'https://x.com');
+        const twitterUrl = urlWithoutParams.replace(/^https?:\/\/x\.com/, 'https://twitter.com').toLowerCase();
+        const xUrl = urlWithoutParams.replace(/^https?:\/\/twitter\.com/, 'https://x.com').toLowerCase();
 
         const sql = `
             SELECT *
@@ -254,6 +254,38 @@ class MessageDAO {
             return result.rows[0] || null;
         } catch (err) {
             console.error('Error finding tweet render by original link:', err);
+            throw err;
+        }
+    }
+
+    async findLatestTweetRenderByOriginalLinkAcrossGuilds(url) {
+        const urlWithoutParams = String(url || '').split('?')[0];
+
+        const twitterUrl = urlWithoutParams.replace(/^https?:\/\/x\.com/, 'https://twitter.com').toLowerCase();
+        const xUrl = urlWithoutParams.replace(/^https?:\/\/twitter\.com/, 'https://x.com').toLowerCase();
+
+        const sql = `
+            SELECT *
+            FROM message
+            WHERE deleted_at IS NULL
+              AND meta->>'kind' = 'twitter_render'
+              AND attachments IS NOT NULL
+              AND cardinality(attachments) > 0
+              AND (
+                  LOWER(meta->>'originalLink') = $1 OR LOWER(meta->>'originalLink') = $2
+              )
+            ORDER BY created_at DESC
+            LIMIT 1
+        `;
+
+        try {
+            const result = await pool.query(sql, [
+                twitterUrl,
+                xUrl,
+            ]);
+            return result.rows[0] || null;
+        } catch (err) {
+            console.error('Error finding latest tweet render by original link across guilds:', err);
             throw err;
         }
     }

@@ -6,7 +6,12 @@ const { fetchMetadata, fetchQTMetadata, toFixupx } = require('./fetch_metadata.j
 const { renderTwitterPost } = require('./render_twitter_post.js');
 const { stripQueryParams } = require('./utils.js');
 const { enrichMetadataWithTranslation } = require('./translation_service.js');
-const { deleteMessage, findMessagesByLink } = require('../../store/services/messages.service.js');
+const { sendWebhookProxyMsg } = require('./webhook_utils.js');
+const {
+    deleteMessage,
+    findLatestTweetRenderByOriginalLinkAcrossGuilds,
+    findMessagesByLink,
+} = require('../../store/services/messages.service.js');
 const { MediaDrainError } = require('../../app/media_work_registry.js');
 
 // Domains we consider "known" (for optional logging)
@@ -36,6 +41,66 @@ function replyForError(meta) {
 
 function isUnknownDiscordMessageError(error) {
     return error?.code === 10008 || /Unknown Message/i.test(String(error?.message || ''));
+}
+
+function inferAttachmentFileName(attachmentUrl, fallbackMessageId) {
+    try {
+        const parsed = new URL(attachmentUrl);
+        const pathPart = parsed.pathname.split('/').filter(Boolean).pop();
+        if (pathPart && /\.[a-z0-9]{2,5}$/i.test(pathPart)) {
+            return pathPart.replace(/[^a-z0-9._-]/gi, '_');
+        }
+    } catch {}
+
+    return `cached-twitter-render-${fallbackMessageId || Date.now()}.png`;
+}
+
+async function downloadAttachmentForReuse(attachmentUrl, fallbackMessageId) {
+    if (typeof fetch !== 'function') {
+        throw new Error('fetch is not available for cached render attachment reuse');
+    }
+
+    const response = await fetch(attachmentUrl);
+    if (!response.ok) {
+        throw new Error(`cached render attachment fetch failed: ${response.status} ${response.statusText}`);
+    }
+
+    const arrayBuffer = await response.arrayBuffer();
+    return {
+        attachment: Buffer.from(arrayBuffer),
+        name: inferAttachmentFileName(attachmentUrl, fallbackMessageId),
+    };
+}
+
+async function tryReuseCachedTweetRender(message, originalLink) {
+    const cachedRender = await findLatestTweetRenderByOriginalLinkAcrossGuilds(originalLink).catch(err => {
+        console.error('[TwitterHandler] Cross-guild tweet render cache lookup failed:', err);
+        return null;
+    });
+
+    const attachmentUrl = Array.isArray(cachedRender?.attachments)
+        ? cachedRender.attachments.find(Boolean)
+        : null;
+
+    if (!attachmentUrl) {
+        return false;
+    }
+
+    try {
+        console.log('[TwitterHandler] Reusing cached tweet render attachment:', {
+            cachedMessageId: cachedRender.message_id,
+            cachedGuildId: cachedRender.guild_id,
+            cachedChannelId: cachedRender.channel_id,
+            attachmentUrl,
+        });
+
+        const file = await downloadAttachmentForReuse(attachmentUrl, cachedRender.message_id);
+        await sendWebhookProxyMsg(message, 'Here’s the Twitter canvas:', [file], undefined, originalLink);
+        return true;
+    } catch (err) {
+        console.warn('[TwitterHandler] Cached tweet render reuse failed; falling back to fresh render:', err);
+        return false;
+    }
 }
 
 async function handleTwitterUrl(message, { guildId }) {
@@ -194,6 +259,12 @@ async function handleTwitterUrl(message, { guildId }) {
             console.log('[TwitterHandler] Replying with duplicate notice link.');
             return message.reply(`Someone already posted this here: ${link}`);
         }
+    }
+
+    const reusedCachedRender = await tryReuseCachedTweetRender(message, firstUrl);
+    if (reusedCachedRender) {
+        console.log('[TwitterHandler] Reused cached tweet render; skipping metadata fetch and render.');
+        return;
     }
 
     console.log('[TwitterHandler] No existing message found, proceeding with fresh fetchMetadata.');

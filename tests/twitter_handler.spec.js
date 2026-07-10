@@ -14,8 +14,13 @@ jest.mock('../features/twitter-core/translation_service.js', () => ({
     enrichMetadataWithTranslation: jest.fn().mockResolvedValue(undefined),
 }));
 
+jest.mock('../features/twitter-core/webhook_utils.js', () => ({
+    sendWebhookProxyMsg: jest.fn(),
+}));
+
 jest.mock('../store/services/messages.service.js', () => ({
     deleteMessage: jest.fn(),
+    findLatestTweetRenderByOriginalLinkAcrossGuilds: jest.fn(),
     findMessagesByLink: jest.fn(),
 }));
 
@@ -25,7 +30,12 @@ const {
 } = require('../features/twitter-core/fetch_metadata.js');
 const { renderTwitterPost } = require('../features/twitter-core/render_twitter_post.js');
 const { enrichMetadataWithTranslation } = require('../features/twitter-core/translation_service.js');
-const { deleteMessage, findMessagesByLink } = require('../store/services/messages.service.js');
+const { sendWebhookProxyMsg } = require('../features/twitter-core/webhook_utils.js');
+const {
+    deleteMessage,
+    findLatestTweetRenderByOriginalLinkAcrossGuilds,
+    findMessagesByLink,
+} = require('../store/services/messages.service.js');
 const { handleTwitterUrl } = require('../features/twitter-core/twitter_handler.js');
 const { loadJsonFixture } = require('./helpers/twitter_fixtures.js');
 
@@ -49,11 +59,15 @@ describe('twitter_handler deterministic fixture flows', () => {
     let debugSpy;
     let warnSpy;
     let errorSpy;
+    let originalFetch;
 
     beforeEach(() => {
+        originalFetch = global.fetch;
         jest.clearAllMocks();
         findMessagesByLink.mockResolvedValue([]);
+        findLatestTweetRenderByOriginalLinkAcrossGuilds.mockResolvedValue(null);
         enrichMetadataWithTranslation.mockResolvedValue(undefined);
+        sendWebhookProxyMsg.mockResolvedValue(undefined);
         logSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
         debugSpy = jest.spyOn(console, 'debug').mockImplementation(() => {});
         warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
@@ -61,6 +75,7 @@ describe('twitter_handler deterministic fixture flows', () => {
     });
 
     afterEach(() => {
+        global.fetch = originalFetch;
         logSpy.mockRestore();
         debugSpy.mockRestore();
         warnSpy.mockRestore();
@@ -90,6 +105,83 @@ describe('twitter_handler deterministic fixture flows', () => {
             fixture.tweetURL,
         );
         expect(message.reply).not.toHaveBeenCalled();
+    });
+
+    test('reuses the latest cross-guild tracked render attachment before metadata fetch', async () => {
+        const fixture = loadJsonFixture('2040243625179668887.json');
+        const message = buildMessage(fixture.tweetURL);
+        const cachedBytes = Buffer.from('cached image bytes');
+        const arrayBuffer = cachedBytes.buffer.slice(
+            cachedBytes.byteOffset,
+            cachedBytes.byteOffset + cachedBytes.byteLength
+        );
+        global.fetch = jest.fn().mockResolvedValue({
+            ok: true,
+            arrayBuffer: jest.fn().mockResolvedValue(arrayBuffer),
+        });
+        findLatestTweetRenderByOriginalLinkAcrossGuilds.mockResolvedValue({
+            message_id: 'cached-render-1',
+            guild_id: 'other-guild',
+            channel_id: 'other-channel',
+            attachments: ['https://cdn.discordapp.com/attachments/rendered.png?ex=1'],
+            meta: {
+                kind: 'twitter_render',
+                originalLink: fixture.tweetURL,
+            },
+        });
+
+        await handleTwitterUrl(message, { guildId: 'guild-1' });
+
+        expect(findLatestTweetRenderByOriginalLinkAcrossGuilds).toHaveBeenCalledWith(fixture.tweetURL);
+        expect(global.fetch).toHaveBeenCalledWith('https://cdn.discordapp.com/attachments/rendered.png?ex=1');
+        expect(sendWebhookProxyMsg).toHaveBeenCalledWith(
+            message,
+            'Here’s the Twitter canvas:',
+            [{
+                attachment: cachedBytes,
+                name: 'rendered.png',
+            }],
+            undefined,
+            fixture.tweetURL,
+        );
+        expect(fetchMetadata).not.toHaveBeenCalled();
+        expect(renderTwitterPost).not.toHaveBeenCalled();
+    });
+
+    test('falls back to fresh render when cross-guild cached attachment download fails', async () => {
+        const fixture = loadJsonFixture('2040243625179668887.json');
+        const message = buildMessage(fixture.tweetURL);
+        global.fetch = jest.fn().mockResolvedValue({
+            ok: false,
+            status: 404,
+            statusText: 'Not Found',
+        });
+        findLatestTweetRenderByOriginalLinkAcrossGuilds.mockResolvedValue({
+            message_id: 'cached-render-1',
+            guild_id: 'other-guild',
+            channel_id: 'other-channel',
+            attachments: ['https://cdn.discordapp.com/attachments/missing.png'],
+            meta: {
+                kind: 'twitter_render',
+                originalLink: fixture.tweetURL,
+            },
+        });
+        fetchMetadata.mockResolvedValue({ ...fixture });
+
+        await handleTwitterUrl(message, { guildId: 'guild-1' });
+
+        expect(sendWebhookProxyMsg).not.toHaveBeenCalled();
+        expect(fetchMetadata).toHaveBeenCalledWith(
+            fixture.tweetURL,
+            message,
+            false,
+            expect.any(Function),
+        );
+        expect(renderTwitterPost).toHaveBeenCalledWith(
+            expect.objectContaining({ tweetID: fixture.tweetID }),
+            message,
+            fixture.tweetURL,
+        );
     });
 
     test('falls back to embedded quote-tweet metadata when QT fetch fails', async () => {
