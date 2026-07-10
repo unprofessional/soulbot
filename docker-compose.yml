@@ -1,0 +1,27 @@
+services:
+  soulbot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: soulbot
+    env_file:
+      - .env.infisical
+    environment:
+      - HEALTH_PORT=8080
+      - DRAIN_DELAY_MS=10000
+      - SHUTDOWN_TIMEOUT_MS=25000
+      - REGISTER_GLOBAL_COMMANDS=true
+      - REGISTER_GUILD_COMMANDS=true
+      - LEADER_LOCK_ID=424242
+      - LEADER_LOCK_RETRY_MS=2000
+      - OLLAMA_TRANSLATION_MODEL=translategemma:12b
+    command: ["/app/entrypoint.sh"]
+    restart: unless-stopped
+    stop_grace_period: 35s
+    network_mode: bridge
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8080/livez"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 60s

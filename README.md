@@ -5,19 +5,18 @@ a discord bot
 - Persist a nickname prefix for users that change their nicknames and profile pictures too often
 
 ## Deployment
-makes use of Kubernetes, a Persistent Volume, and a Persistent Volume Claim
-- all config resids in the `/kubernetes` directory
-- you must set the `DISCORD_BOT_TOKEN` environment variable within Kubernetes via:
-  - `kubectl create secret generic discord-bot-secret --from-literal=DISCORD_BOT_TOKEN=xxxxx`
+- set `DISCORD_BOT_TOKEN` for the bot runtime
+- set `DISCORD_CLIENT_ID` and `DISCORD_GUILD_ID` for application command registration
 - tweet renders prefer translations surfaced by the Twitter metadata API, with a guarded Ollama fallback for non-English posts whose API translation is missing
 - `/translate`, `/translate-en`, and speak-english cleanup run server-side through Ollama/Kokoro using `translategemma:12b`
 - set `OLLAMA_TRANSLATION_MODEL` if you want to override the default translation/cleanup model
 - the bot now exposes health endpoints on `HEALTH_PORT` (default `8080`): `/livez`, `/readyz`, and `/drain`
-- during shutdown the pod marks itself unready, pauses new queued work, waits for active work to finish, then disconnects Discord and closes Postgres
-- a Postgres advisory lock now serializes Discord leadership across pods so a new pod waits for the old one to stand down before it logs in
-- set `REGISTER_GLOBAL_COMMANDS=true` only for the one-off rollout or admin job that should publish slash command definitions
+- during shutdown the process marks itself unready, pauses new queued work, waits for active work to finish, then disconnects Discord and closes Postgres
+- a Postgres advisory lock now serializes Discord leadership across instances so a new instance waits for the old one to stand down before it logs in
+- set `REGISTER_GUILD_COMMANDS=true` for a one-off guild registration after command changes; guild commands usually appear immediately
+- set `REGISTER_GLOBAL_COMMANDS=true` only for the one-off rollout or admin job that should publish global command definitions; global commands may take time to propagate
 
-## If using Minikube
+## Legacy Minikube Notes
 ### Start
 1) `minikube start --driver=docker`
 2) `eval $(minikube -p minikube docker-env)`
