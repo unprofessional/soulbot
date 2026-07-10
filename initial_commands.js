@@ -83,7 +83,7 @@ const initializeCommands = async (client) => {
                 return;
             }
 
-            if (interaction.isChatInputCommand()) {
+            if (interaction.isChatInputCommand() || interaction.isMessageContextMenuCommand()) {
                 const command = client.commands.get(interaction.commandName);
                 if (!command) {
                     console.warn(`⚠️ No command found for: ${interaction.commandName}`);
