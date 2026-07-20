@@ -6,6 +6,7 @@ const {
     replyWithLlmContext,
     summarizeLlmMemory,
 } = require('../../features/ollama');
+const { getDisabledReply, isGeneralLlmInferenceEnabled } = require('../../features/ollama/inference_gate.js');
 const PromiseQueue = require('../../lib/promise_queue');
 const { getLlmMemorySummary, saveLlmMemorySummary } = require('../../store/services/llm_memory.service.js');
 const { getLlmChannelContext } = require('../../store/services/messages.service');
@@ -24,6 +25,13 @@ module.exports = {
                 .setRequired(true)
         ),
     async execute(interaction) {
+        if (!isGeneralLlmInferenceEnabled()) {
+            return await interaction.reply({
+                content: getDisabledReply(),
+                ephemeral: true,
+            });
+        }
+
         // if (interaction.user.id !== BOT_OWNER_ID) {
         //     return await interaction.reply({
         //         content: 'You do not have permission to use this command.',

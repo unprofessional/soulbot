@@ -14,6 +14,7 @@ services:
       - REGISTER_GUILD_COMMANDS=true
       - LEADER_LOCK_ID=424242
       - LEADER_LOCK_RETRY_MS=2000
+      - GENERAL_LLM_INFERENCE_ENABLED=false
       - OLLAMA_TRANSLATION_MODEL=translategemma:12b
     command: ["/app/entrypoint.sh"]
     restart: unless-stopped

@@ -11,6 +11,7 @@ const { registerFonts } = require('./features/twitter-post/canvas/fonts.js');
 const { initializeGuildMemberAdd } = require('./events/guild_member_add.js');
 const { createHealthServer } = require('./app/health_server.js');
 const { announceBotOnline, announceBotRestart } = require('./app/bot_announcements.js');
+const { isGeneralLlmInferenceEnabled } = require('./features/ollama/inference_gate.js');
 const {
     isDraining,
     markReady,
@@ -187,12 +188,16 @@ const initializeApp = async () => {
 
     await initializeDB();
 
-    try {
-        const result = await testChromaConnection();
-        console.log(result);
-    } catch (error) {
-        console.error('ChromaDB connection test failed:', error.message);
-        // intentionally non-fatal
+    if (isGeneralLlmInferenceEnabled()) {
+        try {
+            const result = await testChromaConnection();
+            console.log(result);
+        } catch (error) {
+            console.error('ChromaDB connection test failed:', error.message);
+            // intentionally non-fatal
+        }
+    } else {
+        console.log('General LLM inference disabled; skipping ChromaDB connection test.');
     }
 
     await leaderLock.acquire({

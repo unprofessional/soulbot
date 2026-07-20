@@ -4,6 +4,7 @@ const {
     improveEnglishText,
     normalizeWhitespace,
 } = require('../twitter-core/translation_service.js');
+const { isGeneralLlmInferenceEnabled } = require('../ollama/inference_gate.js');
 
 const ROLE_NAME = 'speak-english';
 const BUFFER_WINDOW_MS = 5000;
@@ -114,6 +115,7 @@ function enqueueSpeakEnglishMessage(message) {
 }
 
 async function handleSpeakEnglishRole(message) {
+    if (!isGeneralLlmInferenceEnabled()) return;
     if (!shouldProcessMessage(message)) return;
 
     try {

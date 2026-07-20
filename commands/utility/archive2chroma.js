@@ -1,5 +1,6 @@
 const { SlashCommandBuilder } = require('discord.js');
 const { archiveHistoryToChromaDb } = require('../../features/ollama/embed');
+const { getDisabledReply, isGeneralLlmInferenceEnabled } = require('../../features/ollama/inference_gate.js');
 
 const BOT_OWNER_ID = process.env.BOT_OWNER_ID || '818606180095885332';
 module.exports = {
@@ -7,6 +8,13 @@ module.exports = {
         .setName('archive2chroma')
         .setDescription('Archives historical messages to ChromaDB.'),
     async execute(interaction) {
+        if (!isGeneralLlmInferenceEnabled()) {
+            return await interaction.reply({
+                content: getDisabledReply(),
+                ephemeral: true,
+            });
+        }
+
         if (interaction.user.id !== BOT_OWNER_ID) {
             return await interaction.reply({
                 content: 'You do not have permission to use this command.',

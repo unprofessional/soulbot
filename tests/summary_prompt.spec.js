@@ -318,7 +318,9 @@ describe('summary prompt formatting', () => {
 
     test('generateText disables thinking for Qwen request bodies', async () => {
         const originalFetch = global.fetch;
+        const originalGeneralLlmInferenceEnabled = process.env.GENERAL_LLM_INFERENCE_ENABLED;
         const logSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
+        process.env.GENERAL_LLM_INFERENCE_ENABLED = 'true';
         global.fetch = jest.fn().mockResolvedValue({
             ok: true,
             json: jest.fn().mockResolvedValue({ response: '<think>hidden</think>visible summary' }),
@@ -334,6 +336,11 @@ describe('summary prompt formatting', () => {
             }));
         } finally {
             global.fetch = originalFetch;
+            if (originalGeneralLlmInferenceEnabled === undefined) {
+                delete process.env.GENERAL_LLM_INFERENCE_ENABLED;
+            } else {
+                process.env.GENERAL_LLM_INFERENCE_ENABLED = originalGeneralLlmInferenceEnabled;
+            }
             logSpy.mockRestore();
         }
     });

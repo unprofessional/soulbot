@@ -4,6 +4,7 @@ const { SlashCommandBuilder } = require('discord.js');
 const PromiseQueue = require('../../lib/promise_queue');
 const { getSummaryContext } = require('../../store/services/messages.service');
 const { summarizeChat } = require('../../features/ollama');
+const { getDisabledReply, isGeneralLlmInferenceEnabled } = require('../../features/ollama/inference_gate.js');
 const summaryTimeoutMs = Number(process.env.SUMMARY_QUEUE_TIMEOUT_MS || 300000);
 const queue = new PromiseQueue(1, summaryTimeoutMs);
 const queueLimit = 3;
@@ -13,6 +14,13 @@ module.exports = {
         .setName('summary')
         .setDescription('Summarizes the last 100 messages in this channel.'),
     async execute(interaction) {
+        if (!isGeneralLlmInferenceEnabled()) {
+            return await interaction.reply({
+                content: getDisabledReply(),
+                ephemeral: true,
+            });
+        }
+
         // Check if the queue length exceeds the limit
         if (queue.queue.length >= queueLimit) {
             return await interaction.reply({
