@@ -40,6 +40,8 @@ spec:
           value: "424242"
         - name: LEADER_LOCK_RETRY_MS
           value: "2000"
+        - name: GENERAL_LLM_INFERENCE_ENABLED
+          value: "false"
         - name: DISCORD_BOT_TOKEN
           valueFrom:
             secretKeyRef:

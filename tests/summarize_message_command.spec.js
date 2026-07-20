@@ -44,8 +44,11 @@ function buildInteraction({ messageId = 'msg-1', guildId = 'guild-1' } = {}) {
 }
 
 describe('/summarize-message', () => {
+    const originalGeneralLlmInferenceEnabled = process.env.GENERAL_LLM_INFERENCE_ENABLED;
+
     beforeEach(() => {
         jest.clearAllMocks();
+        process.env.GENERAL_LLM_INFERENCE_ENABLED = 'true';
         mockGetMessageById.mockResolvedValue({
             message_id: 'msg-1',
             guild_id: 'guild-1',
@@ -53,6 +56,14 @@ describe('/summarize-message', () => {
             content: 'Three weeks as a SAFugee in Utah...',
         });
         mockSummarizeSingleMessage.mockResolvedValue('A brief summary of one post.');
+    });
+
+    afterEach(() => {
+        if (originalGeneralLlmInferenceEnabled === undefined) {
+            delete process.env.GENERAL_LLM_INFERENCE_ENABLED;
+        } else {
+            process.env.GENERAL_LLM_INFERENCE_ENABLED = originalGeneralLlmInferenceEnabled;
+        }
     });
 
     test('summarizes only the requested stored message and does not echo the request', async () => {

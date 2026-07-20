@@ -1,7 +1,8 @@
 const { getSummaryContext } = require('../store/services/messages.service');
 const { summarizeChat } = require('../features/ollama');
 
-const RUN_SUMMARY_INTEGRATION = process.env.RUN_SUMMARY_INTEGRATION === '1';
+const RUN_SUMMARY_INTEGRATION = process.env.RUN_SUMMARY_INTEGRATION === '1'
+    && process.env.GENERAL_LLM_INFERENCE_ENABLED === 'true';
 const CHANNEL_ID = process.env.SUMMARY_CHANNEL_ID || '1481343741712400506';
 const RUN_COUNT = Number(process.env.SUMMARY_INTEGRATION_RUNS || 3);
 

@@ -3,6 +3,7 @@ const {
 } = require('../../config/env_config.js');
 const { chatModel, summaryModel, contextSize } = require('../../config/system_constants.js');
 const { queryChromaDb } = require('./embed.js');
+const { assertGeneralLlmInferenceEnabled } = require('./inference_gate.js');
 
 const processChunks = async (ollamaResponse) => {
     const reader = ollamaResponse.body.getReader();
@@ -35,6 +36,8 @@ const processChunks = async (ollamaResponse) => {
 };
 
 async function sendPromptToOllama(prompt, imagePath, intent) {
+    assertGeneralLlmInferenceEnabled();
+
     const url = `http://${ollamaHost}:${ollamaPort}/${ollamaChatEndpoint}`;
     let finalUserPrompt = imagePath
         ? (prompt || 'Analyze this image. Please be brief and concise. If you do not know what it is, then just say so.')
@@ -534,6 +537,8 @@ function buildSummaryPrompt(summaryInput = [], model = summaryModel) {
 }
 
 async function generateText(prompt, model = chatModel) {
+    assertGeneralLlmInferenceEnabled();
+
     const url = `http://${ollamaHost}:${ollamaPort}/${ollamaGenerateEndpoint}`;
     const requestBody = {
         model,

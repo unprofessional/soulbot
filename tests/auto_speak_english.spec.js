@@ -22,15 +22,23 @@ const { sendWebhookReplacementBatch } = require('../features/twitter-core/webhoo
 const { improveEnglishText } = require('../features/twitter-core/translation_service.js');
 
 describe('auto speak-english role handler', () => {
+    const originalGeneralLlmInferenceEnabled = process.env.GENERAL_LLM_INFERENCE_ENABLED;
+
     beforeEach(() => {
         jest.clearAllMocks();
         jest.useRealTimers();
+        process.env.GENERAL_LLM_INFERENCE_ENABLED = 'true';
         clearPendingBuffers();
     });
 
     afterEach(() => {
         clearPendingBuffers();
         jest.useRealTimers();
+        if (originalGeneralLlmInferenceEnabled === undefined) {
+            delete process.env.GENERAL_LLM_INFERENCE_ENABLED;
+        } else {
+            process.env.GENERAL_LLM_INFERENCE_ENABLED = originalGeneralLlmInferenceEnabled;
+        }
     });
 
     test('detects the speak-english role by name', () => {
@@ -111,6 +119,26 @@ describe('auto speak-english role handler', () => {
             [message],
             'I am going to the store later.'
         );
+    });
+
+    test('does not enqueue speak-english cleanup while general LLM inference is disabled', async () => {
+        delete process.env.GENERAL_LLM_INFERENCE_ENABLED;
+
+        const message = {
+            author: { bot: false, id: '123' },
+            guild: { members: { fetch: jest.fn() } },
+            member: {
+                roles: {
+                    cache: new Map([['1', { name: 'speak-english' }]]),
+                },
+            },
+            content: 'im goin to stor later',
+        };
+
+        await handleSpeakEnglishRole(message);
+
+        expect(getPendingBucket(message)).toBeNull();
+        expect(improveEnglishText).not.toHaveBeenCalled();
     });
 
     test('does not reply when the improved English matches the original text', async () => {

@@ -1,6 +1,7 @@
 const { SlashCommandBuilder } = require('discord.js');
 const PromiseQueue = require('../../lib/promise_queue');
 const { summarizeSingleMessage } = require('../../features/ollama');
+const { getDisabledReply, isGeneralLlmInferenceEnabled } = require('../../features/ollama/inference_gate.js');
 const { getMessageById } = require('../../store/services/messages.service');
 
 const summaryTimeoutMs = Number(process.env.SUMMARY_QUEUE_TIMEOUT_MS || 300000);
@@ -21,6 +22,13 @@ module.exports = {
                 .setRequired(true)
         ),
     async execute(interaction) {
+        if (!isGeneralLlmInferenceEnabled()) {
+            return await interaction.reply({
+                content: getDisabledReply(),
+                ephemeral: true,
+            });
+        }
+
         if (queue.queue.length >= queueLimit) {
             return await interaction.reply({
                 content: 'The bot is currently handling too many requests. Please try again later.',

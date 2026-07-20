@@ -5,6 +5,7 @@ const {
     chromaHost, chromaPort,
 } = require('../../config/env_config.js');
 const MessageDAO = require('../../store/dao/message.dao.js');
+const { assertGeneralLlmInferenceEnabled } = require('./inference_gate.js');
 
 const url = `http://${chromaHost}:${chromaPort}`;
 const client = new ChromaClient({
@@ -12,6 +13,8 @@ const client = new ChromaClient({
 });
 
 async function generateEmbedding(text) {
+    assertGeneralLlmInferenceEnabled();
+
     const url = `http://${ollamaHost}:${ollamaPort}/${ollamaEmbeddingEndpoint}`;
     // console.log('>>>>> embed > generateEmbedding > url: ', url);
     // console.log('>>>>> embed > generateEmbedding > ollamaEmbedModel: ', ollamaEmbedModel);
@@ -85,6 +88,8 @@ async function pushToChromaDb(id, embedding, metadata) {
 }
 
 async function archiveHistoryToChromaDb() {
+    assertGeneralLlmInferenceEnabled();
+
     const messages = await new MessageDAO().getAllMessagesToArchive();
     const totalResults = messages.length;
 
@@ -118,6 +123,8 @@ async function archiveHistoryToChromaDb() {
 }
 
 async function queryChromaDb(queryText, metadataFilters = {}, numResults = 5) {
+    assertGeneralLlmInferenceEnabled();
+
     try {
         // Generate embedding for the query
         const queryEmbedding = await generateEmbedding(queryText);

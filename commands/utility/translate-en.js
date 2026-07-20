@@ -5,6 +5,7 @@ const {
     resolveLanguageCode,
     translateText,
 } = require('../../features/twitter-core/translation_service.js');
+const { getDisabledReply, isGeneralLlmInferenceEnabled } = require('../../features/ollama/inference_gate.js');
 
 const queue = new PromiseQueue(1, 60000);
 const queueLimit = 3;
@@ -27,6 +28,13 @@ module.exports = {
         ),
 
     async execute(interaction) {
+        if (!isGeneralLlmInferenceEnabled()) {
+            return await interaction.reply({
+                content: getDisabledReply(),
+                ephemeral: true,
+            });
+        }
+
         if (queue.queue.length >= queueLimit) {
             return await interaction.reply({
                 content: 'The bot is currently handling too many requests. Please try again later.',

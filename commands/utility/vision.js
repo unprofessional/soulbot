@@ -1,6 +1,7 @@
 const { SlashCommandBuilder } = require('discord.js');
 const { fetchImageAsBase64 } = require('../../features/ollama/vision.js');
 const { sendPromptToOllama } = require('../../features/ollama/index.js');
+const { getDisabledReply, isGeneralLlmInferenceEnabled } = require('../../features/ollama/inference_gate.js');
 const { guildIsSupported } = require('../../store/guilds.js');
 
 module.exports = {
@@ -38,6 +39,13 @@ module.exports = {
         ),
 
     async execute(interaction) {
+        if (!isGeneralLlmInferenceEnabled()) {
+            return interaction.reply({
+                content: getDisabledReply(),
+                ephemeral: true,
+            });
+        }
+
         if (!(await guildIsSupported(interaction.guildId))) {
             return interaction.reply({
                 content: 'Server not supported!!',

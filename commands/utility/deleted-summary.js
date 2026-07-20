@@ -1,6 +1,7 @@
 const { SlashCommandBuilder } = require('discord.js');
 const PromiseQueue = require('../../lib/promise_queue');
 const { summarizeDeletedMessages } = require('../../features/ollama');
+const { getDisabledReply, isGeneralLlmInferenceEnabled } = require('../../features/ollama/inference_gate.js');
 const { getDeletedSummaryContext } = require('../../store/services/messages.service');
 
 const queue = new PromiseQueue(1, 60000);
@@ -11,6 +12,13 @@ module.exports = {
         .setName('deleted-summary')
         .setDescription('Summarizes noteworthy deleted messages in this channel with recent chat context.'),
     async execute(interaction) {
+        if (!isGeneralLlmInferenceEnabled()) {
+            return await interaction.reply({
+                content: getDisabledReply(),
+                ephemeral: true,
+            });
+        }
+
         if (queue.queue.length >= queueLimit) {
             return await interaction.reply({
                 content: 'The bot is currently handling too many requests. Please try again later.',
