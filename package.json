@@ -16,6 +16,7 @@
   "scripts": {
     "start": "node index.js",
     "test": "npx jest --testPathIgnorePatterns=node_modules/* --verbose=true --coverage=false",
+    "benchmark:twitter-video": "node scripts/benchmark-twitter-video-encoder.js",
     "lint": "npx eslint --fix .",
     "prepare": "husky"
   },

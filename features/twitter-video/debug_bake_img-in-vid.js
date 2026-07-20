@@ -5,6 +5,7 @@ const { existsSync, statSync, createReadStream } = fs;
 const ffmpeg = require('fluent-ffmpeg');
 // keep your path:
 const { getAdjustedAspectRatios } = require('../twitter-core/canvas_utils');
+const { buildVideoEncoderOutputOptions } = require('./encoder_options.js');
 
 const VERBOSE = process.env.TWIT_DEBUG === '1';
 const NO_PROGRESS_TIMEOUT_MS = Number(process.env.TWIT_NOPROG_MS || 30000);
@@ -229,7 +230,7 @@ function bakeImageAsFilterIntoVideoDEBUG(
                 '-muxpreload', '0', '-muxdelay', '0',
                 '-map', '[outv]',
                 ...(hasAudio ? ['-map', '[aout]'] : []),
-                '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '22', '-pix_fmt', 'yuv420p',
+                ...buildVideoEncoderOutputOptions(),
                 ...(hasAudio ? ['-c:a', 'aac', '-b:a', '128k', '-ar', '48000'] : []),
                 '-shortest',
                 '-movflags', '+faststart',
