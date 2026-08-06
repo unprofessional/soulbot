@@ -212,6 +212,8 @@ This is the first phase that may change the media command. Treat it as an experi
 - Record the classifier decision and reason without dumping full probe payloads.
 - Do not change output codec, CRF, preset, pixel format, frame rate, geometry, audio policy, or upload checks.
 
+Kill switch: set `TWIT_FORCE_NORMALIZATION=1` to retain the pre-Phase 3 remux path for every input.
+
 ### Local verification
 
 - Build classifier fixtures for each safe and unsafe condition.

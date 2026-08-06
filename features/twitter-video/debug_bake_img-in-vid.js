@@ -5,6 +5,7 @@ const { existsSync, statSync, createReadStream } = fs;
 const ffmpeg = require('fluent-ffmpeg');
 // keep your path:
 const { getAdjustedAspectRatios } = require('../twitter-core/canvas_utils');
+const { canUseSourceDirectly } = require('./normalization_classifier');
 
 const VERBOSE = process.env.TWIT_DEBUG === '1';
 const NO_PROGRESS_TIMEOUT_MS = Number(process.env.TWIT_NOPROG_MS || 30000);
@@ -207,6 +208,35 @@ function bakeImageAsFilterIntoVideoDEBUG(
             const widthPadding = 40;
             const normPath = videoInputPath.replace(/\.mp4$/i, '-norm.mp4');
 
+            const probeSourceInput = () => probeAll(videoInputPath);
+            let sourceMetadata = null;
+            try {
+                sourceMetadata = telemetry
+                    ? await telemetry.measure(
+                        'source_input_probe',
+                        probeSourceInput,
+                        summarizeMediaMetadata,
+                    )
+                    : await probeSourceInput();
+            } catch (error) {
+                console.warn('[probe:source] failed; retaining normalization path:', error?.message || error);
+            }
+            const forceNormalization = process.env.TWIT_FORCE_NORMALIZATION === '1' ||
+                options?.forceNormalization === true;
+            const normalizationDecision = forceNormalization
+                ? { normalize: true, reason: 'forced_by_configuration' }
+                : sourceMetadata
+                    ? canUseSourceDirectly(sourceMetadata)
+                    : { normalize: true, reason: 'source_probe_failed' };
+            telemetry?.recordStage('normalization_decision', 0, 'ok', {
+                path: normalizationDecision.normalize ? 'normalized' : 'direct',
+                reason: normalizationDecision.reason,
+            });
+            console.log(
+                `[normalization] path=${normalizationDecision.normalize ? 'normalized' : 'direct'} ` +
+                `reason=${normalizationDecision.reason}`
+            );
+
             const normalize = () => new Promise((res, rej) => {
                 ffmpeg(videoInputPath)
                     .outputOptions([
@@ -225,18 +255,25 @@ function bakeImageAsFilterIntoVideoDEBUG(
                     .save(normPath);
             });
 
-            if (telemetry) await telemetry.measure('normalization_remux', normalize);
-            else await normalize();
+            let mediaInputPath = videoInputPath;
+            let mediaMetadata = sourceMetadata;
+            let probeTag = 'source';
+            if (normalizationDecision.normalize) {
+                if (telemetry) await telemetry.measure('normalization_remux', normalize);
+                else await normalize();
 
-            const probeNormalizedInput = () => probeAll(normPath);
-            const meta = telemetry
-                ? await telemetry.measure(
-                    'normalized_input_probe',
-                    probeNormalizedInput,
-                    summarizeMediaMetadata,
-                )
-                : await probeNormalizedInput();
-            const { fmt, v, a } = await debugProbe('norm', normPath, meta);
+                const probeNormalizedInput = () => probeAll(normPath);
+                mediaMetadata = telemetry
+                    ? await telemetry.measure(
+                        'normalized_input_probe',
+                        probeNormalizedInput,
+                        summarizeMediaMetadata,
+                    )
+                    : await probeNormalizedInput();
+                mediaInputPath = normPath;
+                probeTag = 'norm';
+            }
+            const { fmt, v, a } = await debugProbe(probeTag, mediaInputPath, mediaMetadata);
 
             const hasAudio = !!a;
             const aDur   = Number(a?.duration) || NaN;
@@ -349,7 +386,7 @@ function bakeImageAsFilterIntoVideoDEBUG(
             const cmd = ffmpeg()
                 .input(canvasInputPath)
                 .inputOptions(['-loop', '1', '-framerate', fpsStr])
-                .input(normPath)
+                .input(mediaInputPath)
                 .complexFilter(filterComplex)
                 .outputOptions(baseOutputOpts)
                 .output(videoOutputPath)

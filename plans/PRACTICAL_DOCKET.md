@@ -57,6 +57,23 @@ Commit: `24fb405` — `Reduce Twitter video diagnostic overhead`
 - Encoding remains the dominant cost. Phase 1 removed fixed overhead but did not change the media filter, codec, quality, audio, or normalization behavior, so its practical speedup is modest and most visible on short videos.
 - The renderer-only benchmark bypasses download and Discord handler work. Production telemetry remains necessary to measure complete request latency.
 
+## 2026-08-05 — Twitter/X video Phase 2 makes downloads failure-safe
+
+Branch: `perf/twitter-video-download-pipeline`
+Commit: `b2d607e` — `Harden Twitter video downloads`
+
+### What we actually gained
+
+- Video downloads now follow disk backpressure instead of letting a fast network response build an unbounded in-memory write queue. Concurrent downloads therefore have a predictable memory shape without buffering whole videos.
+- Timeout, cancellation, HTTP, interrupted-response, premature-close, and disk-write failures remove partial files instead of leaving corrupt input behind for later processing or cleanup.
+- Deployment jobs now carry a cancellation signal into downloads, and download telemetry records the actual transferred byte count alongside elapsed time.
+- The complete local suite passed with byte-identical successful downloads and fault-injection coverage. The production smoke suite then passed the available portrait, landscape, silent/GIF, ordinary, and concurrent usage cases after deployment.
+
+### What this did not prove yet
+
+- A suitably large fresh X video was not available during the stop gate, so that specific smoke case was explicitly deferred to normal production observation. The bounded-memory behavior is covered locally; any source-specific large-video failure remains something to isolate from production telemetry.
+- Phase 2 was reliability and memory hardening, not an encoder optimization. The fixed renderer benchmark remained green, but no meaningful encode-speed gain was expected.
+
 ## Docket entry template
 
 ```markdown
