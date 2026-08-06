@@ -6,6 +6,10 @@ Status: todo.
 
 Messages from a member carrying a role named `australian` are replaced with an upside-down version under that member's own display name and avatar.
 
+## Level of effort
+
+Small — approximately 1–1.5 engineer-days, including the Unicode transformation, integration with the shared webhook replacement flow, processor-conflict safeguards, automated coverage, and a Discord smoke test. Preserving attachments and reply context through every existing role-transformation combination is the main source of variance.
+
 ## Proposed behavior
 
 - Detect the `australian` role case-insensitively on ordinary guild messages.

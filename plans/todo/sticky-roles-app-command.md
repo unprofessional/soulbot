@@ -6,6 +6,10 @@ Status: todo.
 
 Authorized moderators can choose roles that Soulbot remembers when a member leaves and restores when that member rejoins. This preserves selected community roles without making every role sticky or requiring manual reassignment.
 
+## Level of effort
+
+Medium — approximately 2–3 engineer-days, including persistence/schema work, the app command, leave/join event handling, hierarchy safeguards, automated coverage, and a Discord smoke test. The main uncertainty is reconciling rapid leave/rejoin events and roles that are deleted or moved above Soulbot between capture and restoration.
+
 ## Proposed behavior
 
 - Add a guild-only `/sticky-role` app command with `add`, `remove`, and `list` subcommands.
