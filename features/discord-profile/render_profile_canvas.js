@@ -8,9 +8,9 @@ const renderProfileCanvas = async (guildMember, channel) => {
      * Pull image and add it as a separate image/file
      */
     // console.log('>>>>> renderProfileCanvas > guildMember: ', guildMember);
-    let files = [{
+    const files = [{
         attachment: buffer,
-        name: 'image.png',
+        name: 'member-card.png',
     }];
 
     // Create a MessageAttachment and send it
