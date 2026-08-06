@@ -70,6 +70,21 @@ function summarizeMediaMetadata(metadata) {
     };
 }
 
+async function validateVideoOutput(outputPath, telemetry) {
+    const probeAndValidate = async () => {
+        const metadata = await probeAll(outputPath);
+        const video = metadata?.streams?.find(stream => stream.codec_type === 'video');
+        const duration = Number(metadata?.format?.duration);
+        if (!video || !Number.isFinite(duration) || duration <= 0) {
+            throw new Error('Encoded output failed validation: missing video stream or duration');
+        }
+        return metadata;
+    };
+    return telemetry
+        ? telemetry.measure('output_validation_probe', probeAndValidate, summarizeMediaMetadata)
+        : probeAndValidate();
+}
+
 function parseTimemarkToSeconds(timemark) {
     if (!timemark || typeof timemark !== 'string') return 0;
 
@@ -91,23 +106,21 @@ async function debugProbe(tag, p, md) {
     const v = streams.find(s => s.codec_type === 'video');
     const a = streams.find(s => s.codec_type === 'audio');
 
-    console.log(`[probe:${tag}] ${statLine(p)}`);
-    console.log(`[probe:${tag}] format: dur=${seconds(Number(fmt.duration))} bit_rate=${fmt.bit_rate || 'n/a'} start_time=${fmt.start_time || 'n/a'}`);
-
-    const logStream = (kind, s) => {
-        if (!s) return console.log(`[probe:${tag}] ${kind}: none`);
-        console.log(
-            `[probe:${tag}] ${kind}: codec=${s.codec_name} ` +
-      `w=${s.width || 'n/a'} h=${s.height || 'n/a'} ` +
-      `tb=${s.time_base || 'n/a'} st=${s.start_time || 'n/a'} ` +
-      `dur=${s.duration || 'n/a'} nb_frames=${s.nb_frames || 'n/a'} ` +
-      `r=${s.r_frame_rate || 'n/a'} avg=${s.avg_frame_rate || 'n/a'} disp=${JSON.stringify(s.disposition || {})}`
-        );
-    };
-    logStream('video', v);
-    logStream('audio', a);
-
     if (VERBOSE) {
+        console.log(`[probe:${tag}] ${statLine(p)}`);
+        console.log(`[probe:${tag}] format: dur=${seconds(Number(fmt.duration))} bit_rate=${fmt.bit_rate || 'n/a'} start_time=${fmt.start_time || 'n/a'}`);
+        const logStream = (kind, stream) => {
+            if (!stream) return console.log(`[probe:${tag}] ${kind}: none`);
+            console.log(
+                `[probe:${tag}] ${kind}: codec=${stream.codec_name} ` +
+                `w=${stream.width || 'n/a'} h=${stream.height || 'n/a'} ` +
+                `tb=${stream.time_base || 'n/a'} st=${stream.start_time || 'n/a'} ` +
+                `dur=${stream.duration || 'n/a'} nb_frames=${stream.nb_frames || 'n/a'} ` +
+                `r=${stream.r_frame_rate || 'n/a'} avg=${stream.avg_frame_rate || 'n/a'} disp=${JSON.stringify(stream.disposition || {})}`
+            );
+        };
+        logStream('video', v);
+        logStream('audio', a);
         console.log(`[probe:${tag}] json:\n${JSON.stringify({ format: fmt, streams }, null, 2)}`);
     }
     return { fmt, v, a };
@@ -140,10 +153,12 @@ function pickFpsAndDur(fmt, v) {
         : (rFps && rFps > 0 && rFps <= 120) ? (v.r_frame_rate)
             : String(fpsNum);
 
-    console.log('[fps-pick]', {
-        avg: v?.avg_frame_rate, r: v?.r_frame_rate, nb_frames: nb,
-        vDur, fDur, chosen_num: fpsNum, fpsStr, vSeconds
-    });
+    if (VERBOSE) {
+        console.log('[fps-pick]', {
+            avg: v?.avg_frame_rate, r: v?.r_frame_rate, nb_frames: nb,
+            vDur, fDur, chosen_num: fpsNum, fpsStr, vSeconds
+        });
+    }
 
     return { fpsNum, fpsStr, vSeconds };
 }
@@ -164,17 +179,19 @@ function bakeImageAsFilterIntoVideoDEBUG(
             if (!existsSync(videoInputPath)) throw new Error(`Missing video input: ${videoInputPath}`);
             if (!existsSync(canvasInputPath)) throw new Error(`Missing canvas input: ${canvasInputPath}`);
 
-            console.log('[pre] inputs:');
-            console.log('   ', statLine(videoInputPath));
-            console.log('   ', statLine(canvasInputPath));
-            const hashInputs = () => Promise.all([sha1File(videoInputPath), sha1File(canvasInputPath)]);
-            const [vidSha, canSha] = telemetry
-                ? await telemetry.measure('input_hashing', hashInputs, {
-                    videoBytes: statSync(videoInputPath).size,
-                    canvasBytes: statSync(canvasInputPath).size,
-                })
-                : await hashInputs();
-            console.log(`[pre] sha1 video=${vidSha} canvas=${canSha}`);
+            if (VERBOSE) {
+                console.log('[pre] inputs:');
+                console.log('   ', statLine(videoInputPath));
+                console.log('   ', statLine(canvasInputPath));
+                const hashInputs = () => Promise.all([sha1File(videoInputPath), sha1File(canvasInputPath)]);
+                const [vidSha, canSha] = telemetry
+                    ? await telemetry.measure('input_hashing', hashInputs, {
+                        videoBytes: statSync(videoInputPath).size,
+                        canvasBytes: statSync(canvasInputPath).size,
+                    })
+                    : await hashInputs();
+                console.log(`[pre] sha1 video=${vidSha} canvas=${canSha}`);
+            }
 
             const {
                 adjustedCanvasWidth, adjustedCanvasHeight,
@@ -185,7 +202,7 @@ function bakeImageAsFilterIntoVideoDEBUG(
                 videoWidth, videoHeight,
                 heightShim
             );
-            console.log('[layout]', { adjustedCanvasWidth, adjustedCanvasHeight, scaledDownObjectWidth, scaledDownObjectHeight, overlayX, overlayY });
+            if (VERBOSE) console.log('[layout]', { adjustedCanvasWidth, adjustedCanvasHeight, scaledDownObjectWidth, scaledDownObjectHeight, overlayX, overlayY });
 
             const widthPadding = 40;
             const normPath = videoInputPath.replace(/\.mp4$/i, '-norm.mp4');
@@ -201,8 +218,8 @@ function bakeImageAsFilterIntoVideoDEBUG(
                     ])
                     .videoCodec('copy')
                     .audioCodec('copy')
-                    .on('start', cmd => console.log('[normalize] ffmpeg cmd:', cmd))
-                    .on('end', () => { console.log('[normalize] done', statLine(normPath)); res(); })
+                    .on('start', cmd => VERBOSE && console.log('[normalize] ffmpeg cmd:', cmd))
+                    .on('end', () => { if (VERBOSE) console.log('[normalize] done', statLine(normPath)); res(); })
                     .on('stderr', line => VERBOSE && console.log('[normalize][stderr]', String(line).trim()))
                     .on('error', e => { console.error('[normalize] error:', e?.message || e); rej(e); })
                     .save(normPath);
@@ -252,8 +269,10 @@ function bakeImageAsFilterIntoVideoDEBUG(
                 outSeconds = (Number.isFinite(trueVDur) && trueVDur > 0) ? trueVDur : 10;
             }
 
-            console.log('[ffmpeg] filter_complex:', filterComplex);
-            console.log('[ffmpeg] fps:', fpsStr, '| audio sync delta (s):', delta.toFixed(3), '| -t:', outSeconds.toFixed(3));
+            if (VERBOSE) {
+                console.log('[ffmpeg] filter_complex:', filterComplex);
+                console.log('[ffmpeg] fps:', fpsStr, '| audio sync delta (s):', delta.toFixed(3), '| -t:', outSeconds.toFixed(3));
+            }
 
             if (onProgress) {
                 Promise.resolve(onProgress({
@@ -336,14 +355,17 @@ function bakeImageAsFilterIntoVideoDEBUG(
                 .output(videoOutputPath)
                 .on('start', (commandLine) => {
                     encodeStartedAt = Date.now();
-                    console.log('[ffmpeg] start cmd:', commandLine);
-                    console.log('[ffmpeg] outputOptions:', baseOutputOpts.join(' '));
+                    console.log('[ffmpeg] encode started');
+                    if (VERBOSE) {
+                        console.log('[ffmpeg] start cmd:', commandLine);
+                        console.log('[ffmpeg] outputOptions:', baseOutputOpts.join(' '));
+                    }
                     const proc = cmd.ffmpegProc;
                     if (proc && typeof options?.onSpawn === 'function') {
                         options.onSpawn(proc);
                     }
                 })
-                .on('codecData', d => console.log('[ffmpeg][codecData]', d))
+                .on('codecData', d => VERBOSE && console.log('[ffmpeg][codecData]', d))
                 .on('progress', p => {
                     lastProgTs = Date.now();
                     lastTimemark = p.timemark || lastTimemark;
@@ -353,7 +375,7 @@ function bakeImageAsFilterIntoVideoDEBUG(
                         ? Math.max(0, Math.min(100, (currentSeconds / outSeconds) * 100))
                         : 0;
                     const pct = pctNum.toFixed(2);
-                    console.log(`[ffmpeg][progress] pct=${pct} frames=${p.frames ?? 'n/a'} timemark=${p.timemark ?? 'n/a'} outputBytes=${outputBytes}`);
+                    if (VERBOSE) console.log(`[ffmpeg][progress] pct=${pct} frames=${p.frames ?? 'n/a'} timemark=${p.timemark ?? 'n/a'} outputBytes=${outputBytes}`);
 
                     if (onProgress) {
                         Promise.resolve(onProgress({
@@ -389,19 +411,14 @@ function bakeImageAsFilterIntoVideoDEBUG(
                             console.warn('[ffmpeg] onProgress(end) failed:', error);
                         });
                     }
-                    console.log('[ffmpeg] done', statLine(videoOutputPath));
+                    console.log('[ffmpeg] encode completed');
                     try {
-                        const probeOutput = () => probeAll(videoOutputPath);
-                        const outProbe = telemetry
-                            ? await telemetry.measure(
-                                'output_validation_probe',
-                                probeOutput,
-                                summarizeMediaMetadata,
-                            )
-                            : await probeOutput();
+                        const outProbe = await validateVideoOutput(videoOutputPath, telemetry);
                         await debugProbe('out', videoOutputPath, outProbe);
                     } catch (e) {
-                        console.warn('[post] probe out failed:', e?.message || e);
+                        console.error('[post] output validation failed:', e?.message || e);
+                        reject(e);
+                        return;
                     }
                     resolve(videoOutputPath);
                 })
@@ -421,7 +438,7 @@ function bakeImageAsFilterIntoVideoDEBUG(
             // Cap runtime + canvas frames using numeric fps
             if (Number.isFinite(outSeconds) && outSeconds > 0) {
                 cmd.outputOptions(['-t', String(outSeconds)]);
-                console.log('[ffmpeg] output -t:', outSeconds);
+                if (VERBOSE) console.log('[ffmpeg] output -t:', outSeconds);
             }
 
             // Watchdog
@@ -455,4 +472,4 @@ function bakeImageAsFilterIntoVideoDEBUG(
     });
 }
 
-module.exports = { bakeImageAsFilterIntoVideoDEBUG };
+module.exports = { bakeImageAsFilterIntoVideoDEBUG, validateVideoOutput };

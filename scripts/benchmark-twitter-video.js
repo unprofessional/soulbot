@@ -94,8 +94,8 @@ function metadataForVideo(baseMetadata, probe, videoPath) {
     };
 }
 
-async function runCase({ benchmarkCase, baseMetadata, caseIndex, measured }) {
-    const runDir = mkdtempSync(path.join(os.tmpdir(), `soulbot-video-phase0-${benchmarkCase.name}-`));
+async function runCase({ benchmarkCase, baseMetadata, caseIndex, measured, benchmarkLabel }) {
+    const runDir = mkdtempSync(path.join(os.tmpdir(), `soulbot-video-${benchmarkLabel}-${benchmarkCase.name}-`));
     const inputPath = path.join(runDir, 'input.mp4');
     const canvasPath = path.join(runDir, 'canvas.png');
     const outputPath = path.join(runDir, 'output.mp4');
@@ -107,7 +107,7 @@ async function runCase({ benchmarkCase, baseMetadata, caseIndex, measured }) {
     const metadata = metadataForVideo(baseMetadata, probe, inputPath);
     metadata._canvasOutputPath = canvasPath;
     const telemetry = createVideoPerformanceTelemetry({
-        runId: `phase0-${benchmarkCase.name}-${caseIndex}`,
+        runId: `${benchmarkLabel}-${benchmarkCase.name}-${caseIndex}`,
         context: { source: 'benchmark', case: benchmarkCase.name, measured },
         logger: line => events.push(JSON.parse(line)),
     });
@@ -180,6 +180,8 @@ async function main() {
     const runs = Math.max(1, Number(process.env.BENCHMARK_RUNS || 5));
     const warmups = Math.max(0, Number(process.env.BENCHMARK_WARMUPS || 1));
     const fixture = process.env.BENCHMARK_TWITTER_FIXTURE || '1486771164475232260.json';
+    const benchmarkLabel = String(process.env.BENCHMARK_LABEL || 'phase0')
+        .replace(/[^a-zA-Z0-9_-]/g, '-');
     const requestedCases = new Set(String(process.env.BENCHMARK_CASES || '')
         .split(',').map(value => value.trim()).filter(Boolean));
     const artifactDir = process.env.BENCHMARK_OUTPUT_DIR || path.join(process.cwd(), 'benchmark-results');
@@ -204,6 +206,7 @@ async function main() {
                     baseMetadata,
                     caseIndex: index + 1,
                     measured,
+                    benchmarkLabel,
                 });
                 if (measured) results.push(result);
                 console.log(JSON.stringify({
@@ -225,7 +228,7 @@ async function main() {
     ]));
     const artifact = {
         environment: await environmentMetadata(),
-        configuration: { fixture, runs, warmups, cases: cases.map(item => item.name) },
+        configuration: { benchmarkLabel, fixture, runs, warmups, cases: cases.map(item => item.name) },
         summary: {
             overall: summarizeBenchmarkRuns(results),
             cases: casesSummary,
@@ -233,8 +236,8 @@ async function main() {
         runs: results,
     };
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-    const rawPath = path.join(artifactDir, `${timestamp}-phase0-raw.json`);
-    const summaryPath = path.join(artifactDir, `${timestamp}-phase0-summary.json`);
+    const rawPath = path.join(artifactDir, `${timestamp}-${benchmarkLabel}-raw.json`);
+    const summaryPath = path.join(artifactDir, `${timestamp}-${benchmarkLabel}-summary.json`);
     writeFileSync(rawPath, `${JSON.stringify(artifact, null, 2)}\n`);
     writeFileSync(summaryPath, `${JSON.stringify({
         environment: artifact.environment,

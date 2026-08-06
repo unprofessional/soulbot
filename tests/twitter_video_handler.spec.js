@@ -152,6 +152,7 @@ describe('handleVideoPost progress lifecycle', () => {
         );
         expect(progressMessage.dismiss).toHaveBeenCalledTimes(1);
         expect(cleanup).toHaveBeenCalledWith([], ['/tempdata/video-file']);
+        expect(inspectVideoFileDetails).not.toHaveBeenCalled();
         expect(message.reply).not.toHaveBeenCalled();
     });
 

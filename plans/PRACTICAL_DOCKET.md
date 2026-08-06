@@ -25,11 +25,18 @@ Commit: `70e0dfd` — `Instrument Twitter video performance baseline`
 - A local rehearsal completed all seven corpus cases successfully. It showed that normalization and probe launches are measurable fixed overhead, while composite encoding remains the dominant cost for longer videos. That confirms the ordering of the proposed optimization work.
 - Production telemetry uses the existing render path and preserves the existing Discord progress messages. No encoder, quality, layout, audio, watchdog, upload-limit, deduplication, cleanup, or fallback behavior was intentionally changed.
 
-### What this did not prove yet
+### What production verification proved
 
-- It did not make video rendering faster by itself. Phase 0 gives us the measurement system needed to prove whether later phases are genuinely faster.
-- The complete five-run-per-case `shinralabs` baseline was interrupted and must be rerun after review and merge before Phase 1 starts.
-- Real Discord smoke coverage for every corpus category still needs to be completed as part of the Phase 0 stop gate.
+- The production Discord smoke suite passed with portrait, landscape, silent/GIF, and ordinary videos. Upload, playback, progress reporting, and cleanup all remained reliable.
+- Simultaneous submissions of the same fresh X video from two servers produced one render and two delivered results, proving single-flight deduplication works across servers.
+- The complete `shinralabs` baseline finished 35 of 35 measured renders successfully: five runs for each of the seven cases after one warm-up per case.
+- Overall render time measured 2.11 seconds median and 5.01 seconds p95. Composite encoding dominated at 1.37 seconds median and 4.41 seconds p95, confirming that fixed diagnostic/probe overhead matters most for short inputs while encoding remains the main cost for substantial videos.
+- The service remained healthy and both production and benchmark temporary directories were cleaned successfully.
+- Raw and summarized baseline artifacts are preserved on `shinralabs` under `/home/rally/soulbot-benchmark-results/phase0/`.
+
+### What this did not change
+
+- Phase 0 did not make video rendering faster by itself. It established the production evidence and repeatable baseline required to prove whether later phases are genuinely faster.
 
 ## Docket entry template
 
