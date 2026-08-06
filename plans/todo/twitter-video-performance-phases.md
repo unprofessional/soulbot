@@ -241,6 +241,8 @@ Kill switch: set `TWIT_FORCE_NORMALIZATION=1` to retain the pre-Phase 3 remux pa
 
 This phase is optional and should proceed only if Phase 0 telemetry shows audio processing is material.
 
+Decision after Phase 3: skipped. Production and host telemetry continued to show composite video encoding as the dominant cost and did not isolate audio encoding as a material bottleneck. The expected gain did not justify expanding the synchronization and Discord compatibility matrix.
+
 ### Development
 
 - Define a narrowly safe passthrough case, initially limited to Discord-compatible AAC audio with acceptable sample rate/channel layout and effectively aligned audio/video starts.
@@ -266,6 +268,10 @@ This phase is optional and should proceed only if Phase 0 telemetry shows audio 
 ## Phase 5: Tune concurrency and temporary storage
 
 Do this last so earlier stage improvements are not confused with host-level changes.
+
+Render concurrency can be set to 1, 2, or 3 with `TWIT_MAX_CONCURRENT_RENDERS`; invalid values retain the production default of 3. Benchmark concurrency is controlled independently with `BENCHMARK_CONCURRENCY`.
+
+FFmpeg remains on automatic threading by default. Host experiments can set `TWIT_FFMPEG_THREADS` from 1 through 32; invalid or absent values preserve automatic threading.
 
 ### Development and infrastructure experiment
 

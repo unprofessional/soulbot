@@ -1,15 +1,10 @@
 // features/twitter-core/twitter_post_utils.js
 
-const { mkdir, readdir } = require('fs').promises;
+const { mkdir } = require('fs').promises;
 const { getExtensionFromMediaUrl } = require('./utils.js');
 
 async function createDirectoryIfNotExists(dirPath) {
     await mkdir(dirPath, { recursive: true });
-}
-
-async function countDirectoriesInDirectory(dirPath) {
-    const entries = await readdir(dirPath, { withFileTypes: true });
-    return entries.filter(e => e.isDirectory()).length;
 }
 
 function filterVideoUrls(mediaUrls = []) {
@@ -51,7 +46,6 @@ function extractTweetIdFromUrl(url) {
 
 module.exports = {
     createDirectoryIfNotExists,
-    countDirectoriesInDirectory,
     extractFirstVideoUrl,
     isFirstMediaVideo,
     extractTweetIdFromUrl,

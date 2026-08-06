@@ -10,6 +10,7 @@ const {
     writeFileSync,
 } = require('node:fs');
 const { execFile } = require('node:child_process');
+const { performance } = require('node:perf_hooks');
 const { promisify } = require('node:util');
 
 const { createTwitterVideoCanvas } = require('../features/twitter-video/twitter_video_canvas.js');
@@ -27,6 +28,25 @@ const execFileAsync = promisify(execFile);
 
 async function runCommand(command, args) {
     return execFileAsync(command, args, { maxBuffer: 10 * 1024 * 1024 });
+}
+
+async function runTaskPool(tasks, concurrency) {
+    const results = new Array(tasks.length);
+    let nextIndex = 0;
+
+    const worker = async () => {
+        while (nextIndex < tasks.length) {
+            const taskIndex = nextIndex;
+            nextIndex += 1;
+            results[taskIndex] = await tasks[taskIndex]();
+        }
+    };
+
+    await Promise.all(Array.from(
+        { length: Math.min(concurrency, tasks.length) },
+        () => worker(),
+    ));
+    return results;
 }
 
 async function probeVideo(filePath) {
@@ -173,6 +193,8 @@ async function environmentMetadata() {
             TWIT_DEBUG: process.env.TWIT_DEBUG || null,
             TWIT_NOPROG_MS: process.env.TWIT_NOPROG_MS || null,
             TWIT_FORCE_NORMALIZATION: process.env.TWIT_FORCE_NORMALIZATION || null,
+            TWIT_MAX_CONCURRENT_RENDERS: process.env.TWIT_MAX_CONCURRENT_RENDERS || null,
+            TWIT_FFMPEG_THREADS: process.env.TWIT_FFMPEG_THREADS || null,
         },
     };
 }
@@ -180,6 +202,10 @@ async function environmentMetadata() {
 async function main() {
     const runs = Math.max(1, Number(process.env.BENCHMARK_RUNS || 5));
     const warmups = Math.max(0, Number(process.env.BENCHMARK_WARMUPS || 1));
+    const requestedConcurrency = Number(process.env.BENCHMARK_CONCURRENCY || 1);
+    const concurrency = Number.isInteger(requestedConcurrency)
+        ? Math.min(3, Math.max(1, requestedConcurrency))
+        : 1;
     const fixture = process.env.BENCHMARK_TWITTER_FIXTURE || '1486771164475232260.json';
     const benchmarkLabel = String(process.env.BENCHMARK_LABEL || 'phase0')
         .replace(/[^a-zA-Z0-9_-]/g, '-');
@@ -199,65 +225,94 @@ async function main() {
     mkdirSync(artifactDir, { recursive: true });
 
     try {
-        for (const benchmarkCase of cases) {
-            for (let index = 0; index < warmups + runs; index += 1) {
-                const measured = index >= warmups;
-                const result = await runCase({
-                    benchmarkCase,
-                    baseMetadata,
-                    caseIndex: index + 1,
-                    measured,
-                    benchmarkLabel,
-                });
-                if (measured) results.push(result);
-                console.log(JSON.stringify({
-                    event: 'twitter_video_benchmark_run',
-                    case: benchmarkCase.name,
-                    measured,
-                    status: result.status,
-                    durationMs: result.durationMs,
-                }));
-            }
-        }
+        const createTask = ({ benchmarkCase, caseIndex, measured }) => async () => {
+            const result = await runCase({
+                benchmarkCase,
+                baseMetadata,
+                caseIndex,
+                measured,
+                benchmarkLabel,
+            });
+            console.log(JSON.stringify({
+                event: 'twitter_video_benchmark_run',
+                case: benchmarkCase.name,
+                measured,
+                status: result.status,
+                durationMs: result.durationMs,
+            }));
+            return result;
+        };
+        const warmupTasks = cases.flatMap(benchmarkCase => Array.from(
+            { length: warmups },
+            (_, index) => createTask({ benchmarkCase, caseIndex: index + 1, measured: false }),
+        ));
+        await runTaskPool(warmupTasks, concurrency);
+
+        const measuredTasks = Array.from({ length: runs }, (_, index) => cases.map(
+            benchmarkCase => createTask({
+                benchmarkCase,
+                caseIndex: warmups + index + 1,
+                measured: true,
+            })
+        )).flat();
+        const measuredStartedAt = performance.now();
+        const measuredResults = await runTaskPool(measuredTasks, concurrency);
+        const measuredBatchDurationMs = performance.now() - measuredStartedAt;
+        results.push(...measuredResults);
+
+        const casesSummary = Object.fromEntries(cases.map(benchmarkCase => [
+            benchmarkCase.name,
+            summarizeBenchmarkRuns(results.filter(result => result.case === benchmarkCase.name)),
+        ]));
+        const artifact = {
+            environment: await environmentMetadata(),
+            configuration: {
+                benchmarkLabel,
+                fixture,
+                runs,
+                warmups,
+                concurrency,
+                cases: cases.map(item => item.name),
+            },
+            summary: {
+                overall: summarizeBenchmarkRuns(results),
+                cases: casesSummary,
+                measuredBatchDurationMs: Math.round(measuredBatchDurationMs * 100) / 100,
+                throughputRunsPerSecond: Math.round(
+                    (results.length / measuredBatchDurationMs) * 100000
+                ) / 100,
+            },
+            runs: results,
+        };
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+        const rawPath = path.join(artifactDir, `${timestamp}-${benchmarkLabel}-raw.json`);
+        const summaryPath = path.join(artifactDir, `${timestamp}-${benchmarkLabel}-summary.json`);
+        writeFileSync(rawPath, `${JSON.stringify(artifact, null, 2)}\n`);
+        writeFileSync(summaryPath, `${JSON.stringify({
+            environment: artifact.environment,
+            configuration: artifact.configuration,
+            summary: artifact.summary,
+        }, null, 2)}\n`);
+        console.log(JSON.stringify({
+            event: 'twitter_video_benchmark_complete',
+            rawPath,
+            summaryPath,
+            summary: artifact.summary,
+        }));
     } finally {
         rmSync(corpusDir, { recursive: true, force: true });
     }
-
-    const casesSummary = Object.fromEntries(cases.map(benchmarkCase => [
-        benchmarkCase.name,
-        summarizeBenchmarkRuns(results.filter(result => result.case === benchmarkCase.name)),
-    ]));
-    const artifact = {
-        environment: await environmentMetadata(),
-        configuration: { benchmarkLabel, fixture, runs, warmups, cases: cases.map(item => item.name) },
-        summary: {
-            overall: summarizeBenchmarkRuns(results),
-            cases: casesSummary,
-        },
-        runs: results,
-    };
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-    const rawPath = path.join(artifactDir, `${timestamp}-${benchmarkLabel}-raw.json`);
-    const summaryPath = path.join(artifactDir, `${timestamp}-${benchmarkLabel}-summary.json`);
-    writeFileSync(rawPath, `${JSON.stringify(artifact, null, 2)}\n`);
-    writeFileSync(summaryPath, `${JSON.stringify({
-        environment: artifact.environment,
-        configuration: artifact.configuration,
-        summary: artifact.summary,
-    }, null, 2)}\n`);
-    console.log(JSON.stringify({
-        event: 'twitter_video_benchmark_complete',
-        rawPath,
-        summaryPath,
-        summary: artifact.summary,
-    }));
 }
 
-main().catch(error => {
-    console.error(JSON.stringify({
-        event: 'twitter_video_benchmark_error',
-        error: error?.message || String(error),
-        stack: error?.stack || null,
-    }));
-    process.exitCode = 1;
-});
+if (require.main === module) {
+    main().catch(error => {
+        console.error(JSON.stringify({
+            event: 'twitter_video_benchmark_error',
+            error: error?.message || String(error),
+            stack: error?.stack || null,
+        }));
+        process.exitCode = 1;
+    });
+}
+
+module.exports = { runTaskPool };

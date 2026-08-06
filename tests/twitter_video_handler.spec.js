@@ -1,7 +1,3 @@
-jest.mock('../features/twitter-core/twitter_post_utils.js', () => ({
-    countDirectoriesInDirectory: jest.fn(),
-}));
-
 jest.mock('../features/twitter-core/path_builder.js', () => ({
     buildPathsAndStuff: jest.fn(),
 }));
@@ -29,8 +25,8 @@ jest.mock('../features/twitter-core/estimate_output_size', () => ({
     inspectVideoFileDetails: jest.fn(),
 }));
 
-const { countDirectoriesInDirectory } = require('../features/twitter-core/twitter_post_utils.js');
 const { buildPathsAndStuff } = require('../features/twitter-core/path_builder.js');
+const { MediaCapacitySemaphore } = require('../app/media_semaphore.js');
 const {
     downloadVideo,
     getVideoFileSize,
@@ -70,7 +66,6 @@ describe('handleVideoPost progress lifecycle', () => {
     beforeEach(() => {
         jest.clearAllMocks();
 
-        countDirectoriesInDirectory.mockResolvedValue(0);
         buildPathsAndStuff.mockReturnValue({
             filename: 'video-file',
             localWorkingPath: '/tempdata/video-file',
@@ -89,9 +84,10 @@ describe('handleVideoPost progress lifecycle', () => {
     });
 
     test('cleans up the placeholder when the queue is at capacity', async () => {
-        countDirectoriesInDirectory.mockResolvedValue(3);
         const message = buildMessageMock();
         const progressMessage = buildProgressMock();
+        const renderSemaphore = new MediaCapacitySemaphore({ capacity: 1 });
+        const occupiedPermit = renderSemaphore.tryAcquire();
 
         await handleVideoPost({
             metadataJson: { communityNote: 'note' },
@@ -99,9 +95,11 @@ describe('handleVideoPost progress lifecycle', () => {
             originalLink: 'https://x.com/test/status/1',
             videoUrl: 'https://video.example.com/file.mp4',
             processingDir: '/tempdata',
-            MAX_CONCURRENT_REQUESTS: 3,
             progressMessage,
+            renderSemaphore,
         });
+
+        occupiedPermit.release();
 
         expect(progressMessage.dismiss).toHaveBeenCalledTimes(1);
         expect(message.reply).toHaveBeenCalledWith({
@@ -115,6 +113,7 @@ describe('handleVideoPost progress lifecycle', () => {
         const message = buildMessageMock();
         const progressMessage = buildProgressMock();
         const mediaJob = { signal: new AbortController().signal };
+        const renderSemaphore = new MediaCapacitySemaphore({ capacity: 1 });
         bakeImageAsFilterIntoVideo.mockImplementation(async (...args) => {
             const options = args[8];
             await options.onProgress({
@@ -135,9 +134,9 @@ describe('handleVideoPost progress lifecycle', () => {
             videoUrl: 'https://video.example.com/file.mp4',
             processingDir: '/tempdata',
             processingRunId: 'run-123',
-            MAX_CONCURRENT_REQUESTS: 3,
             progressMessage,
             mediaJob,
+            renderSemaphore,
         });
 
         expect(progressMessage.updateVideoEncodeProgress).toHaveBeenCalledWith({
@@ -157,6 +156,7 @@ describe('handleVideoPost progress lifecycle', () => {
         expect(inspectVideoFileDetails).not.toHaveBeenCalled();
         expect(downloadVideo.mock.calls[0][2].signal).toBe(mediaJob.signal);
         expect(message.reply).not.toHaveBeenCalled();
+        expect(renderSemaphore.getStats().activeCount).toBe(0);
     });
 
     test('passes the server tier upload limit to the encoder', async () => {
@@ -174,7 +174,6 @@ describe('handleVideoPost progress lifecycle', () => {
             videoUrl: 'https://video.example.com/file.mp4',
             processingDir: '/tempdata',
             processingRunId: 'run-123',
-            MAX_CONCURRENT_REQUESTS: 3,
             progressMessage,
         });
 
@@ -199,7 +198,6 @@ describe('handleVideoPost progress lifecycle', () => {
             videoUrl: 'https://video.example.com/file.mp4',
             processingDir: '/tempdata',
             processingRunId: 'run-123',
-            MAX_CONCURRENT_REQUESTS: 3,
             progressMessage,
         });
 
@@ -229,7 +227,6 @@ describe('handleVideoPost progress lifecycle', () => {
             videoUrl: 'https://video.example.com/file.mp4',
             processingDir: '/tempdata',
             processingRunId: 'run-123',
-            MAX_CONCURRENT_REQUESTS: 3,
             progressMessage,
         });
 
@@ -259,7 +256,6 @@ describe('handleVideoPost progress lifecycle', () => {
             videoUrl: 'https://video.example.com/file.mp4',
             processingDir: '/tempdata',
             processingRunId: 'run-123',
-            MAX_CONCURRENT_REQUESTS: 3,
             progressMessage,
         });
 
@@ -279,6 +275,8 @@ describe('handleVideoPost progress lifecycle', () => {
         const followerMessage = buildMessageMock();
         const leaderProgress = buildProgressMock();
         const followerProgress = buildProgressMock();
+        const renderSemaphore = new MediaCapacitySemaphore({ capacity: 1 });
+        const acquireSpy = jest.spyOn(renderSemaphore, 'tryAcquire');
         let finishBake;
 
         bakeImageAsFilterIntoVideo.mockImplementation(() => new Promise((resolve) => {
@@ -296,8 +294,8 @@ describe('handleVideoPost progress lifecycle', () => {
             videoUrl: 'https://video.example.com/file.mp4',
             processingDir: '/tempdata',
             processingRunId: 'run-123',
-            MAX_CONCURRENT_REQUESTS: 3,
             progressMessage: leaderProgress,
+            renderSemaphore,
         });
 
         while (!finishBake) {
@@ -315,8 +313,8 @@ describe('handleVideoPost progress lifecycle', () => {
             videoUrl: 'https://video.example.com/file.mp4',
             processingDir: '/tempdata',
             processingRunId: 'run-456',
-            MAX_CONCURRENT_REQUESTS: 3,
             progressMessage: followerProgress,
+            renderSemaphore,
         });
 
         finishBake();
@@ -341,5 +339,7 @@ describe('handleVideoPost progress lifecycle', () => {
         );
         expect(cleanup).toHaveBeenCalledTimes(1);
         expect(cleanup).toHaveBeenCalledWith([], ['/tempdata/video-file']);
+        expect(acquireSpy).toHaveBeenCalledTimes(1);
+        expect(renderSemaphore.getStats().activeCount).toBe(0);
     });
 });

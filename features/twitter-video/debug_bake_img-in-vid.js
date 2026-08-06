@@ -10,6 +10,16 @@ const { canUseSourceDirectly } = require('./normalization_classifier');
 const VERBOSE = process.env.TWIT_DEBUG === '1';
 const NO_PROGRESS_TIMEOUT_MS = Number(process.env.TWIT_NOPROG_MS || 30000);
 
+function resolveFfmpegThreads(value = process.env.TWIT_FFMPEG_THREADS) {
+    if (value === undefined || value === null || value === '') return null;
+    const parsed = Number(value);
+    if (!Number.isInteger(parsed) || parsed < 1 || parsed > 32) {
+        console.warn(`[ffmpeg] Invalid TWIT_FFMPEG_THREADS=${value}; using automatic threading`);
+        return null;
+    }
+    return parsed;
+}
+
 function createOutputTooLargeError(outputPath, outputBytes, maxOutputBytes) {
     const error = new Error(
         `Encoded video exceeded upload limit: ${outputBytes} > ${maxOutputBytes} bytes`
@@ -177,6 +187,7 @@ function bakeImageAsFilterIntoVideoDEBUG(
             const onProgress = typeof options?.onProgress === 'function' ? options.onProgress : null;
             const telemetry = options?.telemetry || null;
             const maxOutputBytes = Number(options?.maxOutputBytes) || 0;
+            const ffmpegThreads = resolveFfmpegThreads(options?.ffmpegThreads);
             if (!existsSync(videoInputPath)) throw new Error(`Missing video input: ${videoInputPath}`);
             if (!existsSync(canvasInputPath)) throw new Error(`Missing canvas input: ${canvasInputPath}`);
 
@@ -329,10 +340,14 @@ function bakeImageAsFilterIntoVideoDEBUG(
                 '-map', '[outv]',
                 ...(hasAudio ? ['-map', '[aout]'] : []),
                 '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '22', '-pix_fmt', 'yuv420p',
+                ...(ffmpegThreads ? ['-threads', String(ffmpegThreads)] : []),
                 ...(hasAudio ? ['-c:a', 'aac', '-b:a', '128k', '-ar', '48000'] : []),
                 '-shortest',
                 '-movflags', '+faststart',
             ];
+            telemetry?.recordStage('encoder_configuration', 0, 'ok', {
+                threads: ffmpegThreads || 'auto',
+            });
 
             let lastProgTs = Date.now();
             let lastTimemark = '';
@@ -509,4 +524,8 @@ function bakeImageAsFilterIntoVideoDEBUG(
     });
 }
 
-module.exports = { bakeImageAsFilterIntoVideoDEBUG, validateVideoOutput };
+module.exports = {
+    bakeImageAsFilterIntoVideoDEBUG,
+    resolveFfmpegThreads,
+    validateVideoOutput,
+};
