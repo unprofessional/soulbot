@@ -1,5 +1,6 @@
 // features/twitter-core/twitter_video_handler.js
 
+const { existsSync, statSync } = require('node:fs');
 const { countDirectoriesInDirectory } = require('./twitter_post_utils.js');
 const { buildPathsAndStuff } = require('./path_builder.js');
 const {
@@ -20,6 +21,7 @@ const {
     acquireTwitterVideoRender,
     buildTwitterVideoRenderKey,
 } = require('./twitter_video_render_registry.js');
+const { createVideoPerformanceTelemetry } = require('../twitter-video/performance_telemetry.js');
 
 const USE_ESTIMATION = false; // 🔧 Toggle to `true` to re-enable output size estimation
 
@@ -34,6 +36,7 @@ async function handleVideoPost({
     MAX_CONCURRENT_REQUESTS,
     progressMessage,
     mediaJob,
+    videoTelemetry,
 }) {
     const communityNotes = {
         main: metadataJson.communityNote,
@@ -114,6 +117,14 @@ async function handleVideoPost({
         return capacityReply;
     }
 
+    const telemetry = videoTelemetry || createVideoPerformanceTelemetry({
+        context: {
+            guildId: message.guildId,
+            tweetId: renderKey,
+            source: 'production',
+        },
+    });
+
     const { filename, localWorkingPath } =
         pathInfo || buildPathsAndStuff(processingDir, videoUrl, processingRunId);
     const videoInputPath = `${localWorkingPath}/${filename}.mp4`;
@@ -123,10 +134,15 @@ async function handleVideoPost({
     const startTime = Date.now(); // ⏱️ Start timing
     let boostTier = 0;
     let guildName = message.guild?.name || 'Unknown Guild';
+    let completionStatus = 'ok';
+    let outputBytes = 0;
 
     try {
-        renderFlight.setCleanup(() => cleanup([], [localWorkingPath]));
-        await downloadVideo(videoUrl, videoInputPath);
+        renderFlight.setCleanup(() => telemetry.measure(
+            'cleanup',
+            () => cleanup([], [localWorkingPath]),
+        ));
+        await downloadVideo(videoUrl, videoInputPath, { telemetry });
 
         const guild = message.client.guilds.cache.get(message.guildId);
         boostTier = guild?.premiumTier ?? 0;
@@ -180,11 +196,11 @@ async function handleVideoPost({
         // NOTE: createTwitterVideoCanvas should write the PNG to `canvasInputPath`
         // (it knows the destination or accepts it via an internal config).
         const { canvasHeight, canvasWidth, heightShim } =
-      await createTwitterVideoCanvas({
+      await telemetry.measure('canvas_creation', () => createTwitterVideoCanvas({
           ...metadataJson,
           // Provide a friendly hint for the canvas writer if it supports it
           _canvasOutputPath: canvasInputPath,
-      });
+      }));
 
         // ---- Compose video with overlay ----------------------------------------
         const successFilePath = await bakeImageAsFilterIntoVideo(
@@ -204,10 +220,12 @@ async function handleVideoPost({
                     mediaJob?.attachProcess(proc, { label: 'ffmpeg encode' });
                 },
                 maxOutputBytes: maxBytes,
+                telemetry,
             },
         );
 
         const actualSize = await getVideoFileSize(successFilePath);
+        outputBytes = actualSize;
         const actualMB = (actualSize / 1024 / 1024).toFixed(2);
         console.log(`[${guildName}] ✅ Output file size: ${actualMB}MB`);
 
@@ -215,8 +233,9 @@ async function handleVideoPost({
         inspectVideoFileDetails(successFilePath, 'output');
 
         renderFlight.complete({ successFilePath });
-        await uploadRenderedVideo(successFilePath);
+        await telemetry.measure('discord_upload', () => uploadRenderedVideo(successFilePath));
     } catch (err) {
+        completionStatus = 'failed';
         console.error('>>> ERROR: renderTwitterPost > err:', err);
         renderFlight.fail(err);
         if (err?.code === 'OUTPUT_FILE_TOO_LARGE') {
@@ -232,6 +251,9 @@ async function handleVideoPost({
         await renderFlight.release();
         const totalTime = (Date.now() - startTime) / 1000;
         console.log(`⏱️ Video processing completed in ${totalTime.toFixed(2)}s`);
+        telemetry.finish(completionStatus, {
+            outputBytes: outputBytes || (existsSync(videoOutputPath) ? statSync(videoOutputPath).size : 0),
+        });
     }
 }
 

@@ -17,6 +17,7 @@
     "start": "node index.js",
     "test": "npx jest --testPathIgnorePatterns=node_modules/* --verbose=true --coverage=false",
     "lint": "npx eslint --fix .",
+    "benchmark:twitter-video": "node scripts/benchmark-twitter-video.js",
     "prepare": "husky"
   },
   "author": "unprofessionalmadman@gmail.com",
