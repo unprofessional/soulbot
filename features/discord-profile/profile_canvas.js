@@ -11,7 +11,24 @@ const CARD = Object.freeze({
     contentWidth: 520,
 });
 
-const FALLBACK_ACCENTS = ['#9B78FF', '#60E879', '#FF5964', '#4CC9F0', '#FFB84D'];
+const FALLBACK_ACCENTS = Object.freeze([
+    '#9B78FF',
+    '#60E879',
+    '#FF5964',
+    '#4CC9F0',
+    '#FFB84D',
+    '#FF6EC7',
+    '#6C7CFF',
+    '#2DD4BF',
+    '#FF7A45',
+    '#A3E635',
+    '#3B82F6',
+    '#D946EF',
+    '#FB7185',
+    '#22D3EE',
+    '#FACC15',
+    '#C084FC',
+]);
 const FONT = 'Arial';
 
 function roundedRect(ctx, x, y, width, height, radius) {
@@ -81,8 +98,9 @@ function formatMemberSince(date) {
     const validDate = date instanceof Date && !Number.isNaN(date.valueOf()) ? date : new Date();
     return `Member since ${new Intl.DateTimeFormat('en-US', {
         month: 'long',
+        day: 'numeric',
         year: 'numeric',
-        timeZone: 'UTC',
+        timeZone: 'America/New_York',
     }).format(validDate)}`;
 }
 
@@ -341,8 +359,10 @@ async function createProfileCanvas(guildMember) {
 
 module.exports = {
     CARD,
+    FALLBACK_ACCENTS,
     createMemberCard,
     createProfileCanvas,
+    fallbackAccent,
     formatMemberSince,
     memberCardDataFromGuildMember,
     resolveBadge,
