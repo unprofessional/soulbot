@@ -33,33 +33,41 @@ const ffprobePromise = (p) =>
     });
 
 /** Stream a remote file to disk. Returns true if duration <= 60s after write. */
-const downloadVideo = async (remoteFileUrl, outputPath) => {
+const downloadVideo = async (remoteFileUrl, outputPath, { telemetry } = {}) => {
     ensureDirectoryExists(outputPath);
-    const response = await fetch(remoteFileUrl);
-    if (!response.ok || !response.body) {
-        throw new Error(`downloadVideo: HTTP ${response.status} for ${remoteFileUrl}`);
-    }
-
-    const fileStream = createWriteStream(outputPath);
-    try {
-        for await (const chunk of response.body) {
-            fileStream.write(chunk);
+    const download = async () => {
+        const response = await fetch(remoteFileUrl);
+        if (!response.ok || !response.body) {
+            throw new Error(`downloadVideo: HTTP ${response.status} for ${remoteFileUrl}`);
         }
-    } finally {
-        fileStream.end();
-    }
 
-    await new Promise((resolve, reject) => {
-    // use both finish & close as some streams flush async
-        let done = false;
-        const finish = () => { if (!done) { done = true; resolve(); } };
-        const error  = (e) => { if (!done) { done = true; reject(e); } };
-        fileStream.once('finish', finish);
-        fileStream.once('close', finish);
-        fileStream.once('error', error);
-    });
+        const fileStream = createWriteStream(outputPath);
+        try {
+            for await (const chunk of response.body) {
+                fileStream.write(chunk);
+            }
+        } finally {
+            fileStream.end();
+        }
 
-    const dur = await getVideoDuration(outputPath);
+        await new Promise((resolve, reject) => {
+            // use both finish & close as some streams flush async
+            let done = false;
+            const finish = () => { if (!done) { done = true; resolve(); } };
+            const error  = (e) => { if (!done) { done = true; reject(e); } };
+            fileStream.once('finish', finish);
+            fileStream.once('close', finish);
+            fileStream.once('error', error);
+        });
+    };
+
+    if (telemetry) await telemetry.measure('download', download);
+    else await download();
+
+    const probeDuration = () => getVideoDuration(outputPath);
+    const dur = telemetry
+        ? await telemetry.measure('initial_probe', probeDuration)
+        : await probeDuration();
     return dur <= 60;
 };
 

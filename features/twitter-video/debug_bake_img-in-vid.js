@@ -42,6 +42,34 @@ function parseRate(r) {
 const seconds = n => Number.isFinite(n) ? n.toFixed(3) : 'NaN';
 const probeAll = p => new Promise((res, rej) => ffmpeg.ffprobe(p, (e, md) => e ? rej(e) : res(md)));
 
+function summarizeMediaMetadata(metadata) {
+    const format = metadata?.format || {};
+    const video = metadata?.streams?.find(stream => stream.codec_type === 'video');
+    const audio = metadata?.streams?.find(stream => stream.codec_type === 'audio');
+    return {
+        bytes: Number(format.size) || null,
+        durationSeconds: Number(format.duration) || null,
+        formatStartSeconds: Number(format.start_time) || 0,
+        video: video ? {
+            codec: video.codec_name || null,
+            width: video.width || null,
+            height: video.height || null,
+            averageFrameRate: video.avg_frame_rate || null,
+            nominalFrameRate: video.r_frame_rate || null,
+            startSeconds: Number(video.start_time) || 0,
+        } : null,
+        audio: audio ? {
+            codec: audio.codec_name || null,
+            sampleRate: Number(audio.sample_rate) || null,
+            channels: audio.channels || null,
+            startSeconds: Number(audio.start_time) || 0,
+        } : null,
+        audioVideoStartDeltaSeconds: audio && video
+            ? (Number(video.start_time) || 0) - (Number(audio.start_time) || 0)
+            : null,
+    };
+}
+
 function parseTimemarkToSeconds(timemark) {
     if (!timemark || typeof timemark !== 'string') return 0;
 
@@ -131,6 +159,7 @@ function bakeImageAsFilterIntoVideoDEBUG(
 
         (async () => {
             const onProgress = typeof options?.onProgress === 'function' ? options.onProgress : null;
+            const telemetry = options?.telemetry || null;
             const maxOutputBytes = Number(options?.maxOutputBytes) || 0;
             if (!existsSync(videoInputPath)) throw new Error(`Missing video input: ${videoInputPath}`);
             if (!existsSync(canvasInputPath)) throw new Error(`Missing canvas input: ${canvasInputPath}`);
@@ -138,7 +167,13 @@ function bakeImageAsFilterIntoVideoDEBUG(
             console.log('[pre] inputs:');
             console.log('   ', statLine(videoInputPath));
             console.log('   ', statLine(canvasInputPath));
-            const [vidSha, canSha] = await Promise.all([sha1File(videoInputPath), sha1File(canvasInputPath)]);
+            const hashInputs = () => Promise.all([sha1File(videoInputPath), sha1File(canvasInputPath)]);
+            const [vidSha, canSha] = telemetry
+                ? await telemetry.measure('input_hashing', hashInputs, {
+                    videoBytes: statSync(videoInputPath).size,
+                    canvasBytes: statSync(canvasInputPath).size,
+                })
+                : await hashInputs();
             console.log(`[pre] sha1 video=${vidSha} canvas=${canSha}`);
 
             const {
@@ -173,9 +208,17 @@ function bakeImageAsFilterIntoVideoDEBUG(
                     .save(normPath);
             });
 
-            await normalize();
+            if (telemetry) await telemetry.measure('normalization_remux', normalize);
+            else await normalize();
 
-            const meta = await probeAll(normPath);
+            const probeNormalizedInput = () => probeAll(normPath);
+            const meta = telemetry
+                ? await telemetry.measure(
+                    'normalized_input_probe',
+                    probeNormalizedInput,
+                    summarizeMediaMetadata,
+                )
+                : await probeNormalizedInput();
             const { fmt, v, a } = await debugProbe('norm', normPath, meta);
 
             const hasAudio = !!a;
@@ -239,6 +282,7 @@ function bakeImageAsFilterIntoVideoDEBUG(
             let lastTimemark = '';
             let lastOutputBytes = 0;
             let abortError = null;
+            let encodeStartedAt = null;
             const stderrTail = [];
             const keepTail = (line) => {
                 const s = String(line);
@@ -291,6 +335,7 @@ function bakeImageAsFilterIntoVideoDEBUG(
                 .outputOptions(baseOutputOpts)
                 .output(videoOutputPath)
                 .on('start', (commandLine) => {
+                    encodeStartedAt = Date.now();
                     console.log('[ffmpeg] start cmd:', commandLine);
                     console.log('[ffmpeg] outputOptions:', baseOutputOpts.join(' '));
                     const proc = cmd.ffmpegProc;
@@ -330,6 +375,9 @@ function bakeImageAsFilterIntoVideoDEBUG(
                 .on('stderr', line => { if (VERBOSE) console.log('[ffmpeg][stderr]', String(line).trim()); keepTail(line); })
                 .on('end', async () => {
                     cleanupWatchdog();
+                    if (telemetry && encodeStartedAt) {
+                        telemetry.recordStage('composite_encode', Date.now() - encodeStartedAt);
+                    }
                     if (onProgress) {
                         Promise.resolve(onProgress({
                             phase: 'encoding',
@@ -343,7 +391,14 @@ function bakeImageAsFilterIntoVideoDEBUG(
                     }
                     console.log('[ffmpeg] done', statLine(videoOutputPath));
                     try {
-                        const outProbe = await probeAll(videoOutputPath);
+                        const probeOutput = () => probeAll(videoOutputPath);
+                        const outProbe = telemetry
+                            ? await telemetry.measure(
+                                'output_validation_probe',
+                                probeOutput,
+                                summarizeMediaMetadata,
+                            )
+                            : await probeOutput();
                         await debugProbe('out', videoOutputPath, outProbe);
                     } catch (e) {
                         console.warn('[post] probe out failed:', e?.message || e);
@@ -352,6 +407,9 @@ function bakeImageAsFilterIntoVideoDEBUG(
                 })
                 .on('error', (e, stdout, stderr) => {
                     cleanupWatchdog();
+                    if (telemetry && encodeStartedAt) {
+                        telemetry.recordStage('composite_encode', Date.now() - encodeStartedAt, 'failed');
+                    }
                     const error = abortError || e;
                     console.error('[ffmpeg] error:', error?.message || error);
                     if (stdout) console.error('[ffmpeg] stdout(sample):', String(stdout).slice(-1500));
