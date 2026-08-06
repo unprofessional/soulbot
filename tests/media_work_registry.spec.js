@@ -49,4 +49,20 @@ describe('media_work_registry', () => {
         await expect(idlePromise).resolves.toBeUndefined();
         expect(getActiveJobs()).toEqual([]);
     });
+
+    test('provides an abort signal for cancellable job operations', async () => {
+        let observedSignal;
+
+        await runTrackedMediaJob(
+            { kind: 'twitter-video', label: 'tweet-3' },
+            async (job) => {
+                observedSignal = job.signal;
+                expect(observedSignal.aborted).toBe(false);
+                job.abort(new Error('cancelled'));
+            }
+        );
+
+        expect(observedSignal.aborted).toBe(true);
+        expect(observedSignal.reason).toEqual(new Error('cancelled'));
+    });
 });

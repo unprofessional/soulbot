@@ -114,6 +114,7 @@ describe('handleVideoPost progress lifecycle', () => {
     test('dismisses the placeholder after a successful upload', async () => {
         const message = buildMessageMock();
         const progressMessage = buildProgressMock();
+        const mediaJob = { signal: new AbortController().signal };
         bakeImageAsFilterIntoVideo.mockImplementation(async (...args) => {
             const options = args[8];
             await options.onProgress({
@@ -136,6 +137,7 @@ describe('handleVideoPost progress lifecycle', () => {
             processingRunId: 'run-123',
             MAX_CONCURRENT_REQUESTS: 3,
             progressMessage,
+            mediaJob,
         });
 
         expect(progressMessage.updateVideoEncodeProgress).toHaveBeenCalledWith({
@@ -153,6 +155,7 @@ describe('handleVideoPost progress lifecycle', () => {
         expect(progressMessage.dismiss).toHaveBeenCalledTimes(1);
         expect(cleanup).toHaveBeenCalledWith([], ['/tempdata/video-file']);
         expect(inspectVideoFileDetails).not.toHaveBeenCalled();
+        expect(downloadVideo.mock.calls[0][2].signal).toBe(mediaJob.signal);
         expect(message.reply).not.toHaveBeenCalled();
     });
 
