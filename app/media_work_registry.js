@@ -33,7 +33,9 @@ function registerMediaJob({ kind = 'media', label = 'unnamed-job' } = {}) {
 
     const jobId = `${kind}-${nextJobId++}`;
     const processes = new Set();
+    const abortController = new AbortController();
     const job = {
+        abortController,
         id: jobId,
         kind,
         label,
@@ -46,6 +48,11 @@ function registerMediaJob({ kind = 'media', label = 'unnamed-job' } = {}) {
 
     return {
         id: jobId,
+        signal: abortController.signal,
+
+        abort(reason = new Error(`Media job ${jobId} cancelled`)) {
+            abortController.abort(reason);
+        },
 
         attachProcess(proc, { label: processLabel = 'child-process' } = {}) {
             if (!proc) {

@@ -38,6 +38,25 @@ Commit: `70e0dfd` — `Instrument Twitter video performance baseline`
 
 - Phase 0 did not make video rendering faster by itself. It established the production evidence and repeatable baseline required to prove whether later phases are genuinely faster.
 
+## 2026-08-05 — Twitter/X video Phase 1 removes wasted work
+
+Branch: `perf/twitter-video-remove-debug-overhead`
+Commit: `24fb405` — `Reduce Twitter video diagnostic overhead`
+
+### What we actually gained
+
+- Normal production renders no longer launch three redundant FFprobe processes or read the complete source video and canvas solely to calculate diagnostic hashes.
+- The one retained output validation is now blocking and rejects a missing video stream or invalid duration before Discord upload, making the streamlined path safer than the prior diagnostics-heavy path.
+- Routine logs are concise enough to operate without emitting every FFmpeg command, stream dump, codec event, and progress event. Full diagnostics remain available through `TWIT_DEBUG=1`.
+- Two complete Phase 1 host benchmarks finished 70 of 70 measured renders successfully. The first was about 4–5% faster than Phase 0 overall; the repeat was effectively neutral within host variance.
+- All seven deterministic fixture outputs matched Phase 0 byte-for-byte. The repeated production smoke suite also passed portrait, landscape, silent/GIF, ordinary, and simultaneous cross-server duplicate requests with successful cleanup.
+- Phase 1 evidence is preserved on `shinralabs` under `/home/rally/soulbot-benchmark-results/phase1/`.
+
+### What this did not change
+
+- Encoding remains the dominant cost. Phase 1 removed fixed overhead but did not change the media filter, codec, quality, audio, or normalization behavior, so its practical speedup is modest and most visible on short videos.
+- The renderer-only benchmark bypasses download and Discord handler work. Production telemetry remains necessary to measure complete request latency.
+
 ## Docket entry template
 
 ```markdown
