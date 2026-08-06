@@ -1,6 +1,9 @@
 const ffmpeg = require('fluent-ffmpeg');
 
-const { validateVideoOutput } = require('../features/twitter-video/debug_bake_img-in-vid');
+const {
+    resolveFfmpegThreads,
+    validateVideoOutput,
+} = require('../features/twitter-video/debug_bake_img-in-vid');
 
 describe('Twitter video output validation', () => {
     afterEach(() => {
@@ -47,5 +50,20 @@ describe('Twitter video output validation', () => {
             expect.any(Function),
         );
         expect(ffmpeg.ffprobe).toHaveBeenCalledTimes(1);
+    });
+});
+
+describe('Twitter video FFmpeg thread configuration', () => {
+    test.each([
+        [undefined, null],
+        ['', null],
+        ['1', 1],
+        ['8', 8],
+        ['32', 32],
+        ['0', null],
+        ['33', null],
+        ['invalid', null],
+    ])('resolves %p to %p', (value, expected) => {
+        expect(resolveFfmpegThreads(value)).toBe(expected);
     });
 });

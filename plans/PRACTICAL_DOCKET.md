@@ -74,6 +74,25 @@ Commit: `b2d607e` — `Harden Twitter video downloads`
 - A suitably large fresh X video was not available during the stop gate, so that specific smoke case was explicitly deferred to normal production observation. The bounded-memory behavior is covered locally; any source-specific large-video failure remains something to isolate from production telemetry.
 - Phase 2 was reliability and memory hardening, not an encoder optimization. The fixed renderer benchmark remained green, but no meaningful encode-speed gain was expected.
 
+## 2026-08-05 — Twitter/X video Phase 3 skips safe remux work
+
+Branch: `perf/twitter-video-conditional-normalization`
+Commit: `7101402` — `Skip normalization for safe Twitter videos`
+
+### What we actually gained
+
+- Ordinary, demonstrably safe H.264/AAC MP4 inputs can now go directly into composition instead of first launching a remux and a second probe. Inputs with uncertain time bases, variable frame rates, timestamp offsets, incompatible codecs, or malformed metadata keep the established normalization path.
+- `TWIT_FORCE_NORMALIZATION=1` provides a verified immediate rollback to the old all-normalization behavior. The production service was successfully exercised in both forced and conditional modes.
+- The production conditional smoke suite completed portrait, landscape, and silent/GIF renders successfully. One landscape input safely bypassed normalization; the portrait and silent inputs conservatively retained it for explicit classifier reasons. Every output encoded, validated, uploaded, and cleaned up.
+- Identical 35-run `shinralabs` corpora completed without failure in both modes. Median was effectively neutral at 2.211 seconds forced versus 2.199 seconds conditional, while p95 improved from 5.531 to 5.354 seconds. Direct inputs avoided roughly 220–390 milliseconds of remux/probe work, but total latency remained dominated by video encoding and ordinary host variance.
+- Direct and normalized local outputs retained matching dimensions, streams, and duration with SSIM above 0.999. Phase 3 artifacts are preserved under `/home/rally/soulbot-benchmark-results/phase3/`.
+
+### What this did not prove yet
+
+- The cross-server duplicate smoke was intentionally deferred to the final end-to-end gate because repeating it during every phase created disproportionate manual work.
+- Conditional normalization removes fixed work for eligible inputs; it does not accelerate the composite encode that dominates longer videos.
+- Audio passthrough was skipped because telemetry did not identify audio encoding as a material independent bottleneck. Its likely marginal gain did not justify additional A/V synchronization and Discord compatibility risk.
+
 ## Docket entry template
 
 ```markdown
