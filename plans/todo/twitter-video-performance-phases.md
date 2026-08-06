@@ -1,5 +1,7 @@
 # Twitter/X Video Processing Performance Plan
 
+Status: active. Keep this document in `plans/todo/` until all approved phases and stop gates are complete, then move it to `plans/done/`.
+
 ## Purpose
 
 Improve the latency and throughput of Soulbot's Twitter/X video renderer without reducing visual quality, audio quality, Discord compatibility, or operational reliability.
