@@ -1,7 +1,6 @@
 // features/twitter-core/twitter_video_handler.js
 
 const { existsSync, statSync } = require('node:fs');
-const { countDirectoriesInDirectory } = require('./twitter_post_utils.js');
 const { buildPathsAndStuff } = require('./path_builder.js');
 const {
     downloadVideo,
@@ -22,6 +21,7 @@ const {
     buildTwitterVideoRenderKey,
 } = require('./twitter_video_render_registry.js');
 const { createVideoPerformanceTelemetry } = require('../twitter-video/performance_telemetry.js');
+const { twitterVideoRenderSemaphore } = require('./twitter_video_capacity.js');
 
 const USE_ESTIMATION = false; // 🔧 Toggle to `true` to re-enable output size estimation
 
@@ -33,10 +33,10 @@ async function handleVideoPost({
     processingDir,
     processingRunId,
     pathInfo,
-    MAX_CONCURRENT_REQUESTS,
     progressMessage,
     mediaJob,
     videoTelemetry,
+    renderSemaphore = twitterVideoRenderSemaphore,
 }) {
     const communityNotes = {
         main: metadataJson.communityNote,
@@ -105,8 +105,11 @@ async function handleVideoPost({
         return;
     }
 
-    const currentDirCount = await countDirectoriesInDirectory(processingDir);
-    if (currentDirCount >= MAX_CONCURRENT_REQUESTS) {
+    const renderPermit = renderSemaphore.tryAcquire({
+        jobId: mediaJob?.id,
+        label: renderKey,
+    });
+    if (!renderPermit) {
         await progressMessage?.dismiss?.();
         const capacityReply = await message.reply({
             content: 'Video processing at capacity; try again later.',
@@ -117,27 +120,31 @@ async function handleVideoPost({
         return capacityReply;
     }
 
-    const telemetry = videoTelemetry || createVideoPerformanceTelemetry({
-        context: {
-            guildId: message.guildId,
-            tweetId: renderKey,
-            source: 'production',
-        },
-    });
-
-    const { filename, localWorkingPath } =
-        pathInfo || buildPathsAndStuff(processingDir, videoUrl, processingRunId);
-    const videoInputPath = `${localWorkingPath}/${filename}.mp4`;
-    const canvasInputPath = `${localWorkingPath}/${filename}.png`;
-    const videoOutputPath = `${localWorkingPath}/${filename}-output.mp4`;
-
     const startTime = Date.now(); // ⏱️ Start timing
+    let telemetry = videoTelemetry || null;
+    let localWorkingPath = null;
+    let videoInputPath = null;
+    let canvasInputPath = null;
+    let videoOutputPath = null;
     let boostTier = 0;
     let guildName = message.guild?.name || 'Unknown Guild';
     let completionStatus = 'ok';
     let outputBytes = 0;
 
     try {
+        telemetry ||= createVideoPerformanceTelemetry({
+            context: {
+                guildId: message.guildId,
+                tweetId: renderKey,
+                source: 'production',
+            },
+        });
+        const paths = pathInfo || buildPathsAndStuff(processingDir, videoUrl, processingRunId);
+        localWorkingPath = paths.localWorkingPath;
+        videoInputPath = `${localWorkingPath}/${paths.filename}.mp4`;
+        canvasInputPath = `${localWorkingPath}/${paths.filename}.png`;
+        videoOutputPath = `${localWorkingPath}/${paths.filename}-output.mp4`;
+
         renderFlight.setCleanup(() => telemetry.measure(
             'cleanup',
             () => cleanup([], [localWorkingPath]),
@@ -248,12 +255,18 @@ async function handleVideoPost({
             allowedMentions: { repliedUser: false },
         });
     } finally {
-        await renderFlight.release();
-        const totalTime = (Date.now() - startTime) / 1000;
-        console.log(`⏱️ Video processing completed in ${totalTime.toFixed(2)}s`);
-        telemetry.finish(completionStatus, {
-            outputBytes: outputBytes || (existsSync(videoOutputPath) ? statSync(videoOutputPath).size : 0),
-        });
+        try {
+            await renderFlight.release();
+        } finally {
+            renderPermit.release();
+            const totalTime = (Date.now() - startTime) / 1000;
+            console.log(`⏱️ Video processing completed in ${totalTime.toFixed(2)}s`);
+            telemetry?.finish(completionStatus, {
+                outputBytes: outputBytes || (
+                    videoOutputPath && existsSync(videoOutputPath) ? statSync(videoOutputPath).size : 0
+                ),
+            });
+        }
     }
 }
 

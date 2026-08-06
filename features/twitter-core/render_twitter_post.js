@@ -16,7 +16,6 @@ const { runTrackedMediaJob } = require('../../app/media_work_registry.js');
 const { collectMedia, formatTwitterDate } = require('./utils.js');
 
 const processingDir = '/tempdata';
-const MAX_CONCURRENT_REQUESTS = 3;
 
 const renderTwitterPost = async (metadataJson, message, originalLink) => {
     console.log('>>>>> renderTwitterPost > originalLink:', originalLink);
@@ -85,7 +84,6 @@ const renderTwitterPost = async (metadataJson, message, originalLink) => {
                     processingDir,
                     processingRunId,
                     pathInfo,
-                    MAX_CONCURRENT_REQUESTS,
                     progressMessage,
                     mediaJob: job,
                 });
