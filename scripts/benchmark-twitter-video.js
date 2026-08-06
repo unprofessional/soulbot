@@ -172,6 +172,7 @@ async function environmentMetadata() {
         toggles: {
             TWIT_DEBUG: process.env.TWIT_DEBUG || null,
             TWIT_NOPROG_MS: process.env.TWIT_NOPROG_MS || null,
+            TWIT_FORCE_NORMALIZATION: process.env.TWIT_FORCE_NORMALIZATION || null,
         },
     };
 }
