@@ -142,7 +142,10 @@ async function handleVideoPost({
             'cleanup',
             () => cleanup([], [localWorkingPath]),
         ));
-        await downloadVideo(videoUrl, videoInputPath, { telemetry });
+        await downloadVideo(videoUrl, videoInputPath, {
+            telemetry,
+            signal: mediaJob?.signal,
+        });
 
         const guild = message.client.guilds.cache.get(message.guildId);
         boostTier = guild?.premiumTier ?? 0;

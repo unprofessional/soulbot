@@ -6,8 +6,19 @@ const {
     mkdirSync,
     statSync,
 } = require('node:fs');
+const { unlink } = require('node:fs/promises');
+const { Readable, Transform } = require('node:stream');
+const { pipeline } = require('node:stream/promises');
 const ffmpeg = require('fluent-ffmpeg');
 const { bakeImageAsFilterIntoVideoDEBUG } = require('./debug_bake_img-in-vid');
+
+const DEFAULT_DOWNLOAD_TIMEOUT_MS = 60000;
+
+async function removePartialDownload(outputPath) {
+    await unlink(outputPath).catch(error => {
+        if (!['ENOENT', 'ENOTDIR', 'EISDIR'].includes(error?.code)) throw error;
+    });
+}
 
 /** Ensure the parent directory of a target file path exists. */
 const ensureDirectoryExists = (filePath) => {
@@ -33,37 +44,76 @@ const ffprobePromise = (p) =>
     });
 
 /** Stream a remote file to disk. */
-const downloadVideo = async (remoteFileUrl, outputPath, { telemetry } = {}) => {
+const downloadVideo = async (
+    remoteFileUrl,
+    outputPath,
+    {
+        telemetry,
+        signal,
+        timeoutMs = Number(process.env.TWIT_DOWNLOAD_TIMEOUT_MS) || DEFAULT_DOWNLOAD_TIMEOUT_MS,
+    } = {}
+) => {
     ensureDirectoryExists(outputPath);
     const download = async () => {
-        const response = await fetch(remoteFileUrl);
-        if (!response.ok || !response.body) {
-            throw new Error(`downloadVideo: HTTP ${response.status} for ${remoteFileUrl}`);
-        }
+        const controller = new AbortController();
+        let timedOut = false;
+        let completed = false;
+        let response;
+        let downloadedBytes = 0;
+        const onAbort = () => controller.abort(signal?.reason);
+        const timeout = setTimeout(() => {
+            timedOut = true;
+            controller.abort(new Error(`Video download timed out after ${timeoutMs}ms`));
+        }, timeoutMs);
+        timeout.unref?.();
 
-        const fileStream = createWriteStream(outputPath);
+        if (signal?.aborted) onAbort();
+        else signal?.addEventListener('abort', onAbort, { once: true });
+
         try {
-            for await (const chunk of response.body) {
-                fileStream.write(chunk);
+            response = await fetch(remoteFileUrl, { signal: controller.signal });
+            if (!response.ok || !response.body) {
+                throw new Error(`downloadVideo: HTTP ${response.status} for ${remoteFileUrl}`);
             }
-        } finally {
-            fileStream.end();
-        }
 
-        await new Promise((resolve, reject) => {
-            // use both finish & close as some streams flush async
-            let done = false;
-            const finish = () => { if (!done) { done = true; resolve(); } };
-            const error  = (e) => { if (!done) { done = true; reject(e); } };
-            fileStream.once('finish', finish);
-            fileStream.once('close', finish);
-            fileStream.once('error', error);
-        });
+            const countBytes = new Transform({
+                transform(chunk, _encoding, callback) {
+                    downloadedBytes += chunk.length;
+                    callback(null, chunk);
+                },
+            });
+
+            await pipeline(
+                Readable.fromWeb(response.body),
+                countBytes,
+                createWriteStream(outputPath),
+                { signal: controller.signal },
+            );
+            completed = true;
+            return { downloadedBytes };
+        } catch (error) {
+            await removePartialDownload(outputPath);
+
+            if (timedOut) {
+                const timeoutError = new Error(`Video download timed out after ${timeoutMs}ms`);
+                timeoutError.name = 'VideoDownloadTimeoutError';
+                timeoutError.code = 'VIDEO_DOWNLOAD_TIMEOUT';
+                throw timeoutError;
+            }
+            throw error;
+        } finally {
+            clearTimeout(timeout);
+            signal?.removeEventListener('abort', onAbort);
+            if (response?.body && !completed) {
+                await response.body.cancel(controller.signal.reason).catch(() => {});
+            }
+        }
     };
 
-    if (telemetry) await telemetry.measure('download', download);
-    else await download();
-
+    const result = telemetry
+        ? await telemetry.measure('download', download, ({ downloadedBytes }) => ({ downloadedBytes }))
+        : await download();
+    return result.downloadedBytes;
 };
 
 function extractAudioFromVideo(videoPath, outputPath) {

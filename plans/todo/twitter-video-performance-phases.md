@@ -96,6 +96,12 @@ For phases capable of changing media output, compare candidate output to the bas
 
 Any crash, stuck job, missing/truncated audio, material sync regression, playback incompatibility, cleanup leak, or unexpected quality regression blocks advancement.
 
+### Keep production smoke tests repeatable
+
+Use the same known portrait, landscape, silent/GIF, and ordinary X posts at every stop gate. Delete the prior Soulbot-rendered Discord responses before reposting so stale render ownership is cleared.
+
+Add an owner-only smoke-test bypass in a future operational phase if repeated deletion remains cumbersome. It must bypass only persisted prior-render reuse for an explicit test request; it must not weaken simultaneous single-flight deduplication or become available to normal users.
+
 ## Phase 0: Establish a trustworthy production baseline
 
 ### Development
