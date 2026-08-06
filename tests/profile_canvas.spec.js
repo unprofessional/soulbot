@@ -10,7 +10,9 @@ jest.mock('canvas', () => {
 
 const {
     CARD,
+    FALLBACK_ACCENTS,
     createProfileCanvas,
+    fallbackAccent,
     formatMemberSince,
     memberCardDataFromGuildMember,
     resolveBadge,
@@ -42,7 +44,7 @@ describe('member profile canvas', () => {
             displayName: 'Scoot',
             username: '@scoot',
             avatarUrl: 'https://example.com/avatar.png',
-            memberSinceLabel: 'Member since May 2020',
+            memberSinceLabel: 'Member since May 1, 2020',
             accentColor: '#9B78FF',
             badge: { type: 'public', label: 'EARLY SUPPORTER', icon: 'star' },
         });
@@ -54,9 +56,15 @@ describe('member profile canvas', () => {
         });
     });
 
-    test('formats account creation month consistently in UTC', () => {
+    test('formats the complete account creation date consistently in UTC', () => {
         expect(formatMemberSince(new Date('2018-11-30T23:30:00-05:00')))
-            .toBe('Member since December 2018');
+            .toBe('Member since December 1, 2018');
+    });
+
+    test('offers sixteen deterministic fallback accents for members without role colors', () => {
+        expect(FALLBACK_ACCENTS).toHaveLength(16);
+        expect(fallbackAccent('12345')).toBe(fallbackAccent('12345'));
+        expect(FALLBACK_ACCENTS).toContain(fallbackAccent('12345'));
     });
 
     test('renders a 960 by 360 PNG', async () => {
