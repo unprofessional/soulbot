@@ -44,7 +44,7 @@ describe('member profile canvas', () => {
             displayName: 'Scoot',
             username: '@scoot',
             avatarUrl: 'https://example.com/avatar.png',
-            memberSinceLabel: 'Member since May 1, 2020',
+            memberSinceLabel: 'Member since April 30, 2020',
             accentColor: '#9B78FF',
             badge: { type: 'public', label: 'EARLY SUPPORTER', icon: 'star' },
         });
@@ -56,9 +56,9 @@ describe('member profile canvas', () => {
         });
     });
 
-    test('formats the complete account creation date consistently in UTC', () => {
+    test('formats the complete account creation date in US Eastern time', () => {
         expect(formatMemberSince(new Date('2018-11-30T23:30:00-05:00')))
-            .toBe('Member since December 1, 2018');
+            .toBe('Member since November 30, 2018');
     });
 
     test('offers sixteen deterministic fallback accents for members without role colors', () => {

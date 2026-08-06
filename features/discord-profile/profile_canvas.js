@@ -100,7 +100,7 @@ function formatMemberSince(date) {
         month: 'long',
         day: 'numeric',
         year: 'numeric',
-        timeZone: 'UTC',
+        timeZone: 'America/New_York',
     }).format(validDate)}`;
 }
 
