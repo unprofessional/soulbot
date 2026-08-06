@@ -32,7 +32,7 @@ const ffprobePromise = (p) =>
         ffmpeg.ffprobe(p, (err, md) => (err ? reject(err) : resolve(md)));
     });
 
-/** Stream a remote file to disk. Returns true if duration <= 60s after write. */
+/** Stream a remote file to disk. */
 const downloadVideo = async (remoteFileUrl, outputPath, { telemetry } = {}) => {
     ensureDirectoryExists(outputPath);
     const download = async () => {
@@ -64,11 +64,6 @@ const downloadVideo = async (remoteFileUrl, outputPath, { telemetry } = {}) => {
     if (telemetry) await telemetry.measure('download', download);
     else await download();
 
-    const probeDuration = () => getVideoDuration(outputPath);
-    const dur = telemetry
-        ? await telemetry.measure('initial_probe', probeDuration)
-        : await probeDuration();
-    return dur <= 60;
 };
 
 function extractAudioFromVideo(videoPath, outputPath) {
@@ -150,7 +145,7 @@ async function getVideoDuration(filePath) {
     return dur;
 }
 
-/** Safer size helper: prefer filesystem size; ffprobe.format.size is often absent. */
+/** Return the authoritative filesystem size without launching ffprobe. */
 async function getVideoFileSize(filePath) {
     if (!filePath || typeof filePath !== 'string') {
         throw new Error(`getVideoFileSize: invalid path "${filePath}"`);
@@ -158,11 +153,7 @@ async function getVideoFileSize(filePath) {
     if (!existsSync(filePath)) {
         throw new Error(`getVideoFileSize: not found "${filePath}"`);
     }
-    // fs size is authoritative for “what we actually wrote”
-    const st = statSync(filePath);
-    // probe is optional info; don’t let it crash callers
-    try { await ffprobePromise(filePath); } catch (_) { /* ignore */ }
-    return st.size;
+    return statSync(filePath).size;
 }
 
 /** Forwarder to the debug impl you’re testing. */

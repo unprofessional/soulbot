@@ -229,9 +229,6 @@ async function handleVideoPost({
         const actualMB = (actualSize / 1024 / 1024).toFixed(2);
         console.log(`[${guildName}] ✅ Output file size: ${actualMB}MB`);
 
-        // Optional: dump output file media info
-        inspectVideoFileDetails(successFilePath, 'output');
-
         renderFlight.complete({ successFilePath });
         await telemetry.measure('discord_upload', () => uploadRenderedVideo(successFilePath));
     } catch (err) {
