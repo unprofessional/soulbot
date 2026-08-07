@@ -93,6 +93,25 @@ Commit: `7101402` — `Skip normalization for safe Twitter videos`
 - Conditional normalization removes fixed work for eligible inputs; it does not accelerate the composite encode that dominates longer videos.
 - Audio passthrough was skipped because telemetry did not identify audio encoding as a material independent bottleneck. Its likely marginal gain did not justify additional A/V synchronization and Discord compatibility risk.
 
+## 2026-08-06 — Twitter/X video Phase 5 and final acceptance
+
+Branch: `perf/twitter-video-concurrency-storage`
+Commit: `77e647d` — `Control Twitter video render concurrency`
+
+### What we actually gained
+
+- Render capacity is now controlled by an explicit three-permit semaphore instead of inferring capacity from temporary directories. Stale files can no longer make Soulbot appear full, and permits are reliably returned after success, failure, cancellation, and cleanup.
+- Duplicate followers do not consume additional render capacity. The final production test submitted the same fresh X post in two servers at nearly the same time: Soulbot registered both requests, ran one measured download/encode/upload pipeline, and successfully delivered the shared result for both.
+- The fixed 35-render host matrix completed without failure at concurrency one, two, and three. Concurrency three delivered 1.13 renders/second and completed the batch in 30.9 seconds, compared with 0.79/second in 44.2 seconds at concurrency two and 0.40/second in 88.5 seconds at concurrency one. It did not impose a per-job tail-latency penalty, so the production default remains three.
+- The final renderer result was 2.024 seconds median and 4.641 seconds p95 versus the Phase 0 baseline of 2.11 seconds and 5.01 seconds: approximately 4% lower median and 7% lower p95. The larger practical gain is predictable concurrent throughput and safer overload behavior rather than a dramatic single-video speedup.
+- Explicit FFmpeg thread limits were performance-neutral, so automatic threading remains in place. Runtime measurement also showed no case for moving temporary media into memory; retaining disk-backed storage avoids consuming host RAM for negligible demonstrated benefit.
+- The complete phased effort left reusable corpus benchmarks, production stage telemetry, safer downloads, conservative conditional remux avoidance, validated output before upload, operational kill switches, and production-proven cross-server single-flight behavior.
+
+### What remains true
+
+- Composite H.264 encoding still dominates long-video latency. Materially larger single-video improvements would require a different encoder/filter strategy or hardware/runtime change, with a new quality and compatibility evaluation.
+- Phase 4 audio passthrough was intentionally not implemented because measurements did not show enough potential benefit to justify added A/V synchronization and Discord playback risk.
+
 ## Docket entry template
 
 ```markdown

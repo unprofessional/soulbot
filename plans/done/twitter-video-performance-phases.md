@@ -1,6 +1,6 @@
 # Twitter/X Video Processing Performance Plan
 
-Status: active. Keep this document in `plans/todo/` until all approved phases and stop gates are complete, then move it to `plans/done/`.
+Status: complete as of 2026-08-06. All approved phases and production stop gates passed; Phase 4 was deliberately skipped because telemetry did not justify its compatibility risk.
 
 ## Purpose
 
@@ -305,24 +305,27 @@ FFmpeg remains on automatic threading by default. Host experiments can set `TWIT
 
 ## Final acceptance and cleanup
 
-After all approved phases:
+The final acceptance gate completed with the fixed corpus, repeated production Discord smoke tests, the deferred simultaneous cross-server duplicate test, and runtime resource measurement. Local fault-injection coverage retained the interrupted-download, cancellation, oversize, cleanup, and deployment-drain guarantees. No quality, synchronization, playback, upload-limit, cleanup, or fallback regression was found.
 
-1. Run the entire corpus against the original Phase 0 baseline and the final candidate.
-2. Repeat real Discord smoke tests for ordinary, portrait, silent, timestamp-offset, near-limit, duplicate, concurrent, interrupted, and deployment-drain cases.
-3. Verify no quality, synchronization, playback, upload-limit, cleanup, or fallback regressions.
-4. Document final median/p95 improvements by stage and end to end.
-5. Remove temporary benchmark toggles that are no longer useful, but retain operational kill switches for conditional normalization and audio passthrough.
-6. Keep the benchmark harness and corpus as regression tooling for future FFmpeg, Node, base-image, or host changes.
+The benchmark harness, corpus, structured production telemetry, and useful operational controls remain in the repository as regression and rollback tooling for future FFmpeg, Node, base-image, or host changes.
 
-## Proposed delivery sequence
+### Final result
 
-Each phase should be its own narrow review branch and deployment decision:
+- The final 35-run corpus completed 35/35 renders successfully at the retained production concurrency of three. Median per-job renderer time was 2.024 seconds and p95 was 4.641 seconds, compared with the Phase 0 baseline of 2.11 seconds median and 5.01 seconds p95. That is approximately 4% lower median latency and 7% lower p95 latency, while total corpus throughput reached 1.13 renders/second.
+- Concurrency three completed the corpus in 30.9 seconds versus 44.2 seconds at concurrency two and 88.5 seconds at concurrency one. Per-job tail latency remained slightly better than the lower-concurrency runs, so the existing production default of three remains appropriate.
+- Explicit FFmpeg thread limits of four and eight were neutral against automatic threading. Automatic threading remains the default.
+- The three-job near-60-second runtime sample completed successfully with bounded memory and storage use. The evidence did not justify moving `/tempdata` to tmpfs and accepting the resulting host-memory risk.
+- Production smoke tests passed portrait, landscape, silent/GIF, ordinary, and concurrent cases after the final deployment, with clean permit release and working-directory cleanup.
+- The deferred final duplicate test posted tweet `2085089938563809551` nearly simultaneously in two servers. Production registered both requests but emitted exactly one performance run and one download/encode/upload pipeline; both server requests completed successfully from that shared render.
+- Benchmark and production telemetry remain available as regression tooling. `TWIT_FORCE_NORMALIZATION`, `TWIT_MAX_CONCURRENT_RENDERS`, and `TWIT_FFMPEG_THREADS` remain intentional operational controls.
 
-1. `perf/twitter-video-baseline-instrumentation`
-2. `perf/twitter-video-remove-debug-overhead`
-3. `perf/twitter-video-download-pipeline`
-4. `perf/twitter-video-conditional-normalization`
-5. `perf/twitter-video-audio-passthrough` if justified by telemetry
-6. `perf/twitter-video-concurrency-storage`
+## Delivery record
 
-Do not stack the next phase before the preceding branch has passed its `shinralabs` stop gate. This keeps every performance result attributable, every rollback small, and every reliability decision evidence-based.
+1. Complete — `perf/twitter-video-baseline-instrumentation`
+2. Complete — `perf/twitter-video-remove-debug-overhead`
+3. Complete — `perf/twitter-video-download-pipeline`
+4. Complete — `perf/twitter-video-conditional-normalization`
+5. Skipped by evidence — `perf/twitter-video-audio-passthrough`; telemetry did not show a material audio bottleneck.
+6. Complete — `perf/twitter-video-concurrency-storage`
+
+Every implemented phase was reviewed, merged, deployed, and stopped for production smoke and host benchmark evidence before the next phase began.
