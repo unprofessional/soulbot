@@ -22,6 +22,7 @@ describe('twitter canvas font registration', () => {
 
         expect(registeredFamilies).toEqual(expect.arrayContaining([
             'Noto Sans Math',
+            'Noto Sans Tai Viet',
             'Noto Sans Old Italic',
             'Noto Sans Cherokee',
             'Noto Serif Tibetan',
@@ -51,6 +52,7 @@ describe('twitter canvas font registration', () => {
 
         for (const family of [
             'Noto Sans Math',
+            'Noto Sans Tai Viet',
             'Noto Sans Old Italic',
             'Noto Sans Cherokee',
             'Noto Serif Tibetan',

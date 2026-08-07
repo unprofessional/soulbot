@@ -1,4 +1,5 @@
 const { createCanvas, loadImage } = require('canvas');
+const { TEXT_FONT_FAMILY } = require('../twitter-post/canvas/constants.js');
 
 const CARD = Object.freeze({
     width: 960,
@@ -29,7 +30,7 @@ const FALLBACK_ACCENTS = Object.freeze([
     '#FACC15',
     '#C084FC',
 ]);
-const FONT = 'Arial';
+const MEMBER_CARD_FONT_FAMILY = TEXT_FONT_FAMILY;
 
 function roundedRect(ctx, x, y, width, height, radius) {
     const r = Math.min(radius, width / 2, height / 2);
@@ -126,7 +127,7 @@ function memberCardDataFromGuildMember(guildMember) {
 }
 
 function fitText(ctx, text, maxWidth, fontSize, weight = 'normal') {
-    ctx.font = `${weight} ${fontSize}px ${FONT}`;
+    ctx.font = `${weight} ${fontSize}px ${MEMBER_CARD_FONT_FAMILY}`;
     if (ctx.measureText(text).width <= maxWidth) return text;
     let result = text;
     while (result.length > 1 && ctx.measureText(`${result}…`).width > maxWidth) {
@@ -252,7 +253,7 @@ async function drawAvatar(ctx, data) {
         ctx.fillStyle = fallback;
         ctx.fillRect(CARD.avatarX, CARD.avatarY, CARD.avatarSize, CARD.avatarSize);
         ctx.fillStyle = '#FFFFFF';
-        ctx.font = `bold 108px ${FONT}`;
+        ctx.font = `bold 108px ${MEMBER_CARD_FONT_FAMILY}`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText(data.displayName.trim().charAt(0).toUpperCase() || '?', centerX, centerY + 6);
@@ -316,10 +317,10 @@ async function createMemberCard(data) {
     const x = CARD.contentX;
     ctx.textBaseline = 'alphabetic';
     ctx.fillStyle = '#FFFFFF';
-    ctx.font = `bold 58px ${FONT}`;
+    ctx.font = `bold 58px ${MEMBER_CARD_FONT_FAMILY}`;
     ctx.fillText(fitText(ctx, data.displayName, CARD.contentWidth, 58, 'bold'), x, 100);
     ctx.fillStyle = data.accentColor;
-    ctx.font = `34px ${FONT}`;
+    ctx.font = `34px ${MEMBER_CARD_FONT_FAMILY}`;
     ctx.fillText(fitText(ctx, data.username, CARD.contentWidth, 34), x, 151);
 
     const divider = ctx.createLinearGradient(x, 0, x + CARD.contentWidth, 0);
@@ -330,11 +331,11 @@ async function createMemberCard(data) {
 
     drawCalendar(ctx, x + 2, 207, data.accentColor);
     ctx.fillStyle = '#D4D5DE';
-    ctx.font = `25px ${FONT}`;
+    ctx.font = `25px ${MEMBER_CARD_FONT_FAMILY}`;
     ctx.fillText(fitText(ctx, data.memberSinceLabel, CARD.contentWidth - 52, 25), x + 52, 233);
 
     if (data.badge) {
-        ctx.font = `bold 22px ${FONT}`;
+        ctx.font = `bold 22px ${MEMBER_CARD_FONT_FAMILY}`;
         const badgeWidth = Math.min(CARD.contentWidth, ctx.measureText(data.badge.label).width + 86);
         const badgeGradient = ctx.createLinearGradient(x, 0, x + badgeWidth, 0);
         badgeGradient.addColorStop(0, rgba(data.accentColor, 0.8));
@@ -360,6 +361,7 @@ async function createProfileCanvas(guildMember) {
 module.exports = {
     CARD,
     FALLBACK_ACCENTS,
+    MEMBER_CARD_FONT_FAMILY,
     createMemberCard,
     createProfileCanvas,
     fallbackAccent,
