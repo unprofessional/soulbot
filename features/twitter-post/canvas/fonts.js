@@ -8,6 +8,7 @@ const PROJECT_ROOT = path.resolve(__dirname, '../../..');
 
 const FONT_DEFINITIONS = [
     { file: 'fonts/truetype/noto/NotoSans-Regular.ttf', family: 'Noto Sans' },
+    { file: 'fonts/truetype/noto/NotoSansTaiViet-Regular.ttf', family: 'Noto Sans Tai Viet' },
     { file: 'fonts/truetype/noto/NotoSansMath-Regular.ttf', family: 'Noto Sans Math' },
     { file: 'fonts/truetype/noto/NotoSansOldItalic-Regular.ttf', family: 'Noto Sans Old Italic' },
     { file: 'fonts/truetype/noto/NotoSansCherokee[wght].ttf', family: 'Noto Sans Cherokee' },

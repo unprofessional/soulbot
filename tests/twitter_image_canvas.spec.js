@@ -26,6 +26,7 @@ jest.mock('canvas', () => {
 });
 
 const { createTwitterCanvas } = require('../features/twitter-post/twitter_canvas.js');
+const { TEXT_FONT_FAMILY } = require('../features/twitter-post/canvas/constants.js');
 
 describe('twitter image canvas deterministic fixture rendering', () => {
     let logSpy;
@@ -53,5 +54,26 @@ describe('twitter image canvas deterministic fixture rendering', () => {
         expect(Buffer.isBuffer(buffer)).toBe(true);
         expect(buffer.subarray(0, 4).toString('hex')).toBe('89504e47');
         expect(buffer.length).toBeGreaterThan(1000);
+    }, 30000);
+
+    test('renders simple Japanese text and ordinary numbers with the text font chain', async () => {
+        const textFixture = {
+            ...fixture,
+            hasMedia: false,
+            mediaURLs: [],
+            media_extended: [],
+            text: '日本語テスト 1234567890',
+        };
+
+        const buffer = await createTwitterCanvas(textFixture, false);
+        const probe = jest.requireActual('canvas').createCanvas(400, 100).getContext('2d');
+        probe.font = `24px ${TEXT_FONT_FAMILY}`;
+
+        expect(buffer.subarray(0, 4).toString('hex')).toBe('89504e47');
+        expect(probe.measureText('1234567890').width).toBeLessThan(180);
+        expect(probe.measureText('日本語テスト 1234567890').width)
+            .toBeGreaterThan(probe.measureText('1234567890').width);
+        expect(TEXT_FONT_FAMILY).not.toContain('Noto Color Emoji');
+        expect(TEXT_FONT_FAMILY).not.toContain('Noto Emoji');
     }, 30000);
 });

@@ -20,6 +20,7 @@ function clampedNumEnv(key, fallback, min, max) {
 const TEXT_FONT_FAMILY = [
     '"Liberation Sans"',
     '"Noto Sans"',
+    '"Noto Sans Tai Viet"',
     '"Noto Sans Math"',
     '"Noto Sans Old Italic"',
     '"Noto Sans Cherokee"',

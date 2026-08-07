@@ -11,12 +11,14 @@ jest.mock('canvas', () => {
 const {
     CARD,
     FALLBACK_ACCENTS,
+    MEMBER_CARD_FONT_FAMILY,
     createProfileCanvas,
     fallbackAccent,
     formatMemberSince,
     memberCardDataFromGuildMember,
     resolveBadge,
 } = require('../features/discord-profile/profile_canvas.js');
+const { TEXT_FONT_FAMILY } = require('../features/twitter-post/canvas/constants.js');
 
 function member(overrides = {}) {
     const user = {
@@ -39,6 +41,13 @@ function member(overrides = {}) {
 }
 
 describe('member profile canvas', () => {
+    test('uses the shared X-render text fallback chain', () => {
+        expect(MEMBER_CARD_FONT_FAMILY).toBe(TEXT_FONT_FAMILY);
+        expect(MEMBER_CARD_FONT_FAMILY).toContain('"Noto Sans Tai Viet"');
+        expect(MEMBER_CARD_FONT_FAMILY).not.toContain('"Noto Color Emoji"');
+        expect(MEMBER_CARD_FONT_FAMILY).not.toContain('"Noto Emoji"');
+    });
+
     test('normalizes a guild member into card data', () => {
         expect(memberCardDataFromGuildMember(member())).toMatchObject({
             displayName: 'Scoot',
