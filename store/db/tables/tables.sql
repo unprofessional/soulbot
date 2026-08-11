@@ -33,6 +33,17 @@ CREATE TABLE IF NOT EXISTS member (
     created_at TIMESTAMP DEFAULT NOW()
 );
 
+CREATE TABLE IF NOT EXISTS member_guild_event (
+    id BIGSERIAL PRIMARY KEY,
+    guild_id VARCHAR(50) NOT NULL,
+    member_id VARCHAR(50) NOT NULL,
+    event_type VARCHAR(10) NOT NULL CHECK (event_type IN ('join', 'leave')),
+    username TEXT,
+    global_name TEXT,
+    display_name TEXT,
+    occurred_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
 ALTER TABLE member
 ADD COLUMN IF NOT EXISTS meta JSONB NOT NULL DEFAULT '{}'::jsonb;
 
@@ -84,6 +95,10 @@ CREATE EXTENSION IF NOT EXISTS pg_trgm;
 CREATE INDEX IF NOT EXISTS idx_guild_guild_id ON guild (guild_id);
 CREATE INDEX IF NOT EXISTS idx_channel_channel_id ON channel (channel_id);
 CREATE INDEX IF NOT EXISTS idx_member_member_id ON member (member_id);
+CREATE INDEX IF NOT EXISTS idx_member_guild_event_member_history
+ON member_guild_event (guild_id, member_id, event_type, occurred_at DESC);
+CREATE INDEX IF NOT EXISTS idx_member_guild_event_occurred_at
+ON member_guild_event (occurred_at DESC);
 CREATE INDEX IF NOT EXISTS idx_feature_type ON feature (type);
 CREATE INDEX IF NOT EXISTS idx_ollama_member_whitelist_member_id ON ollama_member_whitelist (member_id);
 CREATE INDEX IF NOT EXISTS idx_llm_memory_member_channel ON llm_memory (member_id, channel_id);
