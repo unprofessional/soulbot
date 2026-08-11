@@ -1,6 +1,6 @@
 const { createProfileCanvas } = require('./profile_canvas.js');
 
-const renderProfileCanvas = async (guildMember, channel) => {
+const renderProfileCanvas = async (guildMember, channel, { content } = {}) => {
     // Convert the canvas to a Buffer
     const buffer = await createProfileCanvas(guildMember);
 
@@ -14,12 +14,16 @@ const renderProfileCanvas = async (guildMember, channel) => {
     }];
 
     // Create a MessageAttachment and send it
-    await channel.send(
-        {
-            // content: `Media URLs found: ${mediaUrlsFormatted}`,
-            files,
-        }
-    );
+    const payload = { files };
+    if (content) {
+        payload.content = content;
+        payload.allowedMentions = {
+            parse: [],
+            users: [guildMember.user.id],
+        };
+    }
+
+    await channel.send(payload);
 };
 
 module.exports = {
