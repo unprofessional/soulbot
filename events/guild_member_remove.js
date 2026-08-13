@@ -1,17 +1,10 @@
 const { Events } = require('discord.js');
 const { resolveGreetingChannel } = require('./guild_greeting_utils.js');
 const { recordMemberExit } = require('../store/member_events.js');
-const { captureStickyRoles } = require('../store/sticky_roles.js');
 
 const initializeGuildMemberRemove = (client) => {
     // "guildMemberRemove"
     client.on(Events.GuildMemberRemove, async (guildMember) => {
-        try {
-            await captureStickyRoles(guildMember);
-        } catch (error) {
-            console.error('[sticky-roles] Failed to capture member roles:', error);
-        }
-
         try {
             await recordMemberExit(guildMember);
         } catch (error) {
