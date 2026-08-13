@@ -44,20 +44,34 @@ CREATE TABLE IF NOT EXISTS member_guild_event (
     occurred_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE TABLE IF NOT EXISTS guild_sticky_role (
-    guild_id VARCHAR(50) NOT NULL,
-    role_id VARCHAR(50) NOT NULL,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    PRIMARY KEY (guild_id, role_id)
-);
-
 CREATE TABLE IF NOT EXISTS member_sticky_role (
     guild_id VARCHAR(50) NOT NULL,
     member_id VARCHAR(50) NOT NULL,
     role_id VARCHAR(50) NOT NULL,
-    captured_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    assigned_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     PRIMARY KEY (guild_id, member_id, role_id)
 );
+
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT 1
+        FROM information_schema.columns
+        WHERE table_schema = 'public'
+          AND table_name = 'member_sticky_role'
+          AND column_name = 'captured_at'
+    ) AND NOT EXISTS (
+        SELECT 1
+        FROM information_schema.columns
+        WHERE table_schema = 'public'
+          AND table_name = 'member_sticky_role'
+          AND column_name = 'assigned_at'
+    ) THEN
+        DELETE FROM member_sticky_role;
+        ALTER TABLE member_sticky_role
+        RENAME COLUMN captured_at TO assigned_at;
+    END IF;
+END $$;
 
 ALTER TABLE member
 ADD COLUMN IF NOT EXISTS meta JSONB NOT NULL DEFAULT '{}'::jsonb;
