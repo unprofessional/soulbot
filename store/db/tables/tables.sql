@@ -44,6 +44,21 @@ CREATE TABLE IF NOT EXISTS member_guild_event (
     occurred_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+CREATE TABLE IF NOT EXISTS guild_sticky_role (
+    guild_id VARCHAR(50) NOT NULL,
+    role_id VARCHAR(50) NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    PRIMARY KEY (guild_id, role_id)
+);
+
+CREATE TABLE IF NOT EXISTS member_sticky_role (
+    guild_id VARCHAR(50) NOT NULL,
+    member_id VARCHAR(50) NOT NULL,
+    role_id VARCHAR(50) NOT NULL,
+    captured_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    PRIMARY KEY (guild_id, member_id, role_id)
+);
+
 ALTER TABLE member
 ADD COLUMN IF NOT EXISTS meta JSONB NOT NULL DEFAULT '{}'::jsonb;
 
@@ -99,6 +114,8 @@ CREATE INDEX IF NOT EXISTS idx_member_guild_event_member_history
 ON member_guild_event (guild_id, member_id, event_type, occurred_at DESC);
 CREATE INDEX IF NOT EXISTS idx_member_guild_event_occurred_at
 ON member_guild_event (occurred_at DESC);
+CREATE INDEX IF NOT EXISTS idx_member_sticky_role_member
+ON member_sticky_role (guild_id, member_id);
 CREATE INDEX IF NOT EXISTS idx_feature_type ON feature (type);
 CREATE INDEX IF NOT EXISTS idx_ollama_member_whitelist_member_id ON ollama_member_whitelist (member_id);
 CREATE INDEX IF NOT EXISTS idx_llm_memory_member_channel ON llm_memory (member_id, channel_id);
