@@ -5,6 +5,7 @@ const {
 } = require('../features/discord-profile/render_profile_canvas.js');
 const { resolveGreetingChannel } = require('./guild_greeting_utils.js');
 const { recordMemberEntry } = require('../store/member_events.js');
+const { restoreStickyRoles } = require('../store/sticky_roles.js');
 
 function ordinal(value) {
     const number = Math.max(1, Number(value) || 1);
@@ -33,6 +34,12 @@ const initializeGuildMemberAdd = (client) => {
             joinCount = await recordMemberEntry(guildMember);
         } catch (error) {
             console.error('[member-events] Failed to record member entry:', error);
+        }
+
+        try {
+            await restoreStickyRoles(guildMember);
+        } catch (error) {
+            console.error('[sticky-roles] Failed to restore member roles:', error);
         }
 
         const channel = await resolveGreetingChannel(guildMember.guild);
