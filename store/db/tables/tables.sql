@@ -112,6 +112,12 @@ WHERE deleted_at IS NULL
   AND meta->>'kind' = 'twitter_render'
   AND attachments IS NOT NULL
   AND cardinality(attachments) > 0;
+CREATE INDEX IF NOT EXISTS idx_message_twitter_render_owner_created
+ON message ((meta->>'owningUserId'), created_at DESC)
+WHERE meta->>'kind' = 'twitter_render'
+  AND meta->>'originalLink' IS NOT NULL
+  AND attachments IS NOT NULL
+  AND cardinality(attachments) > 0;
 
 INSERT INTO feature (type, enabled)
 VALUES ('twitter', TRUE)

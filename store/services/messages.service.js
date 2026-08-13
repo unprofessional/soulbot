@@ -262,6 +262,15 @@ const getMessageById = async (messageId) => {
     }
 };
 
+const countSuccessfulTwitterRendersByUser = async ({ userId, createdSince }) => {
+    if (!userId) throw new TypeError('userId is required');
+    if (!(createdSince instanceof Date) || Number.isNaN(createdSince.getTime())) {
+        throw new TypeError('createdSince must be a valid Date');
+    }
+
+    return messageDAO.countSuccessfulTwitterRendersByUser(String(userId), createdSince);
+};
+
 const normalizeIdentityRow = (row = {}) => {
     const username = row.username || null;
     const globalName = row.global_name || row.globalName || null;
@@ -328,6 +337,7 @@ module.exports = {
     findTweetRenderByOriginalLink,
     findLatestTweetRenderByOriginalLinkAcrossGuilds,
     getMessageById,
+    countSuccessfulTwitterRendersByUser,
     getLatestMemberIdentities,
     updateMessage,
     deleteMessage,
