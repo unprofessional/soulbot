@@ -1,9 +1,6 @@
-const mockAddConfiguredRole = jest.fn();
-const mockRemoveConfiguredRole = jest.fn();
-const mockGetConfiguredRoleIds = jest.fn();
-const mockReplaceMemberSnapshot = jest.fn();
-const mockGetMemberSnapshot = jest.fn();
-const mockClearMemberSnapshot = jest.fn();
+const mockAddAssignment = jest.fn();
+const mockRemoveAssignment = jest.fn();
+const mockGetAssignments = jest.fn();
 
 jest.mock('discord.js', () => ({
     PermissionFlagsBits: { ManageRoles: BigInt(1) },
@@ -11,24 +8,20 @@ jest.mock('discord.js', () => ({
 
 jest.mock('../store/dao/sticky_role.dao.js', () => (
     jest.fn().mockImplementation(() => ({
-        addConfiguredRole: mockAddConfiguredRole,
-        removeConfiguredRole: mockRemoveConfiguredRole,
-        getConfiguredRoleIds: mockGetConfiguredRoleIds,
-        replaceMemberSnapshot: mockReplaceMemberSnapshot,
-        getMemberSnapshot: mockGetMemberSnapshot,
-        clearMemberSnapshot: mockClearMemberSnapshot,
+        addAssignment: mockAddAssignment,
+        removeAssignment: mockRemoveAssignment,
+        getAssignments: mockGetAssignments,
     }))
 ));
 
 const {
-    addStickyRole,
-    captureStickyRoles,
+    assignStickyRole,
     isRoleManageableByBot,
     restoreStickyRoles,
 } = require('../store/sticky_roles.js');
 
 function buildGuild() {
-    const guild = {
+    return {
         id: 'guild-1',
         members: {
             me: {
@@ -43,17 +36,10 @@ function buildGuild() {
         },
         roles: { cache: new Map() },
     };
-    return guild;
 }
 
 function buildRole(guild, overrides = {}) {
-    return {
-        id: 'role-1',
-        guild,
-        managed: false,
-        position: 5,
-        ...overrides,
-    };
+    return { id: 'role-1', guild, managed: false, position: 5, ...overrides };
 }
 
 function buildMember(guild, roleIds = [], overrides = {}) {
@@ -68,16 +54,14 @@ function buildMember(guild, roleIds = [], overrides = {}) {
     };
 }
 
-describe('sticky roles', () => {
+describe('member-specific sticky roles', () => {
     beforeEach(() => {
         jest.clearAllMocks();
-        mockGetConfiguredRoleIds.mockResolvedValue([]);
-        mockReplaceMemberSnapshot.mockImplementation((_guild, _member, roles) => roles);
-        mockGetMemberSnapshot.mockResolvedValue([]);
-        mockClearMemberSnapshot.mockResolvedValue(undefined);
+        mockAddAssignment.mockResolvedValue(true);
+        mockGetAssignments.mockResolvedValue([]);
     });
 
-    test('allows only ordinary roles below Soulbot', () => {
+    test('allows only ordinary roles Soulbot can manage', () => {
         const guild = buildGuild();
         expect(isRoleManageableByBot(buildRole(guild), guild)).toBe(true);
         expect(isRoleManageableByBot(buildRole(guild, { id: guild.id }), guild)).toBe(false);
@@ -85,56 +69,42 @@ describe('sticky roles', () => {
         expect(isRoleManageableByBot(buildRole(guild, { position: 10 }), guild)).toBe(false);
         guild.members.me.permissions.has.mockReturnValue(false);
         expect(isRoleManageableByBot(buildRole(guild), guild)).toBe(false);
-        expect(isRoleManageableByBot(buildRole({ id: 'guild-2' }), guild)).toBe(false);
     });
 
-    test('rejects unmanageable configuration before persistence', async () => {
+    test('assigns the role now and persists it for the selected member', async () => {
         const guild = buildGuild();
-        await expect(addStickyRole(guild, buildRole(guild, { position: 11 })))
-            .resolves.toEqual({ ok: false, reason: 'unmanageable' });
-        expect(mockAddConfiguredRole).not.toHaveBeenCalled();
-    });
+        const member = buildMember(guild);
+        const role = buildRole(guild);
 
-    test('captures only configured roles held by a departing member', async () => {
-        const guild = buildGuild();
-        mockGetConfiguredRoleIds.mockResolvedValue(['role-1', 'role-2']);
-        const member = buildMember(guild, ['role-1', 'unrelated']);
-
-        await expect(captureStickyRoles(member)).resolves.toEqual(['role-1']);
-        expect(mockReplaceMemberSnapshot).toHaveBeenCalledWith(
-            'guild-1', 'user-1', ['role-1']
+        await expect(assignStickyRole(member, role))
+            .resolves.toEqual({ ok: true, added: true });
+        expect(member.roles.add).toHaveBeenCalledWith(
+            'role-1', 'Moderator assigned sticky role'
+        );
+        expect(mockAddAssignment).toHaveBeenCalledWith(
+            'guild-1', 'user-1', 'role-1'
         );
     });
 
-    test('restores only roles that remain configured, present, and manageable', async () => {
+    test('does not redundantly add a role the member already holds', async () => {
+        const guild = buildGuild();
+        const member = buildMember(guild, ['role-1']);
+        await assignStickyRole(member, buildRole(guild));
+        expect(member.roles.add).not.toHaveBeenCalled();
+        expect(mockAddAssignment).toHaveBeenCalled();
+    });
+
+    test('restores the permanent assignments on every rejoin without deleting them', async () => {
         const guild = buildGuild();
         const goodRole = buildRole(guild, { id: 'role-good' });
-        const tooHigh = buildRole(guild, { id: 'role-high', position: 11 });
         guild.roles.cache.set(goodRole.id, goodRole);
-        guild.roles.cache.set(tooHigh.id, tooHigh);
-        mockGetMemberSnapshot.mockResolvedValue([
-            'role-good', 'role-high', 'role-deleted', 'role-removed',
-        ]);
-        mockGetConfiguredRoleIds.mockResolvedValue([
-            'role-good', 'role-high', 'role-deleted',
-        ]);
+        mockGetAssignments.mockResolvedValue(['role-good', 'deleted-role']);
         const member = buildMember(guild);
 
         await expect(restoreStickyRoles(member)).resolves.toEqual(['role-good']);
         expect(member.roles.add).toHaveBeenCalledWith(
-            ['role-good'], 'Restoring configured sticky roles'
+            ['role-good'], 'Restoring moderator-assigned sticky roles'
         );
-        expect(mockClearMemberSnapshot).toHaveBeenCalledWith('guild-1', 'user-1');
-    });
-
-    test('clears the snapshot after a no-op restore to make retries idempotent', async () => {
-        const guild = buildGuild();
-        mockGetMemberSnapshot.mockResolvedValue(['deleted-role']);
-        mockGetConfiguredRoleIds.mockResolvedValue(['deleted-role']);
-        const member = buildMember(guild);
-
-        await expect(restoreStickyRoles(member)).resolves.toEqual([]);
-        expect(member.roles.add).not.toHaveBeenCalled();
-        expect(mockClearMemberSnapshot).toHaveBeenCalledWith('guild-1', 'user-1');
+        expect(mockRemoveAssignment).not.toHaveBeenCalled();
     });
 });

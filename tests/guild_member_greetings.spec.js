@@ -2,7 +2,6 @@ const mockRenderProfileCanvas = jest.fn();
 const mockGetGreetingChannelId = jest.fn();
 const mockRecordMemberEntry = jest.fn();
 const mockRecordMemberExit = jest.fn();
-const mockCaptureStickyRoles = jest.fn();
 const mockRestoreStickyRoles = jest.fn();
 
 jest.mock('discord.js', () => ({
@@ -26,7 +25,6 @@ jest.mock('../store/member_events.js', () => ({
 }));
 
 jest.mock('../store/sticky_roles.js', () => ({
-    captureStickyRoles: mockCaptureStickyRoles,
     restoreStickyRoles: mockRestoreStickyRoles,
 }));
 
@@ -41,7 +39,6 @@ describe('guild member greeting events', () => {
         jest.clearAllMocks();
         mockRecordMemberEntry.mockResolvedValue(1);
         mockRecordMemberExit.mockResolvedValue({ event_type: 'leave' });
-        mockCaptureStickyRoles.mockResolvedValue([]);
         mockRestoreStickyRoles.mockResolvedValue([]);
     });
 
@@ -221,42 +218,6 @@ describe('guild member greeting events', () => {
         });
 
         expect(mockRecordMemberExit).toHaveBeenCalled();
-        expect(mockCaptureStickyRoles).toHaveBeenCalled();
         expect(send).toHaveBeenCalledWith('`obiwan` left the server!');
-    });
-
-    test('sticky-role capture failure does not block the departure announcement', async () => {
-        mockGetGreetingChannelId.mockResolvedValue('channel-1');
-        mockCaptureStickyRoles.mockRejectedValue(new Error('database unavailable'));
-        const send = jest.fn();
-        const channel = {
-            guildId: 'guild-1',
-            isTextBased: jest.fn().mockReturnValue(true),
-            send,
-        };
-        const handlers = {};
-        const client = {
-            on: jest.fn((event, handler) => { handlers[event] = handler; }),
-        };
-        const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
-
-        initializeGuildMemberRemove(client);
-        await handlers.guildMemberRemove({
-            user: { id: 'user-1', username: 'obiwan' },
-            guild: {
-                id: 'guild-1',
-                channels: {
-                    cache: new Map([['channel-1', channel]]),
-                    fetch: jest.fn(),
-                },
-            },
-        });
-
-        expect(send).toHaveBeenCalledWith('`obiwan` left the server!');
-        expect(errorSpy).toHaveBeenCalledWith(
-            '[sticky-roles] Failed to capture member roles:',
-            expect.any(Error)
-        );
-        errorSpy.mockRestore();
     });
 });
