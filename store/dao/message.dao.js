@@ -290,6 +290,22 @@ class MessageDAO {
         }
     }
 
+    async countSuccessfulTwitterRendersByUser(userId, createdSince) {
+        const sql = `
+            SELECT COUNT(*)::integer AS count
+            FROM message
+            WHERE meta->>'kind' = 'twitter_render'
+              AND meta->>'owningUserId' = $1
+              AND meta->>'originalLink' IS NOT NULL
+              AND attachments IS NOT NULL
+              AND cardinality(attachments) > 0
+              AND created_at >= $2
+        `;
+
+        const result = await pool.query(sql, [userId, createdSince]);
+        return Number(result.rows[0]?.count || 0);
+    }
+
     async findByMessageId(messageId) {
         const sql = `
             SELECT *
