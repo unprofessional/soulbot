@@ -6,6 +6,7 @@ const mockSave = jest.fn();
 const mockFindByMessageId = jest.fn();
 const mockFindLatestUserIdentities = jest.fn();
 const mockFindLatestTweetRenderByOriginalLinkAcrossGuilds = jest.fn();
+const mockCountSuccessfulTwitterRendersByUser = jest.fn();
 
 jest.mock('../features/twitter-core/render_ownership_registry.js', () => ({
     consumePendingRenderOwnership: jest.fn(),
@@ -20,6 +21,7 @@ jest.mock('../store/dao/message.dao.js', () => {
         findByMessageId: mockFindByMessageId,
         findLatestUserIdentities: mockFindLatestUserIdentities,
         findLatestTweetRenderByOriginalLinkAcrossGuilds: mockFindLatestTweetRenderByOriginalLinkAcrossGuilds,
+        countSuccessfulTwitterRendersByUser: mockCountSuccessfulTwitterRendersByUser,
         save: mockSave,
     }));
 });
@@ -37,6 +39,7 @@ const {
     getSummaryContext,
     getSummaryMessages,
     findLatestTweetRenderByOriginalLinkAcrossGuilds,
+    countSuccessfulTwitterRendersByUser,
     isExpectedDeletedMessage,
 } = require('../store/services/messages.service');
 const { consumePendingRenderOwnership } = require('../features/twitter-core/render_ownership_registry.js');
@@ -334,6 +337,18 @@ describe('messages service', () => {
 
         await expect(getMessageById('abc')).resolves.toEqual({ message_id: 'abc' });
         expect(mockFindByMessageId).toHaveBeenCalledWith('abc');
+    });
+
+    test('countSuccessfulTwitterRendersByUser delegates an immutable user ID and cutoff', async () => {
+        const createdSince = new Date('2026-08-11T12:00:00.000Z');
+        mockCountSuccessfulTwitterRendersByUser.mockResolvedValue(7);
+
+        await expect(countSuccessfulTwitterRendersByUser({
+            userId: 'user-1',
+            createdSince,
+        })).resolves.toBe(7);
+        expect(mockCountSuccessfulTwitterRendersByUser)
+            .toHaveBeenCalledWith('user-1', createdSince);
     });
 
     test('findLatestTweetRenderByOriginalLinkAcrossGuilds delegates to the DAO', async () => {
