@@ -39,7 +39,7 @@ const chromaUpsertEndpoint = process.env.CHROMA_UPSERT_ENDPOINT || 'api/v1/upser
 const kokoroUrl = process.env.KOKORO_URL || 'http://kokoro-http-service:8081';
 
 // Translation
-const ollamaTranslationModel = process.env.OLLAMA_TRANSLATION_MODEL || 'translategemma:12b';
+const ollamaTranslationModel = process.env.OLLAMA_TRANSLATION_MODEL || 'translategemma:4b';
 
 module.exports = {
     token, runMode, soulbotUserId, discordClientId, healthPort, shutdownTimeoutMs, drainDelayMs, registerGlobalCommands, registerGuildCommands, discordGuildId, leaderLockId, leaderLockRetryMs,

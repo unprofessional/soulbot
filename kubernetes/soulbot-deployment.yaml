@@ -84,7 +84,7 @@ spec:
               name: pg-db
               key: PG_DB
         - name: OLLAMA_TRANSLATION_MODEL
-          value: "translategemma:12b"
+          value: "translategemma:4b"
         readinessProbe:
           httpGet:
             path: /readyz
