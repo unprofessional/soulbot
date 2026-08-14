@@ -11,7 +11,7 @@ SOULbot runs as a Docker Compose service. Secrets are managed via [Infisical](ht
 ### Notes
 
 - Tweet renders prefer translations surfaced by the Twitter metadata API, with a guarded Ollama fallback for non-English posts whose API translation is missing
-- Tweet/X translation rendering can use the small `translategemma:12b` fallback model when API-provided translations are missing
+- Tweet/X translation rendering can use the small `translategemma:4b` fallback model when API-provided translations are missing
 - Set `OLLAMA_TRANSLATION_MODEL` if you want to override the default translation/cleanup model
 - General LLM inference is disabled by default so heavyweight chat, summary, standalone translation, speak-english cleanup, vision, and Chroma/RAG paths do not load GPU models. Set `GENERAL_LLM_INFERENCE_ENABLED=true` only when intentionally re-enabling those features.
 - The bot exposes health endpoints on `HEALTH_PORT` (default `8080`): `/livez`, `/readyz`, and `/drain`
