@@ -339,7 +339,10 @@ async function translateText({
         model: ollamaTranslationModel,
         prompt,
         stream: false,
-        keep_alive: -1,
+        // Short keep-alive so the translation model is the first to be evicted under
+        // VRAM pressure (shortest keep-alive sorts first for eviction) and releases its
+        // VRAM ~10m after the last translation. Keep the resident chat/summary + q8 models safe.
+        keep_alive: '10m',
         options: {
             temperature: 0,
         },
