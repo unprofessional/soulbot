@@ -231,7 +231,7 @@ describe('translation_service', () => {
 
     test('translateTextToEnglish rejects refusal-style non-translation responses', async () => {
         const { translateTextToEnglish } = loadServiceWithEnv({
-            OLLAMA_TRANSLATION_MODEL: 'translategemma:12b',
+            OLLAMA_TRANSLATION_MODEL: 'translategemma:4b',
         });
 
         global.fetch = jest.fn().mockResolvedValue({
@@ -250,7 +250,7 @@ describe('translation_service', () => {
 
     test('translateText supports arbitrary target languages', async () => {
         const { translateText } = loadServiceWithEnv({
-            OLLAMA_TRANSLATION_MODEL: 'translategemma:12b',
+            OLLAMA_TRANSLATION_MODEL: 'translategemma:4b',
         });
 
         global.fetch = jest.fn().mockResolvedValue({
@@ -270,14 +270,14 @@ describe('translation_service', () => {
         expect(translated).toBe('Bonjour tout le monde');
         expect(global.fetch).toHaveBeenCalledTimes(1);
         expect(JSON.parse(global.fetch.mock.calls[0][1].body)).toEqual(expect.objectContaining({
-            model: 'translategemma:12b',
+            model: 'translategemma:4b',
             prompt: expect.stringContaining('English (en) to French (fr)'),
         }));
     });
 
     test('translateMetadataBatchToEnglish applies existing API translations and guarded fallbacks', async () => {
         const { translateMetadataBatchToEnglish } = loadServiceWithEnv({
-            OLLAMA_TRANSLATION_MODEL: 'translategemma:12b',
+            OLLAMA_TRANSLATION_MODEL: 'translategemma:4b',
         });
 
         global.fetch = jest.fn().mockResolvedValue({
@@ -307,7 +307,7 @@ describe('translation_service', () => {
 
     test('translateMetadataBatchToEnglish does not generate translations for weak Twitter synthetic lang codes', async () => {
         const { translateMetadataBatchToEnglish } = loadServiceWithEnv({
-            OLLAMA_TRANSLATION_MODEL: 'translategemma:12b',
+            OLLAMA_TRANSLATION_MODEL: 'translategemma:4b',
         });
 
         global.fetch = jest.fn();
@@ -324,7 +324,7 @@ describe('translation_service', () => {
 
     test('enrichMetadataWithTranslation stores API translated text on metadata', async () => {
         const { enrichMetadataWithTranslation } = loadServiceWithEnv({
-            OLLAMA_TRANSLATION_MODEL: 'translategemma:12b',
+            OLLAMA_TRANSLATION_MODEL: 'translategemma:4b',
             OLLAMA_HOST: 'ollama-service',
             OLLAMA_PORT: '11434',
         });
@@ -377,7 +377,7 @@ describe('translation_service', () => {
 
     test('enrichMetadataWithTranslation generates fallback translation for strong non-English text', async () => {
         const { enrichMetadataWithTranslation, buildDisplayText } = loadServiceWithEnv({
-            OLLAMA_TRANSLATION_MODEL: 'translategemma:12b',
+            OLLAMA_TRANSLATION_MODEL: 'translategemma:4b',
         });
         const log = jest.fn();
         global.fetch = jest.fn().mockResolvedValue({
@@ -400,7 +400,7 @@ describe('translation_service', () => {
         expect(JSON.parse(global.fetch.mock.calls[0][1].body).prompt).toContain('Japanese (ja) to English (en)');
         expect(metadata.translation).toEqual(expect.objectContaining({
             provider: 'ollama-missing-api',
-            model: 'translategemma:12b',
+            model: 'translategemma:4b',
             sourceLanguage: 'ja',
             destinationLanguage: 'en',
         }));
@@ -410,7 +410,7 @@ describe('translation_service', () => {
 
     test('enrichMetadataWithTranslation generates fallback translation for Latin-script text with diacritics', async () => {
         const { enrichMetadataWithTranslation, buildDisplayText } = loadServiceWithEnv({
-            OLLAMA_TRANSLATION_MODEL: 'translategemma:12b',
+            OLLAMA_TRANSLATION_MODEL: 'translategemma:4b',
         });
         global.fetch = jest.fn().mockResolvedValue({
             ok: true,
