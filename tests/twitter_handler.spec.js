@@ -233,6 +233,21 @@ describe('twitter_handler deterministic fixture flows', () => {
         );
     });
 
+    test('replies with a protected-post message for an anonymous private-account response', async () => {
+        const message = buildMessage('https://x.com/eigenrobot/status/2092637710447952344');
+        fetchMetadata.mockResolvedValue({
+            error: true,
+            status: 401,
+            message: 'PRIVATE_TWEET Defaulting to a FIXUPX link.',
+            fallback_link: 'https://fixupx.com/eigenrobot/status/2092637710447952344',
+        });
+
+        await handleTwitterUrl(message, { guildId: 'guild-1' });
+
+        expect(renderTwitterPost).not.toHaveBeenCalled();
+        expect(message.reply).toHaveBeenCalledWith('Post is private (protected).');
+    });
+
     test('replies with the original Discord link when the tweet was already rendered', async () => {
         const fixture = loadJsonFixture('2040243625179668887.json');
         const message = buildMessage(fixture.tweetURL);

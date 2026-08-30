@@ -279,6 +279,11 @@ async function handleTwitterUrl(message, { guildId }) {
         });
 
         if (meta?.error) {
+            if (meta.status === 401 || /private|protected/i.test(String(meta.message || ''))) {
+                console.log('[TwitterHandler] private/protected post detected.');
+                await message.reply(replyForError(meta));
+                return;
+            }
             const fallback = meta.fallback_link || toFixupx(firstUrl);
             console.log('[TwitterHandler] meta.error present, replying with fallback if any:', {
                 message: meta.message,
@@ -316,6 +321,10 @@ async function handleTwitterUrl(message, { guildId }) {
                     console.log('[TwitterHandler] Calling renderTwitterPost...');
                     await renderTwitterPost(meta, message, firstUrl);
                     console.log('[TwitterHandler] renderTwitterPost completed.');
+                    return;
+                }
+                if (qtMeta.status === 401 || /private|protected/i.test(String(qtMeta.message || ''))) {
+                    await message.reply(replyForError(qtMeta));
                     return;
                 }
                 const fallback = qtMeta.fallback_link || toFixupx(meta.qrtURL);
