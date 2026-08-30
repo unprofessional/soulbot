@@ -48,17 +48,17 @@ function formatVideoEncodeProgress({
     totalSeconds = 0,
     outputBytes = null,
     maxOutputBytes = null,
-}) {
+}, mediaLabel = 'video') {
     const safePercent = Math.max(0, Math.min(100, Math.round(Number(percent) || 0)));
     const progressBar = buildProgressBar(safePercent);
     const sizeLabel = Number.isFinite(Number(outputBytes)) && Number(outputBytes) > 0
         ? ` - ${formatBytes(outputBytes)}${Number(maxOutputBytes) > 0 ? ` / ${formatBytes(maxOutputBytes)}` : ''}`
         : '';
 
-    return `Encoding Twitter/X video... ${progressBar} ${safePercent}% (${formatClock(currentSeconds)} / ${formatClock(totalSeconds)})${sizeLabel}`;
+    return `Encoding Twitter/X ${mediaLabel}... ${progressBar} ${safePercent}% (${formatClock(currentSeconds)} / ${formatClock(totalSeconds)})${sizeLabel}`;
 }
 
-function buildProgressHandle(progressMessage) {
+function buildProgressHandle(progressMessage, mediaLabel = 'video') {
     let dismissed = false;
     let lastUpdateAt = 0;
     let lastRenderedContent = '';
@@ -86,7 +86,7 @@ function buildProgressHandle(progressMessage) {
             await applyUpdate(content, options);
         },
         async updateVideoEncodeProgress(progress) {
-            const content = formatVideoEncodeProgress(progress);
+            const content = formatVideoEncodeProgress(progress, mediaLabel);
             const safePercent = Math.max(0, Math.min(100, Math.round(Number(progress?.percent) || 0)));
             await applyUpdate(content, { force: safePercent >= 100 });
         },
@@ -100,7 +100,8 @@ function buildProgressHandle(progressMessage) {
 
 async function createVideoProgressMessage(
     message,
-    content = 'Rendering the Twitter/X video canvas...'
+    content = 'Rendering the Twitter/X video canvas...',
+    mediaLabel = 'video',
 ) {
     try {
         const progressMessage = await message.reply({
@@ -108,14 +109,14 @@ async function createVideoProgressMessage(
             allowedMentions: { repliedUser: false },
         });
 
-        return buildProgressHandle(progressMessage);
+        return buildProgressHandle(progressMessage, mediaLabel);
     } catch (replyError) {
         console.warn('[progress] Failed to create reply progress message:', replyError);
     }
 
     try {
         const progressMessage = await message.channel.send({ content });
-        return buildProgressHandle(progressMessage);
+        return buildProgressHandle(progressMessage, mediaLabel);
     } catch (sendError) {
         console.warn('[progress] Failed to create channel progress message:', sendError);
         return createNoopProgressHandle();
