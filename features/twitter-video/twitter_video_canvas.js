@@ -41,7 +41,8 @@ async function createTwitterVideoCanvas(metadataJson) {
     const media = Array.isArray(collectMedia?.(metadataJson)) ? collectMedia(metadataJson)
         : (Array.isArray(metadataJson.media_extended) ? metadataJson.media_extended : []);
     const videos = media.filter(m => (m?.type || '').toLowerCase() === 'video');
-    const v0 = videos[0] || null;
+    const animatedMedia = media.filter(m => ['video', 'gif'].includes((m?.type || '').toLowerCase()));
+    const v0 = animatedMedia[0] || null;
     const vSize = v0?.size || { width: v0?.width || 0, height: v0?.height || 0 };
 
     const metadata = {

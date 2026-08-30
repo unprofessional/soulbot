@@ -78,4 +78,24 @@ describe('twitter_video_canvas empty-description spacing', () => {
 
         expect(result.canvasHeight).toBe(495);
     });
+
+    test('uses GIF dimensions instead of the tall missing-media fallback', async () => {
+        const result = await createTwitterVideoCanvas({
+            user_screen_name: 'IsraeliFlowery',
+            user_name: 'Israeli Flowery',
+            user_profile_image_url: '',
+            lang: 'en',
+            text: '> deltarune theory video\n> troon voice',
+            mediaURLs: ['https://video.twimg.com/tweet_video/HQ7MHzNWEAAXCC4.mp4'],
+            media_extended: [{
+                type: 'gif',
+                url: 'https://video.twimg.com/tweet_video/HQ7MHzNWEAAXCC4.mp4',
+                size: { width: 448, height: 252 },
+            }],
+            _canvasOutputPath: '/tempdata/test-gif/test-gif.png',
+        });
+
+        expect(result.heightShim).toBe(315);
+        expect(result.canvasHeight).toBe(525);
+    });
 });
