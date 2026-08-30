@@ -11,6 +11,7 @@ const { Readable, Transform } = require('node:stream');
 const { pipeline } = require('node:stream/promises');
 const ffmpeg = require('fluent-ffmpeg');
 const { bakeImageAsFilterIntoVideoDEBUG } = require('./debug_bake_img-in-vid');
+const { bakeImageAsFilterIntoGif } = require('./gif_compositor.js');
 
 const DEFAULT_DOWNLOAD_TIMEOUT_MS = 60000;
 
@@ -239,4 +240,5 @@ module.exports = {
 
     // main
     bakeImageAsFilterIntoVideo,
+    bakeImageAsFilterIntoGif,
 };

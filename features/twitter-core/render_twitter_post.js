@@ -10,6 +10,7 @@ const {
 } = require('./twitter_post_utils.js');
 const { createVideoProgressMessage } = require('./progress_message.js');
 const { handleVideoPost } = require('./twitter_video_handler.js');
+const { handleGifPost } = require('./twitter_gif_handler.js');
 const { handleImagePost } = require('./twitter_image_handler.js');
 const { runTrackedMediaJob } = require('../../app/media_work_registry.js');
 
@@ -37,11 +38,13 @@ const renderTwitterPost = async (metadataJson, message, originalLink) => {
     const media = Array.isArray(collectMedia?.(metadataJson)) ? collectMedia(metadataJson) : [];
     const images = media.filter(m => m.type === 'image');
     const videos = media.filter(m => m.type === 'video');
+    const gifs = media.filter(m => m.type === 'gif');
 
     // Expose normalized sets
     metadataJson._media = media;
     metadataJson._images = images;
     metadataJson._videos = videos;
+    metadataJson._gifs = gifs;
     metadataJson.hasMedia = media.length > 0;
     metadataJson._firstThumbnail = media[0]?.thumbnail_url || media[0]?.url || null;
 
@@ -54,6 +57,7 @@ const renderTwitterPost = async (metadataJson, message, originalLink) => {
     }
 
     const firstVideo = videos[0]?.url || null;
+    const firstGif = gifs[0]?.url || null;
     const videoUrl =
     firstVideo ||
     (typeof extractFirstVideoUrl === 'function' ? extractFirstVideoUrl(metadataJson) : null);
@@ -68,10 +72,31 @@ const renderTwitterPost = async (metadataJson, message, originalLink) => {
 
     return runTrackedMediaJob(
         {
-            kind: isVideo && videoUrl ? 'twitter-video' : 'twitter-canvas',
+            kind: firstGif ? 'twitter-gif' : (isVideo && videoUrl ? 'twitter-video' : 'twitter-canvas'),
             label: originalLink,
         },
         async (job) => {
+            if (firstGif) {
+                const progressMessage = await createVideoProgressMessage(
+                    message,
+                    'Rendering the Twitter/X GIF canvas...',
+                    'GIF',
+                );
+                const pathInfo = buildPathsAndStuff(processingDir, firstGif, processingRunId);
+
+                return handleGifPost({
+                    metadataJson,
+                    message,
+                    originalLink,
+                    gifUrl: firstGif,
+                    processingDir,
+                    processingRunId,
+                    pathInfo,
+                    progressMessage,
+                    mediaJob: job,
+                });
+            }
+
             if (isVideo && videoUrl) {
                 const progressMessage = await createVideoProgressMessage(message);
                 const pathInfo = buildPathsAndStuff(processingDir, videoUrl, processingRunId);

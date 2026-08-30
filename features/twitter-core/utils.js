@@ -178,7 +178,7 @@ function coerceEpochOrIsoToMs(v, label = 'value') {
  *
  * Output shape (per item):
  * {
- *   type: 'image' | 'video',
+ *   type: 'image' | 'video' | 'gif',
  *   url: string,                 // media URL
  *   thumbnail_url?: string,      // preview/thumbnail (video & sometimes images)
  *   size?: { width:number, height:number },
@@ -191,12 +191,14 @@ function collectMedia(payload) {
 
     const out = [];
     const seen = new Set();
+    const seenUrls = new Set();
 
     const push = (item) => {
         if (!item || !item.url) return;
         const key = `${item.type}:${item.url}`;
         if (seen.has(key)) return;
         seen.add(key);
+        seenUrls.add(item.url);
         out.push(item);
     };
 
@@ -221,7 +223,7 @@ function collectMedia(payload) {
                 });
             } else if (type === 'video' || type === 'gif') {
                 push({
-                    type: 'video',
+                    type,
                     url: m.url || m.video_url || null,
                     thumbnail_url: m.thumbnail_url || null,
                     size,
@@ -236,6 +238,7 @@ function collectMedia(payload) {
     if (Array.isArray(payload.mediaURLs)) {
         for (const u of payload.mediaURLs) {
             if (typeof u !== 'string') continue;
+            if (seenUrls.has(u)) continue;
             const lower = u.toLowerCase();
             const isImg = /\.(jpe?g|png|webp)(\?|#|$)/i.test(lower);
             const isVid = /\.(mp4|mov|m4v)(\?|#|$)/i.test(lower);
@@ -300,7 +303,7 @@ function collectMedia(payload) {
  *  - array of extensions: ['jpg','jpeg','png','mp4']  (heuristic by extension length)
  *  - object: { types: [...] }
  */
-function filterMediaUrls(meta, typesOrExts = ['image', 'video']) {
+function filterMediaUrls(meta, typesOrExts = ['image', 'video', 'gif']) {
     const all = collectMedia(meta);
 
     // If it looks like an extensions array (e.g., ['jpg','png','mp4'])
@@ -315,7 +318,7 @@ function filterMediaUrls(meta, typesOrExts = ['image', 'video']) {
     }
 
     // Otherwise treat as types filter
-    const types = Array.isArray(typesOrExts) ? typesOrExts : (typesOrExts?.types || ['image', 'video']);
+    const types = Array.isArray(typesOrExts) ? typesOrExts : (typesOrExts?.types || ['image', 'video', 'gif']);
     const typeSet = new Set(types);
     return all.filter(m => typeSet.has(m.type));
 }

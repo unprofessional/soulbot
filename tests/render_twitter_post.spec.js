@@ -8,6 +8,10 @@ jest.mock('../features/twitter-core/twitter_video_handler.js', () => ({
     handleVideoPost: jest.fn().mockResolvedValue(undefined),
 }));
 
+jest.mock('../features/twitter-core/twitter_gif_handler.js', () => ({
+    handleGifPost: jest.fn().mockResolvedValue(undefined),
+}));
+
 jest.mock('../features/twitter-core/twitter_image_handler.js', () => ({
     handleImagePost: jest.fn().mockResolvedValue(undefined),
 }));
@@ -34,6 +38,7 @@ jest.mock('../features/twitter-core/utils.js', () => ({
 
 const { renderTwitterPost } = require('../features/twitter-core/render_twitter_post.js');
 const { handleVideoPost } = require('../features/twitter-core/twitter_video_handler.js');
+const { handleGifPost } = require('../features/twitter-core/twitter_gif_handler.js');
 const { handleImagePost } = require('../features/twitter-core/twitter_image_handler.js');
 const { createVideoProgressMessage } = require('../features/twitter-core/progress_message.js');
 const { collectMedia } = require('../features/twitter-core/utils.js');
@@ -100,6 +105,34 @@ describe('renderTwitterPost community note flow', () => {
             'https://example.com/video.mp4',
             'run-123',
         );
+        expect(handleImagePost).not.toHaveBeenCalled();
+    });
+
+    test('routes VX GIF media to the native GIF renderer', async () => {
+        collectMedia.mockReturnValue([{
+            type: 'gif',
+            url: 'https://video.twimg.com/tweet_video/animated.mp4',
+            size: { width: 448, height: 252 },
+        }]);
+
+        await renderTwitterPost(
+            { text: 'gif', communityNote: 'Context for the GIF.' },
+            { reply: jest.fn() },
+            'https://x.com/test/status/3',
+        );
+
+        expect(createVideoProgressMessage).toHaveBeenCalledWith(
+            expect.anything(),
+            'Rendering the Twitter/X GIF canvas...',
+            'GIF',
+        );
+        expect(handleGifPost).toHaveBeenCalledWith(expect.objectContaining({
+            gifUrl: 'https://video.twimg.com/tweet_video/animated.mp4',
+            metadataJson: expect.objectContaining({
+                _gifs: [expect.objectContaining({ type: 'gif' })],
+            }),
+        }));
+        expect(handleVideoPost).not.toHaveBeenCalled();
         expect(handleImagePost).not.toHaveBeenCalled();
     });
 });

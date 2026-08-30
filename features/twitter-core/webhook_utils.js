@@ -324,6 +324,21 @@ const sendVideoReply = async (message, successFilePath, originalLink, communityN
     );
 };
 
+const sendGifReply = async (message, successFilePath, originalLink, communityNotes) => {
+    const files = [{
+        attachment: await readFile(successFilePath),
+        name: 'twitter.gif',
+    }];
+
+    await sendWebhookProxyMsg(
+        message,
+        'Here’s the Twitter canvas:',
+        files,
+        communityNotes,
+        originalLink
+    );
+};
+
 /**
  * Sends arbitrary slash-command content through a short-lived webhook using the
  * invoking member's current server identity when available.
@@ -381,6 +396,7 @@ module.exports = {
     sendWebhookReplacementMsg,
     sendWebhookProxyMsg,
     sendVideoReply,
+    sendGifReply,
     sendInteractionWebhookProxy,
     webhookBuilder, // optional: only export if reused directly elsewhere
 };
