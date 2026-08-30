@@ -92,4 +92,28 @@ describe('fetch_metadata', () => {
         expect(metadata.message).toContain('Provider could not scan the tweet link.');
         expect(toFixupx('https://twitter.com/example/status/1')).toBe('https://fixupx.com/example/status/1');
     });
+
+    test('fetchMetadata preserves FX private-tweet errors instead of returning null', async () => {
+        getJsonWithFallback.mockResolvedValue({
+            ok: false,
+            status: 401,
+            json: { code: 401, message: 'PRIVATE_TWEET', tweet: null },
+            text: '{"code":401,"message":"PRIVATE_TWEET","tweet":null}',
+            url: 'https://api.fxtwitter.com/eigenrobot/status/2092637710447952344',
+            ct: 'application/json',
+        });
+
+        const metadata = await fetchMetadata(
+            'https://x.com/eigenrobot/status/2092637710447952344',
+            null,
+            true,
+            jest.fn(),
+        );
+
+        expect(metadata).toEqual(expect.objectContaining({
+            error: true,
+            status: 401,
+            message: expect.stringContaining('PRIVATE_TWEET'),
+        }));
+    });
 });
