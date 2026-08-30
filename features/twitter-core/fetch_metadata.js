@@ -76,9 +76,23 @@ async function fetchMetadata(url, message, isXDotCom, log = console.log) {
         return normalizeFromVX(j);
     }
 
-    // FX success or FX error payloads
-    if (j && (j.tweet || typeof j.code === 'number')) {
+    // FX success payload
+    if (j?.tweet) {
         return normalizeFromFX(j);
+    }
+
+    // FX error payloads often include `tweet: null` plus a useful status and
+    // message (for example 401 / PRIVATE_TWEET). Do not send those through the
+    // success normalizer, which intentionally returns null without a tweet.
+    if (j && typeof j.code === 'number') {
+        const err = summarizeUpstreamFailure({
+            status: j.code,
+            text: String(j.message || j.error || ''),
+            ct: res.ct,
+            source: res.url,
+        });
+        err.fallback_link = toFixupx(url);
+        return err;
     }
 
     // Generic JSON error shape
@@ -113,7 +127,17 @@ async function fetchQTMetadata(url, log = console.log) {
     const j = res.json;
 
     if (j && (j.tweetID || j.user_name)) return normalizeFromVX(j);
-    if (j && (j.tweet || typeof j.code === 'number')) return normalizeFromFX(j);
+    if (j?.tweet) return normalizeFromFX(j);
+    if (j && typeof j.code === 'number') {
+        const err = summarizeUpstreamFailure({
+            status: j.code,
+            text: String(j.message || j.error || ''),
+            ct: res.ct,
+            source: res.url,
+        });
+        err.fallback_link = toFixupx(url);
+        return err;
+    }
 
     if (j && (j.error || j.message)) {
         const err = summarizeUpstreamFailure({ status: typeof j.code === 'number' ? j.code : res.status, text: String(j.message || j.error), ct: res.ct, source: res.url });
