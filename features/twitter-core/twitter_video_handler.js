@@ -54,6 +54,10 @@ async function handleVideoPost({
                 successFilePath,
                 originalLink,
                 communityNotes,
+                {
+                    metadata: metadataJson.qtMetadata,
+                    url: metadataJson.qrtURL,
+                },
             );
             await progressMessage?.dismiss?.();
         } catch (err) {

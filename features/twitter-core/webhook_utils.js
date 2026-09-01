@@ -1,7 +1,8 @@
 // features/twitter-core/webhook_utils.js
 
 const { readFile } = require('node:fs/promises');
-const { stripQueryParams } = require('./utils.js');
+const { buildDisplayText } = require('./translation_service.js');
+const { collectMedia, stripQueryParams } = require('./utils.js');
 const { embedCommunityNote } = require('./canvas_utils.js');
 const { registerPendingRenderOwnership } = require('./render_ownership_registry.js');
 
@@ -19,6 +20,46 @@ function buildCommunityNoteEmbeds(message, communityNotes) {
     ].filter(Boolean);
 
     return embeds;
+}
+
+function truncateEmbedText(text, maxLength = 4096) {
+    const normalized = String(text || '').trim();
+    if (normalized.length <= maxLength) return normalized;
+    return `${normalized.slice(0, Math.max(0, maxLength - 1)).trimEnd()}…`;
+}
+
+function buildQuoteTweetEmbed(qtMetadata, quoteUrl) {
+    if (!qtMetadata || typeof qtMetadata !== 'object') return undefined;
+
+    const displayName = String(qtMetadata.user_name || 'Unknown').trim();
+    const screenName = String(qtMetadata.user_screen_name || '').trim();
+    const authorName = truncateEmbedText(
+        screenName ? `${displayName} (@${screenName})` : displayName,
+        256,
+    );
+    const description = truncateEmbedText(buildDisplayText(qtMetadata));
+    const media = collectMedia(qtMetadata);
+    const firstMedia = media[0];
+    const imageUrl = firstMedia?.thumbnail_url || (firstMedia?.type === 'image' ? firstMedia.url : null);
+    const resolvedUrl = quoteUrl || qtMetadata.tweetURL || (
+        qtMetadata.tweetID
+            ? `https://x.com/${screenName || 'i'}/status/${qtMetadata.tweetID}`
+            : undefined
+    );
+
+    if (!description && !resolvedUrl) return undefined;
+
+    return {
+        color: 0x1d9bf0,
+        author: {
+            name: authorName || 'Quoted post',
+            ...(qtMetadata.user_profile_image_url && { icon_url: qtMetadata.user_profile_image_url }),
+        },
+        ...(description && { description }),
+        ...(resolvedUrl && { url: resolvedUrl }),
+        ...(imageUrl && { image: { url: imageUrl } }),
+        footer: { text: 'Quoted post on X' },
+    };
 }
 
 /** Resolve impersonation identity: server nickname + server avatar if set, else global. */
@@ -165,7 +206,7 @@ const sendWebhookProxyMessageInternal = async (
     files = [],
     communityNotes,
     originalLink,
-    { preferProvidedContent = false } = {}
+    { preferProvidedContent = false, extraEmbeds = [] } = {}
 ) => {
     const parentChannel = message.channel.isThread() ? message.channel.parent : message.channel;
     const webhooks = await parentChannel.fetchWebhooks();
@@ -176,7 +217,10 @@ const sendWebhookProxyMessageInternal = async (
         await webhook.delete().catch(err => console.warn(`Failed to delete webhook: ${err}`));
     }
 
-    const embeds = buildCommunityNoteEmbeds(message, communityNotes);
+    const embeds = [
+        ...(Array.isArray(extraEmbeds) ? extraEmbeds : []),
+        ...buildCommunityNoteEmbeds(message, communityNotes),
+    ].filter(Boolean);
 
     // Prefer guild nickname + guild avatar for impersonation identity
     const { displayName, avatarURL } = resolveImpersonationIdentity(message);
@@ -230,14 +274,21 @@ const sendWebhookProxyMessageInternal = async (
     await webhook.delete().catch(err => console.warn(`Failed to delete webhook: ${err}`));
 };
 
-const sendWebhookProxyMsg = async (message, content, files = [], communityNotes, originalLink) => {
+const sendWebhookProxyMsg = async (
+    message,
+    content,
+    files = [],
+    communityNotes,
+    originalLink,
+    options = {},
+) => {
     return sendWebhookProxyMessageInternal(
         message,
         content,
         files,
         communityNotes,
         originalLink,
-        { preferProvidedContent: false }
+        { ...options, preferProvidedContent: false }
     );
 };
 
@@ -309,33 +360,49 @@ const sendWebhookReplacementBatch = async (messages, content, files = []) => {
  * Sends a video as a file attachment via webhook proxy, or falls back on failure.
  * (kept here for convenience since other modules import it from webhook_utils)
  */
-const sendVideoReply = async (message, successFilePath, originalLink, communityNotes) => {
+const sendVideoReply = async (
+    message,
+    successFilePath,
+    originalLink,
+    communityNotes,
+    quoteTweet,
+) => {
     const files = [{
         attachment: await readFile(successFilePath),
         name: 'video.mp4',
     }];
 
+    const quoteEmbed = buildQuoteTweetEmbed(quoteTweet?.metadata, quoteTweet?.url);
     await sendWebhookProxyMsg(
         message,
         'Here’s the Twitter canvas:',
         files,
         communityNotes,
-        originalLink
+        originalLink,
+        { extraEmbeds: quoteEmbed ? [quoteEmbed] : [] },
     );
 };
 
-const sendGifReply = async (message, successFilePath, originalLink, communityNotes) => {
+const sendGifReply = async (
+    message,
+    successFilePath,
+    originalLink,
+    communityNotes,
+    quoteTweet,
+) => {
     const files = [{
         attachment: await readFile(successFilePath),
         name: 'twitter.gif',
     }];
 
+    const quoteEmbed = buildQuoteTweetEmbed(quoteTweet?.metadata, quoteTweet?.url);
     await sendWebhookProxyMsg(
         message,
         'Here’s the Twitter canvas:',
         files,
         communityNotes,
-        originalLink
+        originalLink,
+        { extraEmbeds: quoteEmbed ? [quoteEmbed] : [] },
     );
 };
 
@@ -391,6 +458,7 @@ const sendInteractionWebhookProxy = async (interaction, content) => {
 
 module.exports = {
     buildCommunityNoteEmbeds,
+    buildQuoteTweetEmbed,
     buildAllowedMentions,
     sendWebhookReplacementBatch,
     sendWebhookReplacementMsg,

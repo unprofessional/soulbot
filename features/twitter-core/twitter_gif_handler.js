@@ -38,7 +38,16 @@ async function handleGifPost({
 
     const upload = async successFilePath => {
         await progressMessage?.update?.('Uploading the rendered Twitter/X GIF...');
-        await sendGifReply(message, successFilePath, originalLink, communityNotes);
+        await sendGifReply(
+            message,
+            successFilePath,
+            originalLink,
+            communityNotes,
+            {
+                metadata: metadataJson.qtMetadata,
+                url: metadataJson.qrtURL,
+            },
+        );
         await progressMessage?.dismiss?.();
     };
 
