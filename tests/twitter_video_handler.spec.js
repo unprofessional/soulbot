@@ -150,6 +150,7 @@ describe('handleVideoPost progress lifecycle', () => {
             '/tempdata/video-file/video-file-output.mp4',
             'https://x.com/test/status/2',
             { main: 'note', qt: undefined },
+            { metadata: undefined, url: undefined },
         );
         expect(progressMessage.dismiss).toHaveBeenCalledTimes(1);
         expect(cleanup).toHaveBeenCalledWith([], ['/tempdata/video-file']);
@@ -330,12 +331,14 @@ describe('handleVideoPost progress lifecycle', () => {
             '/tempdata/video-file/video-file-output.mp4',
             'https://x.com/test/status/123456789012345',
             { main: 'note', qt: undefined },
+            { metadata: undefined, url: undefined },
         );
         expect(sendVideoReply).toHaveBeenCalledWith(
             followerMessage,
             '/tempdata/video-file/video-file-output.mp4',
             'https://twitter.com/test/status/123456789012345',
             { main: 'note', qt: undefined },
+            { metadata: undefined, url: undefined },
         );
         expect(cleanup).toHaveBeenCalledTimes(1);
         expect(cleanup).toHaveBeenCalledWith([], ['/tempdata/video-file']);
