@@ -328,6 +328,8 @@ describe('messages service', () => {
                 originalChannelId: 'channel-0',
                 originalLink: 'https://x.com/example/status/1',
                 threadId: 'thread-1',
+                renderEmbedsCaptured: true,
+                renderEmbeds: [],
             }),
         }));
     });

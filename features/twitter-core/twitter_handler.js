@@ -55,6 +55,14 @@ function inferAttachmentFileName(attachmentUrl, fallbackMessageId) {
     return `cached-twitter-render-${fallbackMessageId || Date.now()}.png`;
 }
 
+function isAnimatedRenderAttachment(attachmentUrl) {
+    try {
+        return /\.(?:gif|mp4)$/i.test(new URL(attachmentUrl).pathname);
+    } catch {
+        return /\.(?:gif|mp4)(?:\?|$)/i.test(String(attachmentUrl || ''));
+    }
+}
+
 async function downloadAttachmentForReuse(attachmentUrl, fallbackMessageId) {
     if (typeof fetch !== 'function') {
         throw new Error('fetch is not available for cached render attachment reuse');
@@ -86,6 +94,19 @@ async function tryReuseCachedTweetRender(message, originalLink) {
         return false;
     }
 
+    const embedsWereCaptured = cachedRender?.meta?.renderEmbedsCaptured === true;
+    const cachedEmbeds = Array.isArray(cachedRender?.meta?.renderEmbeds)
+        ? cachedRender.meta.renderEmbeds
+        : [];
+
+    // Older animated cache rows contain only the file URL. Replaying one would
+    // silently drop quote-tweet and community-note embeds, so refresh it once.
+    // New rows explicitly record embed capture, including an intentional empty list.
+    if (isAnimatedRenderAttachment(attachmentUrl) && !embedsWereCaptured) {
+        console.log('[TwitterHandler] Cached animated render predates embed capture; refreshing metadata.');
+        return false;
+    }
+
     try {
         console.log('[TwitterHandler] Reusing cached tweet render attachment:', {
             cachedMessageId: cachedRender.message_id,
@@ -95,7 +116,14 @@ async function tryReuseCachedTweetRender(message, originalLink) {
         });
 
         const file = await downloadAttachmentForReuse(attachmentUrl, cachedRender.message_id);
-        await sendWebhookProxyMsg(message, 'Here’s the Twitter canvas:', [file], undefined, originalLink);
+        await sendWebhookProxyMsg(
+            message,
+            'Here’s the Twitter canvas:',
+            [file],
+            undefined,
+            originalLink,
+            { extraEmbeds: cachedEmbeds },
+        );
         return true;
     } catch (err) {
         console.warn('[TwitterHandler] Cached tweet render reuse failed; falling back to fresh render:', err);
