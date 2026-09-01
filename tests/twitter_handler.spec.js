@@ -143,6 +143,7 @@ describe('twitter_handler deterministic fixture flows', () => {
             }],
             undefined,
             fixture.tweetURL,
+            { extraEmbeds: [] },
         );
         expect(fetchMetadata).not.toHaveBeenCalled();
         expect(renderTwitterPost).not.toHaveBeenCalled();
@@ -182,6 +183,63 @@ describe('twitter_handler deterministic fixture flows', () => {
             message,
             fixture.tweetURL,
         );
+    });
+
+    test('refreshes legacy animated cache rows that cannot preserve quote embeds', async () => {
+        const fixture = loadJsonFixture('2040243625179668887.json');
+        const message = buildMessage(fixture.tweetURL);
+        global.fetch = jest.fn();
+        findLatestTweetRenderByOriginalLinkAcrossGuilds.mockResolvedValue({
+            message_id: 'cached-gif-1',
+            attachments: ['https://cdn.discordapp.com/attachments/twitter.gif?ex=1'],
+            meta: { kind: 'twitter_render', originalLink: fixture.tweetURL },
+        });
+        fetchMetadata.mockResolvedValue({ ...fixture });
+
+        await handleTwitterUrl(message, { guildId: 'guild-1' });
+
+        expect(global.fetch).not.toHaveBeenCalled();
+        expect(fetchMetadata).toHaveBeenCalled();
+        expect(renderTwitterPost).toHaveBeenCalled();
+        expect(sendWebhookProxyMsg).not.toHaveBeenCalled();
+    });
+
+    test('replays captured embeds with a cached animated render', async () => {
+        const fixture = loadJsonFixture('2040243625179668887.json');
+        const message = buildMessage(fixture.tweetURL);
+        const cachedBytes = Buffer.from('cached gif bytes');
+        const quoteEmbed = { description: 'Quoted post', color: 0x1d9bf0 };
+        global.fetch = jest.fn().mockResolvedValue({
+            ok: true,
+            arrayBuffer: jest.fn().mockResolvedValue(
+                cachedBytes.buffer.slice(
+                    cachedBytes.byteOffset,
+                    cachedBytes.byteOffset + cachedBytes.byteLength,
+                )
+            ),
+        });
+        findLatestTweetRenderByOriginalLinkAcrossGuilds.mockResolvedValue({
+            message_id: 'cached-gif-2',
+            attachments: ['https://cdn.discordapp.com/attachments/twitter.gif?ex=1'],
+            meta: {
+                kind: 'twitter_render',
+                originalLink: fixture.tweetURL,
+                renderEmbedsCaptured: true,
+                renderEmbeds: [quoteEmbed],
+            },
+        });
+
+        await handleTwitterUrl(message, { guildId: 'guild-1' });
+
+        expect(sendWebhookProxyMsg).toHaveBeenCalledWith(
+            message,
+            'Here’s the Twitter canvas:',
+            [{ attachment: cachedBytes, name: 'twitter.gif' }],
+            undefined,
+            fixture.tweetURL,
+            { extraEmbeds: [quoteEmbed] },
+        );
+        expect(fetchMetadata).not.toHaveBeenCalled();
     });
 
     test('falls back to embedded quote-tweet metadata when QT fetch fails', async () => {

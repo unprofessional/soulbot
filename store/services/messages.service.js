@@ -12,6 +12,13 @@ const SOULBOT_EXPECTED_DELETION_PATTERNS = [
     /^Uploading the rendered Twitter\/X video\.\.\.$/i,
 ];
 
+function serializeMessageEmbeds(embeds) {
+    if (!Array.isArray(embeds)) return [];
+    return embeds.map(embed => (
+        typeof embed?.toJSON === 'function' ? embed.toJSON() : embed
+    )).filter(embed => embed && typeof embed === 'object');
+}
+
 function isTwitterLinkOnlyContent(content = '') {
     const trimmed = String(content || '').trim();
     if (!trimmed) return false;
@@ -56,6 +63,8 @@ const addMessage = async (message) => {
                 originalChannelId: pendingRenderOwnership.originalChannelId || null,
                 originalLink: pendingRenderOwnership.originalLink || null,
                 threadId: pendingRenderOwnership.threadId || null,
+                renderEmbedsCaptured: true,
+                renderEmbeds: serializeMessageEmbeds(message.embeds),
             }
             : {};
 
