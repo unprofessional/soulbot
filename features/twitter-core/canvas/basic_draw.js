@@ -1,6 +1,7 @@
 /* eslint-disable no-empty */
 // features/twitter-core/canvas/basic_draw.js
 
+const { drawPostLogo } = require('./x_logo');
 const { formatTwitterFooter } = require('../utils');
 const { getMainLineHeight, getMainTextX } = require('../layout/geometry');
 const { drawDescriptionLines } = require('./misc_draw');
@@ -57,9 +58,7 @@ function drawBasicElements(ctx, fontChain, metadata, favicon, pfp, descLines, op
         debugFonts = false,
     } = options;
 
-    if (favicon) {
-        try { ctx.drawImage(favicon, ctx.canvas.width - 50, 20, 32, 32); } catch {}
-    }
+    drawPostLogo(ctx);
 
     ctx.textDrawingMode = 'glyph';
 
@@ -169,9 +168,7 @@ function drawDesktopLayout(ctx, fontChain, metadata, favicon, pfp, descLines, op
         ctx.fillText(footerStr, 30, resolvedFooterY);
     }
 
-    if (favicon) {
-        try { ctx.drawImage(favicon, ctx.canvas.width - 50, 20, 32, 32); } catch {}
-    }
+    drawPostLogo(ctx);
 
     if (debugFonts) {
         drawFontDebugBlock(ctx);

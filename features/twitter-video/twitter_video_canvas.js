@@ -92,10 +92,8 @@ async function createTwitterVideoCanvas(metadataJson) {
     canvas.height = canvasHeight;
     ctx.fillRect(0, 0, canvasWidth, canvasHeight);
 
-    const [favicon, pfp] = await Promise.all([
-        safeLoadImage('https://abs.twimg.com/favicons/twitter.3.ico'),
-        safeLoadImage(metadata.pfpUrl),
-    ]);
+    const favicon = null; // Branding is drawn locally by drawBasicElements.
+    const pfp = await safeLoadImage(metadata.pfpUrl);
 
     // IMPORTANT: pass hasImgs:true to keep descX=30 (no extra 50px indent)
     drawBasicElements(ctx, globalFont, metadata, favicon, pfp, hasDescription ? descLines : [], {
