@@ -98,7 +98,7 @@ describe('thread snapshot canvas fonts', () => {
         expect(bodyTextCall).toBeDefined();
     });
 
-    test('center-crops media thumbnails into the larger desktop square instead of stretching them', async () => {
+    test('preserves landscape media proportions in a bounded thumbnail below the text', async () => {
         await renderThreadSnapshotCanvas({
             isTruncated: false,
             posts: [{
@@ -114,7 +114,7 @@ describe('thread snapshot canvas fonts', () => {
 
         const finalCtx = contexts.at(-1);
         const cropDrawCall = finalCtx.drawImage.mock.calls.find(call =>
-            call.length === 9 && call[5] === 98 && call[7] === 175 && call[8] === 175
+            call.length === 9 && call[5] === 110 && call[7] === 520 && call[8] === 260
         );
 
         expect(cropDrawCall).toBeDefined();

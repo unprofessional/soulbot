@@ -314,10 +314,8 @@ async function createTwitterCanvas(metadataJson, isImage) {
 
     log('canvas', { canvasWidth, totalHeight, outputScale, mainRenderMode });
 
-    const [favicon, pfp] = await Promise.all([
-        safeLoadImage('https://abs.twimg.com/favicons/twitter.3.ico'),
-        safeLoadImage(metadata.pfpUrl),
-    ]);
+    const favicon = null; // Branding is drawn locally by drawBasicElements.
+    const pfp = await safeLoadImage(metadata.pfpUrl);
 
     log('assets', {
         faviconLoaded: Boolean(favicon),

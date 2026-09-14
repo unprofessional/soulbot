@@ -7,6 +7,11 @@ jest.mock('node:fs', () => ({
 jest.mock('canvas', () => ({
     createCanvas: jest.fn((width, height) => {
         const ctx = {
+            canvas: { width, height },
+            moveTo: jest.fn(),
+            lineTo: jest.fn(),
+            closePath: jest.fn(),
+            fill: jest.fn(),
             fillStyle: '#000',
             textDrawingMode: 'glyph',
             font: '',
