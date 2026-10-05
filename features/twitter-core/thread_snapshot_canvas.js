@@ -4,6 +4,7 @@ const { cropSingleImage } = require('../twitter-post/crop_single_image');
 const { drawXLogo } = require('./canvas/x_logo');
 const { DESKTOP_MAX_WIDTH, MAIN_FONT, TEXT_FONT_FAMILY } = require('../twitter-post/canvas/constants');
 const { buildDisplayText } = require('./translation_service');
+const { formatTwitterFooter } = require('./utils');
 
 const CONTENT_X = 110;
 const RIGHT_PAD = 40;
@@ -23,10 +24,7 @@ function formatTimePassed(msDelta) {
 }
 
 function formatAbsoluteTimestamp(ms, replyToMs = null) {
-    const date = new Date(ms);
-    const timeStr = date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
-    const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-    let result = `${timeStr} · ${dateStr}`;
+    let result = formatTwitterFooter(new Date(ms));
     if (replyToMs && replyToMs < ms) {
         const deltaMs = ms - replyToMs;
         result += ` · ${formatTimePassed(deltaMs)}`;

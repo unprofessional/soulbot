@@ -160,4 +160,24 @@ describe('thread snapshot canvas fonts', () => {
         );
         expect(markerCall).toBeDefined();
     });
+
+    test.each([
+        ['2026-01-16T02:05:00Z', '9:05 PM Eastern · Jan 15, 2026'],
+        ['2026-07-16T02:05:00Z', '10:05 PM Eastern · Jul 15, 2026'],
+    ])('renders Eastern footer time and date for %s', async (timestamp, expected) => {
+        const dateEpoch = Date.parse(timestamp) / 1000;
+        await renderThreadSnapshotCanvas({
+            isTruncated: false,
+            posts: [dateEpoch - 120, dateEpoch].map(date_epoch => ({
+                user_name: 'Example User',
+                user_screen_name: 'example',
+                text: 'Thread post',
+                date_epoch,
+            })),
+        });
+
+        expect(contexts.at(-1).fillText).toHaveBeenCalledWith(
+            `${expected} · 2 minutes later`, 110, expect.any(Number)
+        );
+    });
 });
