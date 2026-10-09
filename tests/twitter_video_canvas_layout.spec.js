@@ -23,6 +23,7 @@ jest.mock('canvas', () => ({
             arc: jest.fn(),
             clip: jest.fn(),
             save: jest.fn(),
+            translate: jest.fn(),
             restore: jest.fn(),
         };
 
@@ -46,6 +47,29 @@ jest.mock('../features/twitter-core/path_builder.js', () => ({
 const { createTwitterVideoCanvas } = require('../features/twitter-video/twitter_video_canvas.js');
 
 describe('twitter_video_canvas empty-description spacing', () => {
+    test('renders both authors and caps both quoted-video descriptions at 500 characters', async () => {
+        const { createCanvas } = require('canvas');
+        const video = { type: 'video', url: 'https://example.com/q.mp4', size: { width: 1280, height: 720 } };
+        const result = await createTwitterVideoCanvas({
+            user_name: 'Primary author', text: 'a'.repeat(501),
+            _quoteVideoMedia: video,
+            qtMetadata: { user_name: 'Quoted author', text: 'b'.repeat(501) },
+            _canvasOutputPath: '/tempdata/quote.png',
+        });
+        const canvas = createCanvas.mock.results.at(-1).value;
+        const ctx = canvas.getContext('2d');
+        const drawn = ctx.fillText.mock.calls.map(call => call[0]).join('');
+        expect(drawn).toContain('Primary author');
+        expect(drawn).toContain('Quoted author');
+        expect(drawn).toContain('a'.repeat(497) + '...');
+        expect(drawn).toContain('b'.repeat(497) + '...');
+        expect(drawn).not.toContain('a'.repeat(498));
+        expect(drawn).not.toContain('b'.repeat(498));
+        expect(ctx.translate).toHaveBeenCalledWith(0, expect.any(Number));
+        expect(result.heightShim).toBe(315);
+        expect(result.canvasHeight).toBeGreaterThan(495);
+    });
+
     test('does not reserve a phantom text line when the description is empty', async () => {
         const result = await createTwitterVideoCanvas({
             user_screen_name: 'example',
