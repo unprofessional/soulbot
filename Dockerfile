@@ -52,8 +52,11 @@ RUN apt-get update && apt-get install -y \
 RUN npm install -g npm@11.8.0
 
 # Install Infisical CLI
-RUN curl -1sLf "https://dl.cloudsmith.io/public/infisical/infisical-cli/setup.deb.sh" | bash \
+RUN curl -fsSL "https://artifacts-cli.infisical.com/setup.deb.sh" -o /tmp/infisical-setup.deb.sh \
+    && bash /tmp/infisical-setup.deb.sh \
     && apt-get update && apt-get install -y infisical \
+    && infisical --version \
+    && rm -f /tmp/infisical-setup.deb.sh \
     && rm -rf /var/lib/apt/lists/*
 
 # Rebuild font cache after font installation.
