@@ -6,12 +6,13 @@ const { buildPathsAndStuff } = require('../twitter-core/path_builder.js');
 const { condenseTranslatedDisplayLines, getWrappedText, drawBasicElements } = require('../twitter-core/canvas_utils.js');
 const { collectMedia, formatTwitterDate } = require('../twitter-core/utils.js');
 const { buildDisplayText } = require('../twitter-core/translation_service.js');
-const { MAX_DESC_CHARS, TEXT_FONT_FAMILY } = require('../twitter-post/canvas/constants.js');
+const { MAX_DESC_CHARS, TEXT_FONT_FAMILY, MAIN_FONT } = require('../twitter-post/canvas/constants.js');
 
 function truncateDescription(text, maxChars = MAX_DESC_CHARS) {
     const normalized = String(text || '').trim();
     if (!normalized || normalized.length <= maxChars) return normalized;
-    return `${normalized.slice(0, Math.max(0, maxChars - 1)).trimEnd()}…`;
+    const suffix = maxChars === 500 ? '...' : '…';
+    return `${normalized.slice(0, Math.max(0, maxChars - suffix.length)).trimEnd()}${suffix}`;
 }
 
 function calculateCanvasHeight(lines, baseY, heightShim, lineHeight = 30, padding = 40) {
@@ -42,7 +43,8 @@ async function createTwitterVideoCanvas(metadataJson) {
         : (Array.isArray(metadataJson.media_extended) ? metadataJson.media_extended : []);
     const videos = media.filter(m => (m?.type || '').toLowerCase() === 'video');
     const animatedMedia = media.filter(m => ['video', 'gif'].includes((m?.type || '').toLowerCase()));
-    const v0 = animatedMedia[0] || null;
+    const quote = metadataJson._quoteVideoMedia ? metadataJson.qtMetadata : null;
+    const v0 = metadataJson._quoteVideoMedia || animatedMedia[0] || null;
     const vSize = v0?.size || { width: v0?.width || 0, height: v0?.height || 0 };
 
     const metadata = {
@@ -58,7 +60,7 @@ async function createTwitterVideoCanvas(metadataJson) {
 
         description: truncateDescription(
             buildDisplayText(metadataJson).replace(/\s+https?:\/\/t\.co\/\w+$/i, ''),
-            MAX_DESC_CHARS
+            quote ? 500 : MAX_DESC_CHARS
         ),
         mediaUrls: Array.isArray(metadataJson.mediaURLs) ? metadataJson.mediaURLs : media.map(m => m.url).filter(Boolean),
         mediaExtended: media,
@@ -78,7 +80,7 @@ async function createTwitterVideoCanvas(metadataJson) {
     ctx.textDrawingMode = 'glyph';
 
     // Text wrapping (video layout used 420 previously)
-    ctx.font = `18px ${globalFont}`;
+    ctx.font = quote ? MAIN_FONT : `18px ${globalFont}`;
     const hasDescription = (metadata.description || '').trim().length > 0;
     const descLines = hasDescription
         ? condenseTranslatedDisplayLines(getWrappedText(ctx, metadata.description, 420))
@@ -87,7 +89,13 @@ async function createTwitterVideoCanvas(metadataJson) {
     const reservedLineCount = hasDescription ? descLines.length : 0;
     const layoutLines = new Array(reservedLineCount).fill('');
 
-    const canvasHeight = calculateCanvasHeight(layoutLines, baseY, heightShim);
+    const quoteDescription = quote ? truncateDescription(buildDisplayText(quote), 500) : '';
+    const quoteLines = quoteDescription
+        ? condenseTranslatedDisplayLines(getWrappedText(ctx, quoteDescription, 420)) : [];
+    const quoteOffset = quote ? baseY + reservedLineCount * 30 + 40 : 0;
+    const canvasHeight = quote
+        ? quoteOffset + calculateCanvasHeight(quoteLines, baseY, heightShim)
+        : calculateCanvasHeight(layoutLines, baseY, heightShim);
 
     canvas.height = canvasHeight;
     ctx.fillRect(0, 0, canvasWidth, canvasHeight);
@@ -100,8 +108,26 @@ async function createTwitterVideoCanvas(metadataJson) {
         hasImgs: true,  // <- forces descX to 30px in drawBasicElements
         hasVids: true,
         yOffset: baseY,
-        canvasHeightOffset: canvasHeight,
+        canvasHeightOffset: quote ? quoteOffset : canvasHeight,
     });
+
+    if (quote) {
+        const quotePfp = await safeLoadImage(quote.user_profile_image_url);
+        ctx.save();
+        ctx.translate(0, quoteOffset);
+        drawBasicElements(ctx, globalFont, {
+            ...quote,
+            authorNick: quote.user_screen_name,
+            authorUsername: quote.user_name,
+            description: quoteDescription,
+        }, favicon, quotePfp, quoteLines, {
+            hasImgs: true,
+            hasVids: true,
+            yOffset: baseY,
+            canvasHeightOffset: canvasHeight - quoteOffset,
+        });
+        ctx.restore();
+    }
 
     const buffer = canvas.toBuffer('image/png');
 
@@ -119,7 +145,7 @@ async function createTwitterVideoCanvas(metadataJson) {
     }
 
     // Back-compat fallback path
-    const videoUrl = (videos[0]?.url) ||
+    const videoUrl = metadataJson._quoteVideoMedia?.url || (videos[0]?.url) ||
                    (Array.isArray(metadata.mediaUrls) ? metadata.mediaUrls[0] : null) ||
                    '';
     const { filename, localWorkingPath } = buildPathsAndStuff('/tempdata', videoUrl);
