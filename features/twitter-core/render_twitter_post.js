@@ -56,14 +56,19 @@ const renderTwitterPost = async (metadataJson, message, originalLink) => {
         metadataJson.mediaURLs = media.map(m => m.url).filter(Boolean);
     }
 
-    const firstVideo = videos[0]?.url || null;
+    const quotedVideo = media.length === 0 && metadataJson.qtMetadata
+        ? collectMedia(metadataJson.qtMetadata).find(m => m.type === 'video' && m.url)
+        : null;
+    metadataJson._quoteVideoMedia = quotedVideo || null;
+
+    const firstVideo = videos[0]?.url || quotedVideo?.url || null;
     const firstGif = gifs[0]?.url || null;
     const videoUrl =
     firstVideo ||
     (typeof extractFirstVideoUrl === 'function' ? extractFirstVideoUrl(metadataJson) : null);
 
     const isVideo =
-    videos.length > 0 ||
+    Boolean(quotedVideo) || videos.length > 0 ||
     (typeof isFirstMediaVideo === 'function' && isFirstMediaVideo(metadataJson));
 
     await createDirectoryIfNotExists(processingDir);

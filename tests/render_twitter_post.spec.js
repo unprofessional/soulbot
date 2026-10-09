@@ -49,6 +49,25 @@ describe('renderTwitterPost community note flow', () => {
         jest.clearAllMocks();
     });
 
+    test.each([[[]], [[{ type: 'image', url: 'https://example.com/main.jpg' }]]])(
+        'only promotes quoted video when primary media is empty: %j', async (primaryMedia) => {
+            const video = { type: 'video', url: 'https://example.com/quote.mp4' };
+            const quote = { text: 'quoted video' };
+            collectMedia.mockImplementation(meta => meta === quote ? [video] : primaryMedia);
+            await renderTwitterPost({ text: 'primary', qtMetadata: quote }, {}, 'https://x.com/a/status/1');
+            if (primaryMedia.length === 0) {
+                expect(handleVideoPost).toHaveBeenCalledWith(expect.objectContaining({
+                    videoUrl: video.url,
+                    metadataJson: expect.objectContaining({ _quoteVideoMedia: video, qtMetadata: quote }),
+                }));
+                expect(handleImagePost).not.toHaveBeenCalled();
+            } else {
+                expect(handleVideoPost).not.toHaveBeenCalled();
+                expect(handleImagePost).toHaveBeenCalled();
+            }
+        },
+    );
+
     test('passes community note through the normal image post path', async () => {
         collectMedia.mockReturnValue([
             { type: 'image', url: 'https://example.com/image.jpg' },

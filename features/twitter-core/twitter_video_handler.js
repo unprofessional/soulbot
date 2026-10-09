@@ -55,7 +55,7 @@ async function handleVideoPost({
                 originalLink,
                 communityNotes,
                 {
-                    metadata: metadataJson.qtMetadata,
+                    metadata: metadataJson._quoteVideoMedia ? null : metadataJson.qtMetadata,
                     url: metadataJson.qrtURL,
                 },
             );
@@ -186,6 +186,7 @@ async function handleVideoPost({
         const legacyArr = Array.isArray(metadataJson?.media_extended) ? metadataJson.media_extended : [];
 
         const v0 =
+      metadataJson._quoteVideoMedia ||
       normalized[0] ||
       legacyArr.find(m => (m?.type || '').toLowerCase() === 'video') ||
       null;
