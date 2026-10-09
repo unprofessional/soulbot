@@ -23,7 +23,8 @@ jest.mock('canvas', () => ({
             arc: jest.fn(),
             clip: jest.fn(),
             save: jest.fn(),
-            translate: jest.fn(),
+            roundRect: jest.fn(),
+            stroke: jest.fn(),
             restore: jest.fn(),
         };
 
@@ -65,8 +66,9 @@ describe('twitter_video_canvas empty-description spacing', () => {
         expect(drawn).toContain('b'.repeat(497) + '...');
         expect(drawn).not.toContain('a'.repeat(498));
         expect(drawn).not.toContain('b'.repeat(498));
-        expect(ctx.translate).toHaveBeenCalledWith(0, expect.any(Number));
-        expect(result.heightShim).toBe(315);
+        expect(ctx.roundRect).toHaveBeenCalledWith(20, expect.any(Number), 560, expect.any(Number), 15);
+        expect(ctx.stroke).toHaveBeenCalled();
+        expect(result.heightShim).toBe(292.5);
         expect(result.canvasHeight).toBeGreaterThan(495);
     });
 
