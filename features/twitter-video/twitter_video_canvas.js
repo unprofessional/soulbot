@@ -6,6 +6,8 @@ const { buildPathsAndStuff } = require('../twitter-core/path_builder.js');
 const { condenseTranslatedDisplayLines, getWrappedText, drawBasicElements } = require('../twitter-core/canvas_utils.js');
 const { collectMedia, formatTwitterDate } = require('../twitter-core/utils.js');
 const { buildDisplayText } = require('../twitter-core/translation_service.js');
+const { drawQtBasicElements } = require('../twitter-core/canvas/qt_draw.js');
+const { QT, getQtWrapWidth } = require('../twitter-core/layout/geometry.js');
 const { MAX_DESC_CHARS, TEXT_FONT_FAMILY, MAIN_FONT } = require('../twitter-post/canvas/constants.js');
 
 function truncateDescription(text, maxChars = MAX_DESC_CHARS) {
@@ -72,7 +74,10 @@ async function createTwitterVideoCanvas(metadataJson) {
     const globalFont = TEXT_FONT_FAMILY;
 
     const canvasWidth = 600;
-    const heightShim = getHeightShim(vSize);
+    // Leave the same 20px inner gutter as expanded image quotes.
+    const heightShim = quote && vSize.width && vSize.height
+        ? Math.min(600, (QT.w - 2 * QT.innerPad) * vSize.height / vSize.width)
+        : getHeightShim(vSize);
 
     const canvas = createCanvas(canvasWidth, 650);
     const ctx = canvas.getContext('2d');
@@ -91,7 +96,7 @@ async function createTwitterVideoCanvas(metadataJson) {
 
     const quoteDescription = quote ? truncateDescription(buildDisplayText(quote), 500) : '';
     const quoteLines = quoteDescription
-        ? condenseTranslatedDisplayLines(getWrappedText(ctx, quoteDescription, 420)) : [];
+        ? condenseTranslatedDisplayLines(getWrappedText(ctx, quoteDescription, getQtWrapWidth({ expandQtMedia: true, qtHasMedia: true }), { preserveEmptyLines: true })) : [];
     const quoteOffset = quote ? baseY + reservedLineCount * 30 + 40 : 0;
     const canvasHeight = quote
         ? quoteOffset + calculateCanvasHeight(quoteLines, baseY, heightShim)
@@ -113,20 +118,16 @@ async function createTwitterVideoCanvas(metadataJson) {
 
     if (quote) {
         const quotePfp = await safeLoadImage(quote.user_profile_image_url);
-        ctx.save();
-        ctx.translate(0, quoteOffset);
-        drawBasicElements(ctx, globalFont, {
+        drawQtBasicElements(ctx, globalFont, {
             ...quote,
             authorNick: quote.user_screen_name,
             authorUsername: quote.user_name,
             description: quoteDescription,
-        }, favicon, quotePfp, quoteLines, {
-            hasImgs: true,
-            hasVids: true,
-            yOffset: baseY,
-            canvasHeightOffset: canvasHeight - quoteOffset,
+        }, quotePfp, null, {
+            canvasHeightOffset: quoteOffset,
+            qtCanvasHeightOffset: canvasHeight - quoteOffset - 12,
+            expandQtMedia: true,
         });
-        ctx.restore();
     }
 
     const buffer = canvas.toBuffer('image/png');
