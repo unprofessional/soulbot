@@ -72,6 +72,30 @@ describe('twitter_video_canvas empty-description spacing', () => {
         expect(result.canvasHeight).toBeGreaterThan(495);
     });
 
+    test.each([
+        ['2026-10-15T12:00:00Z', '15m later'],
+        [undefined, null],
+        ['2026-10-15T12:30:00Z', null],
+    ])('quoted-video footer uses normal QT relative timing for %s', async (quoteDate, label) => {
+        const { createCanvas } = require('canvas');
+        await createTwitterVideoCanvas({
+            text: 'Primary', date: '2026-10-15T12:15:00Z',
+            _quoteVideoMedia: { type: 'video', size: { width: 1280, height: 720 } },
+            qtMetadata: { text: 'Quoted', date: quoteDate },
+            _canvasOutputPath: '/tempdata/quote.png',
+        });
+        const ctx = createCanvas.mock.results.at(-1).value.getContext('2d');
+        const footersWithDelta = ctx.fillText.mock.calls.filter(([text]) => text.includes('later'));
+        if (label) {
+            expect(footersWithDelta).toHaveLength(1);
+            expect(footersWithDelta[0][0]).toContain(` · ${label}`);
+            const quoteTop = ctx.roundRect.mock.calls[0][1];
+            expect(footersWithDelta[0][2]).toBeLessThan(quoteTop);
+        } else {
+            expect(footersWithDelta).toHaveLength(0);
+        }
+    });
+
     test('does not reserve a phantom text line when the description is empty', async () => {
         const result = await createTwitterVideoCanvas({
             user_screen_name: 'example',
