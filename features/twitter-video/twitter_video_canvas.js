@@ -6,6 +6,7 @@ const { buildPathsAndStuff } = require('../twitter-core/path_builder.js');
 const { condenseTranslatedDisplayLines, getWrappedText, drawBasicElements } = require('../twitter-core/canvas_utils.js');
 const { collectMedia, formatTwitterDate } = require('../twitter-core/utils.js');
 const { buildDisplayText } = require('../twitter-core/translation_service.js');
+const { formatReplyDelta } = require('../twitter-post/canvas/metadata_normalize.js');
 const { drawQtBasicElements } = require('../twitter-core/canvas/qt_draw.js');
 const { QT, getQtWrapWidth } = require('../twitter-core/layout/geometry.js');
 const { MAX_DESC_CHARS, TEXT_FONT_FAMILY, MAIN_FONT } = require('../twitter-post/canvas/constants.js');
@@ -70,6 +71,10 @@ async function createTwitterVideoCanvas(metadataJson) {
 
     // Precompute display date (drawer can also compute; this is for parity/logs)
     metadata._displayDate = formatTwitterDate(metadataJson, { label: 'videoCanvas/metaJson→displayDate' });
+
+    if (quote) {
+        metadata._replyDelta = formatReplyDelta(quote, metadata);
+    }
 
     const globalFont = TEXT_FONT_FAMILY;
 

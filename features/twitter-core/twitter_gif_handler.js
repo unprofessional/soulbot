@@ -6,10 +6,10 @@ const {
     bakeImageAsFilterIntoGif,
 } = require('../twitter-video');
 const { createTwitterVideoCanvas } = require('../twitter-video/twitter_video_canvas.js');
-const { sendGifReply } = require('./webhook_utils.js');
+const { sendGifReply, sendTwitterFallback } = require('./webhook_utils.js');
 const { cleanup } = require('../twitter-video/cleanup.js');
 const { inspectVideoFileDetails } = require('./estimate_output_size.js');
-const { getDiscordUploadLimitBytes, getDiscordUploadLimitMb } = require('./discord_upload_limits.js');
+const { getDiscordUploadLimitBytes } = require('./discord_upload_limits.js');
 const { toFixupx } = require('./fetch_metadata.js');
 const {
     acquireTwitterVideoRender,
@@ -51,12 +51,9 @@ async function handleGifPost({
         await progressMessage?.dismiss?.();
     };
 
-    const replyTooLarge = async limitMb => {
+    const replyTooLarge = async () => {
         await progressMessage?.dismiss?.();
-        await message.reply({
-            content: `Rendered GIF exceeded this server tier's upload limit (${limitMb}MB). Defaulting to FIXUPX link: ${toFixupx(originalLink)}`,
-            allowedMentions: { repliedUser: false },
-        });
+        await sendTwitterFallback(message, originalLink, communityNotes);
     };
 
     if (!renderFlight.isLeader) {
@@ -65,9 +62,8 @@ async function handleGifPost({
             const { successFilePath } = await renderFlight.promise;
             await upload(successFilePath);
         } catch (error) {
-            if (error?.code === 'OUTPUT_FILE_TOO_LARGE') {
-                const tier = message.client.guilds.cache.get(message.guildId)?.premiumTier ?? 0;
-                await replyTooLarge(getDiscordUploadLimitMb(tier));
+            if (error?.code === 'OUTPUT_FILE_TOO_LARGE' || error?.code === 40005 || error?.name === 'DiscordAPIError[40005]') {
+                await replyTooLarge();
             } else {
                 await progressMessage?.dismiss?.();
                 await message.reply({
@@ -144,8 +140,8 @@ async function handleGifPost({
     } catch (error) {
         console.error('>>> ERROR: Twitter/X GIF render failed:', error);
         renderFlight.fail(error);
-        if (error?.code === 'OUTPUT_FILE_TOO_LARGE') {
-            await replyTooLarge(getDiscordUploadLimitMb(boostTier));
+        if (error?.code === 'OUTPUT_FILE_TOO_LARGE' || error?.code === 40005 || error?.name === 'DiscordAPIError[40005]') {
+            await replyTooLarge();
         } else {
             await progressMessage?.dismiss?.();
             await message.reply({

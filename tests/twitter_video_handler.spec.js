@@ -6,6 +6,7 @@ jest.mock('../features/twitter-video', () => ({
     downloadVideo: jest.fn(),
     getVideoFileSize: jest.fn(),
     bakeImageAsFilterIntoVideo: jest.fn(),
+    bakeImageAsFilterIntoGif: jest.fn(),
 }));
 
 jest.mock('../features/twitter-video/twitter_video_canvas.js', () => ({
@@ -14,6 +15,8 @@ jest.mock('../features/twitter-video/twitter_video_canvas.js', () => ({
 
 jest.mock('../features/twitter-core/webhook_utils.js', () => ({
     sendVideoReply: jest.fn(),
+    sendGifReply: jest.fn(),
+    sendTwitterFallback: jest.fn().mockResolvedValue(undefined),
 }));
 
 jest.mock('../features/twitter-video/cleanup.js', () => ({
@@ -33,7 +36,7 @@ const {
     bakeImageAsFilterIntoVideo,
 } = require('../features/twitter-video');
 const { createTwitterVideoCanvas } = require('../features/twitter-video/twitter_video_canvas.js');
-const { sendVideoReply } = require('../features/twitter-core/webhook_utils.js');
+const { sendVideoReply, sendTwitterFallback } = require('../features/twitter-core/webhook_utils.js');
 const { cleanup } = require('../features/twitter-video/cleanup.js');
 const { inspectVideoFileDetails } = require('../features/twitter-core/estimate_output_size');
 const { handleVideoPost } = require('../features/twitter-core/twitter_video_handler.js');
@@ -81,6 +84,25 @@ describe('handleVideoPost progress lifecycle', () => {
         inspectVideoFileDetails.mockResolvedValue({ width: 1280, height: 720 });
         sendVideoReply.mockResolvedValue(undefined);
         clearTwitterVideoRenderRegistryForTests();
+    });
+
+    test.each(['OUTPUT_FILE_TOO_LARGE', 40005])('GIF size failure %s uses the owned proxy fallback', async code => {
+        const { handleGifPost } = require('../features/twitter-core/twitter_gif_handler');
+        const { bakeImageAsFilterIntoGif } = require('../features/twitter-video');
+        const { sendGifReply } = require('../features/twitter-core/webhook_utils');
+        const error = Object.assign(new Error('too large'), { code });
+        bakeImageAsFilterIntoGif.mockResolvedValue('/tempdata/video-file/out.gif');
+        sendGifReply.mockResolvedValue();
+        if (code === 40005) sendGifReply.mockRejectedValue(error);
+        else bakeImageAsFilterIntoGif.mockRejectedValue(error);
+        const message = buildMessageMock();
+        await handleGifPost({
+            metadataJson: { communityNote: 'note' }, message,
+            originalLink: 'https://x.com/a/status/123', gifUrl: 'https://example.com/gif.mp4',
+            processingDir: '/tempdata', progressMessage: buildProgressMock(),
+        });
+        expect(sendTwitterFallback).toHaveBeenCalledWith(message, 'https://x.com/a/status/123', { main: 'note', qt: undefined });
+        expect(message.reply).not.toHaveBeenCalled();
     });
 
     test('cleans up the placeholder when the queue is at capacity', async () => {
@@ -203,10 +225,8 @@ describe('handleVideoPost progress lifecycle', () => {
         });
 
         expect(progressMessage.dismiss).toHaveBeenCalledTimes(1);
-        expect(message.reply).toHaveBeenCalledWith({
-            content: "Rendered video exceeded this server tier's upload limit (10MB). Defaulting to FIXUPX link: https://fixupx.com/test/status/23",
-            allowedMentions: { repliedUser: false },
-        });
+        expect(sendTwitterFallback).toHaveBeenCalledWith(message, 'https://x.com/test/status/23', { main: 'note', qt: undefined });
+        expect(message.reply).not.toHaveBeenCalled();
         expect(sendVideoReply).not.toHaveBeenCalled();
         expect(cleanup).toHaveBeenCalledWith([], ['/tempdata/video-file']);
     });
@@ -233,12 +253,10 @@ describe('handleVideoPost progress lifecycle', () => {
 
         expect(progressMessage.dismiss).toHaveBeenCalledTimes(1);
         expect(progressMessage.dismiss.mock.invocationCallOrder[0]).toBeLessThan(
-            message.reply.mock.invocationCallOrder[0]
+            sendTwitterFallback.mock.invocationCallOrder[0]
         );
-        expect(message.reply).toHaveBeenCalledWith({
-            content: 'Discord upload rejected the rendered video because it was too large for this server tier. Defaulting to FIXUPX link: https://fixupx.com/test/status/3',
-            allowedMentions: { repliedUser: false },
-        });
+        expect(sendTwitterFallback).toHaveBeenCalledWith(message, 'https://x.com/test/status/3', { main: 'note', qt: undefined });
+        expect(message.reply).not.toHaveBeenCalled();
         expect(cleanup).toHaveBeenCalledWith([], ['/tempdata/video-file']);
     });
 

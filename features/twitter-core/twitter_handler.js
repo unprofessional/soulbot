@@ -6,7 +6,7 @@ const { fetchMetadata, fetchQTMetadata, toFixupx } = require('./fetch_metadata.j
 const { renderTwitterPost } = require('./render_twitter_post.js');
 const { stripQueryParams } = require('./utils.js');
 const { enrichMetadataWithTranslation } = require('./translation_service.js');
-const { sendWebhookProxyMsg } = require('./webhook_utils.js');
+const { sendWebhookProxyMsg, sendTwitterFallback } = require('./webhook_utils.js');
 const {
     deleteMessage,
     findLatestTweetRenderByOriginalLinkAcrossGuilds,
@@ -317,9 +317,7 @@ async function handleTwitterUrl(message, { guildId }) {
                 message: meta.message,
                 fallback,
             });
-            await message.reply(
-                `${meta.message}\n${fallback ? `→ ${fallback}` : ''}`.trim()
-            );
+            await sendTwitterFallback(message, firstUrl);
             return;
         }
 
@@ -360,9 +358,7 @@ async function handleTwitterUrl(message, { guildId }) {
                     message: qtMeta.message,
                     fallback,
                 });
-                await message.reply(
-                    `${qtMeta.message}\n${fallback ? `→ ${fallback}` : ''}`.trim()
-                );
+                await sendTwitterFallback(message, firstUrl, { main: meta.communityNote });
                 return;
             }
             await enrichMetadataWithTranslation(qtMeta, (s) => console.log('[TwitterHandler][qtTranslation]', s));

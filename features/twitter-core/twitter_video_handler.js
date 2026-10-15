@@ -8,7 +8,7 @@ const {
     bakeImageAsFilterIntoVideo,
 } = require('../twitter-video');
 const { createTwitterVideoCanvas } = require('../twitter-video/twitter_video_canvas.js');
-const { sendVideoReply } = require('./webhook_utils.js');
+const { sendVideoReply, sendTwitterFallback } = require('./webhook_utils.js');
 const { cleanup } = require('../twitter-video/cleanup.js');
 const { estimateOutputSizeBytes, inspectVideoFileDetails } = require('./estimate_output_size');
 const {
@@ -63,12 +63,8 @@ async function handleVideoPost({
         } catch (err) {
             await progressMessage?.dismiss?.();
 
-            if (err?.name === 'DiscordAPIError[40005]') {
-                const fixupLink = toFixupx(originalLink);
-                await message.reply({
-                    content: `Discord upload rejected the rendered video because it was too large for this server tier. Defaulting to FIXUPX link: ${fixupLink}`,
-                    allowedMentions: { repliedUser: false },
-                });
+            if (err?.code === 40005 || err?.name === 'DiscordAPIError[40005]') {
+                await sendTwitterFallback(message, originalLink, communityNotes);
                 return;
             }
 
@@ -76,13 +72,9 @@ async function handleVideoPost({
         }
     };
 
-    const replyFileTooLargeFallback = async (limitMb) => {
-        const fixupLink = toFixupx(originalLink);
+    const replyFileTooLargeFallback = async () => {
         await progressMessage?.dismiss?.();
-        await message.reply({
-            content: `Rendered video exceeded this server tier's upload limit (${limitMb}MB). Defaulting to FIXUPX link: ${fixupLink}`,
-            allowedMentions: { repliedUser: false },
-        });
+        await sendTwitterFallback(message, originalLink, communityNotes);
     };
 
     if (!renderFlight.isLeader) {
@@ -93,9 +85,7 @@ async function handleVideoPost({
         } catch (err) {
             console.error('>>> ERROR: duplicate Twitter/X video render wait failed:', err);
             if (err?.code === 'OUTPUT_FILE_TOO_LARGE') {
-                const guild = message.client.guilds.cache.get(message.guildId);
-                const boostTier = guild?.premiumTier ?? 0;
-                await replyFileTooLargeFallback(getDiscordUploadLimitMb(boostTier));
+                await replyFileTooLargeFallback();
                 return;
             }
             await progressMessage?.dismiss?.();
@@ -170,11 +160,8 @@ async function handleVideoPost({
             console.log(`[${guildName}] Estimated: ${estimatedMB}MB / Limit: ${maxMb}MB`);
 
             if (estimatedSize > maxBytes) {
-                const fixupLink = originalLink.replace('https://x.com', 'https://fixupx.com');
-                await progressMessage?.dismiss?.();
-                return message.reply(
-                    `⚠️ Estimated output file too large for this server tier (max ${maxMb}MB). Defaulting to FIXUPX link: ${fixupLink}`,
-                );
+                await replyFileTooLargeFallback();
+                return;
             }
         } else {
             console.log(`[${guildName}] Skipping size estimation; proceeding to full video processing.`);
@@ -251,7 +238,7 @@ async function handleVideoPost({
         console.error('>>> ERROR: renderTwitterPost > err:', err);
         renderFlight.fail(err);
         if (err?.code === 'OUTPUT_FILE_TOO_LARGE') {
-            await replyFileTooLargeFallback(getDiscordUploadLimitMb(boostTier));
+            await replyFileTooLargeFallback();
             return;
         }
         await progressMessage?.dismiss?.();
