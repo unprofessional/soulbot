@@ -1,5 +1,6 @@
 // features/twitter-core/webhook_utils.js
 
+const { toFixupx } = require('./fetch_metadata.js');
 const { readFile } = require('node:fs/promises');
 const { buildDisplayText } = require('./translation_service.js');
 const { collectMedia, stripQueryParams } = require('./utils.js');
@@ -206,7 +207,7 @@ const sendWebhookProxyMessageInternal = async (
     files = [],
     communityNotes,
     originalLink,
-    { preferProvidedContent = false, extraEmbeds = [] } = {}
+    { preferProvidedContent = false, extraEmbeds = [], preserveLinkEmbeds = false, kind } = {}
 ) => {
     const parentChannel = message.channel.isThread() ? message.channel.parent : message.channel;
     const webhooks = await parentChannel.fetchWebhooks();
@@ -236,14 +237,14 @@ const sendWebhookProxyMessageInternal = async (
         originalChannelId: message.channel?.id || null,
         originalLink: originalLink || null,
         threadId: threadId || null,
-        kind: preferProvidedContent ? 'message_replacement' : 'twitter_render',
+        kind: kind || (preferProvidedContent ? 'message_replacement' : 'twitter_render'),
     });
 
     try {
         const rawContent = preferProvidedContent
             ? (content || message.content || '')
             : (message.content || content || '');
-        const modifiedContent = trimQueryParamsFromTwitXUrl(rawContent);
+        const modifiedContent = preserveLinkEmbeds ? rawContent : trimQueryParamsFromTwitXUrl(rawContent);
 
         // If this was a reply, simulate it with a header + quote
         const replyMeta = await getReplyMeta(message);
@@ -290,6 +291,28 @@ const sendWebhookProxyMsg = async (
         originalLink,
         { ...options, preferProvidedContent: false }
     );
+};
+
+// Deliver a usable link replacement with the same ownership and cleanup as a render.
+const sendTwitterFallback = async (message, originalLink, communityNotes) => {
+    await message.suppressEmbeds?.(true).catch(() => {});
+    const fixupLink = toFixupx(originalLink);
+    const source = message.content || originalLink;
+    let replaced = false;
+    const replacedContent = source.replace(/<?https?:\/\/[^\s<>]+>?/g, match => {
+        const url = match.replace(/^<|>$/g, '');
+        if (!replaced && stripQueryParams(url) === stripQueryParams(originalLink)) {
+            replaced = true;
+            return fixupLink;
+        }
+        return match;
+    });
+    const content = replaced ? replacedContent : `${source}\n${fixupLink}`;
+    return sendWebhookProxyMessageInternal(message, content, [], communityNotes, originalLink, {
+        preferProvidedContent: true,
+        preserveLinkEmbeds: true,
+        kind: 'twitter_render',
+    });
 };
 
 const sendWebhookReplacementMsg = async (message, content, files = []) => {
@@ -410,7 +433,7 @@ const sendGifReply = async (
  * Sends arbitrary slash-command content through a short-lived webhook using the
  * invoking member's current server identity when available.
  */
-const sendInteractionWebhookProxy = async (interaction, content) => {
+const sendInteractionWebhookProxy = async (interaction, content, { files = [], originalLink } = {}) => {
     const channel = interaction.channel;
     if (!channel) {
         throw new Error('Interaction channel unavailable.');
@@ -439,11 +462,27 @@ const sendInteractionWebhookProxy = async (interaction, content) => {
         avatar: avatarURL,
     });
 
+    if (originalLink) {
+        registerPendingRenderOwnership(webhook.id, {
+            owningUserId: interaction.user.id,
+            ownerUsername: interaction.user.username || null,
+            ownerGlobalName: interaction.user.globalName || null,
+            ownerDisplayName: displayName,
+            originalMessageId: null,
+            originalChannelId: channel.id,
+            originalLink,
+            threadId: channel.isThread() ? channel.id : null,
+            kind: 'twitter_render',
+        });
+    }
+
     try {
         const payload = {
             content,
             username: displayName,
             avatarURL,
+            files,
+            allowedMentions: { parse: [] },
         };
 
         if (channel.isThread()) {
@@ -463,6 +502,7 @@ module.exports = {
     sendWebhookReplacementBatch,
     sendWebhookReplacementMsg,
     sendWebhookProxyMsg,
+    sendTwitterFallback,
     sendVideoReply,
     sendGifReply,
     sendInteractionWebhookProxy,

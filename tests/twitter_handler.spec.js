@@ -16,6 +16,7 @@ jest.mock('../features/twitter-core/translation_service.js', () => ({
 
 jest.mock('../features/twitter-core/webhook_utils.js', () => ({
     sendWebhookProxyMsg: jest.fn(),
+    sendTwitterFallback: jest.fn(),
 }));
 
 jest.mock('../store/services/messages.service.js', () => ({
@@ -30,7 +31,7 @@ const {
 } = require('../features/twitter-core/fetch_metadata.js');
 const { renderTwitterPost } = require('../features/twitter-core/render_twitter_post.js');
 const { enrichMetadataWithTranslation } = require('../features/twitter-core/translation_service.js');
-const { sendWebhookProxyMsg } = require('../features/twitter-core/webhook_utils.js');
+const { sendWebhookProxyMsg, sendTwitterFallback } = require('../features/twitter-core/webhook_utils.js');
 const {
     deleteMessage,
     findLatestTweetRenderByOriginalLinkAcrossGuilds,
@@ -286,9 +287,8 @@ describe('twitter_handler deterministic fixture flows', () => {
         await handleTwitterUrl(message, { guildId: 'guild-1' });
 
         expect(renderTwitterPost).not.toHaveBeenCalled();
-        expect(message.reply).toHaveBeenCalledWith(
-            'Provider could not scan the tweet link. Defaulting to a FIXUPX link.\n→ https://fixupx.com/example/status/1'
-        );
+        expect(sendTwitterFallback).toHaveBeenCalledWith(message, expect.stringContaining('/status/'));
+        expect(message.reply).not.toHaveBeenCalled();
     });
 
     test('replies with a protected-post message for an anonymous private-account response', async () => {

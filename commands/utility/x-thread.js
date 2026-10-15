@@ -3,6 +3,7 @@
 const { SlashCommandBuilder } = require('discord.js');
 const PromiseQueue = require('../../lib/promise_queue');
 const { handleThreadSnapshot } = require('../../features/twitter-core/thread_snapshot_handler');
+const { sendInteractionWebhookProxy } = require('../../features/twitter-core/webhook_utils.js');
 const { MediaDrainError } = require('../../app/media_work_registry.js');
 
 const queue = new PromiseQueue(1, 60000); // 1 concurrent, 60s timeout
@@ -30,17 +31,19 @@ module.exports = {
             });
         }
 
-        await interaction.deferReply();
+        await interaction.deferReply({ ephemeral: true });
 
         try {
             const result = await queue.add(() => handleThreadSnapshot(tweetUrl));
 
-            if (Buffer.isBuffer(result)) {
-                return await interaction.editReply({
-                    files: [{ attachment: result, name: 'thread.png' }],
-                });
-            } else if (typeof result === 'string') {
-                return await interaction.editReply({ content: result });
+            if (Buffer.isBuffer(result) || typeof result === 'string') {
+                const files = Buffer.isBuffer(result)
+                    ? [{ attachment: result, name: 'thread.png' }] : [];
+                const longText = typeof result === 'string' && result.length > 2000;
+                if (longText) files.push({ attachment: Buffer.from(result), name: 'thread.txt' });
+                const content = Buffer.isBuffer(result) || longText ? `<${tweetUrl}>` : result;
+                await sendInteractionWebhookProxy(interaction, content, { files, originalLink: tweetUrl });
+                await interaction.deleteReply();
             } else {
                 return await interaction.editReply({
                     content: 'Failed to render thread snapshot (invalid response type).',
