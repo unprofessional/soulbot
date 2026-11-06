@@ -13,7 +13,7 @@ SOULbot runs as a Docker Compose service. Secrets are managed via [Infisical](ht
 - Tweet renders prefer translations surfaced by the Twitter metadata API, with a guarded Ollama fallback for non-English posts whose API translation is missing
 - Tweet/X translation rendering can use the small `translategemma:4b` fallback model when API-provided translations are missing
 - Set `OLLAMA_TRANSLATION_MODEL` if you want to override the default translation/cleanup model
-- General LLM inference is disabled by default so heavyweight chat, summary, standalone translation, speak-english cleanup, vision, and Chroma/RAG paths do not load GPU models. Set `GENERAL_LLM_INFERENCE_ENABLED=true` only when intentionally re-enabling those features.
+- General LLM inference is disabled by default so GPU-backed chat, summary, standalone translation, speak-english cleanup, vision, and Chroma/RAG paths do not load GPU models. Set `GENERAL_LLM_INFERENCE_ENABLED=true` only when intentionally re-enabling those GPU features; ChatGPT-routed tasks can be enabled separately.
 - The bot exposes health endpoints on `HEALTH_PORT` (default `8080`): `/livez`, `/readyz`, and `/drain`
 - During shutdown the bot marks itself unready, pauses new queued work, waits for active work to finish, then disconnects Discord and closes Postgres
 - A Postgres advisory lock serializes Discord leadership so a new container waits for the old one to stand down before it logs in
@@ -33,9 +33,9 @@ SOULbot supports OpenAI's [Sign in with ChatGPT for open-source/self-hosted apps
 | --- | --- |
 | `summary` | `/summary`, `/deleted-summary`, `/summarize-message` |
 | `chat` | `/llm` replies **and** its follow-up memory summaries (two requests per conversation turn) |
-| `translation` | `/translate`, `/translate-en`, and tweet translations when the metadata API has no usable translation |
+| `translation` | `/translate`, `/translate-en`, tweet translations when the metadata API has no usable translation, and automatic cleanup for members with the `speak-english` role |
 
-Optional `CHATGPT_SUMMARY_MODEL`, `CHATGPT_CHAT_MODEL`, and `CHATGPT_TRANSLATION_MODEL` override the common model. For Luna on all selected tasks, set `CHATGPT_MODEL=gpt-6-luna` and remove other model overrides or set them to the same slug. These selected tasks work even with `GENERAL_LLM_INFERENCE_ENABLED=false`. Vision and embeddings/RAG retain their existing provider and gates. Automatic speak-english cleanup remains behind the general inference gate; when enabled, it uses the selected translation provider. Tweet API translations are reused before requesting model inference. Empty `CHATGPT_TASKS` preserves existing behavior. A selected ChatGPT task never falls back to Ollama or API-key billing on auth, quota, or stream failures.
+Optional `CHATGPT_SUMMARY_MODEL`, `CHATGPT_CHAT_MODEL`, and `CHATGPT_TRANSLATION_MODEL` override the common model. For Luna on all selected tasks, set `CHATGPT_MODEL=gpt-6-luna` and remove other model overrides or set them to the same slug. These selected tasks work even with `GENERAL_LLM_INFERENCE_ENABLED=false`. Vision and embeddings/RAG retain their existing provider and gates. Automatic speak-english cleanup uses the selected translation provider and rewrites role members' messages in a highly complimentary tone, replacing toxic content with a generic pleasant message. Tweet API translations are reused before requesting model inference. Empty `CHATGPT_TASKS` preserves existing behavior. A selected ChatGPT task never falls back to Ollama or API-key billing on auth, quota, or stream failures.
 
 Use `npm run chatgpt:auth -- status` to view profiles and `npm run chatgpt:auth -- logout` to revoke and clear a session. Add an optional profile name to any command, such as `login personal`, and select it in the bot with `CHATGPT_PROFILE=personal`. Reauthorization reuses that profile's registration. Use a different profile name to add another account/workspace. Review allowance and credit access in [ChatGPT Settings → Usage](https://chatgpt.com/settings/usage). Requests triggered by Discord members use the selected operator account's allowance.
 

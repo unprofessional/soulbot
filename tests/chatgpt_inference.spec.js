@@ -56,6 +56,16 @@ test('sends OAuth bearer and required plan-usage fields, with per-task model', a
     expect(JSON.parse(options.body)).toEqual({ model: 'summary-model', input: [{ role: 'user', content: 'summarize' }], store: false, stream: true });
 });
 
+test('sends role rewrite rules as separate instructions', async () => {
+    process.env.CHATGPT_MODEL = 'model';
+    fetch.mockResolvedValue({ ok: true, body: stream(event({ type: 'response.output_text.delta', delta: 'pleasant' }) + completed) });
+    await expect(generateText('rude source', 'translation', { instructions: 'Rewrite pleasantly.' })).resolves.toBe('pleasant');
+    expect(JSON.parse(fetch.mock.calls[0][1].body)).toMatchObject({
+        instructions: 'Rewrite pleasantly.',
+        input: [{ role: 'user', content: 'rude source' }],
+    });
+});
+
 test('quota failures do not retry or fall back', async () => {
     process.env.CHATGPT_MODEL = 'model';
     fetch.mockResolvedValue({ ok: false, status: 429 });
