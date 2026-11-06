@@ -93,13 +93,13 @@ function getModel(task) {
     return process.env[`CHATGPT_${task.toUpperCase()}_MODEL`] || process.env.CHATGPT_MODEL;
 }
 
-async function generateText(prompt, task) {
+async function generateText(prompt, task, { instructions } = {}) {
     const model = getModel(task);
     if (!model) throw new Error('Set CHATGPT_MODEL using a slug from npm run chatgpt:auth -- models.');
     const response = await authorizedFetch('responses', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ model, input: [{ role: 'user', content: prompt }], store: false, stream: true }),
+        body: JSON.stringify({ model, ...(instructions ? { instructions } : {}), input: [{ role: 'user', content: prompt }], store: false, stream: true }),
     });
     return readResponseStream(response.body);
 }

@@ -23,11 +23,13 @@ const { improveEnglishText } = require('../features/twitter-core/translation_ser
 
 describe('auto speak-english role handler', () => {
     const originalGeneralLlmInferenceEnabled = process.env.GENERAL_LLM_INFERENCE_ENABLED;
+    const originalChatGptTasks = process.env.CHATGPT_TASKS;
 
     beforeEach(() => {
         jest.clearAllMocks();
         jest.useRealTimers();
         process.env.GENERAL_LLM_INFERENCE_ENABLED = 'true';
+        delete process.env.CHATGPT_TASKS;
         clearPendingBuffers();
     });
 
@@ -39,6 +41,8 @@ describe('auto speak-english role handler', () => {
         } else {
             process.env.GENERAL_LLM_INFERENCE_ENABLED = originalGeneralLlmInferenceEnabled;
         }
+        if (originalChatGptTasks === undefined) delete process.env.CHATGPT_TASKS;
+        else process.env.CHATGPT_TASKS = originalChatGptTasks;
     });
 
     test('detects the speak-english role by name', () => {
@@ -139,6 +143,19 @@ describe('auto speak-english role handler', () => {
 
         expect(getPendingBucket(message)).toBeNull();
         expect(improveEnglishText).not.toHaveBeenCalled();
+    });
+
+    test('enqueues role cleanup with ChatGPT translation enabled and general inference disabled', async () => {
+        process.env.GENERAL_LLM_INFERENCE_ENABLED = 'false';
+        process.env.CHATGPT_TASKS = 'summary,chat,translation';
+        const message = {
+            author: { bot: false, id: '123' },
+            guild: {},
+            member: { roles: { cache: new Map([['1', { name: 'speak-english' }]]) } },
+            content: 'this is unpleasant',
+        };
+        await handleSpeakEnglishRole(message);
+        expect(getPendingBucket(message)?.messages).toEqual([message]);
     });
 
     test('does not reply when the improved English matches the original text', async () => {

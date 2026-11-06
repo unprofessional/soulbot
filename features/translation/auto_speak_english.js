@@ -115,7 +115,7 @@ function enqueueSpeakEnglishMessage(message) {
 }
 
 async function handleSpeakEnglishRole(message) {
-    if (!isGeneralLlmInferenceEnabled()) return;
+    if (!isGeneralLlmInferenceEnabled('translation')) return;
     if (!shouldProcessMessage(message)) return;
 
     try {
