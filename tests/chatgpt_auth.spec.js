@@ -94,6 +94,20 @@ test('concurrent requests serialize refresh and persist rotated refresh token', 
     expect(await withStore(async store => store.accounts.default.refresh_token)).toBe('rotated');
 });
 
+test('root container writes preserve the mounted directory owner', async () => {
+    const getuid = jest.spyOn(process, 'getuid').mockReturnValue(0);
+    const chown = jest.spyOn(fs, 'chown');
+    try {
+        await withStore(async () => {});
+        const owner = await fs.stat(directory);
+        expect(chown).toHaveBeenCalledWith(expect.stringContaining('accounts.json.'), owner.uid, owner.gid);
+        expect((await fs.stat(path.join(directory, 'accounts.json'))).uid).toBe(owner.uid);
+    } finally {
+        getuid.mockRestore();
+        chown.mockRestore();
+    }
+});
+
 test('refresh failure does not destroy stored session or expose response body', async () => {
     await withStore(async (store, save) => {
         store.accounts.default = { ...applyTokens({ client_id: 'issued' }, tokens()), expires_at: 0 };

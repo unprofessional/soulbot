@@ -40,6 +40,12 @@ async function withStore(callback) {
             const temporary = `${filename}.${randomUUID()}.tmp`;
             try {
                 await fs.writeFile(temporary, JSON.stringify(store), { mode: 0o600, flag: 'wx' });
+                // A root Docker process must not make the host operator's login
+                // unreadable when atomically replacing a bind-mounted file.
+                if (process.getuid?.() === 0) {
+                    const owner = await fs.stat(directory);
+                    await fs.chown(temporary, owner.uid, owner.gid);
+                }
                 await fs.rename(temporary, filename);
             } finally {
                 await fs.rm(temporary, { force: true });

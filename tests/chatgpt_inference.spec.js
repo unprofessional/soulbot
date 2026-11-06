@@ -34,6 +34,11 @@ test('rejects truncated streams, even after receiving output or DONE', async () 
     await expect(readResponseStream(stream(event({ type: 'response.output_text.delta', delta: 'partial' }) + 'data: [DONE]\n\n'))).rejects.toThrow(/before response.completed/);
 });
 
+test('preserves the safe usage-limit code without exposing remote error text', async () => {
+    const body = stream(event({ type: 'error', code: 'subscription_sharing_usage_limit_exceeded', message: 'private remote details' }));
+    await expect(readResponseStream(body)).rejects.toMatchObject({ code: 'subscription_sharing_usage_limit_exceeded' });
+});
+
 test('accepts completed final text and refusals', async () => {
     const body = stream(event({ type: 'response.completed', response: { output: [{ content: [{ type: 'refusal', refusal: 'Cannot help.' }] }] } }));
     await expect(readResponseStream(body)).resolves.toBe('Cannot help.');
