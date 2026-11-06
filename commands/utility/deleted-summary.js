@@ -12,7 +12,7 @@ module.exports = {
         .setName('deleted-summary')
         .setDescription('Summarizes noteworthy deleted messages in this channel with recent chat context.'),
     async execute(interaction) {
-        if (!isGeneralLlmInferenceEnabled()) {
+        if (!isGeneralLlmInferenceEnabled('summary')) {
             return await interaction.reply({
                 content: getDisabledReply(),
                 ephemeral: true,

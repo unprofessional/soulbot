@@ -1,3 +1,4 @@
+const { usesChatGpt } = require('../openai/routing');
 const DISABLED_MESSAGE = 'General LLM inference is disabled to keep GPU capacity available. Tweet/X translation rendering remains enabled.';
 
 class LlmInferenceDisabledError extends Error {
@@ -8,12 +9,12 @@ class LlmInferenceDisabledError extends Error {
     }
 }
 
-function isGeneralLlmInferenceEnabled() {
-    return process.env.GENERAL_LLM_INFERENCE_ENABLED === 'true';
+function isGeneralLlmInferenceEnabled(task) {
+    return usesChatGpt(task) || process.env.GENERAL_LLM_INFERENCE_ENABLED === 'true';
 }
 
-function assertGeneralLlmInferenceEnabled() {
-    if (!isGeneralLlmInferenceEnabled()) {
+function assertGeneralLlmInferenceEnabled(task) {
+    if (!isGeneralLlmInferenceEnabled(task)) {
         throw new LlmInferenceDisabledError();
     }
 }
