@@ -34,7 +34,7 @@ module.exports = {
         ),
 
     async execute(interaction) {
-        if (!isGeneralLlmInferenceEnabled()) {
+        if (!isGeneralLlmInferenceEnabled('translation')) {
             return await interaction.reply({
                 content: getDisabledReply(),
                 ephemeral: true,

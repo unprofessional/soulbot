@@ -85,8 +85,12 @@ async function readResponseStream(body) {
     }
 }
 
+function getModel(task) {
+    return process.env[`CHATGPT_${task.toUpperCase()}_MODEL`] || process.env.CHATGPT_MODEL;
+}
+
 async function generateText(prompt, task) {
-    const model = process.env[`CHATGPT_${task.toUpperCase()}_MODEL`] || process.env.CHATGPT_MODEL;
+    const model = getModel(task);
     if (!model) throw new Error('Set CHATGPT_MODEL using a slug from npm run chatgpt:auth -- models.');
     const response = await authorizedFetch('responses', {
         method: 'POST',
@@ -96,4 +100,4 @@ async function generateText(prompt, task) {
     return readResponseStream(response.body);
 }
 
-module.exports = { generateText, listModels, readResponseStream };
+module.exports = { generateText, getModel, listModels, readResponseStream };

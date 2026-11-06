@@ -5,6 +5,8 @@ const {
     ollamaTranslationModel,
 } = require('../../config/env_config.js');
 const { normalizeTranslation } = require('./fxvx_normalize.js');
+const { usesChatGpt } = require('../openai/routing');
+const { generateText: generateChatGptText, getModel } = require('../openai/inference');
 
 const ENGLISH_LANGUAGE_RE = /^en(?:[-_]|$)/i;
 const NON_TRANSLATABLE_LANGUAGE_RE = /^(?:zxx|und)(?:[-_]|$)/i;
@@ -13,6 +15,7 @@ const NON_LATIN_SCRIPT_RE = /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakan
 const LATIN_EXTENDED_LETTER_RE = /[À-ÖØ-öø-ſ]/;
 const WORD_RE = /\p{L}+/gu;
 const MISSING_API_FALLBACK_PROVIDER = 'ollama-missing-api';
+const CHATGPT_FALLBACK_PROVIDER = 'chatgpt-missing-api';
 const languageDisplayNames = typeof Intl !== 'undefined' && typeof Intl.DisplayNames === 'function'
     ? new Intl.DisplayNames(['en'], { type: 'language' })
     : null;
@@ -335,6 +338,17 @@ async function translateText({
 }) {
     const url = `http://${ollamaHost}:${ollamaPort}/${ollamaGenerateEndpoint}`;
     const prompt = buildTranslateGemmaPrompt({ text, sourceLanguage, targetLanguage });
+    if (usesChatGpt('translation')) {
+        const translatedText = normalizeWhitespace(await generateChatGptText(prompt, 'translation'));
+        if (!translatedText || isLikelyTranslationFailure(translatedText)) {
+            throw new Error('ChatGPT returned an empty translation, refusal, or non-translation response');
+        }
+        log?.('[translation] translation complete', {
+            sourceLanguage, targetLanguage, model: getModel('translation'),
+            charsIn: text.length, charsOut: translatedText.length,
+        });
+        return translatedText;
+    }
     const payload = {
         model: ollamaTranslationModel,
         prompt,
@@ -385,7 +399,7 @@ async function translateText({
 function getApiTranslation(metadata) {
     const translation = normalizeTranslation(metadata?.translation, metadata?.lang);
     if (!translation?.text) return null;
-    if (translation.provider === 'ollama') return null;
+    if (['ollama', MISSING_API_FALLBACK_PROVIDER, CHATGPT_FALLBACK_PROVIDER].includes(translation.provider)) return null;
     return translation;
 }
 
@@ -394,7 +408,7 @@ function getDisplayTranslation(metadata) {
     if (apiTranslation) return apiTranslation;
 
     const generatedTranslation = normalizeTranslation(metadata?.translation, metadata?.lang);
-    if (generatedTranslation?.provider === MISSING_API_FALLBACK_PROVIDER) {
+    if ([MISSING_API_FALLBACK_PROVIDER, CHATGPT_FALLBACK_PROVIDER].includes(generatedTranslation?.provider)) {
         return generatedTranslation;
     }
 
@@ -434,6 +448,12 @@ async function improveEnglishText({ text, log = console.log }) {
 }
 
 async function enrichMetadataWithTranslation(metadata, log = console.log) {
+    // Reuse previous generated translations without spending another inference call.
+    const existing = getDisplayTranslation(metadata);
+    if (existing && [MISSING_API_FALLBACK_PROVIDER, CHATGPT_FALLBACK_PROVIDER].includes(existing.provider)) {
+        metadata.translatedText = existing.text;
+        return metadata;
+    }
     const translation = getApiTranslation(metadata);
     if (!translation) {
         if (!hasMissingApiTranslation(metadata)) return metadata;
@@ -456,8 +476,8 @@ async function enrichMetadataWithTranslation(metadata, log = console.log) {
             }
 
             metadata.translation = {
-                provider: MISSING_API_FALLBACK_PROVIDER,
-                model: ollamaTranslationModel,
+                provider: usesChatGpt('translation') ? CHATGPT_FALLBACK_PROVIDER : MISSING_API_FALLBACK_PROVIDER,
+                model: usesChatGpt('translation') ? getModel('translation') : ollamaTranslationModel,
                 sourceLanguage: metadata.lang,
                 destinationLanguage: 'en',
                 text: translatedText,

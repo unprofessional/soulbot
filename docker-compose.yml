@@ -16,6 +16,9 @@ services:
       - LEADER_LOCK_RETRY_MS=2000
       - GENERAL_LLM_INFERENCE_ENABLED=false
       - OLLAMA_TRANSLATION_MODEL=translategemma:4b
+      - CHATGPT_AUTH_DIR=/run/soulbot-chatgpt
+    volumes:
+      - ${CHATGPT_AUTH_HOST_DIR:-/var/lib/soulbot/chatgpt}:/run/soulbot-chatgpt
     command: ["/app/entrypoint.sh"]
     restart: unless-stopped
     stop_grace_period: 35s
