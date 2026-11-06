@@ -37,7 +37,11 @@ async function readResponseStream(body) {
         if (data === '[DONE]') return;
         const event = JSON.parse(data);
         if (['response.failed', 'response.incomplete', 'error'].includes(event.type)) {
-            throw new Error('ChatGPT inference failed or was incomplete. Check https://chatgpt.com/settings/usage; no fallback was used.');
+            const remoteCode = event.response?.error?.code || event.error?.code || event.code;
+            const code = typeof remoteCode === 'string' && /^[a-z0-9_]{1,100}$/.test(remoteCode) ? remoteCode : 'unknown_error';
+            const error = new Error(`ChatGPT inference failed or was incomplete (${code}). Check https://chatgpt.com/settings/usage; no fallback was used.`);
+            error.code = code;
+            throw error;
         }
         if (event.type === 'response.output_text.delta') output += event.delta || '';
         if (event.type === 'response.refusal.delta') output += event.delta || '';
