@@ -30,3 +30,6 @@ secrets.*.js
 
 .env.infisical
 .env.bak*
+
+# Optional in-repo OAuth state (prefer the default outside the repository)
+/chatgpt-auth/

@@ -1,3 +1,5 @@
+const { usesChatGpt } = require('../openai/routing');
+const { generateText: generateChatGptText } = require('../openai/inference');
 const {
     ollamaHost, ollamaPort, ollamaChatEndpoint, ollamaGenerateEndpoint, soulbotUserId,
 } = require('../../config/env_config.js');
@@ -536,8 +538,9 @@ function buildSummaryPrompt(summaryInput = [], model = summaryModel) {
     return buildFullSummaryPrompt(summaryContext.messages, intelligence, model);
 }
 
-async function generateText(prompt, model = chatModel) {
-    assertGeneralLlmInferenceEnabled();
+async function generateText(prompt, model = chatModel, task) {
+    assertGeneralLlmInferenceEnabled(task);
+    if (usesChatGpt(task)) return generateChatGptText(prompt, task);
 
     const url = `http://${ollamaHost}:${ollamaPort}/${ollamaGenerateEndpoint}`;
     const requestBody = {
@@ -580,7 +583,7 @@ async function generateText(prompt, model = chatModel) {
 
 async function summarizeChat(summaryInput, model = summaryModel) {
     const summaryContext = normalizeSummaryContext(summaryInput);
-    return generateText(buildSummaryPrompt(summaryContext, model), model);
+    return generateText(buildSummaryPrompt(summaryContext, usesChatGpt('summary') ? 'chatgpt' : model), model, 'summary');
 }
 
 function buildSingleMessageSummaryPrompt(message = {}, model = summaryModel) {
@@ -606,7 +609,7 @@ function buildSingleMessageSummaryPrompt(message = {}, model = summaryModel) {
 }
 
 async function summarizeSingleMessage(message, model = summaryModel) {
-    return generateText(buildSingleMessageSummaryPrompt(message, model), model);
+    return generateText(buildSingleMessageSummaryPrompt(message, usesChatGpt('summary') ? 'chatgpt' : model), model, 'summary');
 }
 
 function buildDeletedSummaryPrompt({
@@ -641,7 +644,7 @@ function buildDeletedSummaryPrompt({
 }
 
 async function summarizeDeletedMessages(summaryInput, model = summaryModel) {
-    return generateText(buildDeletedSummaryPrompt(summaryInput, model), model);
+    return generateText(buildDeletedSummaryPrompt(summaryInput, usesChatGpt('summary') ? 'chatgpt' : model), model, 'summary');
 }
 
 function buildLlmReplyPrompt({
@@ -708,11 +711,11 @@ function buildLlmMemoryPrompt({
 }
 
 async function replyWithLlmContext(context) {
-    return generateText(buildLlmReplyPrompt(context, chatModel), chatModel);
+    return generateText(buildLlmReplyPrompt(context, usesChatGpt('chat') ? 'chatgpt' : chatModel), chatModel, 'chat');
 }
 
 async function summarizeLlmMemory(memoryInput) {
-    return generateText(buildLlmMemoryPrompt(memoryInput, summaryModel), summaryModel);
+    return generateText(buildLlmMemoryPrompt(memoryInput, usesChatGpt('chat') ? 'chatgpt' : summaryModel), summaryModel, 'chat');
 }
 
 /**

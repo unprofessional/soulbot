@@ -14,7 +14,7 @@ module.exports = {
         .setName('summary')
         .setDescription('Summarizes the last 100 messages in this channel.'),
     async execute(interaction) {
-        if (!isGeneralLlmInferenceEnabled()) {
+        if (!isGeneralLlmInferenceEnabled('summary')) {
             return await interaction.reply({
                 content: getDisabledReply(),
                 ephemeral: true,

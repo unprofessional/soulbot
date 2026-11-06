@@ -21,9 +21,34 @@ SOULbot runs as a Docker Compose service. Secrets are managed via [Infisical](ht
 - Set `REGISTER_GLOBAL_COMMANDS=true` to publish global application commands; global changes may take time to propagate
 - Command registration requires `DISCORD_CLIENT_ID`/`DISCORD_GUILD_ID`, or their legacy aliases `CLIENT_ID`/`DEV_GUILD_ID`
 
+### ChatGPT OAuth inference (optional)
+
+SOULbot supports OpenAI's [Sign in with ChatGPT for open-source/self-hosted apps](https://developers.openai.com/siwc/token-sharing-open-source). Eligible Plus/Pro accounts can authorize Responses API requests against their ChatGPT plan and available credits. This is separate from API-key billing. Your account's app limits and credit settings determine the allowance; OAuth does not guarantee unlimited usage.
+
+1. Run `npm run chatgpt:auth -- login` on the bot host, then open the printed **Continue with ChatGPT** link in your browser and authorize plan usage.
+2. Run `npm run chatgpt:auth -- models` and copy a model slug available to your account.
+3. Set `CHATGPT_MODEL` to that slug and `CHATGPT_TASKS=summary` (or `summary,chat`) in the bot's environment, then restart it.
+
+| Task | Routes through your ChatGPT account |
+| --- | --- |
+| `summary` | `/summary`, `/deleted-summary`, `/summarize-message` |
+| `chat` | `/llm` replies **and** its follow-up memory summaries (two requests per conversation turn) |
+
+Optional `CHATGPT_SUMMARY_MODEL` and `CHATGPT_CHAT_MODEL` override the common model. These selected tasks work even with `GENERAL_LLM_INFERENCE_ENABLED=false`. Other paths (vision, embeddings/RAG, translations, and speak-english cleanup) retain their existing provider and gates. Empty `CHATGPT_TASKS` preserves existing behavior. A selected ChatGPT task never falls back to Ollama or API-key billing on auth, quota, or stream failures.
+
+Use `npm run chatgpt:auth -- status` to view profiles and `npm run chatgpt:auth -- logout` to revoke and clear a session. Add an optional profile name to any command, such as `login personal`, and select it in the bot with `CHATGPT_PROFILE=personal`. Reauthorization reuses that profile's registration. Use a different profile name to add another account/workspace. Review allowance and credit access in [ChatGPT Settings → Usage](https://chatgpt.com/settings/usage). Requests triggered by Discord members use the selected operator account's allowance.
+
+Tokens and the stable host ID live in `~/.config/soulbot/chatgpt`, or `CHATGPT_AUTH_DIR`. Files are written atomically with owner-only permissions. Refreshes are serialized across the CLI and bot. Keep this directory private, writable, and persistent; do not commit it or bake it into an image. If a process crashes while holding its `.lock` directory, stop all processes using that credential directory before removing the stale `.lock`. Signing out preserves account/client mappings and the host ID for later sign-in.
+
+For a remote host, forward the loopback callback before signing in: `ssh -L 1455:127.0.0.1:1455 user@bot-host`. Run the login command on that host and open its URL locally. `CHATGPT_CALLBACK_PORT` can select another forwarded port. The callback binds only `127.0.0.1` and times out after five minutes.
+
+For Docker, mount a private persistent host directory into the container (for example `/var/lib/soulbot/chatgpt:/run/soulbot-chatgpt`) and set `CHATGPT_AUTH_DIR=/run/soulbot-chatgpt`. Run the login CLI on that same host with `CHATGPT_AUTH_DIR=/var/lib/soulbot/chatgpt`, using the same mounted directory. Set `CHATGPT_TASKS` and model settings through Infisical or Compose. Do not authenticate on a different machine and clone its host identity into the deployment. No public OAuth callback port is required in Compose. Deployments sharing this credential directory must run on the same host/filesystem so the refresh lock works.
+
+The documented flow supports open-source and locally hosted apps; paid/remotely hosted offerings require OpenAI's partner access. See the [official setup and eligibility documentation](https://developers.openai.com/siwc/quickstart).
+
 ### Secret Management (Infisical)
 
-SOULbot uses [Infisical](https://infisical.com/) for secret management. Application secrets (bot token, DB credentials, etc.) are stored in Infisical and injected at container startup via the Infisical CLI. No application secrets are stored in local files.
+SOULbot uses [Infisical](https://infisical.com/) for secret management. Application secrets (bot token, DB credentials, etc.) are stored in Infisical and injected at container startup via the Infisical CLI. Optional ChatGPT OAuth sessions use the protected persistent directory described above so rotating refresh tokens can be updated safely.
 
 **Setup:**
 

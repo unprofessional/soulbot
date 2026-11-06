@@ -25,7 +25,7 @@ module.exports = {
                 .setRequired(true)
         ),
     async execute(interaction) {
-        if (!isGeneralLlmInferenceEnabled()) {
+        if (!isGeneralLlmInferenceEnabled('chat')) {
             return await interaction.reply({
                 content: getDisabledReply(),
                 ephemeral: true,

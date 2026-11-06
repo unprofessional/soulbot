@@ -22,7 +22,7 @@ module.exports = {
                 .setRequired(true)
         ),
     async execute(interaction) {
-        if (!isGeneralLlmInferenceEnabled()) {
+        if (!isGeneralLlmInferenceEnabled('summary')) {
             return await interaction.reply({
                 content: getDisabledReply(),
                 ephemeral: true,
