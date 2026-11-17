@@ -1,6 +1,7 @@
 // message_listeners/core.js
 
 const { Events } = require('discord.js');
+const { handleMessage: handleCountingMessage } = require('../features/counting/service.js');
 const {
     enforceGoldyRole,
     enforceOwnerProxyRole,
@@ -23,6 +24,8 @@ async function initializeListeners(client) {
         if (!shouldAcceptWork()) {
             return;
         }
+
+        if (await handleCountingMessage(message)) return;
 
         const guildId = message.guildId;
         await logMessage(message);
