@@ -88,3 +88,19 @@ test('a game retired while queued returns the message to normal processing', asy
     expect(m.reply).not.toHaveBeenCalled();
     expect(m.react).not.toHaveBeenCalled();
 });
+
+test('ranking-index failure leaves core counting available', async () => {
+    const { pool } = require('../store/db/pool.js');
+    const log = jest.spyOn(console, 'error').mockImplementation(() => {});
+    pool.query.mockImplementation(async sql => {
+        if (sql.includes('counting_accepted_contributors')) throw Error('index failed');
+        return { rows: [] };
+    });
+    try {
+        await service.initializeCounting(new EventEmitter());
+        expect(service.isAvailable()).toBe(true);
+    } finally {
+        pool.query.mockImplementation(async () => ({ rows: [] }));
+        log.mockRestore();
+    }
+});

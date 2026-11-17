@@ -5,6 +5,7 @@ const { pool } = require('../../store/db/pool.js');
 const { CountingDAO } = require('../../store/dao/counting.dao.js');
 const { shouldAcceptWork, registerDrainHandler } = require('../../app/lifecycle.js');
 const { shouldHandle } = require('./domain.js');
+const { initializeViews } = require('./views.js');
 const dao = new CountingDAO();
 let ready = false;
 let onlineSince = Infinity;
@@ -95,6 +96,7 @@ async function initializeCounting(client) {
     try {
         await pool.query(await fs.readFile(path.join(__dirname, '../../store/db/tables/counting.sql'), 'utf8'));
         ready = true;
+        await initializeViews();
     } catch (error) { console.error('[counting] Unavailable: schema initialization failed', error.message); }
     client.once(Events.ClientReady, () => {
         onlineSince = Date.now();

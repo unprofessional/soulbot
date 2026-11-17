@@ -1,6 +1,6 @@
 # Role counting competition
 
-Status: Phase 1 implemented on `feature/role-counting-phase-1`; targeted automated checks pass. PostgreSQL integration verified by Moldy during PR #105 review; Discord smoke verification pending. Phases 2–6 remain todo.
+Status: Phase 1 implemented on `feature/role-counting-phase-1`; targeted automated checks pass. PostgreSQL integration verified by Moldy during PR #105 review; Discord smoke verification pending. Phase 2 implemented on `feature/role-counting-phase-2`; verification notes below. Phases 3–6 remain todo.
 
 ## Practical outcome
 
@@ -211,7 +211,19 @@ Use persisted numbers per channel, not the latest visible Discord message. For p
 - Rankings match accepted entries across mistakes, resets, ties, departure, and role/history reassignment.
 - Private channels do not leak through standings or explicit channel arguments. Pagination is stable under the documented ordering.
 
-**Deployment and fallback:** enable views only after backfill and query checks pass. Disable the views independently if needed; existing counting and stored contributions remain usable.
+**Implementation notes (2026-11-17)**
+
+- Added a separate read-only views DAO/module, `/counting leaderboard [page]`, and `/counting top [channel] [scope:lifetime|run] [page]`, with help/status discovery.
+- Standings include active/paused/suspended games and exclude retired games. Contributor history remains readable for a retired game if its channel is accessible.
+- Refresh channel overwrites, role permissions, and requester membership. Require View Channel and Read Message History; filter channels before ranking so hidden games cannot affect ranks or page counts. Replies are ephemeral and suppress mentions.
+- Ten entries per page, shared competition ranks (1, 1, 3), deterministic ID ordering for ties. Page requests show live results rather than a frozen cross-request snapshot; disclose that progress can move entries between pages.
+- Query the accepted-entry ledger directly with one statement per view, joining current history/run in the same snapshot. No aggregate backfill or acceptance hooks. Lifetime totals survive ordinary resets and retained-history reassignment; reset-history reassignment starts empty.
+- Initialize the optional accepted-entry index separately from core schema readiness. View initialization/query failure cannot disable core counting.
+- Unit/command/privacy coverage and a disposable-PostgreSQL scenario cover ties, pagination, guild/channel isolation, resets, retirement, rejected/duplicate attempts, and both reassignment choices. Validation results are recorded with the PR; live Discord smoke testing remains required.
+- Verification: 51 counting tests pass; changed-file lint and whitespace checks pass. Full-suite verification runs in the commit hook. Three opt-in PostgreSQL tests (including the new Phase 2 scenario) remain skipped because Docker container requests time out; live Discord testing is also pending.
+- The Phase 1 lifecycle-notice follow-up remains planned and is separate from this phase.
+
+**Deployment and fallback:** existing ledger data is queryable immediately after view initialization; no backfill is needed. View initialization failure disables only ranking commands. Preserve the existing ledger/index when reverting the optional module; core counting and stored contributions remain usable.
 
 ### Phase 3 — Configurable text and image input
 
