@@ -55,3 +55,36 @@ test('per-channel queue continues after failure and preserves execution order', 
     await Promise.allSettled([first, second]);
     expect(order).toEqual([1, 2]);
 });
+
+test.each(['retired', 'paused', 'suspended'])('%s games leave ordinary chat on the normal path', async state => {
+    service.dao.get.mockResolvedValue({ state });
+    for (const content of ['hello there', '1 please', '']) {
+        const m = message({ content });
+        expect(await service.handleMessage(m)).toBe(false);
+        expect(m.reply).not.toHaveBeenCalled();
+    }
+    expect(service.dao.submit).not.toHaveBeenCalled();
+});
+test('retired games also leave numbers on the normal path', async () => {
+    service.dao.get.mockResolvedValue({ state: 'retired' });
+    expect(await service.handleMessage(message())).toBe(false);
+    expect(service.dao.submit).not.toHaveBeenCalled();
+});
+test.each(['paused', 'suspended'])('%s games explain numeric attempts without deleting them', async state => {
+    service.dao.get.mockResolvedValue({ state });
+    service.dao.submit.mockResolvedValue({ outcome: state, game: { current_count: 0 } });
+    const m = message({ content: ' 001 ', delete: jest.fn() });
+    expect(await service.handleMessage(m)).toBe(true);
+    expect(m.reply).toHaveBeenCalledWith(expect.objectContaining({ content: expect.stringContaining(state) }));
+    expect(m.delete).not.toHaveBeenCalled();
+    expect(await service.handleMessage(message({ attachments: new Map([['image', {}]]) }))).toBe(false);
+    expect(service.dao.submit).toHaveBeenCalledTimes(1);
+});
+test('a game retired while queued returns the message to normal processing', async () => {
+    service.dao.get.mockResolvedValue({ state: 'active' });
+    service.dao.submit.mockResolvedValue({ outcome: 'ignored', game: { state: 'retired' } });
+    const m = message();
+    expect(await service.handleMessage(m)).toBe(false);
+    expect(m.reply).not.toHaveBeenCalled();
+    expect(m.react).not.toHaveBeenCalled();
+});

@@ -1,6 +1,6 @@
 # Role counting competition
 
-Status: Phase 1 implemented on `feature/role-counting-phase-1`; targeted automated checks pass. PostgreSQL integration and Discord smoke verification pending. Phases 2–6 remain todo.
+Status: Phase 1 implemented on `feature/role-counting-phase-1`; targeted automated checks pass. PostgreSQL integration verified by Moldy during PR #105 review; Discord smoke verification pending. Phases 2–6 remain todo.
 
 ## Practical outcome
 
@@ -153,7 +153,10 @@ Phases 2 and 3 do not depend on each other or on restoration. Phase 4 owns the d
 - Implemented core domain/service, transactional DAO, additive `counting.sql` schema, `/counting` commands, message routing, startup/deletion reconciliation, and drain handling. See `features/counting/README.md` for operation and smoke-test steps.
 - Resolved initial defaults: one non-retired game per role per guild; mistake policy `reject`; consecutive turns disabled; maximum integer `9007199254740991`; offline posts ignored using the latest connection ready/resume cutoff.
 - Accepted entries and every processed attempt retain unique message IDs; reactions and cleanup occur after commit. Reassignment supports explicit retained or reset history.
-- Verification: 45 targeted/regression tests passed (including command registration, role handling, and message-routing coverage); changed-file lint and whitespace checks passed. Two opt-in PostgreSQL tests are present but were not run successfully because Docker stalled. A live Discord test-server smoke test is still required. Phase 1's release gate remains open until these checks pass.
+- Verification: 45 targeted/regression tests passed (including command registration, role handling, and message-routing coverage); changed-file lint and whitespace checks passed. Moldy independently ran both opt-in PostgreSQL integration tests against disposable PostgreSQL 16 during PR #105 review; both passed. The author’s earlier local attempt was blocked by Docker stalling. A live Discord test-server smoke test is still required. Phase 1's release gate remains open until these checks pass.
+
+- Review follow-up: inactive-game routing now leaves retired channels and ordinary paused/suspended chat on the normal message path; number-shaped attempts in paused/suspended games retain state feedback. State is rechecked under the transaction lock.
+- Low-priority follow-up from Moldy: consider moving eligibility REST reads outside the submission transaction with appropriate revalidation, or bounding their timeout, if usage grows; they currently hold the channel lock and a pool client.
 
 **Deployment and fallback:** register commands only with a ready schema/runtime. On initialization failure, leave counting unavailable with a clear diagnostic and preserve existing bot behavior. Pause games to disable counting; retain all records. Do not revert to a binary that cannot read the new state without a tested compatibility path.
 

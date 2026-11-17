@@ -4,6 +4,7 @@ const { PermissionFlagsBits: P, Events } = require('discord.js');
 const { pool } = require('../../store/db/pool.js');
 const { CountingDAO } = require('../../store/dao/counting.dao.js');
 const { shouldAcceptWork, registerDrainHandler } = require('../../app/lifecycle.js');
+const { shouldHandle } = require('./domain.js');
 const dao = new CountingDAO();
 let ready = false;
 let onlineSince = Infinity;
@@ -38,21 +39,24 @@ async function validateTarget(guild, channel, roleId) {
 async function processMessage(message) {
     const game = await dao.get(message.guildId, message.channelId);
     if (!game) return false;
+    const attempt = {
+        authorId: message.author.id, messageId: message.id,
+        content: message.content || '', attachments: message.attachments.size > 0,
+    };
+    if (!shouldHandle(game, attempt)) return false;
     if (message.author.bot || message.webhookId) return true;
     if (diagnostics(message.channel, message.guild).required.length) return true;
     // Never replay old submissions after startup, including delayed duplicate gateway events.
     if (message.createdTimestamp < onlineSince) return true;
     return serial(`${message.guildId}:${message.channelId}`, async () => {
-        const result = await dao.submit(message.guildId, message.channelId, {
-            authorId: message.author.id, messageId: message.id,
-            content: message.content || '', attachments: message.attachments.size > 0,
-        }, async current => {
+        const result = await dao.submit(message.guildId, message.channelId, attempt, async current => {
             const role = await message.guild.roles.fetch(current.role_id);
             if (!role) throw Object.assign(new Error('Team role deleted'), { missingRole: true, roleId: current.role_id });
             const member = await message.guild.members.fetch({ user: message.author.id, force: true });
             return member.roles.cache.has(current.role_id);
         });
-        if (!result || result.outcome === 'duplicate') return true;
+        if (!result || result.outcome === 'ignored') return false;
+        if (result.outcome === 'duplicate') return true;
         const next = result.game.current_count + 1;
         const explanations = {
             ineligible: 'You need this channel’s team role to count.',

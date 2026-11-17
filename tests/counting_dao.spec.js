@@ -47,3 +47,14 @@ test('reset clears contributor and starts a new run', async () => {
 test('role reassignment requires an explicit history choice', async () => {
     await expect(dao.manage('g', 'c', 'admin', 'configure', { roleId: 'new' })).rejects.toThrow('Choose retain or reset');
 });
+
+test.each([
+    ['retired', '2'], ['paused', 'hello'], ['suspended', 'hello'],
+])('locked %s state ignores %s without eligibility, ledger or state changes', async (state, content) => {
+    client.query.mockImplementation(async sql => sql.includes('SELECT *') ? { rows: [{ ...game, state }] } : { rows: [], rowCount: 0 });
+    const eligibility = jest.fn();
+    expect((await dao.submit('g', 'c', { ...attempt, content }, eligibility)).outcome).toBe('ignored');
+    expect(eligibility).not.toHaveBeenCalled();
+    expect(client.query.mock.calls.some(([sql]) => /^(UPDATE|INSERT)/.test(sql))).toBe(false);
+    expect(client.query).toHaveBeenCalledWith('COMMIT');
+});

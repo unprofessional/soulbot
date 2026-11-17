@@ -1,5 +1,5 @@
 const { pool } = require('../db/pool.js');
-const { evaluate } = require('../../features/counting/domain.js');
+const { evaluate, shouldHandle } = require('../../features/counting/domain.js');
 const normalize = row => row && ({ ...row, current_count: Number(row.current_count), record: Number(row.record) });
 class CountingDAO {
     constructor(db = pool) { this.db = db; }
@@ -30,6 +30,8 @@ class CountingDAO {
     async submit(guildId, channelId, attempt, eligibility) {
         return this.transaction(guildId, channelId, async (client, game) => {
             if (!game) return null;
+            // Recheck under the manager/submission lock: retirement or pause can race intake.
+            if (!shouldHandle(game, attempt)) return { outcome: 'ignored', game };
             const duplicate = await client.query('SELECT id FROM counting_event WHERE message_id=$1', [attempt.messageId]);
             if (duplicate.rowCount) return { outcome: 'duplicate', game };
             const eligible = game.state === 'active' ? await eligibility(game) : false;
