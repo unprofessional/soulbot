@@ -1,6 +1,7 @@
 // index.js
 const { Events, ShardEvents, WebSocketShardEvents } = require('discord.js');
 const { client } = require('./initial_client.js');
+const { initializeCounting } = require('./features/counting/service.js');
 const { initializeListeners } = require('./message_listeners/core.js');
 const { initializeCommands } = require('./initial_commands.js');
 const { initializeGuildMemberUpdate } = require('./events/guild_member_update.js');
@@ -176,6 +177,8 @@ const initializeApp = async () => {
      * Feature initialization
      */
     initializeListeners(client);
+    // Counting schema must be ready before counting commands become usable.
+    await initializeCounting(client);
     await initializeCommands(client);
     initializeGuildMemberUpdate(client);
     initializeGuildMemberAdd(client);
