@@ -157,6 +157,41 @@ Phases 2 and 3 do not depend on each other or on restoration. Phase 4 owns the d
 
 **Deployment and fallback:** register commands only with a ready schema/runtime. On initialization failure, leave counting unavailable with a clear diagnostic and preserve existing bot behavior. Pause games to disable counting; retain all records. Do not revert to a binary that cannot read the new state without a tested compatibility path.
 
+### Phase 1 follow-up — Counting-channel availability notices
+
+**Status:** planned; not included in the existing Phase 1 implementation. Complete this small, separately testable lifecycle module before considering Phase 1 release-ready. It depends only on core counting and does not wait for the phase 4 action worker.
+
+**Outcome:** every configured, non-retired counting channel receives its own shutdown/restart and recovery notices so members know submissions during an interruption may be missed. These notices are automatic and independent of the server's separately configured general bot-announcement channels.
+
+**Minimal message templates**
+
+- Planned shutdown: `Going offline. Numbers posted while offline may be missed.`
+- Planned restart: `Restarting. Numbers posted during restart may be missed.`
+- Startup or reconnection: `Back online. Offline numbers may be missed. Last: 42. Next: 43.`
+- Empty game recovery: `Back online. Offline numbers may be missed. Last: 0. Next: 1.`
+
+Use persisted numbers per channel, not the latest visible Discord message. For paused/suspended games, replace `Back online.` with `Bot online; counting paused.` or `Bot online; counting suspended.` so the notice does not invite counting before a manager resumes it. At the supported maximum, replace `Next: …` with `Limit reached; reset needed.`
+
+**Deliverables**
+
+- Add a counting lifecycle-notice adapter alongside the core service. Reuse general announcement helpers where useful without changing their channel configuration or sending duplicate generic notices into counting channels.
+- On graceful down/restart, stop taking counting submissions, finish in-flight counting transactions, attempt the corresponding notice in each counting channel, then disconnect Discord. Bound notice work by the shutdown budget; one inaccessible channel must not delay every channel or prevent shutdown.
+- On startup and shard reconnection, recover/reconcile game state and establish the new offline cutoff before attempting recovery notices. Attempt each channel's notice before reopening its intake; coordinate the saved-count read with acceptance so a successful notice reflects the count at reopening.
+- Preserve the existing policy that offline submissions are ignored. Notices warn of possible missed entries; they must not imply that history was replayed or automatically credited.
+- Abrupt crashes, power loss, and lost Discord connections cannot reliably send a down notice. Always send a recovery notice when connectivity returns, including after an unplanned interruption.
+- Coalesce ready/resume events into one recovery notice per channel per actual outage; avoid duplicates from initial shard-ready plus client-ready events. Do not send notices for retired games or count the bot's notice as an entry.
+- Suppress mentions; respect guild/channel boundaries and Discord rate limits. Log and expose delivery failures in manager status. Use bounded retries and refresh saved numbers before a recovery retry. Notice delivery must not corrupt state or indefinitely block core counting or unrelated channels.
+
+**Exit checks**
+
+- Two channels with different counts each receive the correct last/next recovery values after startup, graceful restart, and reconnection; a new game reports 0/1.
+- A submission committed immediately before draining appears in the recovery count; submissions made during downtime receive no credit.
+- Shutdown notices precede client destruction; recovery notice attempts precede reopening intake. Multiple gateway lifecycle signals do not duplicate notices.
+- Paused/suspended/retired games, the numeric limit, missing permissions, API failures, retry exhaustion, and partial channel delivery behave as specified.
+- Discord smoke test: restart while members are counting in both channels, verify each warning and recovery message, then successfully post the announced next number.
+
+**Deployment and fallback:** introduce no gameplay migration or counting-rule changes. Disable/retry this adapter independently if needed, retaining committed progress and the documented offline policy. Failed notice delivery remains an explicit operational failure in status, not a successful notification.
+
 ### Phase 2 — Competition and contributor views
 
 **Boundary:** read/query module over the accepted-entry ledger, with indexed queries or rebuildable projections. It cannot mutate count acceptance.
@@ -289,6 +324,7 @@ Out of scope for launch: bonuses, attacks, currencies, inventories, alliances, s
 ## Phase completion checklist
 
 - [ ] Phase 1: core counting and essential operation complete; exit checks pass.
+- [ ] Phase 1 follow-up: per-channel down/restart/up notices complete; lifecycle and Discord checks pass.
 - [ ] Phase 2: team/contributor views complete; exit checks pass.
 - [ ] Phase 3: flexible input complete; exit checks pass.
 - [ ] Phase 4: durable restoration complete; exit checks pass.
@@ -303,6 +339,7 @@ Out of scope for launch: bonuses, attacks, currencies, inventories, alliances, s
 - Concurrent and duplicate submissions cannot double-count or lose accepted progress.
 - Edits/deletions and feedback API failures do not corrupt durable state.
 - Restart recovery preserves counts, records, last contributor, and history according to the agreed outage policy.
+- Each non-retired counting channel gets graceful down/restart warnings and concise startup/reconnection notices with its saved last and next numbers; unplanned outages still produce recovery notices when possible.
 - Leaderboards reflect accepted counts and resets, handle ties, isolate guilds, and preserve private channel visibility.
 - Management permission checks prevent unauthorized configuration changes.
 - A test-server smoke test demonstrates two teams counting independently and competing on the leaderboard.
