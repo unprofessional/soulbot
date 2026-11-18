@@ -232,7 +232,7 @@ Use persisted numbers per channel, not the latest visible Discord message. For p
 
 The source audit found generic command descriptions, identical current/settings/status responses, ambiguous defaults/history options, misleading role-assignment wording, generic success messages, and missing recovery/navigation guidance. This phase makes the existing feature understandable without reading the manual.
 
-Deliver four independently functional steps: **2.5A** clear language, distinct read views, and an explicit channel/team/eligibility discovery list; **2.5B** guided setup and safe management confirmations; **2.5C** navigation and understandable rankings; **2.5D** operational clarity, the existing lifecycle notices, and first-time-user verification. Preserve slash names, gameplay rules, counts, and history.
+Deliver four independently functional steps: **2.5A** clear language, distinct read views, an explicit channel/team/eligibility discovery list, and the manager first-run preparation checklist; **2.5B** guided setup and safe management confirmations; **2.5C** navigation and understandable rankings; **2.5D** operational clarity, the existing lifecycle notices, and first-time-user verification. Preserve slash names, gameplay rules, counts, and history.
 
 **Exit:** a new manager can set up two competing teams, and a new member can find the next number, understand their turn, recover from errors, and browse standings without external documentation. Privacy, transaction safety, and legacy command behavior remain covered. Live Discord usability verification is required; a rewritten help paragraph alone does not close this phase.
 
