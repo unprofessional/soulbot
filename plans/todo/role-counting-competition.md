@@ -4,6 +4,8 @@ Status: Phases 1–2.5 promoted to master. Replacement Phase 3 (channel teams wi
 
 ## Current product model (replacement Phase 3)
 
+Operational feedback update: [offline-number feedback](counting-offline-number-feedback.md) supersedes earlier recovery-broadcast requirements. Startup/reconnect recovery is silent; recent dropped number attempts get targeted next-number replies. Graceful shutdown/restart warnings stay.
+
 A channel is the team; up to ten allowed roles qualify members with any-role matching. Roles may be reused across channels. One pooled count and contributor board belong to each channel. [Implementation and migration plan](counting-channel-teams.md). This supersedes the original role-ownership/reassignment model in historical Phase 1–2.5 notes. Flexible text/image input stays deferred; it is no longer Phase 3.
 
 ## Practical outcome
@@ -382,7 +384,7 @@ Post-production option: flexible input is deferred, not scheduled or required. K
 - Concurrent and duplicate submissions cannot double-count or lose accepted progress.
 - Edits/deletions and feedback API failures do not corrupt durable state.
 - Restart recovery preserves counts, records, last contributor, and history according to the agreed outage policy.
-- Each non-retired counting channel gets graceful down/restart warnings and concise startup/reconnection notices with its saved last and next numbers; unplanned outages still produce recovery notices when possible.
+- Each non-retired counting channel gets graceful down/restart warnings. Startup/reconnect recovery is silent. Recent dropped number attempts get one targeted next-number reply when state is readable; accepted duplicates and non-number messages get no false rejection.
 - Leaderboards reflect accepted counts and resets, handle ties, isolate guilds, and preserve private channel visibility.
 - Management permission checks prevent unauthorized configuration changes.
 - A test-server smoke test demonstrates two teams counting independently and competing on the leaderboard.

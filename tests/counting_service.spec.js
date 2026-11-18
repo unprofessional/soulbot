@@ -2,12 +2,14 @@ const { EventEmitter } = require('node:events');
 const { Events } = require('discord.js');
 jest.mock('../store/db/pool.js', () => ({ pool: { query: jest.fn(async () => ({ rows: [] })) } }));
 jest.mock('../app/lifecycle.js', () => ({ shouldAcceptWork: jest.fn(() => true), registerDrainHandler: jest.fn() }));
-jest.mock('../store/dao/counting.dao.js', () => ({ CountingDAO: jest.fn(() => ({ get: jest.fn(), list: jest.fn(async () => []), submit: jest.fn(), suspendMissing: jest.fn(async () => {}) })) }));
+jest.mock('../store/dao/counting.dao.js', () => ({ CountingDAO: jest.fn(() => ({ get: jest.fn(), hasMessageEvent: jest.fn(async () => false), list: jest.fn(async () => []), submit: jest.fn(), suspendMissing: jest.fn(async () => {}) })) }));
 const service = require('../features/counting/service.js');
 const { shouldAcceptWork } = require('../app/lifecycle.js');
 let client;
 beforeEach(async () => {
     jest.clearAllMocks();
+    service.dao.hasMessageEvent.mockReset().mockResolvedValue(false);
+    service.dao.submit.mockReset();
     shouldAcceptWork.mockReturnValue(true);
     client = new EventEmitter();
     client.guilds = { cache: new Map() };
@@ -127,4 +129,58 @@ test('any allowed role qualifies once; two matching roles do not bypass turn alt
     memberRoles = new Map();
     await service.handleMessage({ ...m, id: 'third', content: '2' });
     expect(outcomes.at(-1)).toBe('ineligible'); expect(current.current_count).toBe(1);
+});
+
+
+test('recent offline numbers get one targeted reply with fresh next state and never count', async () => {
+    service.dao.get.mockResolvedValueOnce({ id: 1, state: 'active', current_count: 3 })
+        .mockResolvedValue({ id: 1, state: 'active', current_count: 42 });
+    const m = message({ createdTimestamp: Date.now() - 1000 });
+    expect(await service.handleMessage(m)).toBe(true);
+    await service.handleMessage(m);
+    expect(m.reply).toHaveBeenCalledTimes(1);
+    expect(m.reply).toHaveBeenCalledWith(expect.objectContaining({ content: expect.stringContaining('next number is **43**'), allowedMentions: { parse: [], repliedUser: false }, enforceNonce: true }));
+    expect(service.dao.submit).not.toHaveBeenCalled(); expect(m.react).not.toHaveBeenCalled();
+});
+test('accepted delayed duplicates, old chatter and non-human offline messages get no feedback', async () => {
+    service.dao.get.mockResolvedValue({ id: 1, state: 'active', current_count: 42 });
+    service.dao.hasMessageEvent.mockResolvedValue(true);
+    const accepted = message({ createdTimestamp: Date.now() - 1000 });
+    await service.handleMessage(accepted); expect(accepted.reply).not.toHaveBeenCalled();
+    service.dao.hasMessageEvent.mockResolvedValue(false);
+    for (const overrides of [{ content: 'hello' }, { content: '1 hello' }, { author: { bot: true } }, { webhookId: 'w' }, { attachments: new Map([['image', {}]]) }, { createdTimestamp: 0 }]) {
+        const m = message({ createdTimestamp: Date.now() - 1000, ...overrides });
+        await service.handleMessage(m); expect(m.reply).not.toHaveBeenCalled();
+    }
+    expect(service.dao.submit).not.toHaveBeenCalled();
+});
+test('a slow offline reply does not hold the channel queue or block recovery', async () => {
+    service.dao.get.mockResolvedValue({ id: 1, state: 'active', current_count: 42 });
+    let release;
+    const m = message({ createdTimestamp: Date.now() - 1000, reply: jest.fn(() => new Promise(resolve => { release = resolve; })) });
+    const feedback = service.handleMessage(m);
+    for (let attempt = 0; attempt < 50 && !release; attempt++) await Promise.resolve();
+    expect(release).toEqual(expect.any(Function));
+    let ran = false;
+    await service.serial('g:c', async () => { ran = true; });
+    expect(ran).toBe(true); release(); await feedback;
+});
+
+
+test('accepted replays during a live outage do not get false not-counted warnings', async () => {
+    service.dao.get.mockResolvedValue({ id: 1, state: 'active', current_count: 42 });
+    service.dao.hasMessageEvent.mockResolvedValue(true);
+    client.emit(Events.ShardDisconnect);
+    const m = message({ channel: { id: 'c', guildId: 'g', permissionsFor: () => ({ has: () => true }), send: jest.fn() } });
+    await service.handleMessage(m);
+    expect(m.channel.send).not.toHaveBeenCalled(); expect(m.reply).not.toHaveBeenCalled();
+    expect(service.dao.submit).not.toHaveBeenCalled();
+});
+test('the next fresh number still follows normal counting after an offline drop', async () => {
+    service.dao.get.mockResolvedValue({ id: 1, state: 'active', current_count: 42 });
+    const old = message({ createdTimestamp: Date.now() - 1000 }); await service.handleMessage(old);
+    service.dao.submit.mockResolvedValue({ outcome: 'accepted', number: 43, game: { current_count: 42 } });
+    const fresh = message({ id: 'fresh', content: '43' }); await service.handleMessage(fresh);
+    expect(service.dao.submit).toHaveBeenCalledTimes(1);
+    expect(fresh.react).toHaveBeenCalledWith('✅'); expect(old.react).not.toHaveBeenCalled();
 });

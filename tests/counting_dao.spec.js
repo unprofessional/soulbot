@@ -95,3 +95,11 @@ test('role order cannot invalidate a preview but changed membership does', () =>
     expect(snapshot({ ...game, role_ids: ['b', 'a'] })).toEqual(snapshot({ ...game, role_ids: ['a', 'b'] }));
     expect(snapshot({ ...game, role_ids: ['a'] })).not.toEqual(snapshot({ ...game, role_ids: ['a', 'b'] }));
 });
+
+test('message-event lookup checks the scoped ledger without excluding old accepted history', async () => {
+    const db = { query: jest.fn(async () => ({ rowCount: 1 })) };
+    expect(await new CountingDAO(db).hasMessageEvent('g', 'c', 'accepted-old')).toBe(true);
+    expect(db.query.mock.calls[0][1]).toEqual(['g', 'c', 'accepted-old']);
+    expect(db.query.mock.calls[0][0]).toContain('g.guild_id=$1 AND g.channel_id=$2 AND e.message_id=$3');
+    db.query.mockResolvedValue({ rowCount: 0 }); expect(await new CountingDAO(db).hasMessageEvent('g', 'c', 'unknown')).toBe(false);
+});

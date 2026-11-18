@@ -14,6 +14,13 @@ class CountingDAO {
         const result = await this.db.query(`${SELECT_GAME} WHERE guild_id=$1 AND channel_id=$2`, [guildId, channelId]);
         return normalize(result.rows[0]);
     }
+    async hasMessageEvent(guildId, channelId, messageId) {
+        // Includes accepted entries in archived runs/history and other processed outcomes.
+        const result = await this.db.query(`SELECT e.id FROM counting_event e
+            JOIN counting_game g ON g.id=e.game_id
+            WHERE g.guild_id=$1 AND g.channel_id=$2 AND e.message_id=$3`, [guildId, channelId, messageId]);
+        return result.rowCount > 0;
+    }
     async list(guildId = null, channelIds = null) {
         const result = await this.db.query(`${SELECT_GAME} WHERE state <> 'retired'
             AND ($1::text IS NULL OR guild_id=$1) AND ($2::text[] IS NULL OR channel_id=ANY($2::text[]))
