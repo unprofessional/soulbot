@@ -1,67 +1,34 @@
-const { SlashCommandBuilder, ChannelType, PermissionFlagsBits: P } = require('discord.js');
-const service = require('../../features/counting/service.js');
-const { replyView } = require('../../features/counting/views.js');
-const readActions = new Set(['status', 'current', 'settings', 'help', 'leaderboard', 'top']);
-const data = new SlashCommandBuilder().setName('counting').setDescription('Role counting games').setDMPermission(false);
-function channelOption(sub) {
-    return sub.addChannelOption(o => o.setName('channel').setDescription('Counting channel (defaults to here)').addChannelTypes(ChannelType.GuildText).setRequired(sub.name === 'setup'));
-}
-for (const action of ['setup', 'configure', 'pause', 'resume', 'reset', 'retire', 'status', 'current', 'settings', 'help', 'leaderboard', 'top']) {
+const { SlashCommandBuilder, ChannelType } = require('discord.js');
+const ui = require('../../features/counting/ui.js');
+const descriptions = {
+    help: 'Find your teams, learn to play, or set up a competition.',
+    current: 'See the next number and whether it is your turn.',
+    settings: 'Read this team’s rules and learn how to change them.',
+    status: 'Check whether counting works and how to fix a problem.',
+    setup: 'Start a team game here using the default rules; preview before activation.',
+    configure: 'Change rules or team; omitted options keep current settings.',
+    pause: 'Stop counting temporarily while keeping progress.',
+    resume: 'Continue a saved game after checking its role and access.',
+    reset: 'Preview restarting at 1; best count and lifetime totals stay.',
+    retire: 'Preview removing this game from standings; history stays.',
+    leaderboard: 'Compare the current counts and records of teams you can read.',
+    top: 'See who posted the most accepted numbers in a channel.',
+};
+const data = new SlashCommandBuilder().setName('counting').setDescription('Find a team, count together, and manage counting games.').setDMPermission(false);
+for (const [action, description] of Object.entries(descriptions)) {
     data.addSubcommand(sub => {
-        sub.setName(action).setDescription(`${action} a counting game`);
-        if (action !== 'leaderboard') channelOption(sub);
-        if (['leaderboard', 'top'].includes(action)) {
-            sub.addIntegerOption(o => o.setName('page').setDescription('Results page (10 entries per page)').setMinValue(1).setMaxValue(1000000));
-            if (action === 'top') sub.addStringOption(o => o.setName('scope').setDescription('Lifetime within current history, or current run').addChoices({ name: 'Lifetime', value: 'lifetime' }, { name: 'Current run', value: 'run' }));
-        }
-        if (['setup', 'configure'].includes(action)) {
-            sub.addRoleOption(o => o.setName('role').setDescription('Team role').setRequired(action === 'setup'));
-            sub.addStringOption(o => o.setName('mistakes').setDescription('Wrong-number policy').addChoices({ name: 'Reject; keep progress', value: 'reject' }, { name: 'Reset to zero', value: 'reset' }));
-            sub.addBooleanOption(o => o.setName('consecutive').setDescription('Allow the same member to count twice in a row'));
-            if (action === 'configure') sub.addStringOption(o => o.setName('history').setDescription('Required when changing roles').addChoices({ name: 'Retain history', value: 'retain' }, { name: 'Reset history', value: 'reset' }));
+        sub.setName(action).setDescription(description);
+        if (action === 'setup') return sub.addRoleOption(o => o.setName('role').setDescription('Existing team role; members must already hold it.').setRequired(true));
+        if (action !== 'leaderboard') sub.addChannelOption(o => o.setName('channel').setDescription('Counting text channel; leave empty to use this channel.').addChannelTypes(ChannelType.GuildText));
+        if (['help', 'leaderboard', 'top'].includes(action)) sub.addIntegerOption(o => o.setName('page').setDescription(action === 'help' ? 'Your teams page (5 per page); default 1.' : 'Results page (10 per page); default 1.').setMinValue(1).setMaxValue(1000000));
+        if (action === 'top') sub.addStringOption(o => o.setName('scope').setDescription('Default: all accepted contributions for the current team history.').addChoices({ name: 'All team history (survives ordinary resets)', value: 'lifetime' }, { name: 'Since the last restart at 1 (current run)', value: 'run' }));
+        if (action === 'configure') {
+            sub.addRoleOption(o => o.setName('role').setDescription('Change team role; requires an explicit history choice.'));
+            sub.addStringOption(o => o.setName('mistakes').setDescription('Wrong-number behavior; leave empty to keep the current rule.').addChoices({ name: 'Keep progress on wrong numbers', value: 'reject' }, { name: 'Restart at 1 on a wrong number', value: 'reset' }));
+            sub.addBooleanOption(o => o.setName('consecutive').setDescription('True: allow consecutive turns. False: teammates take turns.'));
+            sub.addStringOption(o => o.setName('history').setDescription('Only for team changes: keep past activity or start fresh.').addChoices({ name: 'Credit existing progress/totals to the new team', value: 'retain' }, { name: 'Start fresh; archive previous team history', value: 'reset' }));
         }
         return sub;
     });
 }
-async function executeWork(i) {
-    if (!i.guildId) return i.reply({ content: 'Use this command in a server.', ephemeral: true });
-    const action = i.options.getSubcommand();
-    const management = !readActions.has(action);
-    if (management && !i.memberPermissions?.has(P.ManageGuild)) return i.reply({ content: 'You need Manage Server to manage counting games.', ephemeral: true });
-    await i.deferReply({ ephemeral: true });
-    try {
-        if (!service.isAvailable()) throw new Error('Counting is unavailable: schema initialization failed. Check bot logs.');
-        const viewer = await i.guild.members.fetch({ user: i.user.id, force: true });
-        if (['leaderboard', 'top'].includes(action)) return await replyView(i, viewer, action);
-        const channel = i.options.getChannel('channel') || i.channel;
-        if (!channel || channel.guildId !== i.guildId || channel.type !== ChannelType.GuildText) throw new Error('Choose a text channel in this server.');
-        if (management && !viewer.permissions.has(P.ManageGuild)) throw new Error('You need Manage Server to manage counting games.');
-        if (!channel.permissionsFor(viewer)?.has(P.ViewChannel)) throw new Error('You cannot view that channel.');
-        if (action === 'help') return i.editReply('Use /counting setup to assign a team role. Members post the next plain whole number; another member must take the next turn by default. /counting current, status, and settings show progress and rules. Managers can configure, pause, resume, reset, or retire games. Defaults: mistakes preserve progress; one active channel per role. Text/images and expressions are not supported. Offline posts are ignored. Edits/deletions preserve recorded progress; visible restoration and milestones are planned for later phases. /counting leaderboard compares visible teams; /counting top shows contributors (scope:lifetime or run; page selects 10 results). Configure channel access manually.');
-        let game = await service.dao.get(i.guildId, channel.id);
-        if (readActions.has(action)) {
-            if (!game) throw new Error('No counting game is configured here.');
-            const role = await i.guild.roles.fetch(game.role_id);
-            if (!role && game.state !== 'retired') {
-                await service.dao.manage(i.guildId, channel.id, null, 'suspend');
-                game = await service.dao.get(i.guildId, channel.id);
-            }
-            await i.guild.members.fetchMe();
-            const health = service.diagnostics(channel, i.guild);
-            return i.editReply({ content: `Count: ${game.current_count}; next: ${game.current_count === Number.MAX_SAFE_INTEGER ? 'limit reached' : game.current_count + 1}; record: ${game.record}.\nTeam: ${role ? `<@&${game.role_id}>` : 'Deleted role'}; state: ${game.state}.\nMistakes: ${game.mistake_policy}; consecutive turns: ${game.allow_consecutive ? 'allowed' : 'disabled'}.\nInput: integers only; text/images disabled. Offline submissions ignored.\nStandings: /counting leaderboard; contributors: /counting top.\nPermissions: ${health.required.length ? 'UNAVAILABLE: missing required channel permissions' : 'ready'}${health.optional.length ? '; reaction or cleanup permissions missing' : ''}.`, allowedMentions: { parse: [] } });
-        }
-        const role = ['setup', 'configure'].includes(action) ? i.options.getRole('role') : null;
-        if (role && (role.guild?.id || role.guildId) !== i.guildId) throw new Error('Choose a role in this server.');
-        if (['setup', 'configure', 'resume'].includes(action)) await service.validateTarget(i.guild, channel, role?.id || game?.role_id);
-        await service.dao.manage(i.guildId, channel.id, i.user.id, action, {
-            roleId: role?.id, policy: ['setup', 'configure'].includes(action) ? i.options.getString('mistakes') : null,
-            consecutive: ['setup', 'configure'].includes(action) ? i.options.getBoolean('consecutive') : null,
-            history: action === 'configure' ? i.options.getString('history') : null,
-        });
-        return i.editReply(`Counting ${action} completed for #${channel.name}.`);
-    } catch (error) {
-        console.error('[counting] Command failed:', error.message);
-        return i.editReply(error.code === '23505' ? 'That channel or role already has a counting game. Retire the old role assignment first.' : error.message);
-    }
-}
-module.exports = { data, execute: i => service.track(executeWork(i)) };
+module.exports = { data, execute: ui.execute };

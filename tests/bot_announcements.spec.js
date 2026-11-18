@@ -135,3 +135,13 @@ function createGuild(guildId, channels, fetchedChannel = null) {
         },
     };
 }
+
+test('counting channels receive their specialized lifecycle notices instead of generic duplicates', async () => {
+    const { remember } = require('../features/counting/notices.js');
+    const send = jest.fn();
+    remember({ guild_id: 'counting-guild', channel_id: 'counting-channel', state: 'active' });
+    mockGetBotAnnouncementChannels.mockResolvedValue([{ guildId: 'counting-guild', channelId: 'counting-channel' }]);
+    await announceBotOnline({ isReady: () => true, guilds: { cache: new Map([['counting-guild', { channels: { cache: new Map([['counting-channel', { send }]]) } }]]) } });
+    expect(send).not.toHaveBeenCalled();
+    remember({ guild_id: 'counting-guild', channel_id: 'counting-channel', state: 'retired' });
+});

@@ -1,6 +1,6 @@
 # Counting Phase 2.5 — Guided setup and everyday use
 
-Status: analysis complete; proposed implementation, not implemented.
+Status: implementation of 2.5A–D on `feature/counting-guided-ux`; targeted automated verification passes; PR review pending. Live Discord/mobile usability gate remains pending.
 
 Priority: next counting work. Completing the Phase 2.5 usability gate is a prerequisite for Phases 3–5; only an explicit user reprioritization can override it, with the roadmap updated to match. Phases 1–2 are already merged into master through PRs #105–#108. Preserve their counting rules and data. This phase includes delivery of the existing counting-channel lifecycle-notice follow-up; its detailed behavior remains in the main counting plan.
 
@@ -221,3 +221,16 @@ Discord usability gate:
 ## Non-goals
 
 New gameplay, more parsing options, automated role assignment/permission changes, a web dashboard, leaderboards beyond Phase 2, automatic pins, and future rewards/effects. A continuously updated channel topic or pinned live count/turn display is deliberately deferred to a separate post-2.5 ambient-status proposal: ownership of channel metadata, refresh cadence, permissions, and rate limits need their own design. For this phase, the channel guide is static, ✅ remains the ambient acceptance signal, and `/counting current` provides live state. Do not resume Phases 3–5 until this interim usability gate is complete or explicitly reprioritized.
+
+
+## Implementation handoff
+
+- Shared permission/context and presentation helpers drive help, turn-aware current, rules, status, guide, and rejection copy. Discovery uses refreshed permissions and filters before pagination; generic help survives a store failure.
+- Setup registers exactly one required role option and targets its invoking channel, with fixed defaults and private confirmation. Existing configure options remain. Opaque two-minute sessions bind controls to user/guild/origin channel; confirmations carry an authoritative target and snapshot compared under the counting transaction lock. Cancel, expiry, duplicate controls, and stale previews are covered.
+- Read-only buttons connect discovery/current/rules/teams/contributors and periods/pages. Invalid typed pages offer a valid last page. Public guide publication is explicit and independent of game creation; guide failure preserves gameplay.
+- The lifecycle adapter coalesces connection generations, gates/reopens per channel with a new offline cutoff, serializes saved-state notices with counting/management, retries with limits, exposes delivery failures in status, and keeps unrelated shards open. General announcements skip counting channels. Counting work and shutdown notices drain before general announcements/client/database cleanup.
+- Notice delivery is best effort; Discord timeouts can be ambiguous despite nonce deduplication. No advance crash notice is possible, and startup cannot notify undiscoverable channels while configuration is inaccessible. These limits do not change the saved-count/offline policy.
+- Tests cover command shape, discovery/privacy/turn state, component routing, confirmation authorization/expiry/duplicates/stale snapshots, guide failure, page/period controls, permission diagnosis, outage warning/retry limits, distinct shard recovery, and missing/unavailable targets. The opt-in PostgreSQL suite now includes confirmation races. See `features/counting/README.md` for deployment and the live usability checklist.
+- Do not mark the phase or lifecycle-follow-up release gate complete until live Discord/mobile usability checks pass. Future gameplay phases remain gated as specified above.
+
+Validation record: 84 targeted counting/announcement tests passed; changed-file lint and whitespace checks passed. Full regression checks also run in the commit hook. Four disposable-PostgreSQL scenarios remain opt-in/pending because the local container start timed out; no database pass is claimed. Live Discord/mobile usability testing is pending.

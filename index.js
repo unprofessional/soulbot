@@ -68,13 +68,6 @@ const initializeApp = async () => {
 
     await healthServer.start();
 
-    registerDrainHandler('announce bot restart', async () => {
-        const result = await announceBotRestart(client);
-        console.log(
-            `[bot-announcements] Restart announcement summary: sent=${result.sent}, skipped=${result.skipped}, failed=${result.failed}`
-        );
-    });
-
     registerCleanup('pause async queues', async () => {
         PromiseQueue.pauseAll();
         await PromiseQueue.onIdleAll();
@@ -179,6 +172,13 @@ const initializeApp = async () => {
     initializeListeners(client);
     // Counting schema must be ready before counting commands become usable.
     await initializeCounting(client);
+    // Count transactions and channel notices must drain before general announcements.
+    registerDrainHandler('announce bot restart', async () => {
+        const result = await announceBotRestart(client);
+        console.log(
+            `[bot-announcements] Restart announcement summary: sent=${result.sent}, skipped=${result.skipped}, failed=${result.failed}`
+        );
+    });
     await initializeCommands(client);
     initializeGuildMemberUpdate(client);
     initializeGuildMemberAdd(client);
