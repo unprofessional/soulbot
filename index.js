@@ -167,24 +167,6 @@ const initializeApp = async () => {
     });
 
     /**
-     * Feature initialization
-     */
-    initializeListeners(client);
-    // Counting schema must be ready before counting commands become usable.
-    await initializeCounting(client);
-    // Count transactions and channel notices must drain before general announcements.
-    registerDrainHandler('announce bot restart', async () => {
-        const result = await announceBotRestart(client);
-        console.log(
-            `[bot-announcements] Restart announcement summary: sent=${result.sent}, skipped=${result.skipped}, failed=${result.failed}`
-        );
-    });
-    await initializeCommands(client);
-    initializeGuildMemberUpdate(client);
-    initializeGuildMemberAdd(client);
-    initializeGuildMemberRemove(client);
-
-    /**
      * Persistence / external services
      */
     await testPgConnection();
@@ -206,6 +188,25 @@ const initializeApp = async () => {
     await leaderLock.acquire({
         shouldStop: () => isDraining(),
     });
+
+    // Counting schema migrations must run only after the old leader has drained.
+    /**
+     * Feature initialization
+     */
+    initializeListeners(client);
+    // Counting schema must be ready before counting commands become usable.
+    await initializeCounting(client);
+    // Count transactions and channel notices must drain before general announcements.
+    registerDrainHandler('announce bot restart', async () => {
+        const result = await announceBotRestart(client);
+        console.log(
+            `[bot-announcements] Restart announcement summary: sent=${result.sent}, skipped=${result.skipped}, failed=${result.failed}`
+        );
+    });
+    await initializeCommands(client);
+    initializeGuildMemberUpdate(client);
+    initializeGuildMemberAdd(client);
+    initializeGuildMemberRemove(client);
 
     /**
      * Login last — nothing should create canvases before this point

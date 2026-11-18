@@ -1,17 +1,21 @@
 # Role counting competition
 
-Status: Phases 1–2 merged through develop into master. Interim Phase 2.5 (guided UX) is implemented on `feature/counting-guided-ux`, with review and live Discord usability gates pending; details in `counting-guided-ux.md`. Live Discord smoke verification remains pending.
+Status: Phases 1–2.5 promoted to master. Replacement Phase 3 (channel teams with up to ten allowed roles) is implemented on `feature/counting-channel-teams`, pending review, PostgreSQL migration verification, and live Discord checks. Text/image input stays deferred.
+
+## Current product model (replacement Phase 3)
+
+A channel is the team; up to ten allowed roles qualify members with any-role matching. Roles may be reused across channels. One pooled count and contributor board belong to each channel. [Implementation and migration plan](counting-channel-teams.md). This supersedes the original role-ownership/reassignment model in historical Phase 1–2.5 notes. Flexible text/image input stays deferred; it is no longer Phase 3.
 
 ## Practical outcome
 
-Server managers can assign multiple counting channels to different roles so those groups can compete. Each channel runs an independent counting game, and a guild leaderboard makes progress visible across teams. Launch establishes reliable counting and durable competition history; milestone bonuses and gang-warfare-style effects come later.
+Server managers can run multiple counting channels as competing teams, with each channel allowing members of one or more roles. Each channel runs an independent counting game, and a guild leaderboard makes progress visible across teams. Launch establishes reliable counting and durable competition history; milestone bonuses and gang-warfare-style effects come later.
 
 ## Launch scope
 
-- Configure multiple counting channels in one guild, each associated with a team role.
-- Recommended initial constraint: one active counting channel per role per guild. This keeps team standings and future effect targets unambiguous. Confirm this product choice before implementation; multiple channels per role would need an explicit team scoring rule.
+- Configure multiple counting channels in one guild, each with one to ten allowed roles.
+- One game per channel; up to ten allowed roles per game. The same role can qualify members in multiple channels. Channels compete as teams.
 - Start at zero; the first accepted entry is `1`.
-- Accept only the next positive whole number, posted by a human member who currently holds the assigned role.
+- Accept only the next positive whole number, posted by a human member who currently holds any allowed role.
 - Disable consecutive turns by the same member by default, with a manager setting to allow them.
 - Support two mistake policies: reset to zero or reject the entry while preserving progress. Make the policy visible in channel status.
 - Maintain independent current counts, all-time records, and accepted-entry history per channel.
@@ -21,19 +25,20 @@ Server managers can assign multiple counting channels to different roles so thos
 
 Proposed guild-only `/counting` commands:
 
-- `setup role`: in Phase 2.5B, invoke inside the target text channel and select only its existing team role. Start with take turns and preserve-progress defaults; change rules later through `configure`. This intentionally replaces the Phase 1 multi-option setup surface without changing existing games.
-- `configure`: update a game's rules or assigned role.
+- `setup role`: in Phase 2.5B, invoke inside the target text channel and select only its first existing allowed role; add more via role-add. Start with take turns and preserve-progress defaults; change rules later through `configure`. This intentionally replaces the Phase 1 multi-option setup surface without changing existing games.
+- `configure`: update a game's counting rules.
+- `role-add` / `role-remove`: edit allowed roles in the invoking channel (maximum ten); all progress/history stays intact.
 - `pause` / `resume`: suspend or restore counting without losing progress.
 - `reset`: explicitly reset the current count while retaining the all-time record and audit history.
 - `retire`: remove a game from active competition while preserving its history.
-- `status`: show the channel's team, current count, record, rules, and operational state.
+- `status`: show the channel's team, current count, record, allowed roles, rules, and operational state.
 - `leaderboard`: compare active counting channels within the guild.
 
 Restrict management actions to members with `ManageGuild`, checked at execution time as well as command registration. Status and leaderboard are available to members subject to channel visibility.
 
 For launch, managers configure Discord channel permissions manually; Soulbot validates contribution eligibility independently. Report missing bot permissions during setup and status. Automatic channel permission management is a possible later convenience, not required for launch.
 
-Changing a game's team role must require an explicit retain-history or reset-history choice. Preserve an audit trail of the reassignment even when competition history is reset. Reject duplicate active assignments according to the final role/channel constraint.
+Allowed-role changes alter eligibility only and preserve count, records, turns, and history. Use role-add/role-remove; adding roles must not require a new game or a history reset.
 
 ## Member experience and rules
 
@@ -42,7 +47,7 @@ Changing a game's team role must require an explicit retain-history or reset-his
 - Delete non-counting chatter where permissions allow, without changing game state.
 - Treat wrong numbers as mistakes governed by the configured policy. Reject ineligible authors, consecutive turns, and non-counting messages without resetting the team count.
 - Use plain decimal integers as the counting token; expressions cannot advance the count. Production remains pure-number-only. Optional text/images are deferred until after production and require an explicit decision to revisit. Edits never advance the count.
-- Check role membership for each submission. Members holding multiple competing roles may contribute in each eligible channel at launch.
+- Check role membership for each submission. Members holding multiple competing roles may contribute in each eligible channel; matching multiple roles never grants extra credit or turns.
 - Ignore bots and webhooks.
 - Editing or deleting an accepted message does not roll back its recorded contribution.
 - A reset starts a new run and clears the previous contributor restriction; the next accepted number is `1`.
@@ -75,7 +80,7 @@ Command names are reference UX, not a requirement to duplicate root commands. Pr
 
 ### Optional text and images — deferred post-production
 
-The following is retained as a possible future design, not launch work or a release gate. Do not implement settings or advertise these options unless the user explicitly reactivates Phase 3 after production. Current input stays numbers only; formatting/attachment rejection preserves progress.
+The following is retained as a possible future design, not launch work or a release gate. Do not implement settings or advertise these options unless the user explicitly reactivates flexible input after production. Current input stays numbers only; formatting/attachment rejection preserves progress.
 
 - Parse a single leading base-10 positive integer token. When text is disabled, the trimmed message must contain only that token. When enabled, require whitespace between the token and trailing text; never search arbitrary text for a number.
 - Require a canonical decimal representation: no signs, separators, leading zeros, decimals, or expressions. Set and document a safe maximum supported value before implementation.
@@ -118,19 +123,20 @@ Setup and status should distinguish required counting permissions from optional 
 
 ## Implementation phases
 
-Each phase is a separate, reviewable delivery with its own migration, commands, runtime integration, documentation, and verification where applicable. Finish a phase's exit checks before enabling its behavior. Phases 1, 2, 2.5, 4, 5, and 6 form the initial production scope; Phase 3 is optional post-production work and does not block release; intermediate phases may be deployed for controlled use but must advertise only completed capabilities.
+Each phase is a separate, reviewable delivery with its own migration, commands, runtime integration, documentation, and verification where applicable. Finish a phase's exit checks before enabling its behavior. Phases 1, 2, 2.5, 3, 4, 5, and 6 form the initial production scope; replacement Phase 3 adds channel teams; flexible input is optional post-production work and does not block release; intermediate phases may be deployed for controlled use but must advertise only completed capabilities.
 
 | Phase | Dependency | Complete usable state |
 | --- | --- | --- |
 | 1. Core counting | None | Multiple role channels can count reliably and managers can operate them. |
 | 2. Competition views | 1 | Members can compare teams and individual contributors. |
 | 2.5. Guided UX | 1–2 | First-time managers and members can set up, play, navigate, and recover without the manual. |
+| 3. Channel teams | 1, 2, 2.5 implementation | One pooled count per channel with up to ten allowed roles; roles reusable across channels. |
 | 4. History restoration | 1, 2.5 UX gate | Accepted entries can be restored after edits/deletions. |
 | 5. Goals and pins | 4, 2.5 UX gate | Goals announce completion and configured numbers are pinned, including restored entries. |
-| 6. Production qualification | 1, 2, 2.5, 4, 5 | The combined feature meets the in-scope production contract with pure-number input. |
-| 3. Flexible input — deferred | Post-production; explicit reactivation and UX gate | Optional text/image controls only if later requested; not a release dependency. |
+| 6. Production qualification | 1, 2, 2.5, 3, 4, 5 | The combined feature meets the in-scope production contract with pure-number input. |
+| Flexible input — deferred | Post-production; explicit reactivation and UX gate | Optional text/image controls only if later requested; not a release dependency. |
 
-Phase 3 is deferred; after the UX gate, the next planned production work is Phase 4, then Phase 5 and production qualification. Phase 4 owns the durable Discord-action infrastructure reused by phase 5; do not make core acceptance depend on either module. Implement [Phase 2.5 — Guided setup and everyday use](counting-guided-ux.md) next. Its usability gate is a prerequisite for Phases 4–5 unless the user explicitly reprioritizes and the roadmap is updated. It incorporates the already-planned Phase 1 lifecycle-notice follow-up. Subsequent feature phases must use its interaction and explanation patterns.
+Replacement Phase 3 (channel teams) is the next implementation. Its migration/eligibility checks and the existing UX gate precede Phase 4, Phase 5, and production qualification. Phase 4 owns the durable Discord-action infrastructure reused by phase 5; do not make core acceptance depend on either module. Complete the live verification gate for [Phase 2.5 — Guided setup and everyday use](counting-guided-ux.md). Its usability gate is a prerequisite for Phases 4–5 unless the user explicitly reprioritizes and the roadmap is updated. It incorporates the already-planned Phase 1 lifecycle-notice follow-up. Subsequent feature phases must use its interaction and explanation patterns.
 
 ### Phase 1 — Complete core counting
 
@@ -238,6 +244,10 @@ Deliver four independently functional steps: **2.5A** clear language, distinct r
 
 **Exit:** a new manager can set up two competing teams, and a new member can find the next number, understand their turn, recover from errors, and browse standings without external documentation. Privacy, transaction safety, and legacy command behavior remain covered. Live Discord usability verification is required; a rewritten help paragraph alone does not close this phase.
 
+### Replacement Phase 3 — Channel teams and multiple allowed roles
+
+See [the channel-team phase](counting-channel-teams.md) for the current product contract, admin commands, migration, and verification. The channel remains unique; roles become a reusable max-ten eligibility list. All existing progress/history is preserved.
+
 ### Phase 4 — Durable history restoration
 
 **Boundary:** edit/delete adapters, canonical-entry lookup, and a persistent Discord-action worker. Core counting only records accepted entries; restoration never invokes acceptance.
@@ -289,9 +299,9 @@ Deliver four independently functional steps: **2.5A** clear language, distinct r
 - Document commands, mistake/input rules, outage/reconciliation limits, permission diagnostics, and recovery procedures. Confirm help matches only enabled capabilities.
 - Qualify production only after every in-scope capability and the global acceptance criteria pass; explicitly disclose the intentional pure-number difference rather than claiming full screenshot parity. Keep future warfare work in a separate plan.
 
-**Exit checks:** all in-scope phase checks and integrated acceptance criteria pass; deferred Phase 3 is not required; no pending schema/backfill dependency, placeholder command, or required manual database repair remains.
+**Exit checks:** all in-scope phase checks and integrated acceptance criteria pass; deferred flexible input is not required; no pending schema/backfill dependency, placeholder command, or required manual database repair remains.
 
-### Phase 3 — Optional post-production text and images (deferred)
+### Optional post-production text and images (deferred; former Phase 3)
 
 **Status:** deferred by user decision on 2026-11-18. No launch work, settings, or release gate. Revisit only after production and explicit user reactivation; pure-number input remains the default product behavior.
 
@@ -330,11 +340,11 @@ Process submissions in a consistent order per game and update state atomically. 
 
 Commit accepted state before sending reactions or other feedback. A Discord feedback failure must not undo an accepted count. Recover persisted state after restart; do not silently reset games or count old messages again. Define and communicate the outage policy before launch, including whether submissions made while the bot is offline are ignored or replayed.
 
-If a configured role or channel is deleted, suspend the affected game, preserve history, and expose the issue in manager status. Missing permissions should produce actionable status and logs. Leaderboard queries must respect viewer access to private counting channels.
+Prune deleted allowed roles while preserving history and other roles. Suspend only when the channel is deleted or no allowed roles remain; expose the issue in manager status. Missing permissions should produce actionable status and logs. Leaderboard queries must respect viewer access to private counting channels.
 
 ## Future milestone bonuses and effects
 
-Keep team identity, counting games, and game events distinct so future effects can target a team without rewriting counting history. Launch needs durable events, not an effect engine or inventory system.
+Use the stable channel/game identity as the team target for future effects; allowed roles remain eligibility filters. Keep game events so effects never require rewriting counting history. Launch needs durable events, not an effect engine or inventory system.
 
 Example future mechanic: a team reaches 1,000 and earns an effect that restricts another team's ability to count for one day. The exact punishment and activation rules remain future product work.
 
@@ -349,7 +359,7 @@ Before introducing effects, define:
 
 Prefer enforcing effects in counting validation with persisted expiry times. Keep effects separate from Discord role and channel permission mutations so expiry and manager reversal stay predictable.
 
-Out of scope for launch: optional extra text/images (Phase 3), bonuses, attacks, currencies, inventories, alliances, seasons, and automated permission management.
+Out of scope for launch: optional extra text/images, bonuses, attacks, currencies, inventories, alliances, seasons, and automated permission management.
 
 ## Phase completion checklist
 
@@ -357,11 +367,12 @@ Out of scope for launch: optional extra text/images (Phase 3), bonuses, attacks,
 - [ ] Phase 1 follow-up: per-channel down/restart/up notices complete; lifecycle and Discord checks pass.
 - [ ] Phase 2: team/contributor views complete; exit checks pass.
 - [ ] Phase 2.5: guided UX steps A–D complete; first-time-user Discord gate passes.
+- [ ] Replacement Phase 3: channel-team migration, any-role eligibility, role management, and live checks pass.
 - [ ] Phase 4: durable restoration complete; exit checks pass.
 - [ ] Phase 5: goals and pins complete; exit checks pass.
-- [ ] Phase 6: in-scope production release qualified and documented; Phase 3 is not required.
+- [ ] Phase 6: in-scope production release qualified and documented; flexible input is not required.
 
-Post-production option: Phase 3 is deferred, not scheduled or required. Keep pure-number input unless explicitly revisited.
+Post-production option: flexible input is deferred, not scheduled or required. Keep pure-number input unless explicitly revisited.
 
 ## Verification and acceptance criteria
 
@@ -376,7 +387,7 @@ Post-production option: Phase 3 is deferred, not scheduled or required. Keep pur
 - Management permission checks prevent unauthorized configuration changes.
 - A test-server smoke test demonstrates two teams counting independently and competing on the leaderboard.
 - Every in-scope row of the screenshot comparison has an implemented, documented equivalent; text/image options are intentionally deferred and do not block production.
-- Production accepts pure numbers only. Extra text, expressions, malformed tokens, and attachments cannot advance or reset a game; no text/image switches are exposed. The four-combination optional-input checks apply only if Phase 3 is later reactivated.
+- Production accepts pure numbers only. Extra text, expressions, malformed tokens, and attachments cannot advance or reset a game; no text/image switches are exposed. The four-combination optional-input checks apply only if flexible input is later reactivated.
 - Goals announce once under the stated run/configuration rules; pin targets work across resets and report permission/capacity failures.
 - Edited, deleted, bulk-deleted, uncached, and repeatedly delivered events preserve one accepted contribution and restore canonical entries within the stated recovery coverage.
 - Restorations never increment counts or contributor totals; pin work follows the authoritative visible entry.

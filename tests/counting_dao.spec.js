@@ -45,7 +45,7 @@ test('reset clears contributor and starts a new run', async () => {
     expect(client.query.mock.calls.some(([sql]) => sql.includes('run_id=run_id+1,last_author_id=NULL'))).toBe(true);
 });
 test('role reassignment requires an explicit history choice', async () => {
-    await expect(dao.manage('g', 'c', 'admin', 'configure', { roleId: 'new' })).rejects.toThrow('Choose retain or reset');
+    await expect(dao.manage('g', 'c', 'admin', 'configure', { roleId: 'new' })).rejects.toThrow('Teams are channels now');
 });
 
 test.each([
@@ -74,4 +74,24 @@ test('management preview guards count and last-entry state under the transaction
 test('setup preview cannot replace a game created by another manager', async () => {
     await expect(dao.manage('g', 'c', 'admin', 'setup', { roleId: 'r', expected: null })).rejects.toMatchObject({ code: 'COUNTING_STALE' });
     expect(client.query.mock.calls.some(([sql]) => sql.includes('INSERT INTO counting_game'))).toBe(false);
+});
+
+
+test('role limit and last-role removal are enforced under the channel lock', async () => {
+    client.query.mockImplementation(async sql => sql.includes('SELECT *') ? { rows: [{ ...game, role_ids: Array.from({ length: 10 }, (_, n) => `r${n}`) }] } : { rows: [], rowCount: 1 });
+    await expect(dao.manage('g', 'c', 'admin', 'role-add', { roleId: 'extra' })).rejects.toThrow('10 roles');
+    client.query.mockImplementation(async sql => sql.includes('SELECT *') ? { rows: [{ ...game, role_ids: ['only'] }] } : { rows: [], rowCount: 1 });
+    await expect(dao.manage('g', 'c', 'admin', 'role-remove', { roleId: 'only' })).rejects.toThrow('at least one');
+});
+test('role edits change eligibility/version without resetting channel progress or history', async () => {
+    client.query.mockImplementation(async sql => sql.includes('SELECT *') ? { rows: [{ ...game, role_ids: ['r'] }] } : { rows: [], rowCount: 1 });
+    await dao.manage('g', 'c', 'admin', 'role-add', { roleId: 'other' });
+    const updates = client.query.mock.calls.filter(([sql]) => sql.startsWith('UPDATE')).map(([sql]) => sql);
+    expect(updates).toEqual(['UPDATE counting_game SET version=version+1 WHERE id=$1']);
+    expect(client.query).toHaveBeenCalledWith('INSERT INTO counting_allowed_role(game_id,role_id) VALUES($1,$2)', ['1', 'other']);
+});
+test('role order cannot invalidate a preview but changed membership does', () => {
+    const { snapshot } = require('../store/dao/counting.dao.js');
+    expect(snapshot({ ...game, role_ids: ['b', 'a'] })).toEqual(snapshot({ ...game, role_ids: ['a', 'b'] }));
+    expect(snapshot({ ...game, role_ids: ['a'] })).not.toEqual(snapshot({ ...game, role_ids: ['a', 'b'] }));
 });

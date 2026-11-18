@@ -47,7 +47,7 @@ test('setup has exactly one required role option; existing configure options and
     const json = command.data.toJSON();
     expect(json.default_member_permissions).toBeUndefined();
     expect(json.options.find(o => o.name === 'setup').options.map(o => [o.name, o.required])).toEqual([['role', true]]);
-    expect(json.options.find(o => o.name === 'configure').options.map(o => o.name)).toEqual(['channel', 'role', 'mistakes', 'consecutive', 'history']);
+    expect(json.options.find(o => o.name === 'configure').options.map(o => o.name)).toEqual(['channel', 'mistakes', 'consecutive']);
 });
 test('current, rules, and status answer different questions without mutations', async () => {
     const current = interaction('current'); await command.execute(current);
@@ -84,7 +84,7 @@ test('help discovers only readable channels and explains manager preparation wit
     service.isAvailable.mockReturnValue(false);
     const manager = interaction('help', true); await command.execute(manager);
     expect(text(manager)).toContain('Channel list temporarily unavailable');
-    expect(text(manager)).toContain('at least two human teammates');
+    expect(text(manager)).toContain('at least two humans');
     expect(text(manager)).toContain('/counting setup role:');
     expect(text(manager)).not.toContain('No counting channels are available');
 });
@@ -103,7 +103,7 @@ test('setup previews the invoking channel and confirms fixed defaults once', asy
 });
 test('removed setup options and unsupported channel contexts give a retry path', async () => {
     const stale = interaction('setup', true, { role: 'r', mistakes: 'reset' }); await command.execute(stale);
-    expect(text(stale)).toContain('Setup is simpler now');
+    expect(text(stale)).toContain('Open the target text channel');
     const thread = interaction('setup', true, { role: 'r' }); thread.channel.type = 11; await command.execute(thread);
     expect(text(thread)).toContain('Open the text channel'); expect(service.dao.manage).not.toHaveBeenCalled();
 });
@@ -133,7 +133,7 @@ test('configure with no changes is an editor; irrelevant history is explained', 
     const i = interaction('configure', true); await command.execute(i);
     expect(text(i)).toContain('Change rules:'); expect(service.dao.manage).not.toHaveBeenCalled();
     const bad = interaction('configure', true, { history: 'reset' }); await command.execute(bad);
-    expect(text(bad)).toContain('only used when changing');
+    expect(text(bad)).toContain('Channels are teams now');
 });
 test('guide publication failure leaves game untouched with a retry path', async () => {
     const i = interaction('settings', true); await command.execute(i);
@@ -173,4 +173,36 @@ test('unexpected database errors produce a reference without leaking the databas
     const i = interaction('current'); await command.execute(i);
     expect(text(i)).toContain('reference'); expect(text(i)).not.toContain('secret_db_schema');
     spy.mockRestore();
+});
+
+
+test('role-add previews eligibility only and refuses duplicates or an eleventh role', async () => {
+    const i = interaction('role-add', true, { role: 'new-role' }); await command.execute(i);
+    expect(text(i)).toContain('eligibility only'); expect(service.dao.manage).not.toHaveBeenCalled();
+    const component = click(i, control(i, 'Confirm change')); await ui.handleComponent(component);
+    expect(service.dao.manage).toHaveBeenCalledWith('g', 'c', 'u', 'role-add', expect.objectContaining({ roleId: 'new-role', expected: expect.objectContaining({ role_ids: ['r'] }) }));
+    service.dao.manage.mockClear();
+    const duplicate = interaction('role-add', true, { role: 'r' }); await command.execute(duplicate);
+    expect(text(duplicate)).toContain('already allowed'); expect(service.dao.manage).not.toHaveBeenCalled();
+    service.dao.get.mockResolvedValue({ ...game, role_ids: Array.from({ length: 10 }, (_, n) => `r${n}`) });
+    const full = interaction('role-add', true, { role: 'new-role' }); await command.execute(full);
+    expect(text(full)).toContain('10 roles'); expect(service.dao.manage).not.toHaveBeenCalled();
+});
+test('role-remove protects the last role and ordinary members cannot edit eligibility', async () => {
+    const last = interaction('role-remove', true, { role: 'r' }); await command.execute(last);
+    expect(text(last)).toContain('at least one');
+    const member = interaction('role-add', false, { role: 'new-role' }); await command.execute(member);
+    expect(text(member)).toContain('Manage Server'); expect(service.dao.manage).not.toHaveBeenCalled();
+});
+test('ten-role discovery stays within Discord embed budget and lists all roles in rules', async () => {
+    const i = interaction('help', true); const roles = new Map();
+    const ids = Array.from({ length: 10 }, (_, n) => String(1000000000000000000n + BigInt(n)));
+    ids.forEach(id => roles.set(id, { id }));
+    i.guild.roles.fetch.mockResolvedValue(roles);
+    const channels = new Map(); const games = [];
+    for (let n = 0; n < 5; n++) { const id = String(2000000000000000000n + BigInt(n)); channels.set(id, { ...i.channel, id }); games.push({ ...game, channel_id: id, role_ids: ids }); }
+    i.guild.channels.fetch.mockResolvedValue(channels); service.dao.list.mockResolvedValue(games);
+    await command.execute(i);
+    const content = i.editReply.mock.calls.at(-1)[0].embeds.map(e => e.description).join('');
+    expect(content.length).toBeLessThanOrEqual(6000); expect(content).toContain('more; see Rules');
 });
