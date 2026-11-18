@@ -1,3 +1,4 @@
+jest.mock('../features/counting/views.js', () => ({ replyView: jest.fn() }));
 jest.mock('../features/counting/service.js', () => ({
     dao: { get: jest.fn(), manage: jest.fn() }, isAvailable: () => true,
     track: p => p, validateTarget: jest.fn(), diagnostics: () => ({ required: [], optional: [] }),
@@ -55,4 +56,13 @@ test('manager reset goes through transactional service', async () => {
     const i = interaction('reset', true);
     await command.execute(i);
     expect(service.dao.manage).toHaveBeenCalledWith('g', 'c', 'u', 'reset', expect.any(Object));
+});
+
+test.each(['leaderboard', 'top'])('ordinary members can request %s without entering management paths', async action => {
+    const { replyView } = require('../features/counting/views.js');
+    const i = interaction(action);
+    await command.execute(i);
+    expect(replyView).toHaveBeenCalledWith(i, expect.any(Object), action);
+    expect(service.dao.manage).not.toHaveBeenCalled();
+    expect(service.dao.get).not.toHaveBeenCalled();
 });

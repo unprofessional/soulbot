@@ -3,6 +3,7 @@ const fs = require('node:fs');
 const { Pool } = require('pg');
 jest.mock('../store/db/pool.js', () => ({ pool: {} }));
 const { CountingDAO } = require('../store/dao/counting.dao.js');
+const { CountingViewsDAO } = require('../store/dao/counting_views.dao.js');
 const suite = process.env.COUNTING_TEST_DATABASE_URL ? describe : describe.skip;
 suite('counting PostgreSQL integration (disposable database)', () => {
     let pool, dao;
@@ -13,6 +14,9 @@ suite('counting PostgreSQL integration (disposable database)', () => {
         const schema = fs.readFileSync(require.resolve('../store/db/tables/counting.sql'), 'utf8');
         await pool.query(schema);
         await pool.query(schema); // migration is repeatable
+        const viewsSchema = fs.readFileSync(require.resolve('../store/db/tables/counting_views.sql'), 'utf8');
+        await pool.query(viewsSchema);
+        await pool.query(viewsSchema);
     });
     afterAll(async () => { if (pool) await pool.end(); });
     test('concurrency, duplicate/reset delivery, isolation, and durable rehydration', async () => {
@@ -45,4 +49,53 @@ suite('counting PostgreSQL integration (disposable database)', () => {
         await dao.suspendMissing('g', 'role_id', 'new-role');
         expect((await dao.get('g', 'c')).state).toBe('suspended');
     });
+    test('views count accepted ledger entries across runs, ties, pages, privacy and reassignment', async () => {
+        const views = new CountingViewsDAO(pool);
+        await dao.manage('views-g', 'team-a', 'admin', 'setup', { roleId: 'role-a', consecutive: true });
+        const submit = (channel, id, author, content) => dao.submit('views-g', channel, {
+            messageId: `view-${id}`, authorId: author, content: String(content),
+        }, async () => true);
+        for (let n = 1; n <= 12; n++) {
+            expect((await submit('team-a', n, `user-${String(n).padStart(2, '0')}`, n)).outcome).toBe('accepted');
+        }
+        await submit('team-a', '13', 'user-01', 13);
+        await submit('team-a', 'wrong', 'user-01', 99);
+        await submit('team-a', '13', 'user-01', 13); // duplicate, not a second contribution
+        await dao.manage('views-g', 'team-a', 'admin', 'reset');
+        await submit('team-a', 'new-run', 'user-02', 1);
+        let result = await views.top('views-g', 'team-a');
+        expect(result.total).toBe('12');
+        expect(result.entries.slice(0, 3)).toEqual([
+            { author_id: 'user-01', contributions: '2', place: '1' },
+            { author_id: 'user-02', contributions: '2', place: '1' },
+            { author_id: 'user-03', contributions: '1', place: '3' },
+        ]);
+        const secondPage = await views.top('views-g', 'team-a', 'lifetime', 2);
+        expect(secondPage.entries.map(e => e.author_id)).toEqual(['user-11', 'user-12']);
+        expect((await views.top('views-g', 'team-a', 'lifetime', 3)).entries).toEqual([]);
+        expect((await views.top('views-g', 'team-a', 'run')).entries).toEqual([{ author_id: 'user-02', contributions: '1', place: '1' }]);
+        expect(await views.top('other-guild', 'team-a')).toBeUndefined();
+        await dao.manage('views-g', 'team-b', 'admin', 'setup', { roleId: 'role-b' });
+        await submit('team-b', 'b-1', 'user-10', 1);
+        await dao.manage('views-g', 'team-b', 'admin', 'pause');
+        await dao.manage('views-g', 'hidden', 'admin', 'setup', { roleId: 'role-hidden' });
+        await submit('hidden', 'hidden-1', 'user-10', 1);
+        const board = await views.leaderboard('views-g', ['team-a', 'team-b']);
+        expect(board.total).toBe('2');
+        expect(board.entries.map(e => [e.channel_id, e.place, e.current_count, e.record])).toEqual([
+            ['team-a', '1', '1', '13'], ['team-b', '1', '1', '1'],
+        ]);
+        expect((await views.leaderboard('views-g', [])).total).toBe('0');
+        expect((await views.leaderboard('other-guild', ['team-a'])).total).toBe('0');
+        await dao.manage('views-g', 'team-b', 'admin', 'retire');
+        expect((await views.leaderboard('views-g', ['team-a', 'team-b'])).total).toBe('1');
+        expect((await views.top('views-g', 'team-b')).entries).toHaveLength(1); // readable archived game
+        await dao.manage('views-g', 'team-a', 'admin', 'configure', { roleId: 'retained-role', history: 'retain' });
+        expect((await views.top('views-g', 'team-a')).total).toBe('12');
+        await dao.manage('views-g', 'team-a', 'admin', 'configure', { roleId: 'fresh-role', history: 'reset' });
+        result = await views.top('views-g', 'team-a');
+        expect(result.total).toBe('0');
+        expect(result.entries).toEqual([]);
+    });
+
 });
