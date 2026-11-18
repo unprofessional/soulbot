@@ -1,6 +1,6 @@
 # Role counting competition
 
-Status: Phases 1–2 merged through develop into master. Interim Phase 2.5 (guided UX) is the next priority before further gameplay features; analysis and delivery plan in `counting-guided-ux.md`. Live Discord smoke verification remains pending.
+Status: Phases 1–2 merged through develop into master. Interim Phase 2.5 (guided UX) is implemented on `feature/counting-guided-ux`, with review and live Discord usability gates pending; details in `counting-guided-ux.md`. Live Discord smoke verification remains pending.
 
 ## Practical outcome
 
@@ -163,7 +163,7 @@ Phases 2 and 3 do not depend on each other or on restoration. Phase 4 owns the d
 
 ### Phase 1 follow-up — Counting-channel availability notices
 
-**Status:** planned; not included in the existing Phase 1 implementation. Complete this small, separately testable lifecycle module before considering Phase 1 release-ready. It depends only on core counting and does not wait for the phase 4 action worker.
+**Status:** implemented with Phase 2.5D on `feature/counting-guided-ux`; live Discord verification pending. Complete this small, separately testable lifecycle module before considering Phase 1 release-ready. It depends only on core counting and does not wait for the phase 4 action worker.
 
 **Outcome:** every configured, non-retired counting channel receives its own shutdown/restart and recovery notices so members know submissions during an interruption may be missed. These notices are automatic and independent of the server's separately configured general bot-announcement channels.
 

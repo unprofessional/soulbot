@@ -5,6 +5,7 @@ const path = require('node:path');
 const { Collection, REST, Routes, Events } = require('discord.js');
 require('dotenv').config();
 const { shouldAcceptWork } = require('./app/lifecycle.js');
+const { handleComponent: handleCountingComponent } = require('./features/counting/ui.js');
 const {
     discordClientId,
     discordGuildId,
@@ -215,6 +216,8 @@ const initializeCommands = async (client) => {
                 }
                 return;
             }
+
+            if (await handleCountingComponent(interaction)) return;
 
             if (interaction.isChatInputCommand() || interaction.isMessageContextMenuCommand()) {
                 const command = client.commands.get(interaction.commandName);

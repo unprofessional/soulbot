@@ -1,3 +1,4 @@
+const { isCountingChannel } = require('../features/counting/notices.js');
 const { getBotAnnouncementChannels } = require('../store/guilds.js');
 
 const ONLINE_ANNOUNCEMENT = 'Soulbot is back online.';
@@ -27,7 +28,7 @@ async function sendBotAnnouncement(client, {
         return { sent: 0, failed: 0, skipped: 0 };
     }
 
-    const configuredChannels = await getBotAnnouncementChannels();
+    const configuredChannels = (await getBotAnnouncementChannels()).filter(c => !isCountingChannel(c.guildId, c.channelId));
     console.log(`[bot-announcements] Found ${configuredChannels.length} configured announcement channel(s) for ${eventName}.`);
 
     const results = await Promise.all(configuredChannels.map(async (config) => {

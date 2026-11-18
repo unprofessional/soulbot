@@ -58,3 +58,20 @@ test.each([
     expect(client.query.mock.calls.some(([sql]) => /^(UPDATE|INSERT)/.test(sql))).toBe(false);
     expect(client.query).toHaveBeenCalledWith('COMMIT');
 });
+
+test('management preview guards count and last-entry state under the transaction lock', async () => {
+    const { snapshot } = require('../store/dao/counting.dao.js');
+    const expected = snapshot({ ...game, current_count: 1, record: 1 });
+    // Config version stays unchanged while another count is accepted.
+    client.query.mockImplementation(async sql => {
+        if (sql.includes('SELECT *')) return { rows: [{ ...game, current_count: '2', last_message_id: 'new-count' }] };
+        return { rows: [], rowCount: 0 };
+    });
+    await expect(dao.manage('g', 'c', 'admin', 'reset', { expected })).rejects.toMatchObject({ code: 'COUNTING_STALE' });
+    expect(client.query.mock.calls.some(([sql]) => sql.startsWith('UPDATE'))).toBe(false);
+    expect(client.query).toHaveBeenCalledWith('ROLLBACK');
+});
+test('setup preview cannot replace a game created by another manager', async () => {
+    await expect(dao.manage('g', 'c', 'admin', 'setup', { roleId: 'r', expected: null })).rejects.toMatchObject({ code: 'COUNTING_STALE' });
+    expect(client.query.mock.calls.some(([sql]) => sql.includes('INSERT INTO counting_game'))).toBe(false);
+});
