@@ -21,7 +21,7 @@ Server managers can assign multiple counting channels to different roles so thos
 
 Proposed guild-only `/counting` commands:
 
-- `setup`: select an existing text channel, team role, mistake policy, and consecutive-turn policy.
+- `setup role`: in Phase 2.5B, invoke inside the target text channel and select only its existing team role. Start with take turns and preserve-progress defaults; change rules later through `configure`. This intentionally replaces the Phase 1 multi-option setup surface without changing existing games.
 - `configure`: update a game's rules or assigned role.
 - `pause` / `resume`: suspend or restore counting without losing progress.
 - `reset`: explicitly reset the current count while retaining the all-time record and audit history.
@@ -63,7 +63,7 @@ Parity means delivering every advertised capability below in the initial countin
 | Set a counting goal | Missing | Add an optional per-channel target, progress display, and one completion announcement per run/goal configuration. |
 | Pin selected numbers when reached | Missing | Add a bounded list of exact numbers to pin; persist and retry failed pin actions. |
 | Replace deleted/edited messages | Partial; state survived edits/deletion | Restore accepted entries visibly without accepting a second contribution or changing turns. |
-| `/counting` management | Covered in proposal | Extend setup/configuration with parity settings and goal/pin management. |
+| `/counting` management | Covered in proposal | Keep setup role-only with sensible defaults; expose parity settings and goal/pin management after setup through configuration. |
 | `/help` | Missing for counting | Add a counting help surface through the existing help conventions, including rules, examples, and commands. |
 | `/currentcount` | Equivalent status proposed | Provide a discoverable current-count action showing the accepted count and next expected number. |
 | `/settings` | Equivalent configure proposed | Provide settings inspection for members and authorized editing for managers. |
@@ -232,7 +232,7 @@ Use persisted numbers per channel, not the latest visible Discord message. For p
 
 The source audit found generic command descriptions, identical current/settings/status responses, ambiguous defaults/history options, misleading role-assignment wording, generic success messages, and missing recovery/navigation guidance. This phase makes the existing feature understandable without reading the manual.
 
-Deliver four independently functional steps: **2.5A** clear language, distinct read views, an explicit channel/team/eligibility discovery list, and the manager first-run preparation checklist; **2.5B** guided setup and safe management confirmations; **2.5C** navigation and understandable rankings; **2.5D** operational clarity, the existing lifecycle notices, and first-time-user verification. Preserve slash names, gameplay rules, counts, and history.
+Deliver four independently functional steps: **2.5A** clear language, distinct read views, an explicit channel/team/eligibility discovery list, and the manager first-run preparation checklist; **2.5B** role-only setup inside the target channel, defaults coaching, and safe management confirmations; **2.5C** navigation and understandable rankings; **2.5D** operational clarity, the existing lifecycle notices, and first-time-user verification. Preserve slash names, gameplay rules, counts, and history.
 
 **Exit:** a new manager can set up two competing teams, and a new member can find the next number, understand their turn, recover from errors, and browse standings without external documentation. Privacy, transaction safety, and legacy command behavior remain covered. Live Discord usability verification is required; a rewritten help paragraph alone does not close this phase.
 
