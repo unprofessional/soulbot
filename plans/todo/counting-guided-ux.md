@@ -1,0 +1,161 @@
+# Counting Phase 2.5 — Guided setup and everyday use
+
+Status: analysis complete; proposed implementation, not implemented.
+
+Priority: next counting work, before Phases 3–5 add options. Phases 1–2 are already merged into master through PRs #105–#108. Preserve their counting rules and data. This phase includes delivery of the existing counting-channel lifecycle-notice follow-up; its detailed behavior remains in the main counting plan.
+
+## Outcome
+
+A manager who has never read the manual can set up two competing teams, understand the rules they chose, and tell members how to start. A member entering a counting channel can discover who may count, the next number, whether it is their turn, and what to do after a rejection or outage. Every response answers the relevant question and offers one clear next action.
+
+## Analysis of the current experience
+
+This is a source-based UX audit of the merged command definitions, interaction router, counting service, views, and README. It is not a live Discord usability test. Findings below describe implemented behavior; suggested flows are new work.
+
+| Current evidence | First-time user problem | Required improvement |
+| --- | --- | --- |
+| Subcommand descriptions are generated as `current a counting game`, `settings a counting game`, etc. | The picker does not explain what selecting a command accomplishes. | Give each command an outcome-based description. |
+| Help is one paragraph containing setup, member rules, administration, standings, and future features. It requires the service and a normal text-channel context to be available. | Users must already know which part applies to them; help can fail when most needed. | A short, context-aware starting point with separate member and manager guidance; generic help works without a configured game or healthy database. |
+| `current`, `status`, and `settings` share the same response branch. | Three commands appear interchangeable and bury the next number in operational detail. | Separate next-turn, rules, and manager diagnosis views. |
+| Help says setup will “assign a team role”; setup actually associates an existing role with a game. | Managers may believe the bot grants roles or segregates channel access. | Say explicitly: members must already hold the role, and managers control channel access. |
+| Setup immediately creates an active game and returns `Counting setup completed`. | Managers cannot see default behavior or the effect on ordinary messages before activation; no next step is supplied. | Preview channel, team, rules, and cleanup behavior before activation; return a ready-to-use handoff. |
+| Optional channel defaults to the invoking channel for most commands; server standings have no channel target. | Users do not know which channel an action affects or whether a channel is needed. | Always name the target; distinguish channel actions from server-wide standings. |
+| `consecutive`, `reject`, `reset`, `scope:run`, and `history:reset` appear without clear consequences. | A Boolean or short choice label hides game behavior and data consequences. | Explain alternation, mistakes, run totals, and retained/reset team history in plain language with examples. |
+| All management successes use the same generic completion message. | Users cannot tell what changed, what was preserved, or how to continue. | Action-specific before/after summary and next command. |
+| Reset, retirement, and team-history reset execute without a preview. | Managers can unintentionally restart a game or erase the current team's displayed totals. | Confirm consequential actions with their exact effect and target. |
+| Rejection messages identify a rule but often omit the affected team, whether progress changed, or a usable recovery path. Required-permission loss can consume attempts silently. | Members cannot distinguish their own mistake from a paused game or bot problem. | Concise reason + saved progress/next number + appropriate member/manager next action; bounded operational notices for failures. |
+| Status combines stored state with `Permissions: ready` and technical failures can surface directly. | A paused game can appear “ready”; members see database language instead of an explanation. | Show one effective availability state; keep technical details in manager diagnostics/logs. |
+| Rankings use “lifetime (current history)”, `run`, raw state values, and page numbers with no navigation. Deleted roles can render unresolved mentions. | Users cannot interpret totals, ties, or how to see the next page. | Human labels, units, relevant empty-state guidance, valid navigation, and deleted-role fallback. |
+| Counting-channel startup/shutdown notices remain only planned. | A member can continue posting through an outage without knowing which entries counted. | Implement the existing lifecycle notice contract; recovery explicitly shows saved last/next numbers. |
+
+## Experience contract
+
+- Lead with the answer or outcome. Use short fields or small embeds where they aid scanning; do not rely on color or emoji alone.
+- Distinguish **play**, **rules**, **team standings**, **contributors**, and **management**. Explain only options relevant to the current action.
+- Name the channel and team whenever showing game-specific information. Suppress mentions by default.
+- Show actual effective settings, not just defaults. On setup, omitted values mean the documented defaults; on configure, omitted values keep existing settings.
+- Use “take turns” for alternation, “wrong numbers keep progress / restart at 1” for mistake rules, “since the last restart at 1” for a run, and “all accepted contributions for this team history” for lifetime totals. Ordinary bot restarts do not start a new run.
+- Retain existing slash command names and option identifiers for compatibility. Improve command/option descriptions and displayed choice labels; do not add synonyms for every existing action.
+- Offer working slash-command examples with actual channel references. Buttons may shorten navigation, but every read flow retains a slash-command fallback.
+- Never require a manual, repository access, or bot logs for normal member use. Generic help and safe operational explanations do not depend on successful game queries.
+- Do not advertise text/images, goals, pins, attacks, or restoration before their phases ship. Explain current limitations only where they affect the user's next action.
+
+## Command and option map
+
+| Surface | Purpose and response | Next step |
+| --- | --- | --- |
+| `/counting help` | Starting point: “Count together in order. Teams compete in separate channels.” Explain how to play, discover accessible games, and show manager setup steps only to managers. | Play in an accessible channel; managers can set up a team. |
+| `/counting current [channel]` | Channel/team, saved last number, next number, and viewer turn eligibility. No full permission dump. | “Post 43” or “Another teammate must post 43.” Paused/unavailable states explain why posting will not count. |
+| `/counting settings [channel]` | Readable rules: team eligibility, take-turn policy, wrong-number behavior, accepted input, cleanup behavior. | Members: current number. Managers: example configure command with this channel. |
+| `/counting status [channel]` | Effective availability and progress. Members receive a short explanation; managers receive named missing permissions/target problems and specific repair steps. | Resume, repair permissions, choose a replacement role, or retry status as applicable. |
+| `/counting setup channel role` | Preview the chosen channel/team, defaults, requirements, and activation effects; confirm before creating the game. | Acknowledge setup, show how two members begin, and offer a channel guide. |
+| `/counting configure [channel]` | No supplied changes: show editable settings with examples, not a meaningless success. Supplied changes: preview affected settings; confirm a team reassignment. | Show effective rules and current number after the change. |
+| `/counting leaderboard [page]` | “Team standings — ranked by current count”; show channel, team, current, best, and readable availability. Explain tied places briefly. | Open an accessible game or request a valid next page. |
+| `/counting top [channel] [scope] [page]` | “Top contributors — accepted numbers”; explain selected period and retain/reset semantics in a short footer. | Switch period or request a valid next page. |
+| `/counting pause/resume/reset/retire [channel]` | Explain and confirm consequences as specified below; report actual resulting state and preserved data. | A concrete continue/recover action. |
+
+Option descriptions must state the default and effect wherever space permits; longer explanations belong in the preview/settings response. The `history` choice is relevant only when changing the team role; reject or explain irrelevant history choices rather than implying they did something.
+
+### Management consequences
+
+- **Pause:** stop accepting counts; preserve current progress and totals. Resume continues from the saved next number.
+- **Resume:** revalidate prerequisites and report the next number and turn rule. If blocked, show the exact repair instead of success.
+- **Reset:** preview the current value and return to 1; preserve the best count and lifetime contributor totals; clear current-run totals/last-turn restriction. Require confirmation.
+- **Retire:** preview removal from active competition and team standings, preservation of history, normal channel chat behavior, and how to reactivate later. Require confirmation. Do not describe it as deleting the channel or all data.
+- **Change team:** require an explicit keep/start-fresh choice; confirm both alternatives' concrete effects on count, record, and contributor totals. “Start fresh” archives prior data rather than physically deleting it. Explain that retaining history credits previous activity to the replacement team.
+- **Setup in an existing/retired game channel:** show its actual state and configure/resume options. Do not send the manager through a dead-end “already exists” error.
+
+### Example responses
+
+Member current view:
+
+> **#red-count · Red Team**  
+> Last: **42** · Next: **43**  
+> You counted last. Another teammate must post **43**.  
+> Post numbers only. See `/counting settings` for the rules.
+
+Setup preview:
+
+> **Start counting in #red-count for Red Team?**  
+> Start at **1**. Teammates take turns. Wrong numbers keep progress.  
+> Members need Red Team already; this does not assign roles or change channel access.  
+> Only counting posts belong here while active. Invalid posts are removed when Soulbot has permission.  
+> **Start counting** · **Cancel**
+
+Setup success:
+
+> **Red Team is ready in #red-count.**  
+> One teammate posts **1**, a different teammate posts **2**.  
+> Members need the Red Team role and permission to send messages here.  
+> Next: check channel access, then **Post channel guide** or open the channel.
+
+Mistake with preserved progress:
+
+> Expected **43**. Your number was not counted. Progress stays at **42**. Another eligible teammate can post **43**.
+
+The final turn wording must be derived from current rules and last accepted author; do not claim every member can submit when one must wait. For reset mistakes, say `Count restarted. Next: 1.` and explain preserved totals in settings, not in every rejection.
+
+Recovery notice (retain the existing minimal-copy requirement):
+
+> Back online. Offline numbers may be missed. Last: **42**. Next: **43**.
+
+## Modular delivery sequence
+
+### 2.5A — Clear language and distinct read views
+
+**Scope:** presentation helpers, command descriptions, context-aware help, separate current/settings/status responses, plain-language options, action-specific success/error copy, empty states, deleted-role labels, and textual pagination instructions. Include count/turn eligibility reads without mutating acceptance.
+
+Generic help works without a configured game, from supported guild contexts, and during counting-store unavailability. It must not require fetching a channel the user cannot access. An unconfigured channel gives a manager a concrete setup example; members get accessible-channel discovery or “Ask a server manager to set up a counting channel.” Hidden games never appear in discovery or diagnostics.
+
+**Exit:** every existing slash command remains functional; each response has its own purpose, actual target, and next step. No placeholder buttons or references to later subphases. Count acceptance, permissions, and rankings are unchanged.
+
+### 2.5B — Guided setup and safe management
+
+**Scope:** setup preview/confirm/cancel, team-reassignment preview, reset/retire confirmation, and an explicit manager action to post a short public channel guide after setup. The guide explains eligibility, take turns, mistakes, accepted input, and `/counting current`; it does not print a next number that will become stale. Posting does not auto-pin or change permissions. A manager can regenerate it from help/settings after changing rules; label it with its posting time and tell readers that `/counting settings` shows current rules.
+
+A guide publication failure must not undo successful setup: report “Game created; guide could not be posted” with a retry path. All previews stay private; publishing a guide requires an explicit manager click. Buttons use the interaction infrastructure described below. Setup remains usable through the slash command and its confirmation, without a multistep wizard or new gameplay state.
+
+**Exit:** a new manager can create two teams and hand off play without documentation. Cancel/expired previews make no changes; double clicks cannot duplicate an action. Confirmations recheck current permissions, target state, and the data shown in the preview before applying it. Existing commands continue to work when optional guide publication fails.
+
+### 2.5C — Navigation and useful rankings
+
+**Scope:** lightweight read-only navigation between current/rules/teams/contributors, period selection, and Previous/Next ranking controls. Reuse the same renderers as slash commands. Hide/disable invalid pages; typed out-of-range requests explain the range and offer the last valid page rather than `Page 99/2`. Keep live-result disclosure and shared-rank semantics.
+
+**Exit:** navigation works for ordinary members; managers do not need to teach command syntax to browse. Every click refreshes permissions before querying/displaying results. Expired controls explain how to reopen the view. Fallback slash commands remain usable without components. No additional ranking data or changes to scoring.
+
+### 2.5D — Operational clarity and first-time-user gate
+
+**Scope:** implement the already-planned Phase 1 counting-channel down/restart/up notices, using that specification rather than inventing another outage policy. Add effective-state display, actionable manager repair messages, and a bounded per-channel operational-notice policy for failures that currently swallow submissions silently. Store/database failures must not be called member mistakes or successful counting; when channel feedback is possible, say acceptance could not be confirmed and point to the current-count command. Deduplicate/rate-limit these notices and avoid an error reply for every queued message.
+
+If the saved count cannot be read, say it is unavailable; never invent last/next values. Only show “ready to count” when the game is active and required prerequisites are healthy. A known paused/suspended/retired state takes precedence over a green permission check. Keep optional reaction/cleanup/ranking problems distinct from a counting outage.
+
+**Exit:** a restart or permission problem gives members an explanation and managers a recovery path. Test the whole journey with a manager and members who have not read the manual. Completion of the lifecycle adapter also closes the existing Phase 1 follow-up checkbox; it is one implementation, not two.
+
+## Implementation boundaries and interaction safety
+
+- Extract counting presentation/context helpers so slash responses, buttons, guides, and notices use the same terminology and effective rules. Keep the write DAO and accepted-entry ledger authoritative.
+- Extend the central interaction router to dispatch counting-owned components explicitly; today it handles chat/context commands and warns for other interaction types. Route other features unchanged. Apply lifecycle/drain handling to component work too.
+- Use short-lived, user/guild/channel-bound confirmation sessions with opaque identifiers and a defined timeout (two minutes). Restart loses an unconfirmed preview safely. Session expiry/cancel returns a fresh slash-command path. Do not trust action/role/permission claims encoded in client-controlled component values.
+- Re-fetch membership/visibility and recheck management authorization on every action. Under the existing transaction lock, atomically compare the previewed game/history/run/configuration and relevant count/last-entry state before executing consequential actions. The current configuration version alone is insufficient because accepted counts do not increment it. If data changed, show an updated preview and require confirmation again.
+- Successful confirmation consumes its session; duplicate events cannot repeat resets/retirement/setup. Revalidate the final state inside the transaction, not only before opening the preview.
+- Keep read responses private and suppress mentions. Public guides/notices are limited to their game channel and contain no private-channel or member diagnostic details.
+- Map expected errors to user-facing reasons and next steps. Unexpected errors get a short reference for managers; detailed database/API messages stay in logs.
+- Avoid migrations to gameplay data or changes to acceptance, scores, eligibility, history, or offline policy. Confirmation safeguards may extend management APIs; they must use the existing transaction boundary and preserve audit events.
+- Existing games gain the improved UI immediately after command registration refresh. No setup rerun, count reset, role reconfiguration, or guide publication is required. Optional UI sessions/guides failing must not disable core counting.
+
+## Verification and acceptance
+
+Automate behavior where regression would matter: context-to-view/turn mapping, permission-gated discovery and actions, setup/management confirmation expiry/cancellation/duplicates, stale-preview handling during counts/resets/reassignment, effective availability, page bounds, generic-help fallback, and integration routing of both slash and component actions. Do not rely on screenshots or exact-copy assertions alone. Preserve the existing counting/PostgreSQL suite.
+
+Discord usability gate:
+
+1. Give a manager only the goal “make Red and Blue teams compete.” They can find help, choose channels/roles, understand defaults, activate both, and explain manual access/role assignment without the README.
+2. A member sees the channel guide, finds the saved/next number, and understands waiting for another teammate. They can recover from a wrong number, missing role, or paused game without guessing.
+3. A manager can explain what reset, retire, and team-history choices preserve before confirming; cancellation and expiry change nothing. Counting during a preview cannot cause an outdated confirmation to erase unexpected progress.
+4. Members can distinguish team standings from personal contributions, explain the period, and browse a second page. A hidden channel contributes no entry, rank, page total, or navigation target.
+5. A restart produces warnings/recovery notices with accurate saved numbers. Missing permissions or a store failure never appear as a successful count or misleading “ready” status.
+6. A newcomer can use all of the above on Discord's narrow/mobile layout; messages remain short enough to scan and controls have explicit text labels. Record misunderstandings and resolve blocking ones before marking the phase complete.
+
+## Non-goals
+
+New gameplay, more parsing options, automated role assignment/permission changes, a web dashboard, leaderboards beyond Phase 2, automatic pins, and future rewards/effects. Do not resume Phases 3–5 until this interim usability gate is complete or explicitly reprioritized.

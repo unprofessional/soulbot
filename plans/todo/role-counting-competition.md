@@ -1,6 +1,6 @@
 # Role counting competition
 
-Status: Phase 1 implemented on `feature/role-counting-phase-1`; targeted automated checks pass. PostgreSQL integration verified by Moldy during PR #105 review; Discord smoke verification pending. Phase 2 implemented on `feature/role-counting-phase-2`; verification notes below. Phases 3–6 remain todo.
+Status: Phases 1–2 merged through develop into master. Interim Phase 2.5 (guided UX) is the next priority before further gameplay features; analysis and delivery plan in `counting-guided-ux.md`. Live Discord smoke verification remains pending.
 
 ## Practical outcome
 
@@ -122,12 +122,13 @@ Each phase is a separate, reviewable delivery with its own migration, commands, 
 | --- | --- | --- |
 | 1. Core counting | None | Multiple role channels can count reliably and managers can operate them. |
 | 2. Competition views | 1 | Members can compare teams and individual contributors. |
-| 3. Flexible input | 1 | Each channel can independently allow text and images. |
+| 2.5. Guided UX | 1–2 | First-time managers and members can set up, play, navigate, and recover without the manual. |
+| 3. Flexible input | 1, 2.5 UX gate | Each channel can independently allow text and images. |
 | 4. History restoration | 1 | Accepted entries can be restored after edits/deletions. |
 | 5. Goals and pins | 4 | Goals announce completion and configured numbers are pinned, including restored entries. |
 | 6. Parity release | 1–5 | The combined feature meets the full advertised parity contract. |
 
-Phases 2 and 3 do not depend on each other or on restoration. Phase 4 owns the durable Discord-action infrastructure reused by phase 5; do not make core acceptance depend on either module. Suggested execution order is numerical.
+Phases 2 and 3 do not depend on each other or on restoration. Phase 4 owns the durable Discord-action infrastructure reused by phase 5; do not make core acceptance depend on either module. Implement [Phase 2.5 — Guided setup and everyday use](counting-guided-ux.md) next. It takes priority over Phases 3–5 and incorporates the already-planned Phase 1 lifecycle-notice follow-up. Subsequent feature phases must use its interaction and explanation patterns.
 
 ### Phase 1 — Complete core counting
 
@@ -220,10 +221,20 @@ Use persisted numbers per channel, not the latest visible Discord message. For p
 - Query the accepted-entry ledger directly with one statement per view, joining current history/run in the same snapshot. No aggregate backfill or acceptance hooks. Lifetime totals survive ordinary resets and retained-history reassignment; reset-history reassignment starts empty.
 - Initialize the optional accepted-entry index separately from core schema readiness. View initialization/query failure cannot disable core counting.
 - Unit/command/privacy coverage and a disposable-PostgreSQL scenario cover ties, pagination, guild/channel isolation, resets, retirement, rejected/duplicate attempts, and both reassignment choices. Validation results are recorded with the PR; live Discord smoke testing remains required.
-- Verification: 51 counting tests pass; changed-file lint and whitespace checks pass. Full-suite verification runs in the commit hook. Three opt-in PostgreSQL tests (including the new Phase 2 scenario) remain skipped because Docker container requests time out; live Discord testing is also pending.
+- Verification: 51 counting tests pass; changed-file lint and whitespace checks pass. Full-suite verification runs in the commit hook. The author run skipped three opt-in PostgreSQL tests because Docker timed out; Moldy subsequently independently verified all 3/3 on a disposable database in PR #107 and approved it. Live Discord testing remains pending.
 - The Phase 1 lifecycle-notice follow-up remains planned and is separate from this phase.
 
 **Deployment and fallback:** existing ledger data is queryable immediately after view initialization; no backfill is needed. View initialization failure disables only ranking commands. Preserve the existing ledger/index when reverting the optional module; core counting and stored contributions remain usable.
+
+### Interim Phase 2.5 — Guided setup and everyday use
+
+**Priority:** next, before additional gameplay features. [Detailed audit, examples, modular deliveries, and usability gate](counting-guided-ux.md).
+
+The source audit found generic command descriptions, identical current/settings/status responses, ambiguous defaults/history options, misleading role-assignment wording, generic success messages, and missing recovery/navigation guidance. This phase makes the existing feature understandable without reading the manual.
+
+Deliver four independently functional steps: **2.5A** clear language and distinct read views; **2.5B** guided setup and safe management confirmations; **2.5C** navigation and understandable rankings; **2.5D** operational clarity, the existing lifecycle notices, and first-time-user verification. Preserve slash names, gameplay rules, counts, and history.
+
+**Exit:** a new manager can set up two competing teams, and a new member can find the next number, understand their turn, recover from errors, and browse standings without external documentation. Privacy, transaction safety, and legacy command behavior remain covered. Live Discord usability verification is required; a rewritten help paragraph alone does not close this phase.
 
 ### Phase 3 — Configurable text and image input
 
@@ -341,6 +352,7 @@ Out of scope for launch: bonuses, attacks, currencies, inventories, alliances, s
 - [ ] Phase 1: core counting and essential operation complete; exit checks pass.
 - [ ] Phase 1 follow-up: per-channel down/restart/up notices complete; lifecycle and Discord checks pass.
 - [ ] Phase 2: team/contributor views complete; exit checks pass.
+- [ ] Phase 2.5: guided UX steps A–D complete; first-time-user Discord gate passes.
 - [ ] Phase 3: flexible input complete; exit checks pass.
 - [ ] Phase 4: durable restoration complete; exit checks pass.
 - [ ] Phase 5: goals and pins complete; exit checks pass.
