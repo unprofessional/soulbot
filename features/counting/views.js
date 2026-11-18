@@ -2,7 +2,7 @@ const fs = require('node:fs/promises');
 const path = require('node:path');
 const { pool } = require('../../store/db/pool.js');
 const { canRead } = require('./permissions.js');
-const { roleLabel, stateLabel } = require('./presentation.js');
+const { stateLabel } = require('./presentation.js');
 const { CountingViewsDAO, PAGE_SIZE } = require('../../store/dao/counting_views.dao.js');
 const dao = new CountingViewsDAO();
 let available = false;
@@ -22,12 +22,12 @@ async function buildView(i, viewer, action, params = {}) {
     if (!available) throw Object.assign(new Error('Counting rankings are unavailable. Core counting is still available.'), { userFacing: true });
     const page = params.page ?? i.options?.getInteger?.('page') ?? 1;
     // Refresh channel overwrites and role permissions; never rank hidden games and filter afterward.
-    const [channels, roles] = await Promise.all([i.guild.channels.fetch(), i.guild.roles.fetch()]);
+    const [channels] = await Promise.all([i.guild.channels.fetch(), i.guild.roles.fetch()]);
     let content, result, scope, channelId;
     if (action === 'leaderboard') {
         const visibleIds = [...channels.values()].filter(c => canRead(c, viewer, i.guildId)).map(c => c.id);
         result = await dao.leaderboard(i.guildId, visibleIds, page);
-        const lines = result.entries.map(row => `${row.place}. <#${row.channel_id}> · ${roleLabel(row, roles)} — ${row.current_count} (record ${row.record}; ${stateLabel(row.state)})`);
+        const lines = result.entries.map(row => `${row.place}. <#${row.channel_id}> — ${row.current_count} (record ${row.record}; ${stateLabel(row.state)})`);
         content = `**Team standings — ranked by current count**\n${lines.join('\n') || (Number(result.total) ? 'No entries on this page.' : 'No visible counting teams. Use /counting help to find a game or manager setup steps.')}\n${pageFooter(result, page)}`;
     } else {
         channelId = params.channelId || i.options?.getChannel?.('channel')?.id || i.channelId || i.channel?.id;

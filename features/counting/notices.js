@@ -1,6 +1,7 @@
 const { randomBytes, createHash } = require('node:crypto');
-const { diagnostics } = require('./permissions.js');
+const { diagnostics, liveAllowedRoles } = require('./permissions.js');
 const { next } = require('./presentation.js');
+const { rolesOf } = require('./domain.js');
 const keyOf = (guildId, channelId) => `${guildId}:${channelId}`;
 const configured = new Set();
 function isCountingChannel(guildId, channelId) { return configured.has(keyOf(guildId, channelId)); }
@@ -117,11 +118,12 @@ class CountingNotices {
             const channel = await bounded(this.channel(game), this.timeout);
             const current = await bounded(this.dao.get(game.guild_id, game.channel_id), this.timeout);
             if (!current || current.state === 'retired') return;
-            const role = channel && await bounded(channel.guild.roles.fetch(current.role_id).catch(error => { if (error.code === 10011) return null; throw error; }), this.timeout);
-            if (!channel || !role) {
-                await bounded(this.dao.suspendMissing(game.guild_id, !channel ? 'channel_id' : 'role_id', !channel ? game.channel_id : current.role_id), this.timeout);
+            const roles = channel && await bounded(liveAllowedRoles(channel.guild, current), this.timeout);
+            if (!channel) await bounded(this.dao.suspendMissing(game.guild_id, 'channel_id', game.channel_id), this.timeout);
+            else {
+                for (const id of rolesOf(current)) if (!roles.has(id)) await bounded(this.dao.suspendMissing(game.guild_id, 'role_id', id), this.timeout);
             }
-            const state = !channel || !role || diagnostics(channel, channel.guild).required.length ? 'suspended' : current.state;
+            const state = !channel || !roles?.size || diagnostics(channel, channel.guild).required.length ? 'suspended' : current.state;
             const prefix = state === 'active' ? 'Back online.' : `Bot online; counting ${state === 'paused' ? 'paused' : 'suspended'}.`;
             const suffix = current.current_count === Number.MAX_SAFE_INTEGER ? 'Limit reached; reset needed.' : `Next: ${next(current)}.`;
             if (!isCurrent()) return;

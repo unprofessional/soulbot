@@ -11,14 +11,14 @@ class CountingViewsDAO {
         const offset = pageOffset(page);
         const result = await this.db.query(`
             WITH ranked AS (
-                SELECT channel_id, role_id, state, current_count, record,
+                SELECT channel_id, state, current_count, record,
                        RANK() OVER (ORDER BY current_count DESC) AS place
                 FROM counting_game
                 WHERE guild_id=$1 AND channel_id=ANY($2::text[]) AND state <> 'retired'
             )
             SELECT (SELECT COUNT(*)::text FROM ranked) AS total,
                    COALESCE((SELECT json_agg(entries) FROM (
-                       SELECT channel_id, role_id, state, current_count::text, record::text, place::text
+                       SELECT channel_id, state, current_count::text, record::text, place::text
                        FROM ranked ORDER BY current_count DESC, channel_id ASC LIMIT $3 OFFSET $4
                    ) entries), '[]'::json) AS entries`, [guildId, visibleChannelIds, PAGE_SIZE, offset]);
         return result.rows[0];
