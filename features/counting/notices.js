@@ -23,7 +23,7 @@ class CountingNotices {
     remember(game) {
         remember(game);
         const key = keyOf(game.guild_id, game.channel_id);
-        if (game.state === 'retired') { this.games.delete(key); this.blocked.delete(key); } else this.games.set(key, game);
+        if (game.state === 'retired') { this.games.delete(key); this.blocked.delete(key); this.episodes.delete(key); this.health.delete(key); this.cutoffs.delete(key); } else this.games.set(key, game);
     }
     status(guildId, channelId) { return this.health.get(keyOf(guildId, channelId)) || ''; }
     isBlocked(guildId, channelId) { return [...this.scans.values()].some(id => id === null || id === this.client.guilds.cache.get(guildId)?.shardId) || this.disconnected.has(this.client.guilds.cache.get(guildId)?.shardId) || this.blocked.has(keyOf(guildId, channelId)); }
@@ -126,9 +126,11 @@ class CountingNotices {
             const suffix = current.current_count === Number.MAX_SAFE_INTEGER ? 'Limit reached; reset needed.' : `Next: ${next(current)}.`;
             if (!isCurrent()) return;
             await this.send(channel, `${prefix} Offline numbers may be missed. Last: ${current.current_count}. ${suffix}`, createHash('sha256').update(`recovery:${this.instance}:${key}:${epoch}`).digest('hex').slice(0, 24));
+            if (!isCurrent()) return;
             this.health.set(key, 'Recovery notice delivered.');
             this.clearFailure(key);
         } catch (error) {
+            if (!isCurrent()) return;
             this.health.set(key, `Recovery notice failed (attempt ${attempt + 1}/3). Check channel access; /counting status shows saved progress.`);
             console.error('[counting] Recovery notice failed:', game.channel_id, error.message);
             if (attempt < 2 && this.accepting() && isCurrent()) {

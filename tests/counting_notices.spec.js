@@ -124,3 +124,12 @@ test('temporary guild unavailability cannot suspend a game as a deleted target',
     const { notice, guild, dao } = fixture; guild.available = false;
     await notice.recover(); expect(dao.suspendMissing).not.toHaveBeenCalled();
 });
+
+test('retiring a game cancels queued outage-warning retries', async () => {
+    const { notice, channels, timers, advance } = fixture;
+    const channel = channels.get('c'); channel.send.mockRejectedValue(Error('denied'));
+    await notice.failure(channel); expect(timers).toHaveLength(1);
+    notice.remember({ ...base, state: 'retired' }); advance(5000);
+    await timers[0](); for (let i = 0; i < 10; i++) await Promise.resolve();
+    expect(channel.send).toHaveBeenCalledTimes(1); expect(notice.status('g', 'c')).toBe('');
+});
