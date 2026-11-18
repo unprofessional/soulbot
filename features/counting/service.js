@@ -8,6 +8,7 @@ const { shouldHandle, rolesOf } = require('./domain.js');
 const { initializeViews } = require('./views.js');
 const { diagnostics, liveAllowedRoles } = require('./permissions.js');
 const { rejection } = require('./presentation.js');
+const { OfflineFeedback, isNumberAttempt } = require('./offline_feedback.js');
 const { CountingNotices, bounded } = require('./notices.js');
 const dao = new CountingDAO();
 let ready = false;
@@ -26,6 +27,7 @@ function serial(key, fn) {
     return track(work);
 }
 let notices;
+let offlineFeedback;
 function getNotices() { return notices; }
 function connected(guildId, channelId) {
     return onlineSince !== Infinity && !notices?.isBlocked(guildId, channelId);
@@ -48,12 +50,20 @@ async function processMessage(message) {
     };
     if (!shouldHandle(game, attempt)) return false;
     if (message.author.bot || message.webhookId) return true;
-    if (diagnostics(message.channel, message.guild).required.length || !connected(message.guildId, message.channelId)) {
-        await notices?.failure(message.channel); return true;
-    }
-    // Never replay old submissions after startup, including delayed duplicate gateway events.
-    if (message.createdTimestamp < Math.max(onlineSince, notices?.cutoff(message.guildId, message.channelId) || 0)) return true;
-    return serial(`${message.guildId}:${message.channelId}`, async () => {
+    const processed = await serial(`${message.guildId}:${message.channelId}`, async () => {
+        // Check the cutoff under the same queue as recovery and counting. Gap posts never replay.
+        const cutoff = Math.max(onlineSince, notices?.cutoff(message.guildId, message.channelId) || 0);
+        if (message.createdTimestamp < cutoff) {
+            return { offlineReply: await offlineFeedback.prepare(message, cutoff) };
+        }
+        if (diagnostics(message.channel, message.guild).required.length || !connected(message.guildId, message.channelId)) {
+            if (isNumberAttempt(message) && shouldAcceptWork()) {
+                try {
+                    if (!await bounded(dao.hasMessageEvent(message.guildId, message.channelId, message.id))) await notices?.failure(message.channel);
+                } catch (error) { console.error('[counting] Outage message check failed:', error.message); }
+            }
+            return true;
+        }
         let missing = [], validIds;
         const result = await dao.submit(message.guildId, message.channelId, attempt, async current => {
             const roles = await liveAllowedRoles(message.guild, current);
@@ -79,6 +89,12 @@ async function processMessage(message) {
         } catch (error) { console.error('[counting] Feedback failed; committed state retained:', error.message); }
         return true;
     });
+    if (processed && typeof processed === 'object' && Object.hasOwn(processed, 'offlineReply')) {
+        // Delivery is tracked and bounded, but never holds the channel queue/recovery gate.
+        await offlineFeedback.deliver(message, processed.offlineReply);
+        return true;
+    }
+    return processed;
 }
 async function handleMessage(message) {
     if (!message.guildId) return false;
@@ -86,7 +102,7 @@ async function handleMessage(message) {
     try { return await track(processMessage(message)); }
     catch (error) {
         console.error('[counting] Submission failed:', error.message);
-        if (notices?.games.has(`${message.guildId}:${message.channelId}`)) await notices.failure(message.channel, !error.missingRoles);
+        if (isNumberAttempt(message) && notices?.games.has(`${message.guildId}:${message.channelId}`)) await notices.failure(message.channel, !error.missingRoles);
         for (const id of error.missingRoles || []) await dao.suspendMissing(message.guildId, 'role_id', id).catch(console.error);
         // Fail closed: an uncertain counting submission must not enter transformation handlers.
         return true;
@@ -99,6 +115,7 @@ async function initializeCounting(client) {
         ready = true;
         await initializeViews();
     } catch (error) { console.error('[counting] Unavailable: schema initialization failed', error.message); }
+    offlineFeedback = new OfflineFeedback({ dao, accepting: shouldAcceptWork });
     notices = new CountingNotices({ dao, client, serial, track, accepting: shouldAcceptWork });
     if (ready && typeof dao.list === 'function') {
         try { await bounded(notices.load()); } catch (error) { console.error('[counting] Notice configuration unavailable:', error.message); }

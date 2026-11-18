@@ -1,6 +1,6 @@
-const { randomBytes, createHash } = require('node:crypto');
+const { randomBytes } = require('node:crypto');
 const { diagnostics, liveAllowedRoles } = require('./permissions.js');
-const { next } = require('./presentation.js');
+const { nextNumberSentence } = require('./presentation.js');
 const { rolesOf } = require('./domain.js');
 const keyOf = (guildId, channelId) => `${guildId}:${channelId}`;
 const configured = new Set();
@@ -19,7 +19,7 @@ class CountingNotices {
     constructor({ dao, client, serial, track, accepting, now = Date.now, timeout = 4000, schedule = setTimeout }) {
         Object.assign(this, { dao, client, serial, track, accepting, now, timeout, schedule });
         this.games = new Map(); this.blocked = new Set(); this.cutoffs = new Map(); this.health = new Map(); this.episodes = new Map();
-        this.generation = new Map(); this.disconnected = new Set(); this.inflight = new Map(); this.recoveredGeneration = new Map(); this.scans = new Map(); this.instance = randomBytes(8).toString('hex');
+        this.generation = new Map(); this.disconnected = new Set(); this.inflight = new Map(); this.recoveredGeneration = new Map(); this.scans = new Map();
     }
     remember(game) {
         remember(game);
@@ -90,7 +90,7 @@ class CountingNotices {
                 }
             }));
         })().catch(error => {
-            console.error('[counting] Recovery notice scan failed:', error.message);
+            console.error('[counting] Recovery scan failed:', error.message);
             if (scanAttempt < 2 && this.accepting()) {
                 const timer = this.schedule(() => {
                     if (this.accepting()) this.recover(shardId, scanAttempt + 1);
@@ -124,17 +124,13 @@ class CountingNotices {
                 for (const id of rolesOf(current)) if (!roles.has(id)) await bounded(this.dao.suspendMissing(game.guild_id, 'role_id', id), this.timeout);
             }
             const state = !channel || !roles?.size || diagnostics(channel, channel.guild).required.length ? 'suspended' : current.state;
-            const prefix = state === 'active' ? 'Back online.' : `Bot online; counting ${state === 'paused' ? 'paused' : 'suspended'}.`;
-            const suffix = current.current_count === Number.MAX_SAFE_INTEGER ? 'Limit reached; reset needed.' : `Next: ${next(current)}.`;
             if (!isCurrent()) return;
-            await this.send(channel, `${prefix} Offline numbers may be missed. Last: ${current.current_count}. ${suffix}`, createHash('sha256').update(`recovery:${this.instance}:${key}:${epoch}`).digest('hex').slice(0, 24));
-            if (!isCurrent()) return;
-            this.health.set(key, 'Recovery notice delivered.');
+            this.health.set(key, `Recovery complete; counting ${state}.`);
             this.clearFailure(key);
         } catch (error) {
             if (!isCurrent()) return;
-            this.health.set(key, `Recovery notice failed (attempt ${attempt + 1}/3). Check channel access; /counting status shows saved progress.`);
-            console.error('[counting] Recovery notice failed:', game.channel_id, error.message);
+            this.health.set(key, `Recovery failed (attempt ${attempt + 1}/3). Check channel access; /counting status shows saved progress.`);
+            console.error('[counting] Recovery failed:', game.channel_id, error.message);
             if (attempt < 2 && this.accepting() && isCurrent()) {
                 const timer = this.schedule(() => {
                     if (this.accepting()) this.track(this.serial(key, () => this.recoveryAttempt(game, attempt + 1, epoch))).catch(console.error);
@@ -157,8 +153,14 @@ class CountingNotices {
         if (episode.tries >= 3 && !episode.delivered) return;
         if (episode.delivered) { episode.nonce = randomBytes(12).toString('hex'); episode.tries = 0; }
         episode.sending = true; episode.tries++;
-        const content = uncertain ? 'Could not confirm your number. Check /counting current before trying again.' : 'Counting unavailable. That number was not counted. Check /counting status or ask a manager.';
+        let content = uncertain ? 'Could not confirm your number. Check /counting current before trying again.' : 'Counting unavailable. That number was not counted. Check /counting status or ask a manager.';
         try {
+            // A failed lookup must never invent a next number or prevent the bounded warning.
+            let current;
+            try { current = await bounded(this.dao.get(channel.guildId, channel.id), this.timeout); }
+            catch { /* Keep the original warning when saved state is unavailable. */ }
+            if (this.episodes.get(key) !== episode || current?.state === 'retired') return;
+            if (current) content += ` ${nextNumberSentence(current)}`;
             await this.send(channel, content, episode.nonce);
             episode.delivered = this.now();
             this.health.set(key, 'Outage warning delivered; awaiting verified counting recovery.');

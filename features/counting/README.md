@@ -43,13 +43,17 @@ Post channel guide is a separate explicit manager action available after setup a
 
 ## Downtime and recovery
 
-Each non-retired counting channel gets its own graceful offline/restart warning. After startup/reconnection, Soulbot reads saved state and attempts:
+Each non-retired counting channel still gets one graceful offline/restart warning. **Startup and reconnect recovery are silent**: Soulbot revalidates channels/roles, recovers state, resets offline cutoffs, and unblocks intake without posting a “Back online” announcement.
 
-> Back online. Offline numbers may be missed. Last: 42. Next: 43.
+Gap numbers are still dropped, never replayed into the count. A recent human number attempt older than the latest cutoff receives a targeted reply when saved state is readable:
 
-Paused/suspended games are identified accordingly; the numeric limit asks for a reset. Offline submissions are ignored. Channel intake is gated during recovery attempts and reopens with a fresh timestamp cutoff, so missed posts are not silently replayed. Recovery is serialized with counting/management and does not gate unrelated shards. General server announcements skip these channels to avoid duplicates.
+> Not counted — that was posted while the bot was offline. The next number is **43**.
 
-The first observed counting failure attempts a channel warning immediately. Repeated warnings are suppressed per outage, with at most one reminder per minute; failed sends have at most three attempts. Uncertain database acknowledgements say acceptance could not be confirmed, rather than claiming the count failed. Check current before trying again. Manager status exposes failed notices; a verified recovery resets warning suppression.
+The reply never pings, adds a checkmark, deletes the post, or changes count/turn/history. The ledger is checked first so an already-processed message—including an accepted entry from an old run/history—never gets a false offline rejection. Replies are deduplicated in-process and use a stable Discord nonce across restarts. They are best effort, limited to messages and recovery cutoffs within the last 15 minutes; old chat, non-numbers, attachments, bots, and webhooks get no offline reply. A bounded 5,000-message guard skips additional feedback rather than evicting live dedup claims under saturation. Discord nonce retention is bounded, so this is not a durable exactly-once delivery guarantee across restarts.
+
+Saved-state checks run under the counting/recovery queue; reply delivery runs outside that queue with a timeout. A slow or failed reply cannot hold the recovery gate, advance the counter, or invent a next number. The next number is a fresh saved snapshot, and other teammates may advance it before delivery.
+
+The first observed genuine number attempt during a counting outage attempts a channel warning immediately, including the next number when it can be read safely. Repeated warnings are suppressed per outage, with at most one reminder per minute; failed sends have at most three attempts. Uncertain database acknowledgements say acceptance could not be confirmed, rather than claiming the count failed. Check current before trying again. Manager status exposes failed notices; a verified recovery resets warning suppression.
 
 Notices are best effort. A crash or broken Discord connection cannot send an advance warning. Inaccessible configuration at startup can prevent discovery of channels to notify. Recovery scan/sends have bounded retries and deadlines; optional notice failure never resets or indefinitely blocks counting. Timed-out Discord sends can be ambiguous; nonces help deduplicate retries, but do not provide durable exactly-once delivery. A delayed notice is a saved snapshot, so check current before posting. Shutdown notice work has a five-second budget after counting drains, before Discord/database cleanup.
 
@@ -74,7 +78,7 @@ Before release, have a manager and members who have not read this document test:
 3. Cancel and expire management previews. Count/reset/edit allowed roles during a preview and prove stale confirmations cannot overwrite unexpected progress. Try another user's controls and revoke permissions before confirming.
 4. Verify squad-only and mod-only members share one sequence, a dual-role member cannot take two turns, outsiders cannot count, and the same role can play in another channel. Compare team/contributor rankings, switch periods, browse page 2 and an invalid page, and check empty/deleted-role/departed-member cases. Hide a channel and deny history; it must not affect discovery, ranks, totals, or navigation.
 5. Pause/resume/reset/retire and change teams with both history choices; verify what is preserved. Repeated buttons do not repeat writes; guide failure preserves the game.
-6. Restart while both channels count: warnings precede disconnect, recovery shows each saved last/next value, and offline posts are ignored. Repeat with permission loss, failed/uncertain notice delivery, reconnect, and recovery of one shard without blocking another.
+6. Restart while both channels count: warnings precede disconnect, startup/reconnect is silent, and recent offline numbers get one non-pinging next-number reply without credit. Repeat with permission loss, failed/uncertain notice delivery, reconnect, and recovery of one shard without blocking another.
 7. Inspect narrow/mobile layouts. Identify and resolve misunderstandings before closing Phase 2.5's usability gate.
 
 Automated checks do not replace this live Discord gate.
