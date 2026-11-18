@@ -8,6 +8,7 @@ function roleLabel(game, roles, limit = 10) {
 }
 const stateLabel = state => ({ active: 'Active', paused: 'Paused', suspended: 'Needs repair', retired: 'Retired' }[state] || 'Unavailable');
 const next = game => game.current_count < MAX_COUNT ? String(game.current_count + 1) : 'Limit reached; reset needed';
+const nextNumberSentence = game => game.current_count < MAX_COUNT ? `The next number is **${next(game)}**.` : 'Count limit reached; ask a manager to reset.';
 const rules = game => `${game.allow_consecutive ? 'You may count consecutive numbers.' : 'Teammates take turns; no two turns in a row.'}\n${game.mistake_policy === 'reset' ? 'Wrong numbers restart the count at 1.' : 'Wrong numbers keep progress.'}`;
 function availability(game, channel, guild, roles, connected = true) {
     if (game.state !== 'active') return stateLabel(game.state);
@@ -62,4 +63,4 @@ function rejection(result) {
         limit: 'Count limit reached. Ask a manager to use /counting reset.',
     }[outcome] || 'This game is retired. Normal chat is allowed.';
 }
-module.exports = { safe, roleLabel, stateLabel, next, rules, participation, availability, readView, managerSteps, guide, example, rejection };
+module.exports = { safe, roleLabel, stateLabel, next, nextNumberSentence, rules, participation, availability, readView, managerSteps, guide, example, rejection };

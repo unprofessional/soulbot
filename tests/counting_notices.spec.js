@@ -16,20 +16,21 @@ beforeEach(() => { fixture = setup(); jest.spyOn(console, 'error').mockImplement
 afterEach(() => jest.restoreAllMocks());
 test('each channel gets its own saved values and remains gated until the attempt', async () => {
     const f = setup([base, { ...base, id: '2', channel_id: 'b', current_count: 7 }]);
-    let deliver; f.channels.get('c').send.mockImplementationOnce(() => new Promise(resolve => { deliver = resolve; }));
+    let deliver; f.dao.get.mockImplementationOnce(() => new Promise(resolve => { deliver = resolve; }));
     const recovery = f.notice.recover();
     expect(f.notice.isBlocked('g', 'c')).toBe(true);
     while (!deliver) await Promise.resolve();
-    expect(f.notice.isBlocked('g', 'c')).toBe(true); deliver({}); await recovery;
-    expect(f.channels.get('c').send.mock.calls[0][0].content).toBe('Back online. Offline numbers may be missed. Last: 42. Next: 43.');
-    expect(f.channels.get('b').send.mock.calls[0][0].content).toContain('Last: 7. Next: 8.');
+    expect(f.notice.isBlocked('g', 'c')).toBe(true); deliver(base); await recovery;
+    expect(f.channels.get('c').send).not.toHaveBeenCalled();
+    expect(f.channels.get('b').send).not.toHaveBeenCalled();
+    expect(f.notice.status('g', 'c')).toContain('Recovery complete');
     expect(f.notice.isBlocked('g', 'c')).toBe(false); expect(f.notice.cutoff('g', 'c')).toBe(1000);
-    await f.notice.recover(0); expect(f.channels.get('c').send).toHaveBeenCalledTimes(1);
+    await f.notice.recover(0); expect(f.channels.get('c').send).not.toHaveBeenCalled();
 });
 test('disconnect/resume coalesces duplicate signals and suppresses old-epoch retries', async () => {
-    const { notice, channels, timers } = fixture;
+    const { notice, channels, timers, dao } = fixture;
     await notice.recover(); notice.disconnect(0); expect(notice.isBlocked('g', 'c')).toBe(true);
-    channels.get('c').send.mockRejectedValueOnce(Error('denied'));
+    dao.get.mockRejectedValueOnce(Error('store unavailable'));
     const a = notice.recover(0); const b = notice.recover(0); expect(a).toBe(b); await a;
     expect(timers).toHaveLength(1);
     notice.disconnect(0); await notice.recover(0);
@@ -38,42 +39,44 @@ test('disconnect/resume coalesces duplicate signals and suppresses old-epoch ret
     expect(channels.get('c').send).toHaveBeenCalledTimes(calls);
 });
 test('new disconnect during an in-flight recovery stays gated until the new generation recovers', async () => {
-    const { notice, channels } = fixture;
-    let deliver; channels.get('c').send.mockImplementationOnce(() => new Promise(resolve => { deliver = resolve; }));
+    const { notice, dao } = fixture;
+    let deliver; dao.get.mockImplementationOnce(() => new Promise(resolve => { deliver = resolve; }));
     const old = notice.recover(0); while (!deliver) await Promise.resolve();
-    notice.disconnect(0); deliver({}); await old;
+    notice.disconnect(0); deliver(base); await old;
     expect(notice.isBlocked('g', 'c')).toBe(true);
     await notice.recover(0); expect(notice.isBlocked('g', 'c')).toBe(false);
 });
-test('paused/suspended, new and limit games have accurate recovery copy', async () => {
+test('paused/suspended, new and limit games all recover silently', async () => {
     const games = [
         { ...base, state: 'paused', current_count: 0 },
         { ...base, channel_id: 'b', id: '2', state: 'suspended', current_count: Number.MAX_SAFE_INTEGER },
     ];
     const { notice, channels } = setup(games); await notice.recover();
-    expect(channels.get('c').send.mock.calls[0][0].content).toBe('Bot online; counting paused. Offline numbers may be missed. Last: 0. Next: 1.');
-    expect(channels.get('b').send.mock.calls[0][0].content).toContain('counting suspended.');
-    expect(channels.get('b').send.mock.calls[0][0].content).toContain('Limit reached; reset needed.');
+    expect(channels.get('c').send).not.toHaveBeenCalled();
+    expect(channels.get('b').send).not.toHaveBeenCalled();
+    expect(notice.cutoff('g', 'c')).toBe(1000);
+    expect(notice.cutoff('g', 'b')).toBe(1000);
 });
 test('missing target suspends; retired games never get notices', async () => {
     const { notice, dao, guild, channels } = fixture;
     guild.roles.fetch.mockResolvedValue(null); await notice.recover();
     expect(dao.suspendMissing).toHaveBeenCalledWith('g', 'role_id', 'r');
-    expect(channels.get('c').send.mock.calls[0][0].content).toContain('counting suspended');
+    expect(channels.get('c').send).not.toHaveBeenCalled();
+    expect(notice.status('g', 'c')).toContain('suspended');
     dao.get.mockResolvedValue({ ...base, state: 'retired' });
-    notice.disconnect(0); await notice.recover(0); expect(channels.get('c').send).toHaveBeenCalledTimes(1);
+    notice.disconnect(0); await notice.recover(0); expect(channels.get('c').send).not.toHaveBeenCalled();
 });
-test('failed send retries read fresh counts, reuse nonce, and do not indefinitely gate counting', async () => {
+test('failed state recovery retries without broadcasting or indefinitely gating counting', async () => {
     const { notice, channels, dao, timers } = fixture;
-    channels.get('c').send.mockImplementationOnce(() => new Promise(() => {}));
+    dao.get.mockImplementationOnce(() => new Promise(() => {}));
     await notice.recover(); expect(notice.isBlocked('g', 'c')).toBe(false);
     expect(notice.status('g', 'c')).toContain('failed');
     dao.get.mockResolvedValue({ ...base, current_count: 50 });
     await timers.shift()();
     // Scheduled callbacks track asynchronous work; allow it to finish without a wall-clock sleep.
     for (let i = 0; i < 25; i++) await Promise.resolve();
-    const sent = channels.get('c').send.mock.calls;
-    expect(sent[1][0].content).toContain('Last: 50. Next: 51.'); expect(sent[0][0].nonce).toBe(sent[1][0].nonce);
+    expect(channels.get('c').send).not.toHaveBeenCalled();
+    expect(notice.status('g', 'c')).toContain('Recovery complete');
 });
 test('first failure warns immediately, deduplicates, reminds only after 60s and resets after recovery', async () => {
     const { notice, channels, advance } = fixture; const channel = channels.get('c');
@@ -141,5 +144,19 @@ test('deleting one allowed role preserves availability when another still exists
     await f.notice.recover();
     expect(f.dao.suspendMissing).toHaveBeenCalledTimes(1);
     expect(f.dao.suspendMissing).toHaveBeenCalledWith('g', 'role_id', 'deleted');
-    expect(f.channels.get('c').send.mock.calls[0][0].content).toContain('Back online.');
+    expect(f.channels.get('c').send).not.toHaveBeenCalled();
+    expect(f.notice.status('g', 'c')).toContain('active');
+});
+
+test('live outage warnings include a safely read next number without adding per-message spam', async () => {
+    const { notice, channels } = fixture; const channel = channels.get('c');
+    await notice.failure(channel); await notice.failure(channel);
+    expect(channel.send).toHaveBeenCalledTimes(1);
+    expect(channel.send.mock.calls[0][0].content).toContain('The next number is **43**.');
+});
+test('an unavailable count omits the next number instead of guessing', async () => {
+    const { notice, channels, dao } = fixture; dao.get.mockRejectedValue(Error('store down'));
+    await notice.failure(channels.get('c'));
+    expect(channels.get('c').send.mock.calls[0][0].content).toContain('was not counted');
+    expect(channels.get('c').send.mock.calls[0][0].content).not.toContain('next number');
 });

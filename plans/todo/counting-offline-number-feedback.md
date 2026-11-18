@@ -1,6 +1,6 @@
 # Counting — reply to offline numbers with the next number; kill the recovery broadcast
 
-Status: spec approved by mads (#mods, 2026-11-18). Implementation pending (Codex), review pending (Moldy). Spec only until implemented.
+Status: implemented on `fix/counting-offline-number-feedback`; review and live Discord reconnect verification pending. No schema change or production deployment in this branch.
 
 ## Problem
 
@@ -39,7 +39,7 @@ The existing `failure()` outage warning ("Counting unavailable. That number was 
 
 ## Guardrails (must hold)
 
-- **Only genuine number attempts.** `shouldHandle` already gates to pure-digit, no-attachment human messages before this point; do not reply to non-numbers, bots, or webhooks.
+- **Only genuine number attempts.** `shouldHandle` only narrows inactive-channel messages; active channels accept arbitrary input for validation. Add an explicit pure-digit/no-attachment human-attempt check here; do not reply to non-numbers, bots, or webhooks.
 - **Never tell someone their already-counted number was "not counted."** Before replying, confirm the message id is not an already-accepted event (dao). A delayed duplicate of an accepted number must not get a false "not counted" reply.
 - **Dedup the reply per message.** A replayed/duplicate gateway event must not produce two replies (nonce or a replied-message-id guard, mirroring the existing notice nonce / failure-episode dedup).
 - **Bound it to the recent offline window.** Do not reply to arbitrarily old messages; only numbers dropped because of the current/recent recovery cutoff. The gateway does not deliver ancient history, but keep a sane bound so a startup or late event cannot trigger a reply to old chat.
@@ -60,3 +60,13 @@ The existing `failure()` outage warning ("Counting unavailable. That number was 
 - Live Discord: with a game active, disconnect/reconnect the shard (or restart), post a number during the gap, confirm it gets the "not counted, next is N" reply and no checkmark, then post N and confirm the checkmark; confirm no "Back online" broadcast appears in any counting channel across several reconnects.
 
 No schema change, so independent PostgreSQL migration checks are not required. The live Discord reconnect check is a release gate.
+
+
+## Implementation notes
+
+- Recovery still validates state/roles/channels, suspends actually missing targets, maintains connection generations/cutoffs, unblocks intake, and clears failure episodes. It makes zero proactive channel sends, including for paused/suspended/new/limit games. Health says recovery completed rather than claiming a notice was delivered.
+- A separate bounded feedback helper handles only recent human digit attempts with no attachments. Both the message age and recovery cutoff must be within 15 minutes; future or arbitrarily old timestamps are excluded. It reads the scoped message ledger (all processed outcomes/history) before fresh game state, then replies with mention suppression and a deterministic nonce.
+- A two-phase prepare/deliver path keeps state/ledger reads inside the channel queue, while network delivery runs outside it. Replays claim once before awaits. The guard holds at most 5,000 unexpired IDs; saturation skips new optional replies rather than evicting live dedup claims. Failures are best effort and never change gameplay state.
+- Across process restarts, Discord's stable nonce offers best-effort deduplication within its retention window; no new persistent reply ledger is introduced. The main count/event ledger, acceptance policy, turn order, and totals are unchanged.
+- Live failure warnings retain their episode/nonce/reminder policy and append a fresh next number only when readable. Retired games and already-processed messages do not receive a false not-counted warning. Unknown counts are omitted, never guessed; the numeric limit gives a reset instruction.
+- Verification includes silent initial/reconnect recovery, deletion/suspension and cutoff preservation, targeted next-number feedback, archived/accepted duplicates, concurrent replays, non-human/non-numeric exclusions, bounded age/capacity, failed reads/sends, draining, and slow-reply queue independence. Live Discord reconnect verification remains a release gate.

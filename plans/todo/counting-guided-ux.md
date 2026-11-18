@@ -8,6 +8,8 @@ Product update (2026-11-18): The former Phase 3 text/image options are deferred 
 
 Product update: [replacement Phase 3](counting-channel-teams.md) makes channels the teams and roles a max-ten eligibility list. Its role-add/remove commands and no-reset semantics supersede the role-ownership/history-reassignment details below; those details document the original 2.5 implementation.
 
+Operational update: [offline-number feedback](counting-offline-number-feedback.md) replaces the recovery-broadcast examples below. Recovery is silent; the next number is sent as targeted feedback for a recent dropped offline number. The graceful down/restart warning remains.
+
 ## Outcome
 
 A manager who has never read the manual can set up two competing teams, understand the rules they chose, and tell members how to start. A member entering a counting channel can discover who may count, the next number, whether it is their turn, and what to do after a rejection or outage. Every response answers the relevant question and offers one clear next action.
