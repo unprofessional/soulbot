@@ -2,7 +2,7 @@
 
 Status: analysis complete; proposed implementation, not implemented.
 
-Priority: next counting work, before Phases 3–5 add options. Phases 1–2 are already merged into master through PRs #105–#108. Preserve their counting rules and data. This phase includes delivery of the existing counting-channel lifecycle-notice follow-up; its detailed behavior remains in the main counting plan.
+Priority: next counting work. Completing the Phase 2.5 usability gate is a prerequisite for Phases 3–5; only an explicit user reprioritization can override it, with the roadmap updated to match. Phases 1–2 are already merged into master through PRs #105–#108. Preserve their counting rules and data. This phase includes delivery of the existing counting-channel lifecycle-notice follow-up; its detailed behavior remains in the main counting plan.
 
 ## Outcome
 
@@ -44,7 +44,7 @@ This is a source-based UX audit of the merged command definitions, interaction r
 
 | Surface | Purpose and response | Next step |
 | --- | --- | --- |
-| `/counting help` | Starting point: “Count together in order. Teams compete in separate channels.” Explain how to play, discover accessible games, and show manager setup steps only to managers. | Play in an accessible channel; managers can set up a team. |
+| `/counting help [channel] [page]` | Starting point: “Count together in order. Teams compete in separate channels.” Show the concrete channel/team/eligibility discovery list specified below, explain how to play, and show setup steps only to managers. An optional channel adds contextual guidance without removing discovery. | Play in an accessible channel; managers can set up a team. |
 | `/counting current [channel]` | Channel/team, saved last number, next number, and viewer turn eligibility. No full permission dump. | “Post 43” or “Another teammate must post 43.” Paused/unavailable states explain why posting will not count. |
 | `/counting settings [channel]` | Readable rules: team eligibility, take-turn policy, wrong-number behavior, accepted input, cleanup behavior. | Members: current number. Managers: example configure command with this channel. |
 | `/counting status [channel]` | Effective availability and progress. Members receive a short explanation; managers receive named missing permissions/target problems and specific repair steps. | Resume, repair permissions, choose a replacement role, or retry status as applicable. |
@@ -55,6 +55,25 @@ This is a source-based UX audit of the merged command definitions, interaction r
 | `/counting pause/resume/reset/retire [channel]` | Explain and confirm consequences as specified below; report actual resulting state and preserved data. | A concrete continue/recover action. |
 
 Option descriptions must state the default and effect wherever space permits; longer explanations belong in the preview/settings response. The `history` choice is relevant only when changing the team role; reject or explain irrelevant history choices rather than implying they did something.
+
+### Member discovery — “Where can I play?”
+
+This is a required Phase 2.5A surface, not a later navigation enhancement. `/counting help` starts with **Your counting channels**, followed by the short how-to-play explanation and role-appropriate next steps. It works when invoked outside a counting channel. Preserve the existing optional `channel` argument for contextual guidance and add an optional `page` argument for discovery pagination; Phase 2.5C may add buttons to this same view.
+
+- Refresh the viewer's membership, channel overwrites, and role permissions. List only same-guild, non-retired counting channels where the viewer has both View Channel and Read Message History. Apply this filter before pagination/counts; do not reveal hidden channel names, teams, counts, or even the number of hidden games.
+- Each entry shows a channel jump reference, team role (or a readable deleted-role label), and a plain-language participation state. Include an exact `/counting current channel:#channel` example as its next action. Show five entries per page, in deterministic channel-ID order, with valid previous/next command examples; do not make users guess a channel identifier.
+- Distinguish role eligibility from turn/state restrictions: **Can count now**, **Wait for another teammate**, **Need Red Team role — ask a manager**, **Cannot send messages here — ask a manager**, **Paused**, or **Counting unavailable — ask a manager**. Derive these from the role, member send permissions, game state, last accepted author, take-turn rule, supported count limit, and known bot availability. Do not show “Can count now” on role membership alone. Game unavailability takes precedence; a secondary role/access explanation may still help the member recover.
+- List all readable teams, including those the viewer cannot yet join. Members holding multiple team roles see every eligible game; do not arbitrarily select one “home team.” Never grant membership or permissions from discovery.
+- For an active game with known saved state, the entry may show the next number, but always direct the user to the current view before playing when the result might be stale. Paused/unavailable entries must not invite posting a number.
+- If readable games exist but none are currently playable, explain each visible blocker and offer the appropriate next step. If no readable games exist, say “No counting channels are available to you. Ask a server manager”; managers instead get a setup example. Do not claim no games exist anywhere in the server.
+- If discovery data cannot be loaded, keep generic help available and say the channel list is temporarily unavailable. Never confuse query failure with an empty list, infer eligibility from stale data, or invent saved/next numbers. A member can retry help; a manager can inspect status.
+
+Example discovery entry:
+
+> **<#red-count> · Red Team** — Wait for another teammate.\
+> You counted last. Check the next number with `/counting current channel:#red-count`.
+
+Channel references above are illustrative; render real accessible channel mentions/jump references in Discord. Role requirements must name the actual team, with mentions suppressed.
 
 ### Management consequences
 
@@ -69,29 +88,35 @@ Option descriptions must state the default and effect wherever space permits; lo
 
 Member current view:
 
-> **#red-count · Red Team**  
-> Last: **42** · Next: **43**  
-> You counted last. Another teammate must post **43**.  
+> **#red-count · Red Team**\
+> Last: **42** · Next: **43**\
+> You counted last. Another teammate must post **43**.\
 > Post numbers only. See `/counting settings` for the rules.
 
 Setup preview:
 
-> **Start counting in #red-count for Red Team?**  
-> Start at **1**. Teammates take turns. Wrong numbers keep progress.  
-> Members need Red Team already; this does not assign roles or change channel access.  
-> Only counting posts belong here while active. Invalid posts are removed when Soulbot has permission.  
+> **Start counting in #red-count for Red Team?**\
+> Start at **1**. Teammates take turns. Wrong numbers keep progress.\
+> Members need Red Team already; this does not assign roles or change channel access.\
+> Only counting posts belong here while active. Invalid posts are removed when Soulbot has permission.\
 > **Start counting** · **Cancel**
 
 Setup success:
 
-> **Red Team is ready in #red-count.**  
-> One teammate posts **1**, a different teammate posts **2**.  
-> Members need the Red Team role and permission to send messages here.  
+> **Red Team is ready in #red-count.**\
+> One teammate posts **1**, a different teammate posts **2**.\
+> Members need the Red Team role and permission to send messages here.\
 > Next: check channel access, then **Post channel guide** or open the channel.
 
 Mistake with preserved progress:
 
 > Expected **43**. Your number was not counted. Progress stays at **42**. Another eligible teammate can post **43**.
+
+Missing-role rejection:
+
+> You need the **Red Team** role to count here. Ask a server manager to give you that role.
+
+Use the actual team role label; if the role was deleted, explain that counting is unavailable instead of asking the member to obtain a nonexistent role. Apply suppressed mentions to role labels.
 
 The final turn wording must be derived from current rules and last accepted author; do not claim every member can submit when one must wait. For reset mistakes, say `Count restarted. Next: 1.` and explain preserved totals in settings, not in every rejection.
 
@@ -103,7 +128,7 @@ Recovery notice (retain the existing minimal-copy requirement):
 
 ### 2.5A — Clear language and distinct read views
 
-**Scope:** presentation helpers, command descriptions, context-aware help, separate current/settings/status responses, plain-language options, action-specific success/error copy, empty states, deleted-role labels, and textual pagination instructions. Include count/turn eligibility reads without mutating acceptance.
+**Scope:** presentation helpers, command descriptions, context-aware help with the concrete channel/team/eligibility discovery list, separate current/settings/status responses, plain-language options, action-specific success/error copy, empty states, deleted-role labels, and textual pagination instructions. Include count/turn eligibility reads without mutating acceptance.
 
 Generic help works without a configured game, from supported guild contexts, and during counting-store unavailability. It must not require fetching a channel the user cannot access. An unconfigured channel gives a manager a concrete setup example; members get accessible-channel discovery or “Ask a server manager to set up a counting channel.” Hidden games never appear in discovery or diagnostics.
 
@@ -125,7 +150,9 @@ A guide publication failure must not undo successful setup: report “Game creat
 
 ### 2.5D — Operational clarity and first-time-user gate
 
-**Scope:** implement the already-planned Phase 1 counting-channel down/restart/up notices, using that specification rather than inventing another outage policy. Add effective-state display, actionable manager repair messages, and a bounded per-channel operational-notice policy for failures that currently swallow submissions silently. Store/database failures must not be called member mistakes or successful counting; when channel feedback is possible, say acceptance could not be confirmed and point to the current-count command. Deduplicate/rate-limit these notices and avoid an error reply for every queued message.
+**Scope:** implement the already-planned Phase 1 counting-channel down/restart/up notices, using that specification rather than inventing another outage policy. Add effective-state display, actionable manager repair messages, and a bounded per-channel operational-notice policy for failures that currently swallow submissions silently. Store/database failures must not be called member mistakes or successful counting; when channel feedback is possible, say acceptance could not be confirmed and point to the current-count command. Attempt a channel-visible notice immediately on the first observed failure when Discord sending is possible; do not wait for recovery to explain the problem. For a known pre-acceptance block say “Counting unavailable. That number was not counted”; for a commit/acknowledgement ambiguity say “Could not confirm your number. Check /counting current before trying again.” An abrupt disconnect cannot send that notice until connectivity returns.
+
+Deduplicate by channel and outage episode. After the first successful warning, suppress identical per-message warnings; allow at most one reminder per channel per 60 seconds while failures continue. Clear suppression after verified recovery so the next distinct outage warns immediately. A failed warning send does not count as delivered: retry with bounded backoff, retain manager-visible failure status, and avoid an error reply for every queued message.
 
 If the saved count cannot be read, say it is unavailable; never invent last/next values. Only show “ready to count” when the game is active and required prerequisites are healthy. A known paused/suspended/retired state takes precedence over a green permission check. Keep optional reaction/cleanup/ranking problems distinct from a counting outage.
 
@@ -150,12 +177,12 @@ Automate behavior where regression would matter: context-to-view/turn mapping, p
 Discord usability gate:
 
 1. Give a manager only the goal “make Red and Blue teams compete.” They can find help, choose channels/roles, understand defaults, activate both, and explain manual access/role assignment without the README.
-2. A member sees the channel guide, finds the saved/next number, and understands waiting for another teammate. They can recover from a wrong number, missing role, or paused game without guessing.
+2. Starting in a non-counting channel, a member uses help to find their readable counting channels, team role requirements, eligibility/turn state, and channel jump references. Test no visible games, several eligible roles, a readable but ineligible team, denied sending, pagination, and store failure without leaking hidden games. The member then sees the channel guide, finds the saved/next number, and understands waiting for another teammate. They can recover from a wrong number, missing role, or paused game without guessing.
 3. A manager can explain what reset, retire, and team-history choices preserve before confirming; cancellation and expiry change nothing. Counting during a preview cannot cause an outdated confirmation to erase unexpected progress.
 4. Members can distinguish team standings from personal contributions, explain the period, and browse a second page. A hidden channel contributes no entry, rank, page total, or navigation target.
-5. A restart produces warnings/recovery notices with accurate saved numbers. Missing permissions or a store failure never appear as a successful count or misleading “ready” status.
+5. The first observable failure attempts an immediate warning, repeated attempts are deduplicated/rate-limited, a failed send is retried rather than marked delivered, and a distinct outage warns again after recovery. A restart produces warnings/recovery notices with accurate saved numbers. Missing permissions or a store failure never appear as a successful count or misleading “ready” status.
 6. A newcomer can use all of the above on Discord's narrow/mobile layout; messages remain short enough to scan and controls have explicit text labels. Record misunderstandings and resolve blocking ones before marking the phase complete.
 
 ## Non-goals
 
-New gameplay, more parsing options, automated role assignment/permission changes, a web dashboard, leaderboards beyond Phase 2, automatic pins, and future rewards/effects. Do not resume Phases 3–5 until this interim usability gate is complete or explicitly reprioritized.
+New gameplay, more parsing options, automated role assignment/permission changes, a web dashboard, leaderboards beyond Phase 2, automatic pins, and future rewards/effects. A continuously updated channel topic or pinned live count/turn display is deliberately deferred to a separate post-2.5 ambient-status proposal: ownership of channel metadata, refresh cadence, permissions, and rate limits need their own design. For this phase, the channel guide is static, ✅ remains the ambient acceptance signal, and `/counting current` provides live state. Do not resume Phases 3–5 until this interim usability gate is complete or explicitly reprioritized.

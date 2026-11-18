@@ -124,11 +124,11 @@ Each phase is a separate, reviewable delivery with its own migration, commands, 
 | 2. Competition views | 1 | Members can compare teams and individual contributors. |
 | 2.5. Guided UX | 1–2 | First-time managers and members can set up, play, navigate, and recover without the manual. |
 | 3. Flexible input | 1, 2.5 UX gate | Each channel can independently allow text and images. |
-| 4. History restoration | 1 | Accepted entries can be restored after edits/deletions. |
-| 5. Goals and pins | 4 | Goals announce completion and configured numbers are pinned, including restored entries. |
+| 4. History restoration | 1, 2.5 UX gate | Accepted entries can be restored after edits/deletions. |
+| 5. Goals and pins | 4, 2.5 UX gate | Goals announce completion and configured numbers are pinned, including restored entries. |
 | 6. Parity release | 1–5 | The combined feature meets the full advertised parity contract. |
 
-Phases 2 and 3 do not depend on each other or on restoration. Phase 4 owns the durable Discord-action infrastructure reused by phase 5; do not make core acceptance depend on either module. Implement [Phase 2.5 — Guided setup and everyday use](counting-guided-ux.md) next. It takes priority over Phases 3–5 and incorporates the already-planned Phase 1 lifecycle-notice follow-up. Subsequent feature phases must use its interaction and explanation patterns.
+Phases 2 and 3 do not depend on each other or on restoration. Phase 4 owns the durable Discord-action infrastructure reused by phase 5; do not make core acceptance depend on either module. Implement [Phase 2.5 — Guided setup and everyday use](counting-guided-ux.md) next. Its usability gate is a prerequisite for Phases 3–5 unless the user explicitly reprioritizes and the roadmap is updated. It incorporates the already-planned Phase 1 lifecycle-notice follow-up. Subsequent feature phases must use its interaction and explanation patterns.
 
 ### Phase 1 — Complete core counting
 
@@ -232,7 +232,7 @@ Use persisted numbers per channel, not the latest visible Discord message. For p
 
 The source audit found generic command descriptions, identical current/settings/status responses, ambiguous defaults/history options, misleading role-assignment wording, generic success messages, and missing recovery/navigation guidance. This phase makes the existing feature understandable without reading the manual.
 
-Deliver four independently functional steps: **2.5A** clear language and distinct read views; **2.5B** guided setup and safe management confirmations; **2.5C** navigation and understandable rankings; **2.5D** operational clarity, the existing lifecycle notices, and first-time-user verification. Preserve slash names, gameplay rules, counts, and history.
+Deliver four independently functional steps: **2.5A** clear language, distinct read views, and an explicit channel/team/eligibility discovery list; **2.5B** guided setup and safe management confirmations; **2.5C** navigation and understandable rankings; **2.5D** operational clarity, the existing lifecycle notices, and first-time-user verification. Preserve slash names, gameplay rules, counts, and history.
 
 **Exit:** a new manager can set up two competing teams, and a new member can find the next number, understand their turn, recover from errors, and browse standings without external documentation. Privacy, transaction safety, and legacy command behavior remain covered. Live Discord usability verification is required; a rewritten help paragraph alone does not close this phase.
 
