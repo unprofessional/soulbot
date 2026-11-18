@@ -60,7 +60,7 @@ The optional `counting_views.sql` index initializes separately; failure disables
 
 Retired games use normal message processing. Paused/suspended games explain numeric attempts without deleting them; other chat retains normal logging/transformations. Active counting messages bypass unrelated transformations and generic message logging; the counting ledger retains accepted number, author/message IDs, and audited administrative actions. Deleted roles/channels suspend games; repair/reassign and resume explicitly.
 
-Flexible input, restoration, goals/pins, effects, and live topic/pinned status displays remain later work.
+Text/image input options are deferred as an optional post-production enhancement; pure numbers remain the production behavior. Restoration, goals/pins, effects, and live topic/pinned status displays remain later work.
 
 ## Verification and Discord usability gate
 

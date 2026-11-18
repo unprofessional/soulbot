@@ -2,7 +2,9 @@
 
 Status: implementation of 2.5A–D on `feature/counting-guided-ux`; targeted automated verification passes; PR review pending. Live Discord/mobile usability gate remains pending.
 
-Priority: next counting work. Completing the Phase 2.5 usability gate is a prerequisite for Phases 3–5; only an explicit user reprioritization can override it, with the roadmap updated to match. Phases 1–2 are already merged into master through PRs #105–#108. Preserve their counting rules and data. This phase includes delivery of the existing counting-channel lifecycle-notice follow-up; its detailed behavior remains in the main counting plan.
+Priority: next counting work. Completing the Phase 2.5 usability gate is a prerequisite for Phases 4–5; only an explicit user reprioritization can override it, with the roadmap updated to match. Phases 1–2 are already merged into master through PRs #105–#108. Preserve their counting rules and data. This phase includes delivery of the existing counting-channel lifecycle-notice follow-up; its detailed behavior remains in the main counting plan.
+
+Product update (2026-11-18): Phase 3 text/image options are deferred until after production and require explicit reactivation. This phase continues to teach pure-number input; do not add or advertise flexible-input settings.
 
 ## Outcome
 
@@ -220,7 +222,7 @@ Discord usability gate:
 
 ## Non-goals
 
-New gameplay, more parsing options, automated role assignment/permission changes, a web dashboard, leaderboards beyond Phase 2, automatic pins, and future rewards/effects. A continuously updated channel topic or pinned live count/turn display is deliberately deferred to a separate post-2.5 ambient-status proposal: ownership of channel metadata, refresh cadence, permissions, and rate limits need their own design. For this phase, the channel guide is static, ✅ remains the ambient acceptance signal, and `/counting current` provides live state. Do not resume Phases 3–5 until this interim usability gate is complete or explicitly reprioritized.
+New gameplay, more parsing options, automated role assignment/permission changes, a web dashboard, leaderboards beyond Phase 2, automatic pins, and future rewards/effects. A continuously updated channel topic or pinned live count/turn display is deliberately deferred to a separate post-2.5 ambient-status proposal: ownership of channel metadata, refresh cadence, permissions, and rate limits need their own design. For this phase, the channel guide is static, ✅ remains the ambient acceptance signal, and `/counting current` provides live state. Do not resume Phases 4–5 until this interim usability gate is complete or explicitly reprioritized.
 
 
 ## Implementation handoff
