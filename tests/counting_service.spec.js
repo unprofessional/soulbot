@@ -75,7 +75,7 @@ test.each(['paused', 'suspended'])('%s games explain numeric attempts without de
     service.dao.submit.mockResolvedValue({ outcome: state, game: { current_count: 0 } });
     const m = message({ content: ' 001 ', delete: jest.fn() });
     expect(await service.handleMessage(m)).toBe(true);
-    expect(m.reply).toHaveBeenCalledWith(expect.objectContaining({ content: expect.stringContaining(state) }));
+    expect(m.reply).toHaveBeenCalledWith(expect.objectContaining({ content: expect.stringContaining(state === 'suspended' ? 'needs repair' : state) }));
     expect(m.delete).not.toHaveBeenCalled();
     expect(await service.handleMessage(message({ attachments: new Map([['image', {}]]) }))).toBe(false);
     expect(service.dao.submit).toHaveBeenCalledTimes(1);

@@ -1,0 +1,27 @@
+const { EventEmitter } = require('node:events');
+const { Events } = require('discord.js');
+jest.mock('../config/env_config.js', () => ({}));
+jest.mock('../features/counting/ui.js', () => ({ handleComponent: jest.fn() }));
+jest.mock('../app/lifecycle.js', () => ({ shouldAcceptWork: jest.fn(() => true) }));
+const { initializeCommands } = require('../initial_commands.js');
+const { handleComponent } = require('../features/counting/ui.js');
+const { shouldAcceptWork } = require('../app/lifecycle.js');
+test('central router dispatches counting buttons, preserves slash routes, and respects draining', async () => {
+    const fs = require('node:fs');
+    const scan = jest.spyOn(fs, 'readdirSync').mockReturnValue([]);
+    const client = new EventEmitter();
+    const log = jest.spyOn(console, 'log').mockImplementation(() => {});
+    await initializeCommands(client); scan.mockRestore();
+    const handler = client.listeners(Events.InteractionCreate)[0];
+    const execute = jest.fn(); client.commands.set('existing', { execute });
+    handleComponent.mockResolvedValue(true);
+    const button = { isButton: () => true, customId: 'counting:test' };
+    await handler(button); expect(handleComponent).toHaveBeenCalledWith(button); expect(execute).not.toHaveBeenCalled();
+    handleComponent.mockResolvedValue(false);
+    const slash = { commandName: 'existing', isChatInputCommand: () => true };
+    await handler(slash); expect(execute).toHaveBeenCalledWith(slash);
+    shouldAcceptWork.mockReturnValue(false);
+    const draining = { ...button, reply: jest.fn() }; handleComponent.mockClear();
+    await handler(draining); expect(draining.reply).toHaveBeenCalled(); expect(handleComponent).not.toHaveBeenCalled();
+    log.mockRestore();
+});

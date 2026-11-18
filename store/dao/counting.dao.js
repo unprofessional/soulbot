@@ -1,11 +1,21 @@
 const { pool } = require('../db/pool.js');
 const { evaluate, shouldHandle } = require('../../features/counting/domain.js');
 const normalize = row => row && ({ ...row, current_count: Number(row.current_count), record: Number(row.record) });
+const SNAPSHOT_KEYS = ['id', 'history_id', 'run_id', 'version', 'state', 'role_id', 'mistake_policy', 'allow_consecutive', 'current_count', 'record', 'last_author_id', 'last_message_id'];
+function snapshot(game) {
+    return game ? Object.fromEntries(SNAPSHOT_KEYS.map(key => [key, game[key] ?? null])) : null;
+}
 class CountingDAO {
     constructor(db = pool) { this.db = db; }
     async get(guildId, channelId) {
         const result = await this.db.query('SELECT * FROM counting_game WHERE guild_id=$1 AND channel_id=$2', [guildId, channelId]);
         return normalize(result.rows[0]);
+    }
+    async list(guildId = null, channelIds = null) {
+        const result = await this.db.query(`SELECT * FROM counting_game WHERE state <> 'retired'
+            AND ($1::text IS NULL OR guild_id=$1) AND ($2::text[] IS NULL OR channel_id=ANY($2::text[]))
+            ORDER BY channel_id`, [guildId, channelIds]);
+        return result.rows.map(normalize);
     }
     async transaction(guildId, channelId, fn) {
         const client = await this.db.connect();
@@ -49,6 +59,9 @@ class CountingDAO {
     }
     async manage(guildId, channelId, actor, action, options = {}) {
         return this.transaction(guildId, channelId, async (client, game) => {
+            if (Object.hasOwn(options, 'expected') && JSON.stringify(snapshot(game)) !== JSON.stringify(options.expected)) {
+                throw Object.assign(new Error('Game changed. Review the updated preview before confirming.'), { code: 'COUNTING_STALE', userFacing: true });
+            }
             if (action === 'setup') {
                 if (game) throw new Error('This channel already has a game; configure or resume it instead.');
                 const result = await client.query(`INSERT INTO counting_game(guild_id,channel_id,role_id,mistake_policy,allow_consecutive)
@@ -86,4 +99,4 @@ class CountingDAO {
         });
     }
 }
-module.exports = { CountingDAO };
+module.exports = { CountingDAO, snapshot };

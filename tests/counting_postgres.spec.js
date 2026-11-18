@@ -98,4 +98,20 @@ suite('counting PostgreSQL integration (disposable database)', () => {
         expect(result.entries).toEqual([]);
     });
 
+    test('confirmation snapshots reject counts/resets/reassignments made after the preview', async () => {
+        const { snapshot } = require('../store/dao/counting.dao.js');
+        await dao.manage('confirm-g', 'channel', 'admin', 'setup', { roleId: 'team', consecutive: true, expected: null });
+        const before = await dao.get('confirm-g', 'channel');
+        await dao.submit('confirm-g', 'channel', { messageId: 'confirmation-race', authorId: 'member', content: '1' }, async () => true);
+        await expect(dao.manage('confirm-g', 'channel', 'admin', 'reset', { expected: snapshot(before) })).rejects.toMatchObject({ code: 'COUNTING_STALE' });
+        expect((await dao.get('confirm-g', 'channel')).current_count).toBe(1);
+        const fresh = await dao.get('confirm-g', 'channel');
+        await dao.manage('confirm-g', 'channel', 'admin', 'reset', { expected: snapshot(fresh) });
+        await expect(dao.manage('confirm-g', 'channel', 'admin', 'reset', { expected: snapshot(fresh) })).rejects.toMatchObject({ code: 'COUNTING_STALE' });
+        const reassignment = snapshot(await dao.get('confirm-g', 'channel'));
+        await dao.manage('confirm-g', 'channel', 'admin', 'configure', { roleId: 'other-team', history: 'reset' });
+        await expect(dao.manage('confirm-g', 'channel', 'admin', 'retire', { expected: reassignment })).rejects.toMatchObject({ code: 'COUNTING_STALE' });
+        expect((await dao.get('confirm-g', 'channel')).state).toBe('active');
+    });
+
 });

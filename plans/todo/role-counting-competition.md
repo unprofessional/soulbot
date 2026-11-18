@@ -1,6 +1,6 @@
 # Role counting competition
 
-Status: Phase 1 implemented on `feature/role-counting-phase-1`; targeted automated checks pass. PostgreSQL integration verified by Moldy during PR #105 review; Discord smoke verification pending. Phase 2 implemented on `feature/role-counting-phase-2`; verification notes below. Phases 3–6 remain todo.
+Status: Phases 1–2 merged through develop into master. Interim Phase 2.5 (guided UX) is implemented on `feature/counting-guided-ux`, with review and live Discord usability gates pending; details in `counting-guided-ux.md`. Live Discord smoke verification remains pending.
 
 ## Practical outcome
 
@@ -21,7 +21,7 @@ Server managers can assign multiple counting channels to different roles so thos
 
 Proposed guild-only `/counting` commands:
 
-- `setup`: select an existing text channel, team role, mistake policy, and consecutive-turn policy.
+- `setup role`: in Phase 2.5B, invoke inside the target text channel and select only its existing team role. Start with take turns and preserve-progress defaults; change rules later through `configure`. This intentionally replaces the Phase 1 multi-option setup surface without changing existing games.
 - `configure`: update a game's rules or assigned role.
 - `pause` / `resume`: suspend or restore counting without losing progress.
 - `reset`: explicitly reset the current count while retaining the all-time record and audit history.
@@ -41,7 +41,7 @@ Changing a game's team role must require an explicit retain-history or reset-his
 - Explain rejected entries briefly, including the expected number and whether the count reset.
 - Delete non-counting chatter where permissions allow, without changing game state.
 - Treat wrong numbers as mistakes governed by the configured policy. Reject ineligible authors, consecutive turns, and non-counting messages without resetting the team count.
-- Use plain decimal integers as the counting token; expressions cannot advance the count. Optional text and image settings are defined in the parity requirements below. Edits never advance the count.
+- Use plain decimal integers as the counting token; expressions cannot advance the count. Production remains pure-number-only. Optional text/images are deferred until after production and require an explicit decision to revisit. Edits never advance the count.
 - Check role membership for each submission. Members holding multiple competing roles may contribute in each eligible channel at launch.
 - Ignore bots and webhooks.
 - Editing or deleting an accepted message does not roll back its recorded contribution.
@@ -52,18 +52,18 @@ Changing a game's team role must require an explicit retain-history or reset-his
 
 Baseline source: the user-provided Counting Bot app-directory screenshot. This covers the advertised features and commands visible there, not an independently verified inventory of the bot. Its precise parsing, goal, pinning, and replacement semantics are not shown; the behavior below is Soulbot's proposed contract.
 
-Parity means delivering every advertised capability below in the initial counting release alongside multi-channel role competition. Milestone rewards and attacks remain deferred. Existing items in this document describe planned behavior, not implemented features.
+The screenshot is a comparison baseline, not a requirement to copy every option. Product decision (2026-11-18): text/images are an optional post-production enhancement; pure-number-only counting is the production contract. The initial release covers the remaining in-scope capabilities alongside multi-channel role competition, and must not claim full screenshot parity while these options are deferred. Milestone rewards and attacks remain deferred. Existing items in this document describe planned behavior, not implemented features.
 
 | Advertised capability | Previous design coverage | Gap and planned resolution |
 | --- | --- | --- |
 | Automatic check mark on correct numbers | Covered | Use a check mark for accepted entries; feedback failures do not change acceptance. |
-| Allow/disallow additional text | Missing; integer-only input | Add per-channel `allow_text`, default false, and deterministic token parsing. |
-| Allow/disallow images | Missing; attachments excluded | Add independent per-channel `allow_images`, default false. A valid counting token is still required. |
+| Allow/disallow additional text | Missing; integer-only input | Deferred: optional post-production only; production rejects extra text. |
+| Allow/disallow images | Missing; attachments excluded | Deferred: optional post-production only; production rejects attachments. |
 | Enable/disable counting alternation | Covered | Expose the consecutive-turn rule in settings and help. |
 | Set a counting goal | Missing | Add an optional per-channel target, progress display, and one completion announcement per run/goal configuration. |
 | Pin selected numbers when reached | Missing | Add a bounded list of exact numbers to pin; persist and retry failed pin actions. |
 | Replace deleted/edited messages | Partial; state survived edits/deletion | Restore accepted entries visibly without accepting a second contribution or changing turns. |
-| `/counting` management | Covered in proposal | Extend setup/configuration with parity settings and goal/pin management. |
+| `/counting` management | Covered in proposal | Keep setup role-only with sensible defaults; expose parity settings and goal/pin management after setup through configuration. |
 | `/help` | Missing for counting | Add a counting help surface through the existing help conventions, including rules, examples, and commands. |
 | `/currentcount` | Equivalent status proposed | Provide a discoverable current-count action showing the accepted count and next expected number. |
 | `/settings` | Equivalent configure proposed | Provide settings inspection for members and authorized editing for managers. |
@@ -73,7 +73,9 @@ Command names are reference UX, not a requirement to duplicate root commands. Pr
 
 ## Parity behavior contracts
 
-### Optional text and images
+### Optional text and images — deferred post-production
+
+The following is retained as a possible future design, not launch work or a release gate. Do not implement settings or advertise these options unless the user explicitly reactivates Phase 3 after production. Current input stays numbers only; formatting/attachment rejection preserves progress.
 
 - Parse a single leading base-10 positive integer token. When text is disabled, the trimmed message must contain only that token. When enabled, require whitespace between the token and trailing text; never search arbitrary text for a number.
 - Require a canonical decimal representation: no signs, separators, leading zeros, decimals, or expressions. Set and document a safe maximum supported value before implementation.
@@ -116,18 +118,19 @@ Setup and status should distinguish required counting permissions from optional 
 
 ## Implementation phases
 
-Each phase is a separate, reviewable delivery with its own migration, commands, runtime integration, documentation, and verification where applicable. Finish a phase's exit checks before enabling its behavior. Phases 1–6 form the initial parity release; intermediate phases may be deployed for controlled use but must advertise only completed capabilities.
+Each phase is a separate, reviewable delivery with its own migration, commands, runtime integration, documentation, and verification where applicable. Finish a phase's exit checks before enabling its behavior. Phases 1, 2, 2.5, 4, 5, and 6 form the initial production scope; Phase 3 is optional post-production work and does not block release; intermediate phases may be deployed for controlled use but must advertise only completed capabilities.
 
 | Phase | Dependency | Complete usable state |
 | --- | --- | --- |
 | 1. Core counting | None | Multiple role channels can count reliably and managers can operate them. |
 | 2. Competition views | 1 | Members can compare teams and individual contributors. |
-| 3. Flexible input | 1 | Each channel can independently allow text and images. |
-| 4. History restoration | 1 | Accepted entries can be restored after edits/deletions. |
-| 5. Goals and pins | 4 | Goals announce completion and configured numbers are pinned, including restored entries. |
-| 6. Parity release | 1–5 | The combined feature meets the full advertised parity contract. |
+| 2.5. Guided UX | 1–2 | First-time managers and members can set up, play, navigate, and recover without the manual. |
+| 4. History restoration | 1, 2.5 UX gate | Accepted entries can be restored after edits/deletions. |
+| 5. Goals and pins | 4, 2.5 UX gate | Goals announce completion and configured numbers are pinned, including restored entries. |
+| 6. Production qualification | 1, 2, 2.5, 4, 5 | The combined feature meets the in-scope production contract with pure-number input. |
+| 3. Flexible input — deferred | Post-production; explicit reactivation and UX gate | Optional text/image controls only if later requested; not a release dependency. |
 
-Phases 2 and 3 do not depend on each other or on restoration. Phase 4 owns the durable Discord-action infrastructure reused by phase 5; do not make core acceptance depend on either module. Suggested execution order is numerical.
+Phase 3 is deferred; after the UX gate, the next planned production work is Phase 4, then Phase 5 and production qualification. Phase 4 owns the durable Discord-action infrastructure reused by phase 5; do not make core acceptance depend on either module. Implement [Phase 2.5 — Guided setup and everyday use](counting-guided-ux.md) next. Its usability gate is a prerequisite for Phases 4–5 unless the user explicitly reprioritizes and the roadmap is updated. It incorporates the already-planned Phase 1 lifecycle-notice follow-up. Subsequent feature phases must use its interaction and explanation patterns.
 
 ### Phase 1 — Complete core counting
 
@@ -162,7 +165,7 @@ Phases 2 and 3 do not depend on each other or on restoration. Phase 4 owns the d
 
 ### Phase 1 follow-up — Counting-channel availability notices
 
-**Status:** planned; not included in the existing Phase 1 implementation. Complete this small, separately testable lifecycle module before considering Phase 1 release-ready. It depends only on core counting and does not wait for the phase 4 action worker.
+**Status:** implemented with Phase 2.5D on `feature/counting-guided-ux`; live Discord verification pending. Complete this small, separately testable lifecycle module before considering Phase 1 release-ready. It depends only on core counting and does not wait for the phase 4 action worker.
 
 **Outcome:** every configured, non-retired counting channel receives its own shutdown/restart and recovery notices so members know submissions during an interruption may be missed. These notices are automatic and independent of the server's separately configured general bot-announcement channels.
 
@@ -220,28 +223,20 @@ Use persisted numbers per channel, not the latest visible Discord message. For p
 - Query the accepted-entry ledger directly with one statement per view, joining current history/run in the same snapshot. No aggregate backfill or acceptance hooks. Lifetime totals survive ordinary resets and retained-history reassignment; reset-history reassignment starts empty.
 - Initialize the optional accepted-entry index separately from core schema readiness. View initialization/query failure cannot disable core counting.
 - Unit/command/privacy coverage and a disposable-PostgreSQL scenario cover ties, pagination, guild/channel isolation, resets, retirement, rejected/duplicate attempts, and both reassignment choices. Validation results are recorded with the PR; live Discord smoke testing remains required.
-- Verification: 51 counting tests pass; changed-file lint and whitespace checks pass. Full-suite verification runs in the commit hook. Three opt-in PostgreSQL tests (including the new Phase 2 scenario) remain skipped because Docker container requests time out; live Discord testing is also pending.
+- Verification: 51 counting tests pass; changed-file lint and whitespace checks pass. Full-suite verification runs in the commit hook. The author run skipped three opt-in PostgreSQL tests because Docker timed out; Moldy subsequently independently verified all 3/3 on a disposable database in PR #107 and approved it. Live Discord testing remains pending.
 - The Phase 1 lifecycle-notice follow-up remains planned and is separate from this phase.
 
 **Deployment and fallback:** existing ledger data is queryable immediately after view initialization; no backfill is needed. View initialization failure disables only ranking commands. Preserve the existing ledger/index when reverting the optional module; core counting and stored contributions remain usable.
 
-### Phase 3 — Configurable text and image input
+### Interim Phase 2.5 — Guided setup and everyday use
 
-**Boundary:** deterministic input parser and per-game settings, used before the unchanged acceptance transaction.
+**Priority:** next, before additional gameplay features. [Detailed audit, examples, modular deliveries, and usability gate](counting-guided-ux.md).
 
-**Deliverables**
+The source audit found generic command descriptions, identical current/settings/status responses, ambiguous defaults/history options, misleading role-assignment wording, generic success messages, and missing recovery/navigation guidance. This phase makes the existing feature understandable without reading the manual.
 
-- Add independent `allow_text` and `allow_images` settings with false defaults for existing/new games.
-- Implement the canonical-token and attachment rules in the parity contracts; distinguish malformed input from a valid wrong-number attempt.
-- Expose configuration, effective settings, examples, and rejection messages together.
+Deliver four independently functional steps: **2.5A** clear language, distinct read views, an explicit channel/team/eligibility discovery list, and the manager first-run preparation checklist; **2.5B** role-only setup inside the target channel, defaults coaching, and safe management confirmations; **2.5C** navigation and understandable rankings; **2.5D** operational clarity, the existing lifecycle notices, and first-time-user verification. Preserve slash names, gameplay rules, counts, and history.
 
-**Exit checks**
-
-- All four switch combinations accept/reject the intended messages without affecting unrelated channels.
-- Expressions, ambiguous tokens, unsupported attachments, and image-only posts cannot count; formatting rejection never resets progress.
-- Changing settings takes effect consistently with queued submissions; record the configuration version or serialize changes with acceptance.
-
-**Deployment and fallback:** additive settings preserve phase 1 behavior by default. Managers can disable both options without a data migration or loss of count history.
+**Exit:** a new manager can set up two competing teams, and a new member can find the next number, understand their turn, recover from errors, and browse standings without external documentation. Privacy, transaction safety, and legacy command behavior remain covered. Live Discord usability verification is required; a rewritten help paragraph alone does not close this phase.
 
 ### Phase 4 — Durable history restoration
 
@@ -283,18 +278,38 @@ Use persisted numbers per channel, not the latest visible Discord message. For p
 
 **Deployment and fallback:** existing games have no goal or pin targets by default. Disable milestone evaluation/dispatch independently while retaining configuration, accepted counts, and pending work; document whether pending actions resume or are cancelled on re-enable.
 
-### Phase 6 — Integrated parity release
+### Phase 6 — Integrated production qualification
 
 **Boundary:** release qualification and operational documentation. This phase must not defer correctness checks needed by an earlier phase.
 
 **Deliverables**
 
-- Run the complete parity matrix in two role channels with different settings and verify all module interactions.
+- Run the in-scope parity matrix (excluding deferred text/image controls) in two role channels with different settings and verify all module interactions.
 - Verify an upgrade from phase 1 data, restart with pending restoration/pin actions, permission degradation/recovery, private-channel queries, and disabling each optional module while counting continues.
 - Document commands, mistake/input rules, outage/reconciliation limits, permission diagnostics, and recovery procedures. Confirm help matches only enabled capabilities.
-- Declare screenshot parity complete only after every capability and the global acceptance criteria pass. Keep future warfare work in a separate plan.
+- Qualify production only after every in-scope capability and the global acceptance criteria pass; explicitly disclose the intentional pure-number difference rather than claiming full screenshot parity. Keep future warfare work in a separate plan.
 
-**Exit checks:** all earlier phase checks and integrated acceptance criteria pass; no pending schema/backfill dependency, placeholder command, or required manual database repair remains.
+**Exit checks:** all in-scope phase checks and integrated acceptance criteria pass; deferred Phase 3 is not required; no pending schema/backfill dependency, placeholder command, or required manual database repair remains.
+
+### Phase 3 — Optional post-production text and images (deferred)
+
+**Status:** deferred by user decision on 2026-11-18. No launch work, settings, or release gate. Revisit only after production and explicit user reactivation; pure-number input remains the default product behavior.
+
+**Boundary:** deterministic input parser and per-game settings, used before the unchanged acceptance transaction.
+
+**Deliverables**
+
+- Add independent `allow_text` and `allow_images` settings with false defaults for existing/new games.
+- Implement the canonical-token and attachment rules in the parity contracts; distinguish malformed input from a valid wrong-number attempt.
+- Expose configuration, effective settings, examples, and rejection messages together.
+
+**Exit checks**
+
+- All four switch combinations accept/reject the intended messages without affecting unrelated channels.
+- Expressions, ambiguous tokens, unsupported attachments, and image-only posts cannot count; formatting rejection never resets progress.
+- Changing settings takes effect consistently with queued submissions; record the configuration version or serialize changes with acceptance.
+
+**Deployment and fallback:** additive settings preserve phase 1 behavior by default. Managers can disable both options without a data migration or loss of count history.
 
 ## Module and migration rules
 
@@ -334,17 +349,19 @@ Before introducing effects, define:
 
 Prefer enforcing effects in counting validation with persisted expiry times. Keep effects separate from Discord role and channel permission mutations so expiry and manager reversal stay predictable.
 
-Out of scope for launch: bonuses, attacks, currencies, inventories, alliances, seasons, and automated permission management.
+Out of scope for launch: optional extra text/images (Phase 3), bonuses, attacks, currencies, inventories, alliances, seasons, and automated permission management.
 
 ## Phase completion checklist
 
 - [ ] Phase 1: core counting and essential operation complete; exit checks pass.
 - [ ] Phase 1 follow-up: per-channel down/restart/up notices complete; lifecycle and Discord checks pass.
 - [ ] Phase 2: team/contributor views complete; exit checks pass.
-- [ ] Phase 3: flexible input complete; exit checks pass.
+- [ ] Phase 2.5: guided UX steps A–D complete; first-time-user Discord gate passes.
 - [ ] Phase 4: durable restoration complete; exit checks pass.
 - [ ] Phase 5: goals and pins complete; exit checks pass.
-- [ ] Phase 6: integrated parity release qualified and documented.
+- [ ] Phase 6: in-scope production release qualified and documented; Phase 3 is not required.
+
+Post-production option: Phase 3 is deferred, not scheduled or required. Keep pure-number input unless explicitly revisited.
 
 ## Verification and acceptance criteria
 
@@ -358,8 +375,8 @@ Out of scope for launch: bonuses, attacks, currencies, inventories, alliances, s
 - Leaderboards reflect accepted counts and resets, handle ties, isolate guilds, and preserve private channel visibility.
 - Management permission checks prevent unauthorized configuration changes.
 - A test-server smoke test demonstrates two teams counting independently and competing on the leaderboard.
-- Every row of the screenshot parity matrix has an implemented, documented equivalent.
-- Text/image settings cover all four combinations; malformed tokens and disallowed attachments cannot advance or reset a game.
+- Every in-scope row of the screenshot comparison has an implemented, documented equivalent; text/image options are intentionally deferred and do not block production.
+- Production accepts pure numbers only. Extra text, expressions, malformed tokens, and attachments cannot advance or reset a game; no text/image switches are exposed. The four-combination optional-input checks apply only if Phase 3 is later reactivated.
 - Goals announce once under the stated run/configuration rules; pin targets work across resets and report permission/capacity failures.
 - Edited, deleted, bulk-deleted, uncached, and repeatedly delivered events preserve one accepted contribution and restore canonical entries within the stated recovery coverage.
 - Restorations never increment counts or contributor totals; pin work follows the authoritative visible entry.

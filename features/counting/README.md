@@ -1,53 +1,79 @@
-# Role counting — Phases 1–2
+# Counting games — guided UX (Phases 1–2.5)
 
-Managers use `/counting setup channel:#team role:@team`. Channel access is configured manually; Soulbot checks current team membership for every attempt. One non-retired counting game per role per guild is allowed. A channel retains its game record after retirement and can be configured/resumed instead of set up again.
+Use `/counting help` in any server channel. Members get their readable teams, whether they can count, and buttons to open the next-number view. Managers also get the preparation checklist. The basic instructions remain available when game data cannot be loaded; help says when its channel list is unavailable.
 
-Defaults: start at 1, alternate members, reject incorrect numbers while preserving progress. Managers can select `mistakes:reset` or enable `consecutive`. Only canonical positive decimal integers through 9007199254740991 count; whitespace around the number is allowed. Text, images, expressions, bots, and webhooks do not count. Invalid formatting, missing team membership, or consecutive turns never reset progress.
+## Set up a competition
 
-- `/counting current`, `status`, `settings`, `help`: member-visible, ephemeral responses; channel visibility checked.
-- `/counting configure`: edit rules or team role. Changing the role requires `history:retain` or `history:reset`; reset starts a new history and clears count/record, preserving archived events.
-- `/counting pause`, `resume`, `reset`, `retire`: require Manage Server. Reset preserves the record and starts a new run with no last contributor. Resume validates the role and bot permissions again.
+1. Create/select two normal team roles, such as Red Team and Blue Team, and assign at least two human teammates each.
+2. Prepare a dedicated normal text channel for each team. Grant that team View Channel, Read Message History, and Send Messages. Configure team-only access yourself if desired; other overrides can grant access. Test as ordinary members, since owners/administrators bypass restrictions.
+3. Give Soulbot those same three channel permissions. Add Reactions enables check marks; Manage Messages enables invalid-post cleanup. Soulbot does not assign roles or edit permissions.
+4. **Enter the target channel** and run `/counting setup role:@RedTeam`, selecting the real role in the option picker. Role is the only setup option. Review the defaults and confirm Start counting within two minutes. Repeat in Blue's channel.
+5. Check `/counting status`, check ordinary-member access, and explicitly choose Post channel guide. One teammate posts 1 and a different teammate posts 2. Use `/counting leaderboard` to compare teams.
 
-Soulbot needs View Channel, Read Message History, Send Messages, and the Message Content gateway intent. Add Reactions and Manage Messages enable reactions and invalid-message cleanup. Missing optional permissions do not undo accepted counts. Losing required channel permissions stops acceptance until access returns. Deleted roles/channels suspend the game; startup reconciliation and status also detect missing targets. Fix the target and resume explicitly.
+Defaults: start at 1; teammates take turns; wrong numbers preserve progress. Use `/counting configure` later to change rules. One non-retired game per role per guild is supported. A retired channel keeps its game record; configure/resume it rather than running setup again.
 
-The PostgreSQL schema is initialized additively from `store/db/tables/counting.sql` before command registration. It has no dependency on the generic guild/member tables. Failed counting schema initialization disables counting commands without preventing unrelated bot startup. Existing games recover from database state automatically. Do not downgrade to code that writes incompatible counting state.
+## Play and understand the rules
 
-Per-channel transactions and advisory locks coordinate submissions and manager actions. Every processed message has a unique durable event, including reset-causing mistakes; duplicate delivery cannot apply the action twice. Feedback is best effort after commit. The existing application leader lock remains responsible for single-leader operation; counting work drains before database cleanup.
+- `/counting current`: saved last/next number and whether it is your turn.
+- `/counting settings`: this channel's actual rules, including what mistakes do.
+- `/counting status`: whether it is working. Managers also see named missing permissions and repair steps; bot readiness does not verify member access/team isolation.
+- `/counting leaderboard [page]`: non-retired teams ranked by current count, with best counts and readable game state.
+- `/counting top [channel] [scope] [page]`: accepted contributions for the current team history (default `lifetime`) or since the last restart at 1 (`run`). A bot restart does not restart a run.
 
-Posts created before the current connection's ready/resume time are ignored rather than replayed. Posts during downtime do not earn credit. Edits and deletions do not alter recorded progress; visible restoration is a later phase. A failed submission transaction leaves the expected count unchanged: check `/counting current` and send a new message. Retired games use normal message processing. Paused/suspended games reply only to attachment-free decimal-number attempts; other chat keeps normal logging and transformations. Counting messages bypass unrelated transformations and generic message logging; accepted numbers, author/message IDs, and administrative events are retained in the counting ledger.
+Read views are private and have navigation buttons; commands still work without buttons. Choose an optional channel on read/management commands to inspect another readable game. Setup always uses the invoking channel. Buttons expire after two minutes or a bot restart; reopen help/the command to get fresh controls.
 
-## Competition views (Phase 2)
+Only canonical positive decimal integers through 9007199254740991 count (surrounding whitespace is allowed). Text, images, expressions, bots, and webhooks do not count. Bad formatting, missing team membership, and consecutive turns never reset progress. Edited/deleted accepted messages keep their recorded contribution; visible restoration is not implemented yet. A member with multiple team roles can play for each eligible team.
 
-- `/counting leaderboard [page]`: compare non-retired teams by current count, showing each record and state. Paused and suspended games remain listed with their state; retired games are omitted.
-- `/counting top [channel] [scope] [page]`: rank contributors in a channel. Default scope is `lifetime` within its current history; `scope:run` shows only the current run. You can inspect a retired game's contributors if you can still read its channel.
+Rankings use 10 entries per page and shared competition places (1, 1, 3). Equal totals have stable ID ordering; results are live, so progress can move entries between requests. Only channels with View Channel and Read Message History participate in your results, including ranks/page totals. Role, member, and channel permissions are refreshed on reads and button actions. Unavailable contributors keep their totals and display an ID label. Mentions never ping anyone.
 
-Both commands are available to ordinary members and reply privately with 10 entries per page. Ranks use shared competition places (1, 1, 3). Equal-score rows are ordered by channel/member ID; results are live, so new counts or resets can move entries between page requests. Only channels where you currently have both View Channel and Read Message History participate in your standings, including their ranks and page counts. Role and channel permissions are refreshed for every request.
+## Manager controls
 
-Totals count only accepted ledger entries. Incorrect numbers, duplicates, admin actions, and future bot-authored restorations add nothing. Ordinary resets clear run totals but preserve lifetime totals. Team reassignment with `history:retain` preserves them; `history:reset` starts an empty history while archived entries remain stored. Members retain their earned totals after leaving or losing the role; unavailable members display their ID instead of an invented name. Mentions never ping anyone.
+Manage Server is required at execution and again on confirmation. Preparation may require additional Discord permissions; ask an administrator if you cannot create roles/channels.
 
-Views query existing Phase 1 data directly, so no aggregate backfill is needed. Each response uses one PostgreSQL statement for a consistent game/history/run snapshot. The optional `counting_views.sql` partial index is initialized separately; failure disables rankings without disabling counting. Runtime view-query failures also leave count acceptance unchanged. No Phase 1 state or ledger migration is required.
+- `/counting configure` without changes shows the rules/editor. Set `mistakes:reset` to restart at 1 after a wrong number; set `consecutive:true` to allow back-to-back turns. Omitted settings stay unchanged. A preview explains supplied changes.
+- Changing `role` requires `history:retain` to credit the existing count, best, and contributor totals to the new team, or `history:reset` to start fresh and archive the old history.
+- `/counting pause` preserves progress; `/counting resume` checks prerequisites and continues.
+- `/counting reset` previews starting at 1, preserving the best count and lifetime totals while clearing current-run totals and the previous contributor restriction.
+- `/counting retire` previews removal from standings and restoration of normal chat, with history preserved. Resume reactivates the game.
 
-Flexible input, visible restoration, goals, pins, warfare effects, and the planned per-channel lifecycle notices remain later work.
+Reset, retire, team/rule changes, and new setup need confirmation. Cancel/expired previews change nothing. A confirmation compares the displayed game/history/run/configuration/count/last-entry state under the same database lock as counting. Changed data requires a new preview/confirmation; pause a busy game first if needed. Duplicate clicks cannot replay the action. Restart safely expires pending previews.
 
-## Verification
+Post channel guide is a separate explicit manager action available after setup and in the rules/status views. It publishes static rules, not a soon-stale next number. Regenerate it after rule changes; its posting date and the settings command identify the authoritative current rules. It never auto-pins. Failed guide publication does not undo the game; inspect the channel before retrying an uncertain send.
 
-Run `npx jest tests/counting*.spec.js --runInBand` and lint changed JavaScript files. Database integration tests require `COUNTING_TEST_DATABASE_URL` pointing to a disposable PostgreSQL database; **the suite drops the counting tables in that database**. Never use the application database. Without this variable, database integration tests are skipped.
+## Downtime and recovery
 
-Before production release, use a Discord test server to:
+Each non-retired counting channel gets its own graceful offline/restart warning. After startup/reconnection, Soulbot reads saved state and attempts:
 
-1. Set up two text channels and two normal team roles; configure manual role/channel access.
-2. Alternate two eligible members, try outsiders and bots, then exercise both mistake policies and consecutive turns.
-3. Pause/resume/reset/retire; change roles with each history option; verify private-channel queries and manager-only actions.
-4. Restart and confirm count, record, last contributor, and ignored offline messages. Remove reaction/cleanup permissions, then required permissions, and check degradation/recovery.
-5. Edit/delete accepted entries and confirm state is unchanged. Delete a configured role and verify suspension and diagnostics.
+> Back online. Offline numbers may be missed. Last: 42. Next: 43.
 
-For Phase 2, also check:
+Paused/suspended games are identified accordingly; the numeric limit asks for a reset. Offline submissions are ignored. Channel intake is gated during recovery attempts and reopens with a fresh timestamp cutoff, so missed posts are not silently replayed. Recovery is serialized with counting/management and does not gate unrelated shards. General server announcements skip these channels to avoid duplicates.
 
-1. Count in both team channels; run `/counting leaderboard` as an ordinary member and verify current counts, records, and equal-count ties. Pausing preserves a listed entry; retiring removes it.
-2. Run `/counting top` and `/counting top scope:run`. Reset the game and count again: lifetime totals should survive while run totals restart.
-3. Contribute with at least 11 members, then use `page:2`; ties should share a rank and tied members should not vanish between unchanged page requests.
-4. Hide a team channel or deny Read Message History for a tester. Its team, rank influence, and page count must disappear for them; explicitly targeting it with `/counting top channel:...` must be denied. Repeat from a different server.
-5. Remove a contributor's team role or have them leave; their earned totals remain. Reassign the game using both history choices and verify retain/reset semantics.
-6. Restart and confirm pre-upgrade contributions still appear. Check `/counting help` and `/counting status` point to the new views.
+The first observed counting failure attempts a channel warning immediately. Repeated warnings are suppressed per outage, with at most one reminder per minute; failed sends have at most three attempts. Uncertain database acknowledgements say acceptance could not be confirmed, rather than claiming the count failed. Check current before trying again. Manager status exposes failed notices; a verified recovery resets warning suppression.
 
-The initial full parity launch remains gated on later phases and the Discord smoke test.
+Notices are best effort. A crash or broken Discord connection cannot send an advance warning. Inaccessible configuration at startup can prevent discovery of channels to notify. Recovery scan/sends have bounded retries and deadlines; optional notice failure never resets or indefinitely blocks counting. Timed-out Discord sends can be ambiguous; nonces help deduplicate retries, but do not provide durable exactly-once delivery. A delayed notice is a saved snapshot, so check current before posting. Shutdown notice work has a five-second budget after counting drains, before Discord/database cleanup.
+
+## Persistence and operation
+
+`store/db/tables/counting.sql` initializes additively before counting commands are registered. Existing games require no setup rerun or data migration. PostgreSQL transactions/advisory locks serialize submissions and manager writes; unique message IDs deduplicate accepted entries and mistakes. Feedback is best effort after commit. The application leader lock remains responsible for single-leader operation; slash/component/counting work drains before channel shutdown notices and database cleanup.
+
+The optional `counting_views.sql` index initializes separately; failure disables rankings, not count acceptance. Views read accepted ledger entries directly with one statement per response; no aggregate backfill is needed. Ordinary resets clear run totals but preserve lifetime totals; retained/reset history reassignment follows the rules above.
+
+Retired games use normal message processing. Paused/suspended games explain numeric attempts without deleting them; other chat retains normal logging/transformations. Active counting messages bypass unrelated transformations and generic message logging; the counting ledger retains accepted number, author/message IDs, and audited administrative actions. Deleted roles/channels suspend games; repair/reassign and resume explicitly.
+
+Text/image input options are deferred as an optional post-production enhancement; pure numbers remain the production behavior. Restoration, goals/pins, effects, and live topic/pinned status displays remain later work.
+
+## Verification and Discord usability gate
+
+Run counting tests and changed-file lint. Opt-in integration requires `COUNTING_TEST_DATABASE_URL` pointing only to a **disposable database**: the suite drops its counting tables. Without it, four PostgreSQL tests are skipped. Never use the application database.
+
+Before release, have a manager and members who have not read this document test:
+
+1. Start without prepared roles/channels. Find help, create two teams, assign two teammates each, set team/bot access, enter each channel, preview/confirm role-only setup, and publish guides. Repeat with existing resources and missing creation permissions.
+2. As a member in another channel, discover readable teams, identify missing roles/access versus waiting for a teammate, navigate to current/rules, and post the announced next number. Test bad formatting and both mistake/turn rules.
+3. Cancel and expire management previews. Count/reset/reassign during a preview and prove stale confirmations cannot overwrite unexpected progress. Try another user's controls and revoke permissions before confirming.
+4. Compare team/contributor rankings, switch periods, browse page 2 and an invalid page, and check empty/deleted-role/departed-member cases. Hide a channel and deny history; it must not affect discovery, ranks, totals, or navigation.
+5. Pause/resume/reset/retire and change teams with both history choices; verify what is preserved. Repeated buttons do not repeat writes; guide failure preserves the game.
+6. Restart while both channels count: warnings precede disconnect, recovery shows each saved last/next value, and offline posts are ignored. Repeat with permission loss, failed/uncertain notice delivery, reconnect, and recovery of one shard without blocking another.
+7. Inspect narrow/mobile layouts. Identify and resolve misunderstandings before closing Phase 2.5's usability gate.
+
+Automated checks do not replace this live Discord gate.
