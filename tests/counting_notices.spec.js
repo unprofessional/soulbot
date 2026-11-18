@@ -133,3 +133,13 @@ test('retiring a game cancels queued outage-warning retries', async () => {
     await timers[0](); for (let i = 0; i < 10; i++) await Promise.resolve();
     expect(channel.send).toHaveBeenCalledTimes(1); expect(notice.status('g', 'c')).toBe('');
 });
+
+
+test('deleting one allowed role preserves availability when another still exists', async () => {
+    const f = setup([{ ...base, role_ids: ['deleted', 'mod'] }]);
+    f.guild.roles.fetch.mockImplementation(async id => id === 'deleted' ? null : { id });
+    await f.notice.recover();
+    expect(f.dao.suspendMissing).toHaveBeenCalledTimes(1);
+    expect(f.dao.suspendMissing).toHaveBeenCalledWith('g', 'role_id', 'deleted');
+    expect(f.channels.get('c').send.mock.calls[0][0].content).toContain('Back online.');
+});

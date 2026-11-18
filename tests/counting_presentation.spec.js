@@ -18,7 +18,7 @@ test('status never labels a paused game ready and manager diagnostics name missi
     expect(text).toContain('**Paused**'); expect(text).not.toContain('Ready to count'); expect(text).toContain('Grant Soulbot Send Messages');
 });
 test('deleted role uses a repair path and guides have no stale next number', () => {
-    expect(copy.participation(game, channel, guild, new Map(), viewer)).toContain('Team role deleted');
-    expect(copy.guide(game, roles)).not.toContain('43');
+    expect(copy.participation(game, channel, guild, new Map(), viewer)).toContain('No existing allowed roles');
+    expect(copy.guide(game, roles)).not.toContain('Next: **43**');
     expect(copy.guide(game, roles)).toContain('/counting current');
 });

@@ -1,3 +1,5 @@
+const MAX_ROLES = 10;
+function rolesOf(game) { return [...new Set(game?.role_ids ?? (game?.role_id ? [game.role_id] : []))].sort(); }
 const MAX_COUNT = Number.MAX_SAFE_INTEGER;
 // Inactive channels keep ordinary chat on the normal message path.
 function shouldHandle(game, attempt) {
@@ -18,4 +20,4 @@ function evaluate(game, attempt) {
     if (number !== game.current_count + 1) return { outcome: game.mistake_policy === 'reset' ? 'reset' : 'wrong' };
     return { outcome: 'accepted', number };
 }
-module.exports = { evaluate, MAX_COUNT, shouldHandle };
+module.exports = { evaluate, MAX_COUNT, MAX_ROLES, rolesOf, shouldHandle };

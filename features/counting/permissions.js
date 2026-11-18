@@ -1,4 +1,9 @@
 const { ChannelType, PermissionFlagsBits: P } = require('discord.js');
+const { rolesOf } = require('./domain.js');
+async function liveAllowedRoles(guild, game) {
+    const pairs = await Promise.all(rolesOf(game).map(async id => [id, await guild.roles.fetch(id).catch(error => { if (error.code === 10011) return null; throw error; })]));
+    return new Map(pairs.filter(([, role]) => role));
+}
 const REQUIRED = [[P.ViewChannel, 'View Channel'], [P.ReadMessageHistory, 'Read Message History'], [P.SendMessages, 'Send Messages']];
 const OPTIONAL = [[P.AddReactions, 'Add Reactions'], [P.ManageMessages, 'Manage Messages']];
 function diagnostics(channel, guild) {
@@ -25,4 +30,4 @@ function target(context, guildId, channelId) {
     }
     return channel;
 }
-module.exports = { diagnostics, canRead, refresh, target };
+module.exports = { diagnostics, canRead, refresh, target, liveAllowedRoles };

@@ -1,18 +1,21 @@
 const { pool } = require('../db/pool.js');
-const { evaluate, shouldHandle } = require('../../features/counting/domain.js');
-const normalize = row => row && ({ ...row, current_count: Number(row.current_count), record: Number(row.record) });
-const SNAPSHOT_KEYS = ['id', 'history_id', 'run_id', 'version', 'state', 'role_id', 'mistake_policy', 'allow_consecutive', 'current_count', 'record', 'last_author_id', 'last_message_id'];
+const { evaluate, shouldHandle, rolesOf, MAX_ROLES } = require('../../features/counting/domain.js');
+const normalize = row => row && ({ ...row, role_ids: rolesOf(row), current_count: Number(row.current_count), record: Number(row.record) });
+const SNAPSHOT_KEYS = ['id', 'history_id', 'run_id', 'version', 'state', 'role_ids', 'mistake_policy', 'allow_consecutive', 'current_count', 'record', 'last_author_id', 'last_message_id'];
 function snapshot(game) {
-    return game ? Object.fromEntries(SNAPSHOT_KEYS.map(key => [key, game[key] ?? null])) : null;
+    return game ? Object.fromEntries(SNAPSHOT_KEYS.map(key => [key, key === 'role_ids' ? rolesOf(game) : game[key] ?? null])) : null;
 }
+const SELECT_GAME = `SELECT *, COALESCE((SELECT array_agg(r.role_id ORDER BY r.role_id)
+    FROM counting_allowed_role r WHERE r.game_id=counting_game.id), ARRAY[]::text[]) AS role_ids FROM counting_game`;
+const invalid = message => Object.assign(new Error(message), { userFacing: true });
 class CountingDAO {
     constructor(db = pool) { this.db = db; }
     async get(guildId, channelId) {
-        const result = await this.db.query('SELECT * FROM counting_game WHERE guild_id=$1 AND channel_id=$2', [guildId, channelId]);
+        const result = await this.db.query(`${SELECT_GAME} WHERE guild_id=$1 AND channel_id=$2`, [guildId, channelId]);
         return normalize(result.rows[0]);
     }
     async list(guildId = null, channelIds = null) {
-        const result = await this.db.query(`SELECT * FROM counting_game WHERE state <> 'retired'
+        const result = await this.db.query(`${SELECT_GAME} WHERE state <> 'retired'
             AND ($1::text IS NULL OR guild_id=$1) AND ($2::text[] IS NULL OR channel_id=ANY($2::text[]))
             ORDER BY channel_id`, [guildId, channelIds]);
         return result.rows.map(normalize);
@@ -23,7 +26,7 @@ class CountingDAO {
             await client.query('BEGIN');
             // Serializes setup, configuration, and submissions even when a game does not yet exist.
             await client.query('SELECT pg_advisory_xact_lock(hashtextextended($1, 0))', [`counting:${guildId}:${channelId}`]);
-            const result = await client.query('SELECT * FROM counting_game WHERE guild_id=$1 AND channel_id=$2 FOR UPDATE', [guildId, channelId]);
+            const result = await client.query(`${SELECT_GAME} WHERE guild_id=$1 AND channel_id=$2 FOR UPDATE OF counting_game`, [guildId, channelId]);
             const value = await fn(client, normalize(result.rows[0]));
             await client.query('COMMIT');
             return value;
@@ -64,18 +67,31 @@ class CountingDAO {
             }
             if (action === 'setup') {
                 if (game) throw new Error('This channel already has a game; configure or resume it instead.');
-                const result = await client.query(`INSERT INTO counting_game(guild_id,channel_id,role_id,mistake_policy,allow_consecutive)
-                    VALUES($1,$2,$3,$4,$5) RETURNING *`, [guildId, channelId, options.roleId, options.policy || 'reject', options.consecutive || false]);
+                const result = await client.query(`INSERT INTO counting_game(guild_id,channel_id,mistake_policy,allow_consecutive)
+                    VALUES($1,$2,$3,$4) RETURNING *`, [guildId, channelId, options.policy || 'reject', options.consecutive || false]);
                 game = normalize(result.rows[0]);
+                if (!options.roleId) throw invalid('Choose the first allowed role for this channel.');
+                await client.query('INSERT INTO counting_allowed_role(game_id,role_id) VALUES($1,$2)', [game.id, options.roleId]);
+                game.role_ids = [options.roleId];
             } else {
                 if (!game) throw new Error('No counting game is configured here.');
-                if (action === 'configure') {
-                    if (options.roleId && options.roleId !== game.role_id && !options.history) throw new Error('Choose retain or reset history when changing teams.');
-                    if (options.history === 'reset' && options.roleId && options.roleId !== game.role_id) {
-                        await client.query('UPDATE counting_game SET history_id=history_id+1,run_id=run_id+1,current_count=0,record=0,last_author_id=NULL,last_message_id=NULL WHERE id=$1', [game.id]);
+                if (action === 'role-add' || action === 'role-remove') {
+                    if (!options.roleId) throw invalid('Choose an allowed role to add or remove.');
+                    const ids = rolesOf(game);
+                    if (action === 'role-add') {
+                        if (ids.includes(options.roleId)) return { unchanged: true };
+                        if (ids.length >= MAX_ROLES) throw invalid('This channel already allows 10 roles. Remove one with /counting role-remove first.');
+                        await client.query('INSERT INTO counting_allowed_role(game_id,role_id) VALUES($1,$2)', [game.id, options.roleId]);
+                    } else {
+                        if (!ids.includes(options.roleId)) return { unchanged: true };
+                        if (ids.length <= 1) throw invalid('Keep at least one allowed role. Add a replacement with /counting role-add before removing the last role.');
+                        await client.query('DELETE FROM counting_allowed_role WHERE game_id=$1 AND role_id=$2', [game.id, options.roleId]);
                     }
-                    await client.query(`UPDATE counting_game SET role_id=COALESCE($2,role_id),mistake_policy=COALESCE($3,mistake_policy),allow_consecutive=COALESCE($4,allow_consecutive),version=version+1 WHERE id=$1`,
-                        [game.id, options.roleId ?? null, options.policy ?? null, options.consecutive ?? null]);
+                    await client.query('UPDATE counting_game SET version=version+1 WHERE id=$1', [game.id]);
+                } else if (action === 'configure') {
+                    if (options.roleId || options.history) throw invalid('Teams are channels now. Use /counting role-add or role-remove; role changes keep all channel history.');
+                    await client.query(`UPDATE counting_game SET mistake_policy=COALESCE($2,mistake_policy),allow_consecutive=COALESCE($3,allow_consecutive),version=version+1 WHERE id=$1`,
+                        [game.id, options.policy ?? null, options.consecutive ?? null]);
                 } else if (action === 'reset') {
                     await client.query('UPDATE counting_game SET current_count=0,run_id=run_id+1,last_author_id=NULL,last_message_id=NULL,version=version+1 WHERE id=$1', [game.id]);
                 } else {
@@ -89,14 +105,24 @@ class CountingDAO {
         });
     }
     async suspendMissing(guildId, field, id) {
-        // Field is selected internally, never taken from Discord input.
         if (!['role_id', 'channel_id'].includes(field)) throw new Error('Invalid target');
-        const result = await this.db.query(`SELECT channel_id FROM counting_game WHERE guild_id=$1 AND ${field}=$2 AND state <> 'retired'`, [guildId, id]);
+        const result = await this.db.query(field === 'role_id'
+            ? `SELECT channel_id FROM counting_game g JOIN counting_allowed_role r ON r.game_id=g.id WHERE g.guild_id=$1 AND r.role_id=$2`
+            : `SELECT channel_id FROM counting_game WHERE guild_id=$1 AND channel_id=$2 AND state <> 'retired'`, [guildId, id]);
         for (const row of result.rows) await this.transaction(guildId, row.channel_id, async (client, game) => {
-            if (!game || game.state === 'retired' || game[field] !== id) return;
-            await client.query("UPDATE counting_game SET state='suspended',version=version+1 WHERE id=$1", [game.id]);
-            await this.event(client, game, 'suspend', null, null, null, { missing: field, id });
+            if (!game) return;
+            if (field === 'role_id') {
+                if (!rolesOf(game).includes(id)) return;
+                await client.query('DELETE FROM counting_allowed_role WHERE game_id=$1 AND role_id=$2', [game.id, id]);
+                const state = rolesOf(game).length === 1 && game.state !== 'retired' ? 'suspended' : game.state;
+                await client.query('UPDATE counting_game SET state=$2,version=version+1 WHERE id=$1', [game.id, state]);
+                await this.event(client, game, 'role-deleted', null, null, null, { roleId: id, state });
+            } else if (game.state !== 'retired' && game.channel_id === id) {
+                await client.query("UPDATE counting_game SET state='suspended',version=version+1 WHERE id=$1", [game.id]);
+                await this.event(client, game, 'suspend', null, null, null, { missing: field, id });
+            }
         });
     }
+
 }
 module.exports = { CountingDAO, snapshot };

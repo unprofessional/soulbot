@@ -4,6 +4,7 @@ const service = require('./service.js');
 const { refresh, target, canRead } = require('./permissions.js');
 const copy = require('./presentation.js');
 const { buildView } = require('./views.js');
+const { rolesOf, MAX_ROLES } = require('./domain.js');
 const { snapshot } = require('../../store/dao/counting.dao.js');
 const { sessions, ownerOf, button, row, ButtonStyle } = require('./sessions.js');
 const READ = new Set(['help', 'current', 'settings', 'status', 'leaderboard', 'top']);
@@ -39,7 +40,7 @@ async function help(i, params = {}) {
     const selected = games?.slice((page - 1) * 5, page * 5) || [];
     const entries = selected.map(game => {
         const channel = context.channels.get(game.channel_id);
-        return `**<#${channel.id}> · ${copy.roleLabel(game, context.roles)}**\n${copy.participation(game, channel, i.guild, context.roles, context.viewer, service.connected(i.guildId, channel.id))}\n${copy.example('current', channel.id)}`;
+        return `**Team <#${channel.id}>**\nAllowed roles: ${copy.roleLabel(game, context.roles, 3)}\n${copy.participation(game, channel, i.guild, context.roles, context.viewer, service.connected(i.guildId, channel.id))}\n${copy.example('current', channel.id)}`;
     });
     let text = `**Your counting channels**\n${unavailable ? 'Channel list temporarily unavailable. Retry /counting help; managers can check /counting status.' : entries.join('\n\n') || 'No counting channels are available to you. Ask a server manager, or use the setup steps below if you manage this server.'}`;
     if (!unavailable) text += `\n${requested > pages ? `Page ${requested} is unavailable; showing last page. ` : ''}Page ${page}/${pages}.${page < pages ? ` Next: /counting help page:${page + 1}.` : ''}${page > 1 ? ` Previous: /counting help page:${page - 1}.` : ''}`;
@@ -73,7 +74,7 @@ async function read(i, action, params, context) {
     }
     const channel = target(context, i.guildId, channelId);
     const game = await service.dao.get(i.guildId, channel.id);
-    if (!game) return i.editReply(payload(`**<#${channel.id}> has no counting game.**\n${manager(context) ? 'Open this channel and run /counting setup role:… after preparing its team role and access.' : 'Use /counting help to find a team, or ask a server manager to set one up.'}`, [nav(i, null)]));
+    if (!game) return i.editReply(payload(`**<#${channel.id}> has no counting game.**\n${manager(context) ? 'Open this channel and run /counting setup role:… after preparing an allowed role and access.' : 'Use /counting help to find a team, or ask a server manager to set one up.'}`, [nav(i, null)]));
     const controls = [nav(i, channel.id)];
     if (manager(context) && game.state !== 'retired') controls.push(row(button(i, 'Post channel guide', { action: 'guide', channelId: channel.id })));
     return i.editReply(payload(copy.readView(action, game, channel, i.guild, context, service.connected(i.guildId, channel.id), service.getNotices()?.status(i.guildId, channel.id)), controls));
@@ -83,7 +84,9 @@ function preview(i, action, channel, game, options, roleId) {
     if (action === 'setup') description = `**Start counting in <#${channel.id}> for <@&${roleId}>?**\nStart at **1**. Teammates take turns. Wrong numbers keep progress. Change rules later with /counting configure.\nMembers need that role already; setup does not assign it or change channel access. Only counting posts belong here while active; invalid posts are removed when Soulbot has permission.`;
     else if (action === 'reset') description = `**Restart <#${channel.id}> at 1?**\nLast: ${game.current_count}. Best ${game.record} and all accepted contributions for this team history are preserved. The current run and last-turn restriction are cleared.`;
     else if (action === 'retire') description = `**Retire <#${channel.id}>?**\nRemove it from team standings and allow normal chat. Saved progress and contribution history remain. A manager can use ${copy.example('resume', channel.id)} to reactivate it.`;
-    else description = `**Change rules/team in <#${channel.id}>?**\n${options.roleId && options.roleId !== game.role_id ? `Team becomes <@&${options.roleId}>. ${options.history === 'reset' ? 'Start at 1 with a fresh best count and fresh contributor totals; old history stays archived.' : 'Keep progress, best count, and contributor totals; past activity is credited to the new team.'}\n` : ''}${copy.rules({ ...game, mistake_policy: options.policy ?? game.mistake_policy, allow_consecutive: options.consecutive ?? game.allow_consecutive })}\nOmitted settings stay unchanged.`;
+    else if (action === 'role-add' || action === 'role-remove') description = `**${action === 'role-add' ? 'Allow' : 'Remove'} <@&${options.roleId}> ${action === 'role-add' ? 'in' : 'from'} team <#${channel.id}>?**\nMembers need any one allowed role. The channel keeps its shared count, best, turns, and contributor history; this changes eligibility only. Channel permissions are unchanged.`;
+    else description = `**Change rules in <#${channel.id}>?**\n${copy.rules({ ...game, mistake_policy: options.policy ?? game.mistake_policy, allow_consecutive: options.consecutive ?? game.allow_consecutive })}\nOmitted settings stay unchanged.`;
+
     const group = { used: false };
     const data = { action: 'confirm', managementAction: action, channelId: channel.id, options, expected: snapshot(game), group };
     return i.editReply(payload(`${description}\nConfirm within two minutes or cancel.`, [row(
@@ -100,7 +103,7 @@ async function validate(guild, channel, roleId) {
 }
 async function manage(i, action, params, context) {
     if (!manager(context)) throw userError('You need Manage Server to manage games. Use /counting help to find a team you can play in.');
-    const channelId = action === 'setup' ? (i.channelId || i.channel?.id) : params.channelId || i.channelId || i.channel?.id;
+    const channelId = ['setup', 'role-add', 'role-remove'].includes(action) ? (i.channelId || i.channel?.id) : params.channelId || i.channelId || i.channel?.id;
     if (action === 'setup' && context.channels.get(channelId)?.type !== ChannelType.GuildText) throw userError('Open the text channel you want to use, then run /counting setup role:…');
     const channel = target(context, i.guildId, channelId);
     const game = await service.dao.get(i.guildId, channel.id);
@@ -110,6 +113,7 @@ async function manage(i, action, params, context) {
         await service.serial(`${i.guildId}:${channel.id}`, async () => {
             const current = await service.dao.get(i.guildId, channel.id);
             if (!current || current.state === 'retired') throw userError('The game changed. Reopen /counting settings.');
+            if (!rolesOf(current).some(id => context.roles.has(id))) throw userError('Add an existing allowed role with /counting role-add before posting the guide.');
             try { await channel.send({ content: copy.guide(current, context.roles), allowedMentions: { parse: [] } }); }
             catch { throw userError('Game is saved; the guide could not be confirmed as posted. Check the channel before retrying Post channel guide from /counting settings.'); }
         });
@@ -117,23 +121,33 @@ async function manage(i, action, params, context) {
     }
     const options = params.options || {};
     if (action === 'setup') {
-        if (game) return i.editReply(payload(`**<#${channel.id}> already has a ${copy.stateLabel(game.state).toLowerCase()} game.**\nUse ${copy.example('configure', channel.id)} to edit it${game.state !== 'active' ? `, or ${copy.example('resume', channel.id)} to continue` : ''}. Setup never replaces existing progress.`, [nav(i, channel.id)]));
-        if (!options.roleId || !context.roles.has(options.roleId)) throw userError('Choose an existing team role. Create it and assign teammates in Discord, then run /counting setup role:… here.');
+        if (game) return i.editReply(payload(`**<#${channel.id}> already has a ${copy.stateLabel(game.state).toLowerCase()} game.**\nTo add eligible members, run /counting role-add role:… here. Use ${copy.example('configure', channel.id)} to edit rules${game.state !== 'active' ? `, or ${copy.example('resume', channel.id)} to continue` : ''}. Setup never replaces existing progress.`, [nav(i, channel.id)]));
+        if (!options.roleId || !context.roles.has(options.roleId)) throw userError('Choose the first existing allowed role. Create it and assign teammates in Discord, then run /counting setup role:… here.');
         await validate(i.guild, channel, options.roleId);
         return preview(i, action, channel, null, { roleId: options.roleId }, options.roleId);
     }
     if (!game) throw userError('No game here. Open this channel and use /counting setup role:…; /counting help has preparation steps.');
+    if (action === 'role-add' || action === 'role-remove') {
+        const ids = rolesOf(game);
+        if (!options.roleId || !context.roles.has(options.roleId)) throw userError('Choose an existing role; /counting settings lists this channel’s allowed roles.');
+        if (action === 'role-add') {
+            if (ids.includes(options.roleId)) return i.editReply(payload(`That role is already allowed in <#${channel.id}>. No changes. See /counting settings.`, [nav(i, channel.id)]));
+            if (ids.length >= MAX_ROLES) throw userError('This channel already allows 10 roles. Remove one with /counting role-remove before adding another.');
+            await validate(i.guild, channel, options.roleId);
+        } else {
+            if (!ids.includes(options.roleId)) return i.editReply(payload(`That role is not allowed in <#${channel.id}>. No changes. See /counting settings.`, [nav(i, channel.id)]));
+            if (ids.filter(id => context.roles.has(id)).length <= 1) throw userError('Keep at least one role. Use /counting role-add for a replacement before removing the last role.');
+        }
+        return preview(i, action, channel, game, { roleId: options.roleId });
+    }
     if (action === 'configure') {
-        const changes = options.roleId || options.policy || options.consecutive != null;
-        const roleChange = options.roleId && options.roleId !== game.role_id;
-        if (options.history && !roleChange) throw userError('History is only used when changing the team role. Omit history to change rules.');
-        if (roleChange && !options.history) throw userError('Changing teams needs history:retain to credit past activity to the new team, or history:reset to start fresh and archive it. Run /counting configure again with that choice.');
+        const changes = options.policy || options.consecutive != null;
         if (!changes) return read(i, 'configure', { channelId }, context);
-        await validate(i.guild, channel, options.roleId || game.role_id);
+        await validate(i.guild, channel, rolesOf(game).filter(id => context.roles.has(id))[0]);
         return preview(i, action, channel, game, options);
     }
     if (['reset', 'retire'].includes(action)) return preview(i, action, channel, game, {});
-    if (action === 'resume') await validate(i.guild, channel, game.role_id);
+    if (action === 'resume') await validate(i.guild, channel, rolesOf(game).filter(id => context.roles.has(id))[0]);
     await service.serial(`${i.guildId}:${channel.id}`, () => service.dao.manage(i.guildId, channel.id, i.user.id, action, action === 'pause' ? {} : { expected: snapshot(game) }));
     const current = await service.dao.get(i.guildId, channel.id);
     service.getNotices()?.remember(current);
@@ -142,7 +156,8 @@ async function manage(i, action, params, context) {
 async function confirm(i, data, context) {
     if (!manager(context)) throw userError('You need Manage Server to confirm this action.');
     const channel = target(context, i.guildId, data.channelId);
-    if (['setup', 'configure', 'resume'].includes(data.managementAction)) await validate(i.guild, channel, data.options.roleId || data.expected?.role_id);
+    if (data.managementAction === 'role-remove' && rolesOf(data.expected).filter(id => context.roles.has(id)).length <= 1) throw userError('Keep at least one existing allowed role. Add a replacement before removing this one.');
+    if (['setup', 'configure', 'resume', 'role-add'].includes(data.managementAction)) await validate(i.guild, channel, data.options.roleId || rolesOf(data.expected).filter(id => context.roles.has(id))[0]);
     try {
         await service.serial(`${i.guildId}:${channel.id}`, () => service.dao.manage(i.guildId, channel.id, i.user.id, data.managementAction, {
             ...data.options, ...(data.managementAction === 'setup' ? { roleId: data.options.roleId, policy: 'reject', consecutive: false } : {}), expected: data.expected,
@@ -151,6 +166,7 @@ async function confirm(i, data, context) {
         if (error.code !== 'COUNTING_STALE') throw error;
         const current = await service.dao.get(i.guildId, channel.id);
         if (data.managementAction === 'setup' || !current) throw userError('The game changed; nothing was changed by this confirmation. Reopen /counting settings or run setup again.');
+        if (['role-add', 'role-remove'].includes(data.managementAction)) return manage(i, data.managementAction, { channelId: channel.id, options: data.options }, context);
         await preview(i, data.managementAction, channel, current, data.options);
         return i.followUp({ content: 'Progress or rules changed since your preview. Review it and confirm again. For a busy game, pause it first, then rerun the change.', ephemeral: true, allowedMentions: { parse: [] } });
     }
@@ -159,8 +175,8 @@ async function confirm(i, data, context) {
     const controls = [nav(i, channel.id)];
     if (game.state !== 'retired') controls.push(row(button(i, 'Post channel guide', { action: 'guide', channelId: channel.id })));
     const text = data.managementAction === 'setup'
-        ? `**<#${channel.id}> is ready for ${copy.roleLabel(game, context.roles)}.**\n${game.current_count === 0 ? 'One teammate posts **1**, a different teammate posts **2**.' : `Counting already started. Last: **${game.current_count}**; check /counting current for the next number.`}\n${copy.rules(game)} Change rules later with /counting configure.\nMembers need the team role and send access; setup did not assign roles or change permissions.\nNext: check /counting status and member access, then Post channel guide.`
-        : `**<#${channel.id}> updated: ${copy.stateLabel(game.state)}.**\n${data.managementAction === 'retire' ? `History preserved; normal chat is allowed. Next: ${copy.example('resume', channel.id)} to reactivate.` : `${copy.rules(game)}\nLast: ${game.current_count} · Next: ${copy.next(game)} · Best: ${game.record}.\nNext: ${copy.example('current', channel.id)} before posting.`}`;
+        ? `**<#${channel.id}> is ready as a channel team.**\nAllowed roles (any one): ${copy.roleLabel(game, context.roles)}\n${game.current_count === 0 ? 'One teammate posts **1**, a different teammate posts **2**.' : `Counting already started. Last: **${game.current_count}**; check /counting current for the next number.`}\n${copy.rules(game)} Change rules later with /counting configure.\nMembers need any one allowed role and send access. Add more here with /counting role-add role:… (maximum 10); setup did not assign roles or change permissions.\nNext: check /counting status and member access, then Post channel guide.`
+        : `**<#${channel.id}> updated: ${copy.stateLabel(game.state)}.**\n${data.managementAction === 'retire' ? `History preserved; normal chat is allowed. Next: ${copy.example('resume', channel.id)} to reactivate.` : `${copy.rules(game)}\nAllowed roles (any one): ${copy.roleLabel(game, context.roles)}. Role changes preserve all channel history.\nLast: ${game.current_count} · Next: ${copy.next(game)} · Best: ${game.record}.\nNext: ${copy.example(game.state === 'active' ? 'current' : 'resume', channel.id)} ${game.state === 'active' ? 'before posting' : 'when ready; role edits do not resume a paused/suspended game'}.`}`;
     return i.editReply(payload(text, controls));
 }
 async function dispatch(i, action, params = {}) {
@@ -177,7 +193,7 @@ async function errorReply(i, error, action) {
     let text = error.userFacing ? error.message : `Could not complete this action. Saved progress may have changed; check /counting current before trying again. Ask a manager for help (reference ${ref}).`;
     if (!error.userFacing && READ.has(action)) text = `${['top', 'leaderboard'].includes(action) ? 'Rankings are temporarily unavailable; core counting is separate.' : 'Could not load this view.'} Retry /counting help, or ask a manager for help (reference ${ref}).`;
     if (error.code === 'COUNTING_STALE') text = 'The game changed before this action. Nothing was changed by this request. Run the command again for its latest state.';
-    if (error.code === '23505') text = 'That role or channel already has a counting game. Use /counting help for visible games; configure or retire the old assignment before creating another.';
+    if (error.code === '23505') text = 'That channel already has a counting game; roles can be reused across channels. Use /counting help for visible games; configure or retire the old assignment before creating another.';
     return i.editReply(payload(text, [nav(i, null)]));
 }
 async function execute(i) {
@@ -187,18 +203,17 @@ async function execute(i) {
     try {
         action = i.options.getSubcommand();
         const options = {};
-        if (action === 'setup') {
+        if (['setup', 'role-add', 'role-remove'].includes(action)) {
             const supplied = i.options.data?.[0]?.options || [];
-            if (supplied.some(o => o.name !== 'role')) throw userError('Setup is simpler now. Open the target text channel and run /counting setup role:… (one role option).');
+            if (supplied.some(o => o.name !== 'role')) throw userError('Open the target text channel and run /counting setup role:… or /counting role-add role:… (one role option).');
             options.roleId = i.options.getRole('role', true)?.id;
         } else if (action === 'configure') {
-            options.roleId = i.options.getRole('role')?.id;
+            if (i.options.data?.[0]?.options?.some(o => ['role', 'history'].includes(o.name))) throw userError('Channels are teams now. Use /counting role-add or role-remove for eligibility; /counting configure changes rules only. Channel history is preserved.');
             options.policy = i.options.getString('mistakes');
             options.consecutive = i.options.getBoolean('consecutive');
-            options.history = i.options.getString('history');
         }
         return await dispatch(i, action, {
-            channelId: action === 'setup' ? i.channelId || i.channel?.id : i.options.getChannel('channel')?.id,
+            channelId: ['setup', 'role-add', 'role-remove'].includes(action) ? i.channelId || i.channel?.id : i.options.getChannel('channel')?.id,
             page: ['help', 'leaderboard', 'top'].includes(action) ? i.options.getInteger('page') || 1 : 1,
             scope: action === 'top' ? i.options.getString('scope') || 'lifetime' : undefined,
             options,

@@ -10,7 +10,7 @@ suite('counting PostgreSQL integration (disposable database)', () => {
     beforeAll(async () => {
         pool = new Pool({ connectionString: process.env.COUNTING_TEST_DATABASE_URL });
         dao = new CountingDAO(pool);
-        await pool.query('DROP TABLE IF EXISTS counting_event, counting_game CASCADE');
+        await pool.query('DROP TABLE IF EXISTS counting_allowed_role, counting_event, counting_game CASCADE');
         const schema = fs.readFileSync(require.resolve('../store/db/tables/counting.sql'), 'utf8');
         await pool.query(schema);
         await pool.query(schema); // migration is repeatable
@@ -35,19 +35,24 @@ suite('counting PostgreSQL integration (disposable database)', () => {
         expect(persisted).toMatchObject({ current_count: 1, record: 2, last_author_id: 'a', run_id: '2' });
         expect((await dao.get('g', 'other')).current_count).toBe(0);
         expect(await dao.get('different-guild', 'c')).toBeUndefined();
-        const events = await pool.query("SELECT kind FROM counting_event WHERE message_id IS NOT NULL ORDER BY id");
+        const events = await pool.query("SELECT kind FROM counting_event WHERE message_id IS NOT NULL AND game_id IN (SELECT id FROM counting_game WHERE guild_id='g') ORDER BY id");
         expect(events.rows.map(e => e.kind)).toEqual(['accepted', 'accepted', 'reset', 'accepted']);
     });
-    test('duplicate roles are constrained and management is atomic', async () => {
-        await expect(dao.manage('g', 'duplicate-role', 'admin', 'setup', { roleId: 'r' })).rejects.toMatchObject({ code: '23505' });
-        expect(await dao.get('g', 'duplicate-role')).toBeUndefined();
+    test('roles can participate in multiple channel teams and edits preserve history', async () => {
+        await dao.manage('g', 'shared-role-channel', 'admin', 'setup', { roleId: 'r' });
+        await expect(dao.manage('g', 'c', 'admin', 'setup', { roleId: 'r' })).rejects.toThrow('already has a game');
+        const before = await dao.get('g', 'c');
         await dao.manage('g', 'c', 'admin', 'pause');
         expect((await dao.submit('g', 'c', { messageId: 'paused', authorId: 'b', content: '2' }, async () => true)).outcome).toBe('paused');
-        await dao.manage('g', 'c', 'admin', 'configure', { roleId: 'new-role', history: 'reset' });
-        expect(await dao.get('g', 'c')).toMatchObject({ history_id: '2', current_count: 0, record: 0, last_author_id: null });
+        await dao.manage('g', 'c', 'admin', 'role-add', { roleId: 'new-role' });
+        await dao.manage('g', 'c', 'admin', 'role-remove', { roleId: 'r' });
+        const after = await dao.get('g', 'c');
+        for (const key of ['history_id', 'run_id', 'current_count', 'record', 'last_author_id']) expect(after[key]).toBe(before[key]);
+        expect(after.role_ids).toEqual(['new-role']);
         await dao.manage('g', 'c', 'admin', 'resume');
         await dao.suspendMissing('g', 'role_id', 'new-role');
         expect((await dao.get('g', 'c')).state).toBe('suspended');
+        expect((await dao.get('g', 'c')).role_ids).toEqual([]);
     });
     test('views count accepted ledger entries across runs, ties, pages, privacy and reassignment', async () => {
         const views = new CountingViewsDAO(pool);
@@ -90,12 +95,12 @@ suite('counting PostgreSQL integration (disposable database)', () => {
         await dao.manage('views-g', 'team-b', 'admin', 'retire');
         expect((await views.leaderboard('views-g', ['team-a', 'team-b'])).total).toBe('1');
         expect((await views.top('views-g', 'team-b')).entries).toHaveLength(1); // readable archived game
-        await dao.manage('views-g', 'team-a', 'admin', 'configure', { roleId: 'retained-role', history: 'retain' });
+        await dao.manage('views-g', 'team-a', 'admin', 'role-add', { roleId: 'retained-role' });
         expect((await views.top('views-g', 'team-a')).total).toBe('12');
-        await dao.manage('views-g', 'team-a', 'admin', 'configure', { roleId: 'fresh-role', history: 'reset' });
+        await dao.manage('views-g', 'team-a', 'admin', 'role-remove', { roleId: 'role-a' });
         result = await views.top('views-g', 'team-a');
-        expect(result.total).toBe('0');
-        expect(result.entries).toEqual([]);
+        expect(result.total).toBe('12');
+        expect(result.entries).toHaveLength(10);
     });
 
     test('confirmation snapshots reject counts/resets/reassignments made after the preview', async () => {
@@ -109,9 +114,58 @@ suite('counting PostgreSQL integration (disposable database)', () => {
         await dao.manage('confirm-g', 'channel', 'admin', 'reset', { expected: snapshot(fresh) });
         await expect(dao.manage('confirm-g', 'channel', 'admin', 'reset', { expected: snapshot(fresh) })).rejects.toMatchObject({ code: 'COUNTING_STALE' });
         const reassignment = snapshot(await dao.get('confirm-g', 'channel'));
-        await dao.manage('confirm-g', 'channel', 'admin', 'configure', { roleId: 'other-team', history: 'reset' });
+        await dao.manage('confirm-g', 'channel', 'admin', 'role-add', { roleId: 'other-team' });
         await expect(dao.manage('confirm-g', 'channel', 'admin', 'retire', { expected: reassignment })).rejects.toMatchObject({ code: 'COUNTING_STALE' });
         expect((await dao.get('confirm-g', 'channel')).state).toBe('active');
+    });
+
+    test('concurrent additions stop at ten, duplicates are idempotent and the final role is protected', async () => {
+        await dao.manage('cap-g', 'cap-c', 'admin', 'setup', { roleId: 'initial' });
+        const outcomes = await Promise.allSettled(Array.from({ length: 12 }, (_, i) => dao.manage('cap-g', 'cap-c', 'admin', 'role-add', { roleId: `r${i}` })));
+        expect(outcomes.filter(o => o.status === 'fulfilled')).toHaveLength(9);
+        let game = await dao.get('cap-g', 'cap-c'); expect(game.role_ids).toHaveLength(10);
+        await dao.manage('cap-g', 'cap-c', 'admin', 'role-add', { roleId: 'initial' });
+        for (const roleId of game.role_ids.filter(id => id !== 'initial')) await dao.manage('cap-g', 'cap-c', 'admin', 'role-remove', { roleId });
+        await expect(dao.manage('cap-g', 'cap-c', 'admin', 'role-remove', { roleId: 'initial' })).rejects.toThrow('at least one');
+        game = await dao.get('cap-g', 'cap-c'); expect(game.role_ids).toEqual(['initial']);
+        await dao.manage('race-g', 'race-c', 'admin', 'setup', { roleId: 'a' });
+        await dao.manage('race-g', 'race-c', 'admin', 'role-add', { roleId: 'b' });
+        const removals = await Promise.allSettled(['a', 'b'].map(roleId => dao.manage('race-g', 'race-c', 'admin', 'role-remove', { roleId })));
+        expect(removals.filter(r => r.status === 'fulfilled')).toHaveLength(1);
+        expect((await dao.get('race-g', 'race-c')).role_ids).toHaveLength(1);
+    });
+
+    test('legacy upgrade is atomic, repeatable and preserves existing game/event identities', async () => {
+        const client = await pool.connect();
+        try {
+            await client.query('CREATE SCHEMA counting_legacy_test');
+            await client.query('SET search_path TO counting_legacy_test');
+            await client.query(fs.readFileSync(require.resolve('./assets/sql/counting_legacy.sql'), 'utf8'));
+            await client.query(`INSERT INTO counting_game(guild_id,channel_id,role_id,current_count,record,history_id,run_id,version,last_author_id,last_message_id,state)
+                VALUES('legacy-g','legacy-c','legacy-role',42,52,3,4,8,'member','old-message','paused')`);
+            await client.query(`INSERT INTO counting_event(game_id,history_id,run_id,version,kind,author_id,message_id,number)
+                SELECT id,history_id,run_id,version,'accepted','member','old-message',42 FROM counting_game`);
+            const before = (await client.query('SELECT * FROM counting_game')).rows[0];
+            const events = (await client.query('SELECT * FROM counting_event')).rows;
+            const schema = fs.readFileSync(require.resolve('../store/db/tables/counting.sql'), 'utf8');
+            await expect(client.query(schema + '; SELECT nonexistent_counting_test_function();')).rejects.toBeDefined();
+            expect((await client.query('SELECT role_id FROM counting_game')).rows[0].role_id).toBe('legacy-role');
+            await client.query(schema); await client.query(schema);
+            const upgraded = await new CountingDAO(client).get('legacy-g', 'legacy-c');
+            expect(upgraded).toMatchObject({ id: before.id, current_count: 42, record: 52, history_id: '3', run_id: '4', version: '8', last_author_id: 'member', last_message_id: 'old-message', state: 'paused', role_ids: ['legacy-role'] });
+            expect(upgraded.role_id).toBeUndefined();
+            expect((await client.query('SELECT * FROM counting_event')).rows).toEqual(events);
+            const board = await new CountingViewsDAO(client).leaderboard('legacy-g', ['legacy-c']);
+            expect(board.entries[0]).toMatchObject({ channel_id: 'legacy-c', current_count: '42', record: '52' });
+            expect((await client.query('SELECT COUNT(*)::int AS n FROM counting_allowed_role')).rows[0].n).toBe(1);
+            await client.query('DELETE FROM counting_allowed_role');
+            await client.query(schema);
+            expect((await client.query('SELECT COUNT(*)::int AS n FROM counting_allowed_role')).rows[0].n).toBe(0); // Never resurrect a deleted legacy role.
+        } finally {
+            await client.query('SET search_path TO public');
+            await client.query('DROP SCHEMA IF EXISTS counting_legacy_test CASCADE');
+            client.release();
+        }
     });
 
 });

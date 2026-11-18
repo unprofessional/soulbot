@@ -1,10 +1,12 @@
 # Counting Phase 2.5 — Guided setup and everyday use
 
-Status: implementation of 2.5A–D on `feature/counting-guided-ux`; targeted automated verification passes; PR review pending. Live Discord/mobile usability gate remains pending.
+Status: Phase 2.5A–D merged and promoted to master; reviewed with PostgreSQL checks passed. Live Discord/mobile usability gate remains pending. Replacement Phase 3 updates its eligibility model as noted below.
 
 Priority: next counting work. Completing the Phase 2.5 usability gate is a prerequisite for Phases 4–5; only an explicit user reprioritization can override it, with the roadmap updated to match. Phases 1–2 are already merged into master through PRs #105–#108. Preserve their counting rules and data. This phase includes delivery of the existing counting-channel lifecycle-notice follow-up; its detailed behavior remains in the main counting plan.
 
-Product update (2026-11-18): Phase 3 text/image options are deferred until after production and require explicit reactivation. This phase continues to teach pure-number input; do not add or advertise flexible-input settings.
+Product update (2026-11-18): The former Phase 3 text/image options are deferred until after production and require explicit reactivation. This phase continues to teach pure-number input; do not add or advertise flexible-input settings.
+
+Product update: [replacement Phase 3](counting-channel-teams.md) makes channels the teams and roles a max-ten eligibility list. Its role-add/remove commands and no-reset semantics supersede the role-ownership/history-reassignment details below; those details document the original 2.5 implementation.
 
 ## Outcome
 

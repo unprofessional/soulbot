@@ -4,9 +4,9 @@ const { PermissionFlagsBits: P, Events } = require('discord.js');
 const { pool } = require('../../store/db/pool.js');
 const { CountingDAO } = require('../../store/dao/counting.dao.js');
 const { shouldAcceptWork, registerDrainHandler } = require('../../app/lifecycle.js');
-const { shouldHandle } = require('./domain.js');
+const { shouldHandle, rolesOf } = require('./domain.js');
 const { initializeViews } = require('./views.js');
-const { diagnostics } = require('./permissions.js');
+const { diagnostics, liveAllowedRoles } = require('./permissions.js');
 const { rejection } = require('./presentation.js');
 const { CountingNotices, bounded } = require('./notices.js');
 const dao = new CountingDAO();
@@ -32,6 +32,7 @@ function connected(guildId, channelId) {
 }
 async function validateTarget(guild, channel, roleId) {
     if (channel.guildId !== guild.id || channel.type !== 0) throw new Error('Choose a normal text channel in this server.');
+    if (!roleId) throw new Error('No existing allowed roles. Use /counting role-add role:… here, then resume.');
     const role = await guild.roles.fetch(roleId);
     if (!role || role.id === guild.id || role.managed) throw new Error('Choose an existing normal team role in this server.');
     await guild.members.fetchMe({ force: true });
@@ -53,12 +54,17 @@ async function processMessage(message) {
     // Never replay old submissions after startup, including delayed duplicate gateway events.
     if (message.createdTimestamp < Math.max(onlineSince, notices?.cutoff(message.guildId, message.channelId) || 0)) return true;
     return serial(`${message.guildId}:${message.channelId}`, async () => {
+        let missing = [], validIds;
         const result = await dao.submit(message.guildId, message.channelId, attempt, async current => {
-            const role = await message.guild.roles.fetch(current.role_id);
-            if (!role) throw Object.assign(new Error('Team role deleted'), { missingRole: true, roleId: current.role_id });
+            const roles = await liveAllowedRoles(message.guild, current);
+            missing = rolesOf(current).filter(id => !roles.has(id));
+            validIds = [...roles.keys()];
+            if (!roles.size) throw Object.assign(new Error('No allowed roles remain'), { missingRoles: missing });
             const member = await message.guild.members.fetch({ user: message.author.id, force: true });
-            return member.roles.cache.has(current.role_id);
+            return validIds.some(id => member.roles.cache.has(id));
         });
+        for (const id of missing) await dao.suspendMissing(message.guildId, 'role_id', id).catch(error => console.error('[counting] Deleted-role cleanup failed:', error.message));
+        if (result && validIds) result.game = { ...result.game, role_ids: validIds };
         if (!result || result.outcome === 'ignored') return false;
         if (result.outcome === 'duplicate') return true;
         notices?.recovered(message.guildId, message.channelId);
@@ -80,8 +86,8 @@ async function handleMessage(message) {
     try { return await track(processMessage(message)); }
     catch (error) {
         console.error('[counting] Submission failed:', error.message);
-        if (notices?.games.has(`${message.guildId}:${message.channelId}`)) await notices.failure(message.channel, !error.missingRole);
-        if (error.missingRole) await dao.suspendMissing(message.guildId, 'role_id', error.roleId).catch(console.error);
+        if (notices?.games.has(`${message.guildId}:${message.channelId}`)) await notices.failure(message.channel, !error.missingRoles);
+        for (const id of error.missingRoles || []) await dao.suspendMissing(message.guildId, 'role_id', id).catch(console.error);
         // Fail closed: an uncertain counting submission must not enter transformation handlers.
         return true;
     }

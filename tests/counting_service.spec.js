@@ -2,7 +2,7 @@ const { EventEmitter } = require('node:events');
 const { Events } = require('discord.js');
 jest.mock('../store/db/pool.js', () => ({ pool: { query: jest.fn(async () => ({ rows: [] })) } }));
 jest.mock('../app/lifecycle.js', () => ({ shouldAcceptWork: jest.fn(() => true), registerDrainHandler: jest.fn() }));
-jest.mock('../store/dao/counting.dao.js', () => ({ CountingDAO: jest.fn(() => ({ get: jest.fn(), submit: jest.fn(), suspendMissing: jest.fn() })) }));
+jest.mock('../store/dao/counting.dao.js', () => ({ CountingDAO: jest.fn(() => ({ get: jest.fn(), list: jest.fn(async () => []), submit: jest.fn(), suspendMissing: jest.fn(async () => {}) })) }));
 const service = require('../features/counting/service.js');
 const { shouldAcceptWork } = require('../app/lifecycle.js');
 let client;
@@ -103,4 +103,28 @@ test('ranking-index failure leaves core counting available', async () => {
         pool.query.mockImplementation(async () => ({ rows: [] }));
         log.mockRestore();
     }
+});
+
+
+test('any allowed role qualifies once; two matching roles do not bypass turn alternation', async () => {
+    const { evaluate } = require('../features/counting/domain.js');
+    const current = { id: '1', guild_id: 'g', channel_id: 'c', role_ids: ['squad', 'mod'], state: 'active', current_count: 0, record: 0, allow_consecutive: false, last_author_id: null, mistake_policy: 'reject' };
+    service.dao.get.mockResolvedValue(current);
+    let memberRoles = new Map([['mod', {}]]); const outcomes = [];
+    service.dao.submit.mockImplementation(async (_g, _c, attempt, eligible) => {
+        const result = evaluate(current, { ...attempt, eligible: await eligible(current) });
+        outcomes.push(result.outcome);
+        if (result.outcome === 'accepted') { current.current_count = result.number; current.last_author_id = attempt.authorId; }
+        return { ...result, game: { ...current } };
+    });
+    const m = message({ guild: { id: 'g', members: { me: {}, fetch: jest.fn(async () => ({ roles: { cache: memberRoles } })) }, roles: { fetch: jest.fn(async id => ({ id })) } },
+        channel: { permissionsFor: () => ({ has: () => true }), send: jest.fn() } });
+    await service.handleMessage(m);
+    expect(outcomes).toEqual(['accepted']); expect(current.current_count).toBe(1);
+    memberRoles = new Map([['squad', {}], ['mod', {}]]);
+    await service.handleMessage({ ...m, id: 'second', content: '2' });
+    expect(outcomes).toEqual(['accepted', 'alternation']); expect(current.current_count).toBe(1);
+    memberRoles = new Map();
+    await service.handleMessage({ ...m, id: 'third', content: '2' });
+    expect(outcomes.at(-1)).toBe('ineligible'); expect(current.current_count).toBe(1);
 });
