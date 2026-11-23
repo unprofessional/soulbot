@@ -179,3 +179,12 @@ describe('fxvx community note normalization', () => {
         }));
     });
 });
+
+test('preserves engagement counts and verified authors for thread rendering', () => {
+    const counts = { replies: 0, retweets: 12, likes: 1234, views: 50000 };
+    expect(normalizeFromFX({ tweet: { id: '1', author: { verified: true }, ...counts } }))
+        .toEqual(expect.objectContaining({ ...counts, user_verified: true }));
+    expect(normalizeFromVX({ tweetID: '1', user_verified: true, ...counts }))
+        .toEqual(expect.objectContaining({ ...counts, user_verified: true }));
+    expect(normalizeFromFX({ tweet: { id: '1' } }).views).toBeNull();
+});

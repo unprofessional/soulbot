@@ -1,6 +1,5 @@
 const {
     DESKTOP_MAX_WIDTH,
-    MAIN_FONT,
     TEXT_FONT_FAMILY,
 } = require('../features/twitter-post/canvas/constants');
 const LEGACY_THREAD_FONT_FAMILY = '"Noto Color Emoji", "Noto Sans CJK", "Noto Sans Math"';
@@ -35,6 +34,7 @@ jest.mock('canvas', () => ({
             save: jest.fn(),
             restore: jest.fn(),
             quadraticCurveTo: jest.fn(),
+            bezierCurveTo: jest.fn(),
             closePath: jest.fn(),
             measureText: jest.fn(text => ({ width: String(text || '').length * 10 })),
         };
@@ -87,18 +87,18 @@ describe('thread snapshot canvas fonts', () => {
         });
 
         expect(canvasCreations.at(-1)?.width).toBe(DESKTOP_MAX_WIDTH);
-        expect(fontAssignments).toContain(MAIN_FONT);
+        expect(fontAssignments).toContain(`36px ${TEXT_FONT_FAMILY}`);
         expect(fontAssignments.some(font => font.includes(TEXT_FONT_FAMILY))).toBe(true);
         expect(fontAssignments.some(font => font.includes(LEGACY_THREAD_FONT_FAMILY))).toBe(false);
 
         const finalCtx = contexts.at(-1);
         const bodyTextCall = finalCtx.fillText.mock.calls.find(([text, x]) =>
-            text.includes('Thread snapshot text') && x === 110
+            text.includes('Thread snapshot text') && x === 32
         );
         expect(bodyTextCall).toBeDefined();
     });
 
-    test('preserves landscape media proportions in a bounded thumbnail below the text', async () => {
+    test('renders landscape media across the final post width', async () => {
         await renderThreadSnapshotCanvas({
             isTruncated: false,
             posts: [{
@@ -114,13 +114,13 @@ describe('thread snapshot canvas fonts', () => {
 
         const finalCtx = contexts.at(-1);
         const cropDrawCall = finalCtx.drawImage.mock.calls.find(call =>
-            call.length === 9 && call[5] === 110 && call[7] === 520 && call[8] === 260
+            call.length === 9 && call[5] === 32 && call[7] === 1176 && call[8] === 588
         );
 
         expect(cropDrawCall).toBeDefined();
     });
 
-    test('allows up to 16 wrapped lines for long thread posts and grows the canvas height', async () => {
+    test('keeps long final posts readable without the old 16-line cutoff', async () => {
         const posts = [{
             user_name: 'Example User',
             user_screen_name: 'example',
@@ -135,8 +135,7 @@ describe('thread snapshot canvas fonts', () => {
             posts,
         });
 
-        expect(posts[0]._wrappedLines).toHaveLength(16);
-        expect(posts[0]._wrappedLines.at(-1).endsWith('…')).toBe(true);
+        expect(contexts.at(-1).fillText.mock.calls.filter(([text]) => text.includes('alpha')).length).toBeGreaterThan(16);
         expect(canvasCreations.at(-1)?.height).toBeGreaterThan(600);
     });
 
@@ -177,7 +176,45 @@ describe('thread snapshot canvas fonts', () => {
         });
 
         expect(contexts.at(-1).fillText).toHaveBeenCalledWith(
-            `${expected} · 2 minutes later`, 110, expect.any(Number)
+            expected, 32, expect.any(Number)
         );
     });
+    test('indents parent media, expands final media, and renders a quote card', async () => {
+        const post = { user_name: 'Example', user_screen_name: 'example', date_epoch: 1710000000, text: '' };
+        await renderThreadSnapshotCanvas({ posts: [
+            { ...post, media_extended: [{ type: 'image', url: 'media-parent' }],
+                qtMetadata: { ...post, text: 'Quoted context', media_extended: [{ type: 'image', url: 'media-quote' }] } },
+            { ...post, media_extended: [{ type: 'image', url: 'media-final' }] },
+        ] });
+        const ctx = contexts.at(-1);
+        const images = ctx.drawImage.mock.calls.filter(call => call.length === 9);
+        expect(images.some(call => call[5] === 132 && call[7] === 1076)).toBe(true);
+        expect(images.some(call => call[5] === 32 && call[7] === 1176)).toBe(true);
+        expect(images.some(call => call[7] === 200 && call[8] === 200)).toBe(true);
+        expect(ctx.fillText.mock.calls.some(([text]) => text === 'Quoted context')).toBe(true);
+    });
+
+    test.each([2, 3, 4])('renders all %i gallery tiles within the final post', async count => {
+        await renderThreadSnapshotCanvas({ posts: [{
+            user_name: 'Example', user_screen_name: 'example', date_epoch: 1710000000,
+            media_extended: Array.from({ length: count }, (_, i) => ({ type: 'image', url: `media-${i}` })),
+        }] });
+        const images = contexts.at(-1).drawImage.mock.calls.filter(call => call.length === 9);
+        expect(images).toHaveLength(count);
+        for (const call of images) {
+            expect(call[5]).toBeGreaterThanOrEqual(32);
+            expect(call[5] + call[7]).toBeLessThanOrEqual(DESKTOP_MAX_WIDTH - 32);
+        }
+    });
+
+    test('failed media does not leave an empty media slot', async () => {
+        const { loadImage } = require('canvas');
+        loadImage.mockRejectedValueOnce(new Error('unavailable'));
+        const post = { user_name: 'Example', user_screen_name: 'example', date_epoch: 1710000000, text: 'Hello' };
+        await renderThreadSnapshotCanvas({ posts: [{ ...post, media_extended: [{ type: 'image', url: 'missing' }] }] });
+        const failedHeight = canvasCreations.at(-1).height;
+        await renderThreadSnapshotCanvas({ posts: [post] });
+        expect(canvasCreations.at(-1).height).toBe(failedHeight);
+    });
+
 });
