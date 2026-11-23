@@ -64,6 +64,11 @@ jest.mock('canvas', () => ({
     }),
 }));
 
+jest.mock('../features/twitter-post/image_gallery_rendering', () => ({
+    buildCombinedGalleryCanvas: jest.fn(images => ({ width: images[0].width * 2, height: images[0].height * (images.length > 2 ? 2 : 1) })),
+    drawImageWithBlurredBackground: jest.fn((ctx, img, x, y, width, height) => ctx.drawImage(img, 0, 0, img.width, img.height, x, y, width, height)),
+}));
+
 const { renderThreadSnapshotCanvas } = require('../features/twitter-core/thread_snapshot_canvas');
 
 describe('thread snapshot canvas fonts', () => {
@@ -176,7 +181,7 @@ describe('thread snapshot canvas fonts', () => {
         });
 
         expect(contexts.at(-1).fillText).toHaveBeenCalledWith(
-            expected, 32, expect.any(Number)
+            `${expected} · 2m later`, 32, expect.any(Number)
         );
     });
     test('indents parent media, expands final media, and renders a quote card', async () => {
@@ -194,17 +199,16 @@ describe('thread snapshot canvas fonts', () => {
         expect(ctx.fillText.mock.calls.some(([text]) => text === 'Quoted context')).toBe(true);
     });
 
-    test.each([2, 3, 4])('renders all %i gallery tiles within the final post', async count => {
+    test.each([2, 3, 4])('uses the standard blurred composite for %i gallery images', async count => {
+        const { buildCombinedGalleryCanvas, drawImageWithBlurredBackground } = require('../features/twitter-post/image_gallery_rendering');
+        buildCombinedGalleryCanvas.mockClear();
+        drawImageWithBlurredBackground.mockClear();
         await renderThreadSnapshotCanvas({ posts: [{
             user_name: 'Example', user_screen_name: 'example', date_epoch: 1710000000,
             media_extended: Array.from({ length: count }, (_, i) => ({ type: 'image', url: `media-${i}` })),
         }] });
-        const images = contexts.at(-1).drawImage.mock.calls.filter(call => call.length === 9);
-        expect(images).toHaveLength(count);
-        for (const call of images) {
-            expect(call[5]).toBeGreaterThanOrEqual(32);
-            expect(call[5] + call[7]).toBeLessThanOrEqual(DESKTOP_MAX_WIDTH - 32);
-        }
+        expect(buildCombinedGalleryCanvas.mock.calls[0][0]).toHaveLength(count);
+        expect(drawImageWithBlurredBackground).toHaveBeenCalled();
     });
 
     test('failed media does not leave an empty media slot', async () => {
@@ -226,5 +230,17 @@ test('omits engagement metrics and relative ages from parents, quotes, and final
     const strings = contexts.at(-1).fillText.mock.calls.map(([text]) => text);
     expect(strings.filter(text => text.startsWith('@'))).toEqual(['@example', '@example', '@example']);
     expect(strings.some(text => /Views|12.3K|23.5K|34.6K|45.7K/.test(text))).toBe(false);
-    expect(strings.filter(text => text.includes('Eastern'))).toHaveLength(1);
+    expect(strings.filter(text => text.includes('Eastern'))).toHaveLength(3);
+});
+
+test('preserves parent and quote timestamps plus fixed quote/reply deltas', async () => {
+    const post = { user_name: 'MUY', user_screen_name: 'muyhiram', text: '' };
+    await renderThreadSnapshotCanvas({ posts: [
+        { ...post, date_epoch: 1795456565, qtMetadata: { ...post, date_epoch: 1769454000 } },
+        { ...post, date_epoch: 1795456575 },
+    ] });
+    const strings = contexts.at(-1).fillText.mock.calls.map(([text]) => text);
+    expect(strings).toContain('2:00 PM Eastern · Jan 26, 2026');
+    expect(strings).toContain('12:56 PM Eastern · Nov 23, 2026 · 300d later');
+    expect(strings).toContain('12:56 PM Eastern · Nov 23, 2026 · 10s later');
 });
