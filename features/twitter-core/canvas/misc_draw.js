@@ -121,6 +121,27 @@ function getYPosFromLineHeight(descLines, y, lineHeight = 30) {
     return y + descLines.length * lineHeight;
 }
 
+// Shared by still-image, video, quoted-post, and thread descriptions.
+function drawDescriptionText(ctx, text, x, y) {
+    const baseColor = ctx.fillStyle;
+    const value = String(text ?? '');
+    const tokens = /https?:\/\/[^\s]+|(?<![\p{L}\p{N}_@])@[A-Za-z0-9_]+|(?<![\p{L}\p{N}_])#[\p{L}\p{N}_]+/gu;
+    let offset = 0;
+    for (const match of value.matchAll(tokens)) {
+        if (match.index > offset) {
+            ctx.fillStyle = baseColor;
+            ctx.fillText(value.slice(offset, match.index), x + ctx.measureText(value.slice(0, offset)).width, y);
+        }
+        ctx.fillStyle = '#1d9bf0';
+        ctx.fillText(match[0], x + ctx.measureText(value.slice(0, match.index)).width, y);
+        offset = match.index + match[0].length;
+    }
+    ctx.fillStyle = baseColor;
+    if (offset < value.length || !value.length) {
+        ctx.fillText(value.slice(offset), x + (offset ? ctx.measureText(value.slice(0, offset)).width : 0), y);
+    }
+}
+
 /**
  * Draw already-wrapped lines with a specified lineHeight.
  * (No font set in here; callers set ctx.font for determinism.)
@@ -139,7 +160,8 @@ function drawDescriptionLines(ctx, lines, x, y, { lineHeight = 30, yOffset = 0 }
             ctx.fillStyle = TRANSLATION_MARKER_COLOR;
         }
 
-        ctx.fillText(line, x, yy);
+        if (isArticleMarkerLine(line) || isTranslationMarkerLine(line)) ctx.fillText(line, x, yy);
+        else drawDescriptionText(ctx, line, x, yy);
         ctx.font = prevFont;
         ctx.fillStyle = prevFillStyle;
         yy += lineHeight;

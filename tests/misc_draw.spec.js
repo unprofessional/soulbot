@@ -141,3 +141,19 @@ describe('misc_draw translation marker styling', () => {
         }));
     });
 });
+
+test('description styling highlights mentions, Unicode hashtags, and links consistently', () => {
+    const calls = [];
+    const ctx = {
+        font: '24px sans-serif', fillStyle: '#e7e9ea',
+        measureText: text => ({ width: text.length * 10 }),
+        fillText(text, x, y) { calls.push({ text, x, y, color: this.fillStyle }); },
+    };
+    const text = 'Hi @example: #日本語 https://example.com and mail@example.com';
+    drawDescriptionLines(ctx, [text], 30, 50);
+    expect(calls.filter(c => c.color === '#1d9bf0').map(c => c.text))
+        .toEqual(['@example', '#日本語', 'https://example.com']);
+    expect(calls.map(c => c.text).join('')).toBe(text);
+    expect(calls.find(c => c.text === '@example').x).toBe(60);
+    expect(ctx.fillStyle).toBe('#e7e9ea');
+});

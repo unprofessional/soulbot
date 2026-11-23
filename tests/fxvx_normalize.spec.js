@@ -179,3 +179,18 @@ describe('fxvx community note normalization', () => {
         }));
     });
 });
+
+test('preserves verified authors for thread rendering', () => {
+    expect(normalizeFromFX({ tweet: { id: '1', author: { verification: { verified: true, type: 'individual' } } } }).user_verified).toBe(true);
+    expect(normalizeFromVX({ tweetID: '1', user_verified: true }).user_verified).toBe(true);
+});
+
+test.each([undefined, false, 'false', 'true'])('omits badges without explicit verification: %s', verified => {
+    expect(normalizeFromFX({ tweet: { id: '1', author: { verification: { verified } } } }).user_verified).toBe(false);
+    expect(normalizeFromVX({ tweetID: '1', user_verified: verified }).user_verified).toBe(false);
+});
+
+test('omits badges when the API supplies no verification metadata', () => {
+    expect(normalizeFromFX({ tweet: { id: '1', author: {} } }).user_verified).toBe(false);
+    expect(normalizeFromVX({ tweetID: '1' }).user_verified).toBe(false);
+});
