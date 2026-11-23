@@ -218,3 +218,13 @@ describe('thread snapshot canvas fonts', () => {
     });
 
 });
+
+test('omits engagement metrics and relative ages from parents, quotes, and final posts', async () => {
+    const post = { user_name: 'Example', user_screen_name: 'example', text: 'Hello', date_epoch: 1710000000,
+        replies: 12345, likes: 23456, retweets: 34567, views: 45678 };
+    await renderThreadSnapshotCanvas({ posts: [{ ...post, qtMetadata: post }, post] });
+    const strings = contexts.at(-1).fillText.mock.calls.map(([text]) => text);
+    expect(strings.filter(text => text.startsWith('@'))).toEqual(['@example', '@example', '@example']);
+    expect(strings.some(text => /Views|12.3K|23.5K|34.6K|45.7K/.test(text))).toBe(false);
+    expect(strings.filter(text => text.includes('Eastern'))).toHaveLength(1);
+});

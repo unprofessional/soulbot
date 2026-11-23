@@ -3,6 +3,7 @@ const { cropSingleImage } = require('../twitter-post/crop_single_image');
 const { DESKTOP_MAX_WIDTH, TEXT_FONT_FAMILY } = require('../twitter-post/canvas/constants');
 const { buildDisplayText } = require('./translation_service');
 const { formatTwitterFooter } = require('./utils');
+const { drawDescriptionLines } = require('./canvas/misc_draw');
 
 const PAD = 32;
 const CONTENT_X = 132;
@@ -11,7 +12,6 @@ const MUTED = '#71767b';
 const BORDER = '#2f3336';
 const WHITE = '#e7e9ea';
 const font = (size, bold = false) => `${bold ? 'bold ' : ''}${size}px ${TEXT_FONT_FAMILY}`;
-const compact = value => value == null ? '' : new Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 1 }).format(value);
 
 function rounded(ctx, x, y, w, h, r = 28) {
     ctx.beginPath();
@@ -123,7 +123,7 @@ function badge(ctx, x, y) {
     ctx.lineTo(x + 24, y - 6);
     ctx.stroke();
 }
-function header(ctx, post, img, x, y, width, expanded = false, small = false, now = Date.now()) {
+function header(ctx, post, img, x, y, width, expanded = false, small = false) {
     const size = small ? 44 : AVATAR;
     avatar(ctx, img, x, y, size);
     const tx = x + size + 20;
@@ -135,49 +135,17 @@ function header(ctx, post, img, x, y, width, expanded = false, small = false, no
     if (post.user_verified) badge(ctx, nameEnd + 6, y + 20);
     ctx.font = font(30);
     ctx.fillStyle = MUTED;
-    const age = Math.max(0, Math.floor((now / 1000 - post.date_epoch) / 3600));
-    const date = age < 1 ? `${Math.max(1, Math.floor((now / 1000 - post.date_epoch) / 60))}m` : age < 24 ? `${age}h` : new Date(post.date_epoch * 1000).toLocaleDateString('en-US', { timeZone: 'America/New_York', month: 'short', day: 'numeric' });
     const hx = expanded ? tx : nameEnd + (post.user_verified ? 48 : 12);
-    ctx.fillText(fit(ctx, `@${post.user_screen_name}${expanded ? '' : ` · ${date}`}`, x + width - hx - 45), hx, y + (expanded ? 70 : 31));
+    ctx.fillText(fit(ctx, `@${post.user_screen_name}`, x + width - hx - 45), hx, y + (expanded ? 70 : 31));
     if (!small) ctx.fillText('···', x + width - 38, y + 24);
 }
 function textLines(ctx, lines, x, y, size, lineHeight) {
     ctx.font = font(size);
-    lines.forEach((line, i) => {
-        let dx = x;
-        for (const token of line.split(/(@\w+|#\w+|https?:\/\/\S+)/g)) {
-            ctx.fillStyle = /^(@|#|https?:)/.test(token) ? '#1d9bf0' : WHITE;
-            ctx.fillText(token, dx, y + size + i * lineHeight);
-            dx += ctx.measureText(token).width;
-        }
-    });
-}
-function icon(ctx, kind, x, y) {
-    ctx.strokeStyle = MUTED;
-    ctx.lineWidth = 2.5;
-    ctx.beginPath();
-    const path = points => points.forEach(([a, b], i) => ctx[i ? 'lineTo' : 'moveTo'](x + a, y + b));
-    if (kind === 'reply') { rounded(ctx, x, y, 28, 22, 10); ctx.moveTo(x + 7, y + 21); ctx.lineTo(x + 6, y + 29); ctx.lineTo(x + 17, y + 22); }
-    if (kind === 'repost') { path([[0, 8], [7, 1], [14, 8]]); path([[7, 2], [7, 24], [18, 24]]); path([[17, 20], [24, 27], [31, 20]]); path([[24, 26], [24, 4], [14, 4]]); }
-    if (kind === 'like') { ctx.moveTo(x + 15, y + 27); ctx.bezierCurveTo(x - 16, y + 7, x + 1, y - 10, x + 15, y + 4); ctx.bezierCurveTo(x + 29, y - 10, x + 46, y + 7, x + 15, y + 27); }
-    if (kind === 'views') for (const [dx, top] of [[0, 14], [8, 0], [16, 8], [24, 18]]) path([[dx, top], [dx, 28]]);
-    if (kind === 'bookmark') path([[0, 28], [0, 0], [22, 0], [22, 28], [11, 20], [0, 28]]);
-    if (kind === 'share') { path([[0, 18], [0, 28], [26, 28], [26, 18]]); path([[13, 20], [13, 0]]); path([[5, 8], [13, 0], [21, 8]]); }
-    ctx.stroke();
-}
-function engagement(ctx, post, x, y, width) {
-    const spacing = (width - 120) / 4;
-    ['reply', 'repost', 'like', 'views'].forEach((kind, i) => {
-        icon(ctx, kind, x + i * spacing, y);
-        ctx.font = font(27);
-        ctx.fillStyle = MUTED;
-        ctx.fillText(compact(post[['replies', 'retweets', 'likes', 'views'][i]]), x + i * spacing + 42, y + 26);
-    });
-    icon(ctx, 'bookmark', x + width - 90, y);
-    icon(ctx, 'share', x + width - 28, y);
+    ctx.fillStyle = WHITE;
+    drawDescriptionLines(ctx, lines, x, y + size, { lineHeight });
 }
 
-async function renderThreadSnapshotCanvas({ posts, isTruncated, now = Date.now() }) {
+async function renderThreadSnapshotCanvas({ posts, isTruncated }) {
     const measure = createCanvas(1, 1).getContext('2d');
     const rows = [];
     let y = isTruncated ? 88 : PAD;
@@ -204,9 +172,9 @@ async function renderThreadSnapshotCanvas({ posts, isTruncated, now = Date.now()
             quote = { post: qp, ...qa, lines: qlines, y: bottom + 12, height: 84 + Math.max(qlines.length * 40, qa.images.length ? 200 : 0) + 24 };
             bottom = quote.y + quote.height;
         }
-        const footerY = bottom + (expanded ? 48 : 30);
+        const footerY = bottom + (expanded ? 48 : 0);
         rows.push({ post, ...loaded, expanded, x, width, size, lineHeight, lines, y, bodyY, mediaY, height, quote, footerY });
-        y = footerY + (expanded ? 36 : 78);
+        y = Math.max(footerY + (expanded ? 36 : 56), y + AVATAR + 16);
     }
     const canvas = createCanvas(DESKTOP_MAX_WIDTH, Math.max(120, Math.ceil(y)));
     const ctx = canvas.getContext('2d');
@@ -223,7 +191,7 @@ async function renderThreadSnapshotCanvas({ posts, isTruncated, now = Date.now()
             ctx.lineTo(PAD + AVATAR / 2, rows[i + 1].y - 8);
             ctx.stroke();
         }
-        header(ctx, post, row.avatar, PAD, y, DESKTOP_MAX_WIDTH - PAD * 2, expanded, false, now);
+        header(ctx, post, row.avatar, PAD, y, DESKTOP_MAX_WIDTH - PAD * 2, expanded);
         textLines(ctx, row.lines, x, row.bodyY, row.size, row.lineHeight);
         drawMedia(ctx, row.images, x, row.mediaY, width, row.height);
         if (quote) {
@@ -231,16 +199,16 @@ async function renderThreadSnapshotCanvas({ posts, isTruncated, now = Date.now()
             ctx.lineWidth = 2;
             rounded(ctx, x, quote.y, width, quote.height);
             ctx.stroke();
-            header(ctx, quote.post, quote.avatar, x + 24, quote.y + 20, width - 48, false, true, now);
+            header(ctx, quote.post, quote.avatar, x + 24, quote.y + 20, width - 48, false, true);
             if (quote.images.length) drawMedia(ctx, [quote.images[0]], x + 24, quote.y + 84, 200, 200);
             textLines(ctx, quote.lines, x + (quote.images.length ? 248 : 24), quote.y + 80, 30, 40);
         }
         if (expanded) {
             ctx.font = font(28);
             ctx.fillStyle = MUTED;
-            const footer = formatTwitterFooter(new Date(post.date_epoch * 1000)) + (post.views == null ? '' : ` · ${compact(post.views)} Views`);
+            const footer = formatTwitterFooter(new Date(post.date_epoch * 1000));
             ctx.fillText(footer, x, row.footerY);
-        } else engagement(ctx, post, x, row.footerY, width);
+        }
     }
     return canvas.toBuffer('image/png');
 }
