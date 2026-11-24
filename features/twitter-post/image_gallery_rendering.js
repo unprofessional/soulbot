@@ -317,7 +317,7 @@ function drawGalleryOverflow(ctx, rect, hiddenCount) {
     const size = Math.min(rect.width * 0.16, rect.height * 0.24);
     const centerX = rect.x + rect.width / 2;
     const centerY = rect.y + rect.height / 2;
-    ctx.fillStyle = '#fff';
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.font = `bold ${size}px ${TEXT_FONT_FAMILY}`;
