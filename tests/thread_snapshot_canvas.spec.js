@@ -246,3 +246,12 @@ test('preserves parent and quote timestamps plus fixed quote/reply deltas', asyn
     expect(strings).toContain('12:56 PM Eastern · Nov 23, 2026 · 300d later');
     expect(strings).toContain('12:56 PM Eastern · Nov 23, 2026 · 10s later');
 });
+
+test('uses X branding instead of an interactive menu on rendered posts', async () => {
+    const post = { user_name: 'Example', user_screen_name: 'example', text: 'Hello', date_epoch: 1710000000 };
+    await renderThreadSnapshotCanvas({ posts: [post, post] });
+    const ctx = contexts.at(-1);
+    expect(ctx.fillText.mock.calls.some(([text]) => text === '···')).toBe(false);
+    // Each X logo paints its outer shape and inner cutout.
+    expect(ctx.fill).toHaveBeenCalledTimes(4);
+});
