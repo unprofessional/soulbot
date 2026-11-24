@@ -52,6 +52,7 @@ async function createTwitterVideoCanvas(metadataJson) {
 
     const metadata = {
         user_verified: metadataJson.user_verified === true,
+        user_verification_type: metadataJson.user_verification_type ?? null,
         authorNick: metadataJson.user_screen_name,
         authorUsername: metadataJson.user_name,
         pfpUrl: metadataJson.user_profile_image_url,
@@ -128,6 +129,7 @@ async function createTwitterVideoCanvas(metadataJson) {
             ...quote,
             authorNick: quote.user_screen_name,
             user_verified: quote.user_verified === true,
+            user_verification_type: quote.user_verification_type ?? null,
             authorUsername: quote.user_name,
             description: quoteDescription,
         }, quotePfp, null, {
