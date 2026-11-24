@@ -1,3 +1,4 @@
+const { drawVerifiedBadge } = require('./canvas/verified_badge');
 const { createCanvas, loadImage } = require('canvas');
 const { cropSingleImage } = require('../twitter-post/crop_single_image');
 const { DESKTOP_MAX_WIDTH, TEXT_FONT_FAMILY } = require('../twitter-post/canvas/constants');
@@ -107,24 +108,6 @@ function avatar(ctx, img, x, y, size) {
     if (img) cropSingleImage(ctx, img, size, size, x, y);
     ctx.restore();
 }
-function badge(ctx, x, y) {
-    ctx.fillStyle = '#1d9bf0';
-    ctx.beginPath();
-    for (let i = 0; i < 24; i++) {
-        const angle = i * Math.PI / 12;
-        const radius = i % 2 ? 13 : 16;
-        ctx[i ? 'lineTo' : 'moveTo'](x + 16 + Math.cos(angle) * radius, y + Math.sin(angle) * radius);
-    }
-    ctx.closePath();
-    ctx.fill();
-    ctx.strokeStyle = '#000';
-    ctx.lineWidth = 3;
-    ctx.beginPath();
-    ctx.moveTo(x + 8, y);
-    ctx.lineTo(x + 14, y + 5);
-    ctx.lineTo(x + 24, y - 6);
-    ctx.stroke();
-}
 function header(ctx, post, img, x, y, width, expanded = false, small = false) {
     const size = small ? 44 : AVATAR;
     avatar(ctx, img, x, y, size);
@@ -134,7 +117,7 @@ function header(ctx, post, img, x, y, width, expanded = false, small = false) {
     const name = fit(ctx, post.user_name, width - size - (expanded ? 80 : 290));
     ctx.fillText(name, tx, y + 31);
     const nameEnd = tx + ctx.measureText(name).width;
-    if (post.user_verified) badge(ctx, nameEnd + 6, y + 20);
+    if (post.user_verified) drawVerifiedBadge(ctx, nameEnd + 6, y + 20);
     ctx.font = font(30);
     ctx.fillStyle = MUTED;
     const hx = expanded ? tx : nameEnd + (post.user_verified ? 48 : 12);

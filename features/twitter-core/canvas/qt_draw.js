@@ -1,3 +1,4 @@
+const { drawAuthorName } = require('./verified_badge');
 /* eslint-disable no-empty */
 // features/twitter-core/canvas/qt_draw.js
 
@@ -102,7 +103,7 @@ function drawQtBasicElements(ctx, fontChain, metadata, pfp, mediaObj, options) {
         // Names
         ctx.fillStyle = 'white';
         ctx.font = `bold 18px ${fontChain}`;
-        ctx.fillText(metadata.authorUsername ?? '', 100, qtY + 40);
+        drawAuthorName(ctx, metadata, 100, qtY + 40, boxW - 110);
 
         ctx.fillStyle = 'gray';
         ctx.font = `18px ${fontChain}`;
@@ -269,7 +270,7 @@ function drawQtDesktopLayout(ctx, fontChain, metadata, pfp, mediaObj, options) {
 
     ctx.fillStyle = 'white';
     ctx.font = `bold 18px ${fontChain}`;
-    ctx.fillText(metadata.authorUsername, avatarX, avatarY + avatarRadius * 2 + 20);
+    drawAuthorName(ctx, metadata, avatarX, avatarY + avatarRadius * 2 + 20, hasMedia ? leftColWidth - padding - 12 : 480);
 
     ctx.fillStyle = 'gray';
     ctx.font = `18px ${fontChain}`;
