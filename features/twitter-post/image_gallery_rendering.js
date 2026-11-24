@@ -2,6 +2,7 @@
 /* eslint-disable no-empty */
 const { createCanvas, loadImage } = require('canvas');
 const { cropSingleImage } = require('./crop_single_image.js');
+const { TEXT_FONT_FAMILY } = require('./canvas/constants.js');
 const { scaleDownToFitAspectRatio } = require('./scale_down.js');
 
 // features/twitter-post/image_gallery_rendering.js
@@ -19,13 +20,12 @@ const BLUR_BOX_PASSES = 3;
 
 function getItems(metadata) {
     const items = Array.isArray(metadata?.mediaExtended) ? metadata.mediaExtended : [];
-    // Prefer images; if mixed, keep images only
-    const images = items.filter(m => (m?.type || '').toLowerCase() === 'image');
-    return images.length ? images : items;
+    // An image-first post stays a static gallery, including later video thumbnails.
+    return items;
 }
 
 function getUrl(m) {
-    return m?.thumbnail_url || m?.url || null;
+    return ['video', 'gif'].includes(m?.type) ? m?.thumbnail_url || null : m?.thumbnail_url || m?.url || null;
 }
 
 function getSize(m) {
@@ -309,7 +309,90 @@ function drawImageWithBlurredBackground(ctx, img, x, y, width, height) {
     ctx.restore();
 }
 
-function buildCombinedGalleryCanvas(imgs, items) {
+function drawGalleryOverflow(ctx, rect, hiddenCount, label = 'MORE PHOTOS') {
+    if (hiddenCount <= 0) return;
+    // Soften only the image beneath the overlay, with clamped tile edges so
+    // neighboring photos and the subsequently drawn icon/text remain sharp.
+    const tileX = Math.ceil(rect.x);
+    const tileY = Math.ceil(rect.y);
+    const tileWidth = Math.floor(rect.x + rect.width) - tileX;
+    const tileHeight = Math.floor(rect.y + rect.height) - tileY;
+    const radius = Math.max(1, Math.round(Math.min(rect.width / 420, rect.height / 396) * 1.4));
+    const pixels = ctx.getImageData(tileX, tileY, tileWidth, tileHeight);
+    ctx.putImageData(blurImageData(pixels, radius, 2), tileX, tileY);
+    ctx.save();
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.55)';
+    ctx.fillRect(rect.x, rect.y, rect.width, rect.height);
+    const unit = Math.min(rect.width / 420, rect.height / 396);
+    const cx = rect.x + rect.width / 2;
+    const cy = rect.y + rect.height / 2;
+    const box = (x, y, w, h, radius) => {
+        ctx.beginPath();
+        ctx.roundRect(cx + x * unit, cy + y * unit, w * unit, h * unit, radius * unit);
+    };
+    // Two overlapping photo cards, with a cutout mountain and sun.
+    ctx.lineWidth = 1.5 * unit;
+    ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+    ctx.fillStyle = 'rgba(255,255,255,0.12)';
+    box(-12, -105, 44, 38, 6); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = 'rgba(255,255,255,0.9)';
+    box(-23, -96, 46, 39, 5); ctx.fill();
+    ctx.fillStyle = '#20262a';
+    ctx.beginPath(); ctx.arc(cx + 10 * unit, cy - 84 * unit, 4 * unit, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(cx - 16 * unit, cy - 65 * unit);
+    ctx.lineTo(cx - 5 * unit, cy - 80 * unit);
+    ctx.lineTo(cx + 3 * unit, cy - 70 * unit);
+    ctx.lineTo(cx + 9 * unit, cy - 77 * unit);
+    ctx.lineTo(cx + 18 * unit, cy - 65 * unit);
+    ctx.closePath(); ctx.fill();
+    ctx.font = `bold ${50 * unit}px ${TEXT_FONT_FAMILY}`;
+    const count = `+${hiddenCount}`;
+    const pillWidth = Math.max(148 * unit, ctx.measureText(count).width + 46 * unit);
+    ctx.beginPath();
+    ctx.roundRect(cx - pillWidth / 2, cy - 20 * unit, pillWidth, 72 * unit, 36 * unit);
+    ctx.fillStyle = 'rgba(255,255,255,0.13)'; ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,0.45)'; ctx.lineWidth = 1.5 * unit; ctx.stroke();
+    ctx.fillStyle = 'rgba(255,255,255,0.9)';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(count, cx, cy + 17 * unit);
+    ctx.font = `${14 * unit}px ${TEXT_FONT_FAMILY}`;
+    const spacing = 2.5 * unit;
+    const widths = [...label].map(char => ctx.measureText(char).width);
+    let x = cx - (widths.reduce((a, b) => a + b, 0) + spacing * (label.length - 1)) / 2;
+    ctx.textAlign = 'left';
+    [...label].forEach((char, i) => {
+        ctx.fillText(char, x, cy + 81 * unit);
+        x += widths[i] + spacing;
+    });
+    ctx.restore();
+}
+
+function drawVideoThumbnailBadge(ctx, rect) {
+    const unit = Math.min(rect.width / 420, rect.height / 396);
+    const width = 104 * unit;
+    const height = 72 * unit;
+    const cx = rect.x + rect.width / 2;
+    const cy = rect.y + rect.height / 2;
+    ctx.save();
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.55)';
+    ctx.fillRect(rect.x, rect.y, rect.width, rect.height);
+    ctx.beginPath();
+    ctx.roundRect(cx - width / 2, cy - height / 2, width, height, height / 2);
+    ctx.fillStyle = 'rgba(255,255,255,0.13)'; ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,0.45)'; ctx.lineWidth = 1.5 * unit; ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(cx - 10 * unit, cy - 17 * unit);
+    ctx.lineTo(cx + 18 * unit, cy);
+    ctx.lineTo(cx - 10 * unit, cy + 17 * unit);
+    ctx.closePath();
+    ctx.fillStyle = 'rgba(255,255,255,0.9)'; ctx.fill();
+    ctx.restore();
+}
+
+function buildCombinedGalleryCanvas(imgs, items, totalCount = items.length, overflowLabel = items.some(m => ['video', 'gif'].includes(m.type)) ? 'MORE MEDIA' : 'MORE PHOTOS') {
+    imgs = imgs.slice(0, 4);
+    items = items.slice(0, 4);
     const naturalSize = getCombinedNaturalSize(items);
     if (!naturalSize) return null;
 
@@ -329,6 +412,10 @@ function buildCombinedGalleryCanvas(imgs, items) {
         drawContainedImage(ctx, imgs[i], rects[i]);
     }
     ctx.restore();
+    items.forEach((item, i) => {
+        if (['video', 'gif'].includes(item.type) && !(i === 3 && totalCount > 4)) drawVideoThumbnailBadge(ctx, rects[i]);
+    });
+    if (imgs.length === 4) drawGalleryOverflow(ctx, rects[3], totalCount - 4, overflowLabel);
 
     return canvas;
 }
@@ -339,7 +426,7 @@ async function loadCombinedGalleryCanvas(items) {
     if (!urls.length) return null;
 
     const imgs = await Promise.all(urls.map(u => loadImage(u)));
-    return buildCombinedGalleryCanvas(imgs, galleryItems);
+    return buildCombinedGalleryCanvas(imgs, items, items.length);
 }
 
 function computeBaseY(defaultYPosition, calculatedCanvasHeightFromDescLines, heightShim) {
@@ -458,7 +545,7 @@ async function renderImageGallery(
 
     // Load all images we need in parallel
     const imgs = await Promise.all(urls.map(u => loadImage(u)));
-    const combined = buildCombinedGalleryCanvas(imgs, items);
+    const combined = buildCombinedGalleryCanvas(imgs, getItems(metadata));
     if (!combined) return;
 
     const displaySize = fitWithinBox(
@@ -472,6 +559,8 @@ async function renderImageGallery(
 }
 
 module.exports = {
+    drawGalleryOverflow,
+    drawVideoThumbnailBadge,
     buildCombinedGalleryCanvas,
     containRect,
     coverRect,

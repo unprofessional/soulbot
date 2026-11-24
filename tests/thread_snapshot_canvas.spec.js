@@ -247,11 +247,22 @@ test('preserves parent and quote timestamps plus fixed quote/reply deltas', asyn
     expect(strings).toContain('12:56 PM Eastern · Nov 23, 2026 · 10s later');
 });
 
-test('uses X branding instead of an interactive menu on rendered posts', async () => {
+test('shows X branding only on the top visible post', async () => {
     const post = { user_name: 'Example', user_screen_name: 'example', text: 'Hello', date_epoch: 1710000000 };
     await renderThreadSnapshotCanvas({ posts: [post, post] });
     const ctx = contexts.at(-1);
     expect(ctx.fillText.mock.calls.some(([text]) => text === '···')).toBe(false);
     // Each X logo paints its outer shape and inner cutout.
-    expect(ctx.fill).toHaveBeenCalledTimes(4);
+    expect(ctx.fill).toHaveBeenCalledTimes(2);
+});
+
+test('passes the full gallery count while loading only four thread images', async () => {
+    const { buildCombinedGalleryCanvas } = require('../features/twitter-post/image_gallery_rendering');
+    buildCombinedGalleryCanvas.mockClear();
+    await renderThreadSnapshotCanvas({ posts: [{
+        user_name: 'Example', user_screen_name: 'example', date_epoch: 1710000000,
+        media_extended: Array.from({ length: 10 }, (_, i) => ({ type: 'image', url: `media-${i}` })),
+    }] });
+    expect(buildCombinedGalleryCanvas.mock.calls[0][0]).toHaveLength(4);
+    expect(buildCombinedGalleryCanvas.mock.calls[0][2]).toBe(10);
 });

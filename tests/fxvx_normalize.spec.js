@@ -194,3 +194,12 @@ test('omits badges when the API supplies no verification metadata', () => {
     expect(normalizeFromFX({ tweet: { id: '1', author: {} } }).user_verified).toBe(false);
     expect(normalizeFromVX({ tweetID: '1' }).user_verified).toBe(false);
 });
+
+test('preserves FX media.all order instead of regrouping photos and videos', () => {
+    const image = { type: 'photo', url: 'image.jpg', width: 100, height: 100 };
+    const video = { type: 'video', url: 'video.mp4', thumbnail_url: 'thumb.jpg', width: 100, height: 100 };
+    const gif = { type: 'gif', url: 'gif.mp4', thumbnail_url: 'gif.jpg' };
+    const post = normalizeFromFX({ tweet: { media: { all: [video, image, gif], photos: [image], videos: [video, gif] } } });
+    expect(post.media_extended.map(m => m.type)).toEqual(['video', 'image', 'gif']);
+    expect(post.media_extended.map(m => m.url)).toEqual(['video.mp4', 'image.jpg', 'gif.mp4']);
+});

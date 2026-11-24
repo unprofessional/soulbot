@@ -147,7 +147,7 @@ function computeQtSizing(ctx, {
     }
 
     ctx.font = `24px ${fontChain}`;
-    const qtContainsVideo = Array.isArray(qtMedia) ? qtMedia.some(m => m.type === 'video') : false;
+    const qtContainsVideo = ['video', 'gif'].includes(qtFirst?.type);
     let expandQtMedia = shouldExpandQtMedia({ qtFirst, hasImgs, hasVids, qtContainsVideo });
 
     const initialWrapWidth = getQtWrapWidth({
@@ -165,7 +165,7 @@ function computeQtSizing(ctx, {
     let qtExpandedMediaSize = null;
     if (expandQtMedia && qtFirst?.size) {
         const imageMedia = Array.isArray(qtMedia)
-            ? qtMedia.filter(m => (m?.type || '').toLowerCase() === 'image')
+            ? qtMedia
             : [];
         const combinedSize = imageMedia.length > 1
             ? getCombinedNaturalSize(imageMedia.slice(0, 4))

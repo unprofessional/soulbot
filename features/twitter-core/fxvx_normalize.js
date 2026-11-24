@@ -246,30 +246,21 @@ function normalizeFromFX(fx) {
     const t = fx?.tweet;
     if (!t) return null;
     const translation = normalizeTranslation(t.translation ?? fx.translation, t.lang ?? fx?.lang);
-    const media = [];
-    if (t.media?.photos) {
-        for (const p of t.media.photos) {
-            media.push({
-                type: 'image',
-                url: p.url,
-                thumbnail_url: p.url,
-                altText: p.altText ?? null,
-                size: { width: p.width, height: p.height },
-            });
-        }
-    }
-    if (t.media?.videos) {
-        for (const v of t.media.videos) {
-            media.push({
-                type: v.type === 'gif' ? 'video' : 'video',
-                url: v.url,
-                thumbnail_url: v.thumbnail_url,
-                duration_millis: Math.round((v.duration ?? 0) * 1000),
-                size: { width: v.width, height: v.height },
-                format: v.format,
-            });
-        }
-    }
+    // FX's combined list is authoritative for attachment order.
+    const ordered = Array.isArray(t.media?.all) && t.media.all.length
+        ? t.media.all
+        : [...(t.media?.photos || []).map(p => ({ ...p, type: 'photo' })), ...(t.media?.videos || []).map(v => ({ ...v, type: v.type || 'video' }))];
+    const media = ordered.map(m => {
+        const type = ['photo', 'image'].includes(m.type) ? 'image' : m.type === 'gif' ? 'gif' : 'video';
+        return {
+            type,
+            url: m.url,
+            thumbnail_url: type === 'image' ? m.url : m.thumbnail_url,
+            altText: m.altText ?? null,
+            ...(type !== 'image' && { duration_millis: Math.round((m.duration ?? 0) * 1000), format: m.format }),
+            size: { width: m.width, height: m.height },
+        };
+    });
     return {
         tweetID: t.id,
         replyingToID: t.replying_to_status ?? null,

@@ -155,3 +155,17 @@ describe('renderTwitterPost community note flow', () => {
         expect(handleImagePost).not.toHaveBeenCalled();
     });
 });
+
+test.each([
+    ['image', 'video', 'image'], ['image', 'gif', 'image'],
+    ['video', 'image', 'video'], ['video', 'gif', 'video'],
+    ['gif', 'video', 'gif'],
+])('first %s wins over later %s', async (first, second, expected) => {
+    jest.clearAllMocks();
+    const item = type => ({ type, url: `https://example.com/${type}`, thumbnail_url: 'https://example.com/thumb.jpg' });
+    collectMedia.mockReturnValue([item(first), item(second)]);
+    await renderTwitterPost({ text: 'Mixed attachments' }, {}, 'https://x.com/a/status/1');
+    expect(handleImagePost).toHaveBeenCalledTimes(expected === 'image' ? 1 : 0);
+    expect(handleVideoPost).toHaveBeenCalledTimes(expected === 'video' ? 1 : 0);
+    expect(handleGifPost).toHaveBeenCalledTimes(expected === 'gif' ? 1 : 0);
+});

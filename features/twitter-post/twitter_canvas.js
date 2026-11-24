@@ -335,10 +335,10 @@ async function createTwitterCanvas(metadataJson, isImage) {
     if (qtMetadata) {
         const qtPfp = await safeLoadImage(qtMetadata.pfpUrl);
         const qtImageMedia = Array.isArray(qtMedia)
-            ? qtMedia.filter(m => (m?.type || '').toLowerCase() === 'image')
+            ? (qtMedia[0]?.type === 'image' ? qtMedia : qtMedia.slice(0, 1))
             : [];
         const qtMediaUrl = qtFirstThumbUrl || null;
-        const qtMediaImg = qtImageMedia.length > 1
+        const qtMediaImg = qtImageMedia.length > 1 || ['video', 'gif'].includes(qtImageMedia[0]?.type)
             ? await loadCombinedGalleryCanvas(qtImageMedia)
             : (qtMediaUrl ? await safeLoadImage(qtMediaUrl) : undefined);
         const qtUseDesktopLayout = false;
