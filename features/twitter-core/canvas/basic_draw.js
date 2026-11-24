@@ -1,3 +1,4 @@
+const { drawAuthorName } = require('./verified_badge');
 /* eslint-disable no-empty */
 // features/twitter-core/canvas/basic_draw.js
 
@@ -65,7 +66,7 @@ function drawBasicElements(ctx, fontChain, metadata, favicon, pfp, descLines, op
     // Name
     ctx.fillStyle = 'white';
     ctx.font = NAME_BOLD_FONT;
-    ctx.fillText(String(metadata.authorUsername || ''), 100, 40);
+    drawAuthorName(ctx, metadata, 100, 40, 420);
 
     // Handle
     ctx.fillStyle = 'gray';
@@ -142,7 +143,7 @@ function drawDesktopLayout(ctx, fontChain, metadata, favicon, pfp, descLines, op
 
     ctx.fillStyle = 'white';
     ctx.font = NAME_BOLD_FONT;
-    ctx.fillText(String(metadata.authorUsername || ''), padding, avatarY + avatarRadius * 2 + 30);
+    drawAuthorName(ctx, metadata, padding, avatarY + avatarRadius * 2 + 30, hasMedia ? leftColumnWidth - 12 : 1100);
 
     ctx.fillStyle = 'gray';
     ctx.font = NAME_FONT;
