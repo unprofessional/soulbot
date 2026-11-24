@@ -375,6 +375,8 @@ function drawVideoThumbnailBadge(ctx, rect) {
     const cx = rect.x + rect.width / 2;
     const cy = rect.y + rect.height / 2;
     ctx.save();
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.55)';
+    ctx.fillRect(rect.x, rect.y, rect.width, rect.height);
     ctx.beginPath();
     ctx.roundRect(cx - width / 2, cy - height / 2, width, height, height / 2);
     ctx.fillStyle = 'rgba(255,255,255,0.13)'; ctx.fill();
