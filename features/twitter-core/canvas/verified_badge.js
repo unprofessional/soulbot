@@ -1,10 +1,10 @@
-function drawVerifiedBadge(ctx, x, y, size = 32) {
+function drawVerifiedBadge(ctx, x, y, size = 32, type = null) {
     ctx.save();
     ctx.translate(x, y);
     ctx.scale(size / 32, size / 32);
     x = 0;
     y = 0;
-    ctx.fillStyle = '#1d9bf0';
+    ctx.fillStyle = type === 'organization' ? '#e2b719' : type === 'government' ? '#829aab' : '#1d9bf0';
     ctx.beginPath();
     for (let i = 0; i < 24; i++) {
         const angle = i * Math.PI / 12;
@@ -36,7 +36,7 @@ function drawAuthorName(ctx, metadata, x, baseline, maxWidth) {
         name += '…';
     }
     ctx.fillText(name, x, baseline);
-    if (verified) drawVerifiedBadge(ctx, x + ctx.measureText(name).width + gap, baseline - size * 0.38, badgeSize);
+    if (verified) drawVerifiedBadge(ctx, x + ctx.measureText(name).width + gap, baseline - size * 0.38, badgeSize, metadata.user_verification_type);
 }
 
 module.exports = { drawVerifiedBadge, drawAuthorName };

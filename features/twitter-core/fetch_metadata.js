@@ -56,11 +56,11 @@ async function fetchMetadata(url, message, isXDotCom, log = console.log) {
     const extracted = parseExtract(url, isXDotCom);
     if (!extracted) return buildError({ status: 0, error: 'Bad URL parse', source: 'client' });
 
-    // Prefer VX first; FX second
+    // Prefer FX for verification metadata; retain VX as fallback.
     const vx = `https://api.vxtwitter.com/${extracted}`;
     const fx = `https://api.fxtwitter.com/${extracted}`;
 
-    const res = await getJsonWithFallback([vx, fx], { log });
+    const res = await getJsonWithFallback([fx, vx], { log });
 
     // If nothing useful came back
     if (!res || (!res.ok && !res.json && !res.text)) {
@@ -112,11 +112,11 @@ async function fetchQTMetadata(url, log = console.log) {
     const extracted = url.split('https://twitter.com/')[1] || url.split('https://x.com/')[1];
     if (!extracted) return buildError({ status: 0, error: 'Bad QT URL parse', source: 'client' });
 
-    // Prefer VX first; FX second
+    // Prefer FX for verification metadata; retain VX as fallback.
     const vx = `https://api.vxtwitter.com/${extracted}`;
     const fx = `https://api.fxtwitter.com/${extracted}`;
 
-    const res = await getJsonWithFallback([vx, fx], { log });
+    const res = await getJsonWithFallback([fx, vx], { log });
 
     if (!res || (!res.ok && !res.json && !res.text)) {
         const err = buildError({ status: res?.status, text: res?.text, error: res?.error, source: res?.url, ct: res?.ct });

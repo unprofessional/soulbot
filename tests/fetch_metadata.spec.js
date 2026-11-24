@@ -33,8 +33,8 @@ describe('fetch_metadata', () => {
         );
 
         expect(getJsonWithFallback).toHaveBeenCalledWith([
-            'https://api.vxtwitter.com/unpromadman/status/1486771164475232260',
             'https://api.fxtwitter.com/unpromadman/status/1486771164475232260',
+            'https://api.vxtwitter.com/unpromadman/status/1486771164475232260',
         ], { log: expect.any(Function) });
         expect(metadata).toEqual(expect.objectContaining({
             tweetID: fixture.tweetID,
