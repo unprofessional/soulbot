@@ -138,6 +138,7 @@ function normalizeMainMetadata(metadataJson) {
 
     const metadata = {
         user_verified: metadataJson.user_verified === true,
+        user_verification_type: metadataJson.user_verification_type ?? null,
         authorNick: metadataJson.user_screen_name,
         authorUsername: metadataJson.user_name,
         pfpUrl: metadataJson.user_profile_image_url,
@@ -184,6 +185,7 @@ function normalizeQtMetadata(qtJson) {
 
     const qtMetadata = {
         user_verified: qtJson.user_verified === true,
+        user_verification_type: qtJson.user_verification_type ?? null,
         authorNick: qtJson.user_screen_name || '',
         authorUsername: qtJson.user_name || '',
         pfpUrl: qtJson.user_profile_image_url || '',

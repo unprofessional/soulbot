@@ -118,7 +118,7 @@ function header(ctx, post, img, x, y, width, expanded = false, small = false) {
     const name = fit(ctx, post.user_name, width - size - (expanded ? 80 : 290));
     ctx.fillText(name, tx, y + 31);
     const nameEnd = tx + ctx.measureText(name).width;
-    if (post.user_verified) drawVerifiedBadge(ctx, nameEnd + 6, y + 20);
+    if (post.user_verified) drawVerifiedBadge(ctx, nameEnd + 6, y + 20, 32, post.user_verification_type);
     ctx.font = font(30);
     ctx.fillStyle = MUTED;
     const hx = expanded ? tx : nameEnd + (post.user_verified ? 48 : 12);
