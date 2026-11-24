@@ -3,6 +3,9 @@ const { cropSingleImage } = require('../twitter-post/crop_single_image');
 const { DESKTOP_MAX_WIDTH, TEXT_FONT_FAMILY } = require('../twitter-post/canvas/constants');
 const { buildDisplayText } = require('./translation_service');
 const { formatTwitterFooter } = require('./utils');
+const { buildCombinedGalleryCanvas, drawImageWithBlurredBackground } = require('../twitter-post/image_gallery_rendering');
+const { scaleDownToFitAspectRatio } = require('../twitter-post/scale_down');
+const { formatReplyDelta } = require('../twitter-post/canvas/metadata_normalize');
 const { drawDescriptionLines } = require('./canvas/misc_draw');
 
 const PAD = 32;
@@ -67,33 +70,32 @@ async function assets(post) {
         load(post.user_profile_image_url),
         ...items.map(m => load(m.type === 'image' ? m.url || m.thumbnail_url : m.thumbnail_url)),
     ]);
-    return { avatar, images: images.filter(Boolean) };
+    const loaded = images.filter(Boolean);
+    const gallery = loaded.length > 1 ? buildCombinedGalleryCanvas(loaded, loaded.map(img => ({ size: { width: img.width, height: img.height } }))) : loaded[0];
+    return { avatar, images: gallery ? [gallery] : [] };
 }
-function mediaHeight(images, width) {
-    if (!images.length) return 0;
-    return images.length === 1 ? width / Math.max(0.75, images[0].width / images[0].height) : width * 9 / 16;
+function mediaSize(images, width, maxHeight = 1000) {
+    if (!images.length) return { width: 0, height: 0 };
+    return scaleDownToFitAspectRatio(images[0], maxHeight, width);
 }
 function drawMedia(ctx, images, x, y, width, height) {
     if (!images.length) return;
     ctx.save();
     rounded(ctx, x, y, width, height);
     ctx.clip();
-    const gap = 4;
-    const halfW = (width - gap) / 2;
-    const halfH = (height - gap) / 2;
-    const rects = images.length === 1 ? [[0, 0, width, height]]
-        : images.length === 2 ? [[0, 0, halfW, height], [halfW + gap, 0, halfW, height]]
-            : images.length === 3 ? [[0, 0, halfW, height], [halfW + gap, 0, halfW, halfH], [halfW + gap, halfH + gap, halfW, halfH]]
-                : [[0, 0, halfW, halfH], [halfW + gap, 0, halfW, halfH], [0, halfH + gap, halfW, halfH], [halfW + gap, halfH + gap, halfW, halfH]];
-    images.forEach((img, i) => {
-        const [dx, dy, w, h] = rects[i];
-        cropSingleImage(ctx, img, w, h, x + dx, y + dy);
-    });
+    // Composite galleries already contain the shared blurred-background treatment.
+    // Contain quote thumbnails too, rather than cropping away their content.
+    drawImageWithBlurredBackground(ctx, images[0], x, y, width, height);
     ctx.restore();
     ctx.strokeStyle = BORDER;
     ctx.lineWidth = 2;
     rounded(ctx, x, y, width, height);
     ctx.stroke();
+}
+function footer(post, reference) {
+    const timestamp = formatTwitterFooter(new Date(post.date_epoch * 1000));
+    const delta = reference ? formatReplyDelta(reference, post) : null;
+    return timestamp + (delta ? ` · ${delta}` : '');
 }
 function avatar(ctx, img, x, y, size) {
     ctx.save();
@@ -161,7 +163,8 @@ async function renderThreadSnapshotCanvas({ posts, isTruncated }) {
         const bodyY = y + (expanded ? 116 : 46);
         let bottom = bodyY + lines.length * lineHeight;
         const mediaY = bottom + (lines.length ? 20 : 0);
-        const height = mediaHeight(loaded.images, width);
+        const media = mediaSize(loaded.images, width);
+        const height = media.height;
         if (height) bottom = mediaY + height;
         let quote;
         if (post.qtMetadata) {
@@ -169,11 +172,11 @@ async function renderThreadSnapshotCanvas({ posts, isTruncated }) {
             const qa = await assets(qp);
             measure.font = font(30);
             const qlines = wrap(measure, buildDisplayText(qp).trim(), width - (qa.images.length ? 260 : 48), 5);
-            quote = { post: qp, ...qa, lines: qlines, y: bottom + 12, height: 84 + Math.max(qlines.length * 40, qa.images.length ? 200 : 0) + 24 };
+            quote = { post: qp, ...qa, lines: qlines, y: bottom + 12, height: 84 + Math.max(qlines.length * 40, qa.images.length ? 200 : 0) + 76 };
             bottom = quote.y + quote.height;
         }
-        const footerY = bottom + (expanded ? 48 : 0);
-        rows.push({ post, ...loaded, expanded, x, width, size, lineHeight, lines, y, bodyY, mediaY, height, quote, footerY });
+        const footerY = bottom + 48;
+        rows.push({ post, ...loaded, expanded, x, width, size, lineHeight, lines, y, bodyY, mediaY, mediaWidth: media.width, height, quote, footerY });
         y = Math.max(footerY + (expanded ? 36 : 56), y + AVATAR + 16);
     }
     const canvas = createCanvas(DESKTOP_MAX_WIDTH, Math.max(120, Math.ceil(y)));
@@ -193,7 +196,7 @@ async function renderThreadSnapshotCanvas({ posts, isTruncated }) {
         }
         header(ctx, post, row.avatar, PAD, y, DESKTOP_MAX_WIDTH - PAD * 2, expanded);
         textLines(ctx, row.lines, x, row.bodyY, row.size, row.lineHeight);
-        drawMedia(ctx, row.images, x, row.mediaY, width, row.height);
+        drawMedia(ctx, row.images, x + (width - row.mediaWidth) / 2, row.mediaY, row.mediaWidth, row.height);
         if (quote) {
             ctx.strokeStyle = BORDER;
             ctx.lineWidth = 2;
@@ -202,12 +205,15 @@ async function renderThreadSnapshotCanvas({ posts, isTruncated }) {
             header(ctx, quote.post, quote.avatar, x + 24, quote.y + 20, width - 48, false, true);
             if (quote.images.length) drawMedia(ctx, [quote.images[0]], x + 24, quote.y + 84, 200, 200);
             textLines(ctx, quote.lines, x + (quote.images.length ? 248 : 24), quote.y + 80, 30, 40);
+            ctx.font = font(24);
+            ctx.fillStyle = MUTED;
+            ctx.fillText(footer(quote.post), x + 24, quote.y + quote.height - 24);
         }
-        if (expanded) {
+        {
             ctx.font = font(28);
             ctx.fillStyle = MUTED;
-            const footer = formatTwitterFooter(new Date(post.date_epoch * 1000));
-            ctx.fillText(footer, x, row.footerY);
+            const reference = post.qtMetadata || (i ? posts[i - 1] : null);
+            ctx.fillText(footer(post, reference), x, row.footerY);
         }
     }
     return canvas.toBuffer('image/png');
