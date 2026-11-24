@@ -1,4 +1,5 @@
 const { drawVerifiedBadge } = require('./canvas/verified_badge');
+const { drawXLogo } = require('./canvas/x_logo');
 const { createCanvas, loadImage } = require('canvas');
 const { cropSingleImage } = require('../twitter-post/crop_single_image');
 const { DESKTOP_MAX_WIDTH, TEXT_FONT_FAMILY } = require('../twitter-post/canvas/constants');
@@ -122,7 +123,7 @@ function header(ctx, post, img, x, y, width, expanded = false, small = false) {
     ctx.fillStyle = MUTED;
     const hx = expanded ? tx : nameEnd + (post.user_verified ? 48 : 12);
     ctx.fillText(fit(ctx, `@${post.user_screen_name}`, x + width - hx - 45), hx, y + (expanded ? 70 : 31));
-    if (!small) ctx.fillText('···', x + width - 38, y + 24);
+    if (!small) drawXLogo(ctx, x + width - 32, y + 4, 28);
 }
 function textLines(ctx, lines, x, y, size, lineHeight) {
     ctx.font = font(size);
