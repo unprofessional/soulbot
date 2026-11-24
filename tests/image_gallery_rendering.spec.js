@@ -113,3 +113,29 @@ describe('VX-style image gallery sizing', () => {
         expect(combined.height).toBe(1539);
     });
 });
+
+test.each([5, 10, 20])('overflow overlay reports only the %i-image gallery remainder', count => {
+    const { drawGalleryOverflow } = require('../features/twitter-post/image_gallery_rendering');
+    const ctx = { save: jest.fn(), restore: jest.fn(), fillRect: jest.fn(), fillText: jest.fn() };
+    drawGalleryOverflow(ctx, { x: 500, y: 400, width: 500, height: 400 }, count - 4);
+    expect(ctx.fillRect).toHaveBeenCalledWith(500, 400, 500, 400);
+    expect(ctx.fillText).toHaveBeenCalledWith(`+${count - 4}`, 750, expect.any(Number));
+});
+
+test('only darkens the fourth tile when additional images exist', () => {
+    const images = Array.from({ length: 10 }, () => {
+        const canvas = createCanvas(100, 100);
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, 100, 100);
+        return canvas;
+    });
+    const items = images.map(() => imageItem(100, 100));
+    const overflow = buildCombinedGalleryCanvas(images, items);
+    const normal = buildCombinedGalleryCanvas(images.slice(0, 4), items.slice(0, 4));
+    expect(overflow.width).toBe(normal.width);
+    expect(overflow.height).toBe(normal.height);
+    const pixel = (canvas, x, y) => canvas.getContext('2d').getImageData(x, y, 1, 1).data[0];
+    expect(pixel(overflow, 10, 10)).toBe(255);
+    expect(pixel(normal, 110, 110)).toBe(255);
+    expect(pixel(overflow, 110, 110)).toBeLessThan(130);
+});

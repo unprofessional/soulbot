@@ -2,6 +2,7 @@
 /* eslint-disable no-empty */
 const { createCanvas, loadImage } = require('canvas');
 const { cropSingleImage } = require('./crop_single_image.js');
+const { TEXT_FONT_FAMILY } = require('./canvas/constants.js');
 const { scaleDownToFitAspectRatio } = require('./scale_down.js');
 
 // features/twitter-post/image_gallery_rendering.js
@@ -309,7 +310,27 @@ function drawImageWithBlurredBackground(ctx, img, x, y, width, height) {
     ctx.restore();
 }
 
-function buildCombinedGalleryCanvas(imgs, items) {
+function drawGalleryOverflow(ctx, rect, hiddenCount) {
+    if (hiddenCount <= 0) return;
+    ctx.save();
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.55)';
+    ctx.fillRect(rect.x, rect.y, rect.width, rect.height);
+    const size = Math.min(rect.width * 0.16, rect.height * 0.24);
+    const centerX = rect.x + rect.width / 2;
+    const centerY = rect.y + rect.height / 2;
+    ctx.fillStyle = '#fff';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.font = `bold ${size}px ${TEXT_FONT_FAMILY}`;
+    ctx.fillText(`+${hiddenCount}`, centerX, centerY - size * 0.2);
+    ctx.font = `${size * 0.28}px ${TEXT_FONT_FAMILY}`;
+    ctx.fillText('more images', centerX, centerY + size * 0.64);
+    ctx.restore();
+}
+
+function buildCombinedGalleryCanvas(imgs, items, totalCount = items.length) {
+    imgs = imgs.slice(0, 4);
+    items = items.slice(0, 4);
     const naturalSize = getCombinedNaturalSize(items);
     if (!naturalSize) return null;
 
@@ -329,6 +350,7 @@ function buildCombinedGalleryCanvas(imgs, items) {
         drawContainedImage(ctx, imgs[i], rects[i]);
     }
     ctx.restore();
+    if (imgs.length === 4) drawGalleryOverflow(ctx, rects[3], totalCount - 4);
 
     return canvas;
 }
@@ -339,7 +361,7 @@ async function loadCombinedGalleryCanvas(items) {
     if (!urls.length) return null;
 
     const imgs = await Promise.all(urls.map(u => loadImage(u)));
-    return buildCombinedGalleryCanvas(imgs, galleryItems);
+    return buildCombinedGalleryCanvas(imgs, galleryItems, items.length);
 }
 
 function computeBaseY(defaultYPosition, calculatedCanvasHeightFromDescLines, heightShim) {
@@ -458,7 +480,7 @@ async function renderImageGallery(
 
     // Load all images we need in parallel
     const imgs = await Promise.all(urls.map(u => loadImage(u)));
-    const combined = buildCombinedGalleryCanvas(imgs, items);
+    const combined = buildCombinedGalleryCanvas(imgs, items, getItems(metadata).length);
     if (!combined) return;
 
     const displaySize = fitWithinBox(
@@ -472,6 +494,7 @@ async function renderImageGallery(
 }
 
 module.exports = {
+    drawGalleryOverflow,
     buildCombinedGalleryCanvas,
     containRect,
     coverRect,

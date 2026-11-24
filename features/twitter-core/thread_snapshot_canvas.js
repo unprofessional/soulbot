@@ -73,7 +73,7 @@ async function assets(post) {
         ...items.map(m => load(m.type === 'image' ? m.url || m.thumbnail_url : m.thumbnail_url)),
     ]);
     const loaded = images.filter(Boolean);
-    const gallery = loaded.length > 1 ? buildCombinedGalleryCanvas(loaded, loaded.map(img => ({ size: { width: img.width, height: img.height } }))) : loaded[0];
+    const gallery = loaded.length > 1 ? buildCombinedGalleryCanvas(loaded, loaded.map(img => ({ size: { width: img.width, height: img.height } })), post.media_extended?.length || loaded.length) : loaded[0];
     return { avatar, images: gallery ? [gallery] : [] };
 }
 function mediaSize(images, width, maxHeight = 1000) {
@@ -109,7 +109,7 @@ function avatar(ctx, img, x, y, size) {
     if (img) cropSingleImage(ctx, img, size, size, x, y);
     ctx.restore();
 }
-function header(ctx, post, img, x, y, width, expanded = false, small = false) {
+function header(ctx, post, img, x, y, width, expanded = false, small = false, showLogo = false) {
     const size = small ? 44 : AVATAR;
     avatar(ctx, img, x, y, size);
     const tx = x + size + 20;
@@ -123,7 +123,7 @@ function header(ctx, post, img, x, y, width, expanded = false, small = false) {
     ctx.fillStyle = MUTED;
     const hx = expanded ? tx : nameEnd + (post.user_verified ? 48 : 12);
     ctx.fillText(fit(ctx, `@${post.user_screen_name}`, x + width - hx - 45), hx, y + (expanded ? 70 : 31));
-    if (!small) drawXLogo(ctx, x + width - 32, y + 4, 28);
+    if (showLogo) drawXLogo(ctx, x + width - 32, y + 4, 28);
 }
 function textLines(ctx, lines, x, y, size, lineHeight) {
     ctx.font = font(size);
@@ -178,7 +178,7 @@ async function renderThreadSnapshotCanvas({ posts, isTruncated }) {
             ctx.lineTo(PAD + AVATAR / 2, rows[i + 1].y - 8);
             ctx.stroke();
         }
-        header(ctx, post, row.avatar, PAD, y, DESKTOP_MAX_WIDTH - PAD * 2, expanded);
+        header(ctx, post, row.avatar, PAD, y, DESKTOP_MAX_WIDTH - PAD * 2, expanded, false, i === 0);
         textLines(ctx, row.lines, x, row.bodyY, row.size, row.lineHeight);
         drawMedia(ctx, row.images, x + (width - row.mediaWidth) / 2, row.mediaY, row.mediaWidth, row.height);
         if (quote) {
