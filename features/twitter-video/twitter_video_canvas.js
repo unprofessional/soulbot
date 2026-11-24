@@ -51,6 +51,7 @@ async function createTwitterVideoCanvas(metadataJson) {
     const vSize = v0?.size || { width: v0?.width || 0, height: v0?.height || 0 };
 
     const metadata = {
+        user_verified: metadataJson.user_verified === true,
         authorNick: metadataJson.user_screen_name,
         authorUsername: metadataJson.user_name,
         pfpUrl: metadataJson.user_profile_image_url,
@@ -126,6 +127,7 @@ async function createTwitterVideoCanvas(metadataJson) {
         drawQtBasicElements(ctx, globalFont, {
             ...quote,
             authorNick: quote.user_screen_name,
+            user_verified: quote.user_verified === true,
             authorUsername: quote.user_name,
             description: quoteDescription,
         }, quotePfp, null, {

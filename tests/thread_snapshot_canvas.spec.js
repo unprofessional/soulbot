@@ -32,6 +32,8 @@ jest.mock('canvas', () => ({
             arc: jest.fn(),
             clip: jest.fn(),
             save: jest.fn(),
+            translate: jest.fn(),
+            scale: jest.fn(),
             restore: jest.fn(),
             quadraticCurveTo: jest.fn(),
             bezierCurveTo: jest.fn(),
