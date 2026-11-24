@@ -309,25 +309,57 @@ function drawImageWithBlurredBackground(ctx, img, x, y, width, height) {
     ctx.restore();
 }
 
-function drawGalleryOverflow(ctx, rect, hiddenCount) {
+function drawGalleryOverflow(ctx, rect, hiddenCount, label = 'MORE PHOTOS') {
     if (hiddenCount <= 0) return;
     ctx.save();
     ctx.fillStyle = 'rgba(0, 0, 0, 0.55)';
     ctx.fillRect(rect.x, rect.y, rect.width, rect.height);
-    const size = Math.min(rect.width * 0.16, rect.height * 0.24);
-    const centerX = rect.x + rect.width / 2;
-    const centerY = rect.y + rect.height / 2;
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.font = `bold ${size}px ${TEXT_FONT_FAMILY}`;
-    ctx.fillText(`+${hiddenCount}`, centerX, centerY - size * 0.2);
-    ctx.font = `${size * 0.28}px ${TEXT_FONT_FAMILY}`;
-    ctx.fillText('more images', centerX, centerY + size * 0.64);
+    const unit = Math.min(rect.width / 420, rect.height / 396);
+    const cx = rect.x + rect.width / 2;
+    const cy = rect.y + rect.height / 2;
+    const box = (x, y, w, h, radius) => {
+        ctx.beginPath();
+        ctx.roundRect(cx + x * unit, cy + y * unit, w * unit, h * unit, radius * unit);
+    };
+    // Two overlapping photo cards, with a cutout mountain and sun.
+    ctx.lineWidth = 1.5 * unit;
+    ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+    ctx.fillStyle = 'rgba(255,255,255,0.12)';
+    box(-12, -105, 44, 38, 6); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = 'rgba(255,255,255,0.9)';
+    box(-23, -96, 46, 39, 5); ctx.fill();
+    ctx.fillStyle = '#20262a';
+    ctx.beginPath(); ctx.arc(cx + 10 * unit, cy - 84 * unit, 4 * unit, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(cx - 16 * unit, cy - 65 * unit);
+    ctx.lineTo(cx - 5 * unit, cy - 80 * unit);
+    ctx.lineTo(cx + 3 * unit, cy - 70 * unit);
+    ctx.lineTo(cx + 9 * unit, cy - 77 * unit);
+    ctx.lineTo(cx + 18 * unit, cy - 65 * unit);
+    ctx.closePath(); ctx.fill();
+    ctx.font = `bold ${50 * unit}px ${TEXT_FONT_FAMILY}`;
+    const count = `+${hiddenCount}`;
+    const pillWidth = Math.max(148 * unit, ctx.measureText(count).width + 46 * unit);
+    ctx.beginPath();
+    ctx.roundRect(cx - pillWidth / 2, cy - 20 * unit, pillWidth, 72 * unit, 36 * unit);
+    ctx.fillStyle = 'rgba(255,255,255,0.13)'; ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,0.45)'; ctx.lineWidth = 1.5 * unit; ctx.stroke();
+    ctx.fillStyle = 'rgba(255,255,255,0.9)';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(count, cx, cy + 17 * unit);
+    ctx.font = `${14 * unit}px ${TEXT_FONT_FAMILY}`;
+    const spacing = 2.5 * unit;
+    const widths = [...label].map(char => ctx.measureText(char).width);
+    let x = cx - (widths.reduce((a, b) => a + b, 0) + spacing * (label.length - 1)) / 2;
+    ctx.textAlign = 'left';
+    [...label].forEach((char, i) => {
+        ctx.fillText(char, x, cy + 81 * unit);
+        x += widths[i] + spacing;
+    });
     ctx.restore();
 }
 
-function buildCombinedGalleryCanvas(imgs, items, totalCount = items.length) {
+function buildCombinedGalleryCanvas(imgs, items, totalCount = items.length, overflowLabel = items.some(m => ['video', 'gif'].includes(m.type)) ? 'MORE MEDIA' : 'MORE PHOTOS') {
     imgs = imgs.slice(0, 4);
     items = items.slice(0, 4);
     const naturalSize = getCombinedNaturalSize(items);
@@ -349,7 +381,7 @@ function buildCombinedGalleryCanvas(imgs, items, totalCount = items.length) {
         drawContainedImage(ctx, imgs[i], rects[i]);
     }
     ctx.restore();
-    if (imgs.length === 4) drawGalleryOverflow(ctx, rects[3], totalCount - 4);
+    if (imgs.length === 4) drawGalleryOverflow(ctx, rects[3], totalCount - 4, overflowLabel);
 
     return canvas;
 }
@@ -360,7 +392,7 @@ async function loadCombinedGalleryCanvas(items) {
     if (!urls.length) return null;
 
     const imgs = await Promise.all(urls.map(u => loadImage(u)));
-    return buildCombinedGalleryCanvas(imgs, galleryItems, items.length);
+    return buildCombinedGalleryCanvas(imgs, items, items.length);
 }
 
 function computeBaseY(defaultYPosition, calculatedCanvasHeightFromDescLines, heightShim) {
@@ -479,7 +511,7 @@ async function renderImageGallery(
 
     // Load all images we need in parallel
     const imgs = await Promise.all(urls.map(u => loadImage(u)));
-    const combined = buildCombinedGalleryCanvas(imgs, items, getItems(metadata).length);
+    const combined = buildCombinedGalleryCanvas(imgs, getItems(metadata));
     if (!combined) return;
 
     const displaySize = fitWithinBox(

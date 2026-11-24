@@ -116,7 +116,9 @@ describe('VX-style image gallery sizing', () => {
 
 test.each([5, 10, 20])('overflow overlay reports only the %i-image gallery remainder', count => {
     const { drawGalleryOverflow } = require('../features/twitter-post/image_gallery_rendering');
-    const ctx = { save: jest.fn(), restore: jest.fn(), fillRect: jest.fn(), fillText: jest.fn() };
+    const ctx = createCanvas(1000, 800).getContext('2d');
+    jest.spyOn(ctx, 'fillRect');
+    jest.spyOn(ctx, 'fillText');
     drawGalleryOverflow(ctx, { x: 500, y: 400, width: 500, height: 400 }, count - 4);
     expect(ctx.fillRect).toHaveBeenCalledWith(500, 400, 500, 400);
     expect(ctx.fillText).toHaveBeenCalledWith(`+${count - 4}`, 750, expect.any(Number));

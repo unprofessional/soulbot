@@ -73,7 +73,7 @@ async function assets(post) {
         ...items.map(m => load(m.type === 'image' ? m.url || m.thumbnail_url : m.thumbnail_url)),
     ]);
     const loaded = images.filter(Boolean);
-    const gallery = loaded.length > 1 ? buildCombinedGalleryCanvas(loaded, loaded.map(img => ({ size: { width: img.width, height: img.height } })), post.media_extended?.length || loaded.length) : loaded[0];
+    const gallery = loaded.length > 1 ? buildCombinedGalleryCanvas(loaded, loaded.map(img => ({ size: { width: img.width, height: img.height } })), post.media_extended?.length || loaded.length, post.media_extended?.some(m => ['video', 'gif'].includes(m.type)) ? 'MORE MEDIA' : 'MORE PHOTOS') : loaded[0];
     return { avatar, images: gallery ? [gallery] : [] };
 }
 function mediaSize(images, width, maxHeight = 1000) {
