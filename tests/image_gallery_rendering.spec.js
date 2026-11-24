@@ -139,3 +139,17 @@ test('only darkens the fourth tile when additional images exist', () => {
     expect(pixel(normal, 110, 110)).toBe(255);
     expect(pixel(overflow, 110, 110)).toBeLessThan(130);
 });
+
+test('mixed galleries load video thumbnails and count all attachments', async () => {
+    const { loadCombinedGalleryCanvas } = require('../features/twitter-post/image_gallery_rendering');
+    const c = createCanvas(100, 100);
+    const ctx = c.getContext('2d'); ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, 100, 100);
+    const url = c.toDataURL();
+    const items = Array.from({ length: 10 }, (_, i) => ({
+        type: i ? 'video' : 'image', url: i ? 'https://invalid.example/video.mp4' : url,
+        thumbnail_url: url, size: { width: 100, height: 100 },
+    }));
+    const gallery = await loadCombinedGalleryCanvas(items);
+    expect(gallery.width).toBe(200);
+    expect(gallery.getContext('2d').getImageData(110, 110, 1, 1).data[0]).toBeLessThan(130);
+});

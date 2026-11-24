@@ -20,13 +20,12 @@ const BLUR_BOX_PASSES = 3;
 
 function getItems(metadata) {
     const items = Array.isArray(metadata?.mediaExtended) ? metadata.mediaExtended : [];
-    // Prefer images; if mixed, keep images only
-    const images = items.filter(m => (m?.type || '').toLowerCase() === 'image');
-    return images.length ? images : items;
+    // An image-first post stays a static gallery, including later video thumbnails.
+    return items;
 }
 
 function getUrl(m) {
-    return m?.thumbnail_url || m?.url || null;
+    return ['video', 'gif'].includes(m?.type) ? m?.thumbnail_url || null : m?.thumbnail_url || m?.url || null;
 }
 
 function getSize(m) {
