@@ -113,3 +113,73 @@ describe('VX-style image gallery sizing', () => {
         expect(combined.height).toBe(1539);
     });
 });
+
+test.each([5, 10, 20])('overflow overlay reports only the %i-image gallery remainder', count => {
+    const { drawGalleryOverflow } = require('../features/twitter-post/image_gallery_rendering');
+    const ctx = createCanvas(1000, 800).getContext('2d');
+    jest.spyOn(ctx, 'fillRect');
+    jest.spyOn(ctx, 'fillText');
+    drawGalleryOverflow(ctx, { x: 500, y: 400, width: 500, height: 400 }, count - 4);
+    expect(ctx.fillRect).toHaveBeenCalledWith(500, 400, 500, 400);
+    expect(ctx.fillText).toHaveBeenCalledWith(`+${count - 4}`, 750, expect.any(Number));
+});
+
+test('only darkens the fourth tile when additional images exist', () => {
+    const images = Array.from({ length: 10 }, () => {
+        const canvas = createCanvas(100, 100);
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, 100, 100);
+        return canvas;
+    });
+    const items = images.map(() => imageItem(100, 100));
+    const overflow = buildCombinedGalleryCanvas(images, items);
+    const normal = buildCombinedGalleryCanvas(images.slice(0, 4), items.slice(0, 4));
+    expect(overflow.width).toBe(normal.width);
+    expect(overflow.height).toBe(normal.height);
+    const pixel = (canvas, x, y) => canvas.getContext('2d').getImageData(x, y, 1, 1).data[0];
+    expect(pixel(overflow, 10, 10)).toBe(255);
+    expect(pixel(normal, 110, 110)).toBe(255);
+    expect(pixel(overflow, 110, 110)).toBeLessThan(130);
+});
+
+test('mixed galleries load video thumbnails and count all attachments', async () => {
+    const { loadCombinedGalleryCanvas } = require('../features/twitter-post/image_gallery_rendering');
+    const c = createCanvas(100, 100);
+    const ctx = c.getContext('2d'); ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, 100, 100);
+    const url = c.toDataURL();
+    const items = Array.from({ length: 10 }, (_, i) => ({
+        type: i ? 'video' : 'image', url: i ? 'https://invalid.example/video.mp4' : url,
+        thumbnail_url: url, size: { width: 100, height: 100 },
+    }));
+    const gallery = await loadCombinedGalleryCanvas(items);
+    expect(gallery.width).toBe(200);
+    expect(gallery.getContext('2d').getImageData(110, 110, 1, 1).data[0]).toBeLessThan(130);
+});
+
+test('overflow lightly softens the final tile without blurring adjacent tiles', () => {
+    const { drawGalleryOverflow } = require('../features/twitter-post/image_gallery_rendering');
+    const canvas = createCanvas(200, 100);
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#000'; ctx.fillRect(0, 0, 200, 100);
+    ctx.fillStyle = '#fff'; ctx.fillRect(50, 0, 50, 100); ctx.fillRect(150, 0, 50, 100);
+    drawGalleryOverflow(ctx, { x: 100, y: 0, width: 100, height: 100 }, 6);
+    const red = x => ctx.getImageData(x, 5, 1, 1).data[0];
+    expect(red(49)).toBe(0);
+    expect(red(50)).toBe(255);
+    expect(red(149)).toBeGreaterThan(0);
+    expect(red(149)).toBeLessThan(115);
+    expect(red(110)).toBe(0);
+});
+
+test('draws a translucent play badge on video tiles while photo tiles stay unmarked', () => {
+    const images = Array.from({ length: 2 }, () => {
+        const canvas = createCanvas(100, 100);
+        const ctx = canvas.getContext('2d'); ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, 100, 100);
+        return canvas;
+    });
+    const gallery = buildCombinedGalleryCanvas(images, [imageItem(100, 100), { ...imageItem(100, 100), type: 'video' }]);
+    const ctx = gallery.getContext('2d');
+    expect(ctx.getImageData(50, 50, 1, 1).data[0]).toBe(255);
+    expect(ctx.getImageData(110, 10, 1, 1).data[0]).toBeLessThan(130);
+    expect(ctx.getImageData(150, 50, 1, 1).data[0]).toBeGreaterThan(200);
+});

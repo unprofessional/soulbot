@@ -5,8 +5,6 @@ const {
 } = require('./path_builder.js');
 const {
     createDirectoryIfNotExists,
-    extractFirstVideoUrl,
-    isFirstMediaVideo,
 } = require('./twitter_post_utils.js');
 const { createVideoProgressMessage } = require('./progress_message.js');
 const { handleVideoPost } = require('./twitter_video_handler.js');
@@ -56,20 +54,15 @@ const renderTwitterPost = async (metadataJson, message, originalLink) => {
         metadataJson.mediaURLs = media.map(m => m.url).filter(Boolean);
     }
 
-    const quotedVideo = media.length === 0 && metadataJson.qtMetadata
-        ? collectMedia(metadataJson.qtMetadata).find(m => m.type === 'video' && m.url)
-        : null;
-    metadataJson._quoteVideoMedia = quotedVideo || null;
+    const quoteFirst = media.length === 0 && metadataJson.qtMetadata
+        ? collectMedia(metadataJson.qtMetadata)[0] : null;
+    const quotedVideo = quoteFirst?.type === 'video' && quoteFirst.url ? quoteFirst : null;
+    metadataJson._quoteVideoMedia = quotedVideo;
 
-    const firstVideo = videos[0]?.url || quotedVideo?.url || null;
-    const firstGif = gifs[0]?.url || null;
-    const videoUrl =
-    firstVideo ||
-    (typeof extractFirstVideoUrl === 'function' ? extractFirstVideoUrl(metadataJson) : null);
-
-    const isVideo =
-    Boolean(quotedVideo) || videos.length > 0 ||
-    (typeof isFirstMediaVideo === 'function' && isFirstMediaVideo(metadataJson));
+    const first = media[0] || quotedVideo;
+    const firstGif = first?.type === 'gif' ? first.url : null;
+    const videoUrl = first?.type === 'video' ? first.url : null;
+    const isVideo = Boolean(videoUrl);
 
     await createDirectoryIfNotExists(processingDir);
 
