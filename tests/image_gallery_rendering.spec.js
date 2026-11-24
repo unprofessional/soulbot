@@ -155,3 +155,18 @@ test('mixed galleries load video thumbnails and count all attachments', async ()
     expect(gallery.width).toBe(200);
     expect(gallery.getContext('2d').getImageData(110, 110, 1, 1).data[0]).toBeLessThan(130);
 });
+
+test('overflow lightly softens the final tile without blurring adjacent tiles', () => {
+    const { drawGalleryOverflow } = require('../features/twitter-post/image_gallery_rendering');
+    const canvas = createCanvas(200, 100);
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#000'; ctx.fillRect(0, 0, 200, 100);
+    ctx.fillStyle = '#fff'; ctx.fillRect(50, 0, 50, 100); ctx.fillRect(150, 0, 50, 100);
+    drawGalleryOverflow(ctx, { x: 100, y: 0, width: 100, height: 100 }, 6);
+    const red = x => ctx.getImageData(x, 5, 1, 1).data[0];
+    expect(red(49)).toBe(0);
+    expect(red(50)).toBe(255);
+    expect(red(149)).toBeGreaterThan(0);
+    expect(red(149)).toBeLessThan(115);
+    expect(red(110)).toBe(0);
+});

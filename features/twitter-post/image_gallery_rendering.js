@@ -311,6 +311,15 @@ function drawImageWithBlurredBackground(ctx, img, x, y, width, height) {
 
 function drawGalleryOverflow(ctx, rect, hiddenCount, label = 'MORE PHOTOS') {
     if (hiddenCount <= 0) return;
+    // Soften only the image beneath the overlay, with clamped tile edges so
+    // neighboring photos and the subsequently drawn icon/text remain sharp.
+    const tileX = Math.ceil(rect.x);
+    const tileY = Math.ceil(rect.y);
+    const tileWidth = Math.floor(rect.x + rect.width) - tileX;
+    const tileHeight = Math.floor(rect.y + rect.height) - tileY;
+    const radius = Math.max(1, Math.round(Math.min(rect.width / 420, rect.height / 396) * 1.4));
+    const pixels = ctx.getImageData(tileX, tileY, tileWidth, tileHeight);
+    ctx.putImageData(blurImageData(pixels, radius, 2), tileX, tileY);
     ctx.save();
     ctx.fillStyle = 'rgba(0, 0, 0, 0.55)';
     ctx.fillRect(rect.x, rect.y, rect.width, rect.height);
