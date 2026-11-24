@@ -60,6 +60,11 @@ describe('fetch_metadata', () => {
 
         const metadata = await fetchQTMetadata(mainFixture.qrtURL, jest.fn());
 
+        expect(getJsonWithFallback).toHaveBeenCalledWith([
+            'https://api.fxtwitter.com/i/status/1855494400048066916',
+            'https://api.vxtwitter.com/i/status/1855494400048066916',
+        ], { log: expect.any(Function) });
+
         expect(metadata).toEqual(expect.objectContaining({
             tweetID: mainFixture.qrt.tweetID,
             text: mainFixture.qrt.text,
@@ -116,4 +121,24 @@ describe('fetch_metadata', () => {
             message: expect.stringContaining('PRIVATE_TWEET'),
         }));
     });
+});
+
+// Main posts and separately fetched quotes share provider ordering regardless of media.
+test.each(['text', 'image', 'video', 'gif'])('prefers FX and accepts VX fallback for %s posts and quotes', async type => {
+    const media = type === 'text' ? [] : [{ type, url: 'https://example.com/media' }];
+    const payload = { tweetID: '123', user_name: 'Example', text: 'Hello', media_extended: media };
+    for (const fetchPost of [
+        () => fetchMetadata('https://x.com/example/status/123', null, true, jest.fn()),
+        () => fetchQTMetadata('https://x.com/example/status/123', jest.fn()),
+    ]) {
+        getJsonWithFallback.mockClear();
+        getJsonWithFallback.mockResolvedValue({ ok: true, json: payload, url: 'https://api.vxtwitter.com/example/status/123' });
+        const post = await fetchPost();
+        expect(getJsonWithFallback).toHaveBeenCalledWith([
+            'https://api.fxtwitter.com/example/status/123',
+            'https://api.vxtwitter.com/example/status/123',
+        ], { log: expect.any(Function) });
+        expect(post.tweetID).toBe('123');
+        expect(post.media_extended).toEqual(media);
+    }
 });
