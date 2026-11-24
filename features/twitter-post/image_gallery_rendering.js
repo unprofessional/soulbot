@@ -368,6 +368,26 @@ function drawGalleryOverflow(ctx, rect, hiddenCount, label = 'MORE PHOTOS') {
     ctx.restore();
 }
 
+function drawVideoThumbnailBadge(ctx, rect) {
+    const unit = Math.min(rect.width / 420, rect.height / 396);
+    const width = 104 * unit;
+    const height = 72 * unit;
+    const cx = rect.x + rect.width / 2;
+    const cy = rect.y + rect.height / 2;
+    ctx.save();
+    ctx.beginPath();
+    ctx.roundRect(cx - width / 2, cy - height / 2, width, height, height / 2);
+    ctx.fillStyle = 'rgba(255,255,255,0.13)'; ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,0.45)'; ctx.lineWidth = 1.5 * unit; ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(cx - 10 * unit, cy - 17 * unit);
+    ctx.lineTo(cx + 18 * unit, cy);
+    ctx.lineTo(cx - 10 * unit, cy + 17 * unit);
+    ctx.closePath();
+    ctx.fillStyle = 'rgba(255,255,255,0.9)'; ctx.fill();
+    ctx.restore();
+}
+
 function buildCombinedGalleryCanvas(imgs, items, totalCount = items.length, overflowLabel = items.some(m => ['video', 'gif'].includes(m.type)) ? 'MORE MEDIA' : 'MORE PHOTOS') {
     imgs = imgs.slice(0, 4);
     items = items.slice(0, 4);
@@ -390,6 +410,9 @@ function buildCombinedGalleryCanvas(imgs, items, totalCount = items.length, over
         drawContainedImage(ctx, imgs[i], rects[i]);
     }
     ctx.restore();
+    items.forEach((item, i) => {
+        if (['video', 'gif'].includes(item.type) && !(i === 3 && totalCount > 4)) drawVideoThumbnailBadge(ctx, rects[i]);
+    });
     if (imgs.length === 4) drawGalleryOverflow(ctx, rects[3], totalCount - 4, overflowLabel);
 
     return canvas;
@@ -535,6 +558,7 @@ async function renderImageGallery(
 
 module.exports = {
     drawGalleryOverflow,
+    drawVideoThumbnailBadge,
     buildCombinedGalleryCanvas,
     containRect,
     coverRect,

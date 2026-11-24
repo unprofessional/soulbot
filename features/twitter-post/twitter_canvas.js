@@ -338,7 +338,7 @@ async function createTwitterCanvas(metadataJson, isImage) {
             ? (qtMedia[0]?.type === 'image' ? qtMedia : qtMedia.slice(0, 1))
             : [];
         const qtMediaUrl = qtFirstThumbUrl || null;
-        const qtMediaImg = qtImageMedia.length > 1
+        const qtMediaImg = qtImageMedia.length > 1 || ['video', 'gif'].includes(qtImageMedia[0]?.type)
             ? await loadCombinedGalleryCanvas(qtImageMedia)
             : (qtMediaUrl ? await safeLoadImage(qtMediaUrl) : undefined);
         const qtUseDesktopLayout = false;

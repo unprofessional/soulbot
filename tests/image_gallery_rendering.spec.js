@@ -170,3 +170,15 @@ test('overflow lightly softens the final tile without blurring adjacent tiles', 
     expect(red(149)).toBeLessThan(115);
     expect(red(110)).toBe(0);
 });
+
+test('draws a translucent play badge on video tiles while photo tiles stay unmarked', () => {
+    const images = Array.from({ length: 2 }, () => {
+        const canvas = createCanvas(100, 100);
+        const ctx = canvas.getContext('2d'); ctx.fillStyle = '#000'; ctx.fillRect(0, 0, 100, 100);
+        return canvas;
+    });
+    const gallery = buildCombinedGalleryCanvas(images, [imageItem(100, 100), { ...imageItem(100, 100), type: 'video' }]);
+    const ctx = gallery.getContext('2d');
+    expect(ctx.getImageData(50, 50, 1, 1).data[0]).toBe(0);
+    expect(ctx.getImageData(150, 50, 1, 1).data[0]).toBeGreaterThan(200);
+});
